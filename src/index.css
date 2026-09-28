@@ -1,0 +1,243 @@
+@import 'tailwindcss';
+
+@theme {
+  /* ColdCare: Inter en toda la interfaz, también en cifras tabulares. */
+  --font-display: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /* Neutrales derivados de la guía visual ColdCare. */
+  --color-cream-50: #ffffff;
+  --color-cream-100: #f4f7fb;
+  --color-cream-200: #edf2f8;
+  --color-cream-300: #dce5f0;
+  --color-cream-400: #bdcadb;
+
+  --color-ink-900: #0f172a;
+  --color-ink-700: #334155;
+  --color-ink-500: #475569;
+  --color-ink-400: #59677c;
+
+  /* Alias `pine` retenido para compatibilidad con las clases existentes. */
+  --color-pine-900: #0f172a;
+  --color-pine-800: #12366f;
+  --color-pine-700: #1647a0;
+  --color-pine-600: #0b5cff;
+  --color-pine-500: #2677ff;
+  --color-pine-300: #b8d2ff;
+  --color-pine-200: #dbe8ff;
+  --color-pine-100: #eef4ff;
+
+  --color-secondary: #00d1ff;
+  --color-secondary-hover: #00afd8;
+  --color-secondary-tint: #e2fbff;
+  --color-accent: #ff7aa2;
+  --color-accent-hover: #e75a85;
+  --color-accent-tint: #fff0f4;
+  --color-success-700: #166534;
+  --color-success-600: #15803d;
+  --color-success-100: #dcfce7;
+
+  /* ── Semánticos térmicos ────────────────────────────────── */
+  --color-honey-700: #8a5a14;
+  --color-honey-600: #a96f1d;
+  --color-honey-100: #f7ecd4;
+  --color-clay-700: #8f3320;
+  --color-clay-600: #ad3f27;
+  --color-clay-100: #f7e2da;
+
+  /* Estados operativos siguen semánticos; no heredan el color decorativo. */
+  --color-glacier-700: #07546a;
+  --color-glacier-600: #08738f;
+  --color-glacier-200: #bcefff;
+  --color-glacier-100: #e6fbff;
+
+  /* ── Semánticos de superficie ───────────────────────────── */
+  --color-background: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border: #dce5f0;
+  --color-border-strong: #bdcadb;
+  --color-foreground: #0f172a;
+  --color-muted: #475569;
+  /* Navy-slate meets 4.5:1 for small captions on both white and #F4F7FB. */
+  --color-faint: #59677c;
+  /* UI outline has >3:1 contrast on white form fields. */
+  --color-border-field: #73839c;
+  --color-primary: #0b5cff;
+  --color-primary-hover: #084ad1;
+  --color-primary-tint: #eaf1ff;
+
+  /* ── Radios (variados a propósito) ──────────────────────── */
+  --radius-field: 0.625rem;
+  --radius-card: 1rem;
+  --radius-modal: 1.125rem;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 4px 12px -4px rgb(15 23 42 / 0.08);
+  --shadow-raised: 0 2px 4px rgb(15 23 42 / 0.06), 0 12px 28px -8px rgb(15 23 42 / 0.14);
+  --shadow-lift: 0 3px 6px rgb(15 23 42 / 0.07), 0 18px 36px -12px rgb(15 23 42 / 0.18);
+
+  /* ── Animaciones de entrada ─────────────────────────────── */
+  --animate-rise: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-rise-lg: rise-lg 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade: fade 0.4s ease-out both;
+  --animate-drawer: deslizar-drawer 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes deslizar-drawer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes rise-lg {
+    from {
+      opacity: 0;
+      transform: translateY(22px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Trazo de isotermas: se dibujan solas al cargar el login */
+@keyframes trazar-isoterma {
+  from {
+    stroke-dashoffset: 900;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background-image: radial-gradient(1200px 480px at 50% -140px, rgb(11 92 255 / 0.07), transparent 72%);
+  }
+
+  ::selection {
+    background-color: var(--color-pine-200);
+    color: var(--color-ink-900);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Inputs de fecha/hora: WebKit (iOS/Safari) los pinta con estilo propio,
+     centrados y con altura colapsada. Se normalizan al look del resto. */
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='time'] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    line-height: 1.4;
+  }
+  input::-webkit-datetime-edit {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+  }
+  input::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-cream-400);
+    border-radius: 6px;
+    border: 2px solid var(--color-background);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .nums {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Etiqueta editorial: pequeñas versalitas espaciadas */
+  .eyebrow {
+    font-size: 12px;
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-faint);
+  }
+
+  /* Tarjetas que responden al cursor con una elevación sutil */
+  .card-lift {
+    transition:
+      transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .isoterma {
+    stroke-dasharray: 900;
+    animation: trazar-isoterma 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}

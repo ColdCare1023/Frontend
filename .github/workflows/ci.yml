@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Pruebas
+        run: npm run test:run
+
+      # Se construyen las DOS variantes: Vercel despliega `build:demo`, pero el
+      # build real es el que se usaría contra el backend. Si solo se comprobara
+      # uno, el otro podría llevar tiempo roto sin que nadie lo notara.
+      - name: Build (producción)
+        run: npm run build
+
+      - name: Build (demo)
+        run: npm run build:demo

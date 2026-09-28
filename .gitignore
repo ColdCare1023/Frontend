@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env*
+*.tsbuildinfo
+.DS_Store
+.vercel
+.playwright-mcp/
+
+# Cobertura de pruebas
+coverage/
+playwright-report/
+test-results/

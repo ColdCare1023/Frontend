@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="coldcare" x1="5" y1="16" x2="27" y2="16" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00D1FF" />
+      <stop offset=".52" stop-color="#0B5CFF" />
+      <stop offset="1" stop-color="#FF7AA2" />
+    </linearGradient>
+    <linearGradient id="glass" x1="16" y1="6" x2="16" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" />
+      <stop offset="1" stop-color="#DDF7FF" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="#0F172A" />
+  <path d="M5.5 17a10.5 10.5 0 1 1 21 0" stroke="url(#coldcare)" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M16 7.5a3 3 0 0 0-3 3v7.7a5 5 0 1 0 6 0v-7.7a3 3 0 0 0-3-3Z" fill="url(#glass)" stroke="url(#coldcare)" stroke-width="1.6" />
+  <path d="M16 11v10" stroke="#0B5CFF" stroke-width="1.7" stroke-linecap="round" />
+  <circle cx="16" cy="23" r="2.5" fill="#0B5CFF" />
+</svg>
