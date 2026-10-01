@@ -8,6 +8,10 @@ import { useAuthStore } from '@/application/stores/authStore'
 import { ErrorBoundary } from '@/presentation/components/ErrorBoundary'
 import { RequireAuth, RequireRoles } from '@/presentation/components/RouteGuards'
 import { LoginPage } from '@/presentation/pages/LoginPage'
+import { RegistroPage } from '@/presentation/pages/RegistroPage'
+import { RecuperarContrasenaPage } from '@/presentation/pages/RecuperarContrasenaPage'
+import { RestablecerContrasenaPage } from '@/presentation/pages/RestablecerContrasenaPage'
+import { SolicitarAccesoPage } from '@/presentation/pages/SolicitarAccesoPage'
 
 /**
  * Carga diferida por ruta (F-11). El dashboard arrastra ECharts (~600 KB), que
@@ -24,17 +28,10 @@ function diferida<T extends Record<string, ComponentType>>(
 }
 
 /**
- * RNF-10 (carga ≤ 3 s). El layout y el modal de privacidad se importaban de
- * forma directa, así que la pantalla de login —la única que ve quien todavía
- * no ha entrado— arrastraba Radix Dialog, el bloqueo de scroll y los doce
- * iconos de la navegación antes de poder pintar el formulario. Ninguno de los
- * dos hace falta hasta después de autenticarse.
+ * RNF-10 (carga ≤ 3 s). El layout se carga al autenticarse para que login no
+ * descargue navegación ni las páginas protegidas antes de necesitarlas.
  */
 const AppLayout = diferida(() => import('@/presentation/layouts/AppLayout'), 'AppLayout')
-const PrivacyConsentModal = diferida(
-  () => import('@/presentation/components/PrivacyConsentModal'),
-  'PrivacyConsentModal',
-)
 
 const GuiaPage = diferida(() => import('@/presentation/pages/GuiaPage'), 'GuiaPage')
 const DashboardPage = diferida(() => import('@/presentation/pages/DashboardPage'), 'DashboardPage')
@@ -43,10 +40,6 @@ const AlertasPage = diferida(() => import('@/presentation/pages/AlertasPage'), '
 const TrazabilidadPage = diferida(
   () => import('@/presentation/pages/TrazabilidadPage'),
   'TrazabilidadPage',
-)
-const ChecklistBPAPage = diferida(
-  () => import('@/presentation/pages/ChecklistBPAPage'),
-  'ChecklistBPAPage',
 )
 const ReportesPage = diferida(() => import('@/presentation/pages/ReportesPage'), 'ReportesPage')
 const MetricasIAPage = diferida(
@@ -59,25 +52,54 @@ const DispositivosPage = diferida(
   () => import('@/presentation/pages/DispositivosPage'),
   'DispositivosPage',
 )
-const FirmwarePage = diferida(() => import('@/presentation/pages/FirmwarePage'), 'FirmwarePage')
-
-/**
- * El respaldo de `Suspense` era un «…» suelto: sin texto real y sin rol, el
- * lector de pantalla solo percibía que la página se había vaciado. WCAG 4.1.3
- * pide que un cambio de estado como «cargando» se comunique sin robar el foco,
- * de ahí `role="status"`.
- */
-function RespaldoCarga() {
+/** Holds a stable shell while a protected route's code loads. */
+function RespaldoCarga({ shell = false }: { shell?: boolean }) {
   const { t } = useTranslation()
+  if (shell) {
+    return (
+      <div role="status" aria-live="polite" aria-busy="true" className="min-h-dvh bg-background">
+        <span className="sr-only">{t('app.cargando')}</span>
+        <aside aria-hidden className="fixed inset-y-0 left-0 hidden w-60 border-r border-border bg-surface p-6 lg:block">
+          <div className="h-10 w-36 rounded-lg bg-cream-200" />
+          <div className="mt-12 space-y-5">{Array.from({ length: 9 }, (_, i) => <div key={i} className="h-4 w-40 rounded bg-cream-200" />)}</div>
+        </aside>
+        <header aria-hidden className="h-14 border-b border-border bg-surface lg:ml-60" />
+        <main aria-hidden className="space-y-5 p-4 sm:p-6 lg:ml-60 lg:p-8">
+          <div className="h-8 w-64 max-w-full rounded bg-cream-200" />
+          <div className="h-4 w-96 max-w-full rounded bg-cream-200" />
+          <div className="rounded-xl border border-border bg-surface p-5">
+            <div className="h-4 w-40 rounded bg-cream-200" />
+            <div className="mt-6 flex flex-wrap gap-3"><div className="h-11 w-40 rounded bg-cream-100" /><div className="h-11 w-40 rounded bg-cream-100" /><div className="h-11 w-40 rounded bg-cream-100" /></div>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-5">
+            <div className="h-4 w-48 rounded bg-cream-200" />
+            <div className="mt-8 flex h-20 items-end gap-3 border-b border-border px-3">{[35, 62, 48, 76, 56, 88, 68, 96, 52, 72, 44, 82].map((height, i) => <span key={i} className="flex-1 rounded-t bg-cream-200" style={{ height: `${height}%` }} />)}</div>
+            <div className="mt-5 space-y-3">{[0, 1, 2].map((i) => <div key={i} className="flex gap-4"><div className="h-3 w-32 rounded bg-cream-100" /><div className="h-3 w-48 rounded bg-cream-100" /></div>)}</div>
+          </div>
+        </main>
+      </div>
+    )
+  }
   return (
-    <p role="status" aria-live="polite" className="animate-fade p-8 text-sm text-muted">
-      {t('app.cargando')}
-    </p>
+    <div role="status" aria-live="polite" aria-busy="true" className="min-h-[280px] space-y-5">
+      <span className="sr-only">{t('app.cargando')}</span>
+      <div aria-hidden className="h-8 w-64 max-w-full rounded bg-cream-200" />
+      <div aria-hidden className="h-4 w-96 max-w-full rounded bg-cream-200" />
+      <div aria-hidden className="rounded-xl border border-border bg-surface p-5">
+        <div className="h-4 w-40 rounded bg-cream-200" />
+        <div className="mt-6 flex flex-wrap gap-3"><div className="h-11 w-40 rounded bg-cream-100" /><div className="h-11 w-40 rounded bg-cream-100" /><div className="h-11 w-40 rounded bg-cream-100" /></div>
+      </div>
+      <div aria-hidden className="rounded-xl border border-border bg-surface p-5">
+        <div className="h-4 w-48 rounded bg-cream-200" />
+        <div className="mt-8 flex h-20 items-end gap-3 border-b border-border px-3">{[35, 62, 48, 76, 56, 88, 68, 96, 52, 72, 44, 82].map((height, i) => <span key={i} className="flex-1 rounded-t bg-cream-200" style={{ height: `${height}%` }} />)}</div>
+        <div className="mt-5 space-y-3">{[0, 1, 2].map((i) => <div key={i} className="flex gap-4"><div className="h-3 w-32 rounded bg-cream-100" /><div className="h-3 w-48 rounded bg-cream-100" /></div>)}</div>
+      </div>
+    </div>
   )
 }
 
-function Pagina({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<RespaldoCarga />}>{children}</Suspense>
+function Pagina({ children, shell = false }: { children: ReactNode; shell?: boolean }) {
+  return <Suspense fallback={<RespaldoCarga shell={shell} />}>{children}</Suspense>
 }
 
 function SesionExpiradaListener() {
@@ -98,19 +120,21 @@ function SesionExpiradaListener() {
 }
 
 export function App() {
-  const requierePrivacidad = useAuthStore((s) => s.requierePrivacidad)
-
   return (
     // Envuelve el router entero: una excepción durante el render dejaba antes
     // la pantalla en blanco, sin indicio de si el monitoreo seguía activo.
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
         <SesionExpiradaListener />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/registro" element={<RegistroPage />} />
+          <Route path="/recuperar-contrasena" element={<RecuperarContrasenaPage />} />
+          <Route path="/restablecer-contrasena" element={<RestablecerContrasenaPage />} />
+          <Route path="/solicitar-acceso" element={<SolicitarAccesoPage />} />
 
           <Route element={<RequireAuth />}>
-            <Route element={<Pagina><AppLayout /></Pagina>}>
+            <Route element={<Pagina shell><AppLayout /></Pagina>}>
               <Route path="/guia" element={<Pagina><GuiaPage /></Pagina>} />
               <Route path="/dashboard" element={<Pagina><DashboardPage /></Pagina>} />
               <Route path="/historial" element={<Pagina><HistorialPage /></Pagina>} />
@@ -125,13 +149,6 @@ export function App() {
                 <Route path="/metricas-ia" element={<Pagina><MetricasIAPage /></Pagina>} />
               </Route>
 
-              {/* El checklist BPA no está en la matriz de AUDITOR en el
-                  backend (checklist_router.py solo admite FARMACEUTICO /
-                  ADMINISTRADOR): queda fuera del grupo de arriba a propósito. */}
-              <Route element={<RequireRoles roles={['farmaceutico']} />}>
-                <Route path="/checklist-bpa" element={<Pagina><ChecklistBPAPage /></Pagina>} />
-              </Route>
-
               {/* HU-41: la bitácora de auditoría es justamente lo que un
                   AUDITOR necesita leer (require_roles(ADMINISTRADOR, AUDITOR)
                   en auditoria_router.py). */}
@@ -139,7 +156,7 @@ export function App() {
                 <Route path="/auditoria" element={<Pagina><AuditoriaPage /></Pagina>} />
               </Route>
 
-              {/* Gestión de usuarios/dispositivos/firmware: sigue siendo
+              {/* Gestión de usuarios/dispositivos: sigue siendo
                   exclusiva del administrador — el backend no le da AUDITOR
                   acceso de escritura ni de lectura a estas pantallas
                   completas (solo a un sub-recurso puntual de dispositivos,
@@ -147,18 +164,12 @@ export function App() {
               <Route element={<RequireRoles roles={[]} />}>
                 <Route path="/usuarios" element={<Pagina><UsuariosPage /></Pagina>} />
                 <Route path="/dispositivos" element={<Pagina><DispositivosPage /></Pagina>} />
-                <Route path="/firmware" element={<Pagina><FirmwarePage /></Pagina>} />
               </Route>
             </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-        {requierePrivacidad && (
-          <Suspense fallback={null}>
-            <PrivacyConsentModal />
-          </Suspense>
-        )}
       </BrowserRouter>
     </ErrorBoundary>
   )

@@ -1,6 +1,6 @@
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient, API_BASE_URL, getAccessToken } from '../api/apiClient'
-import { generarLecturaEnVivo } from '../demo/datosDemo'
+import { generarLecturaEnVivo, puedeTransmitirLecturaDemo } from '../demo/datosDemo'
 import { MODO_DEMO } from '../demo/modoDemo'
 
 const SSE_URL = import.meta.env.VITE_SSE_URL ?? `${API_BASE_URL}/api/sse/lecturas`
@@ -13,7 +13,9 @@ function simularStream(
   onEstado?: (conectado: boolean) => void,
 ): () => void {
   const conexion = setTimeout(() => onEstado?.(true), 700)
-  const emisor = setInterval(() => onLectura(generarLecturaEnVivo()), INTERVALO_DEMO_MS)
+  const emisor = setInterval(() => {
+    if (puedeTransmitirLecturaDemo()) onLectura(generarLecturaEnVivo())
+  }, INTERVALO_DEMO_MS)
   return () => {
     clearTimeout(conexion)
     clearInterval(emisor)

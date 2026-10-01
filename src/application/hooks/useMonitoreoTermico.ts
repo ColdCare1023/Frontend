@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
@@ -19,27 +19,29 @@ interface MonitoreoTermico {
   serie: LecturaTermica[]
   sseConectado: boolean
   estadoHistorial: 'cargando' | 'completo' | 'error'
+  reintentar: () => void
 }
 
 /**
- * Carga el historial de las últimas `horasVentana` horas (HU-31 criterio 4) y
- * se suscribe al flujo SSE en tiempo real. La serie se mantiene en orden
- * cronológico ascendente para las gráficas.
+ * Carga historial para la ventana activa y conserva última lectura en vivo al
+ * cambiarla. La serie se mantiene en orden cronológico ascendente.
  */
 export function useMonitoreoTermico(horasVentana: number = VENTANA_HORAS_POR_DEFECTO): MonitoreoTermico {
   const [serie, setSerie] = useState<LecturaTermica[]>([])
+  const [ultima, setUltima] = useState<LecturaTermica | null>(null)
   const [sseConectado, setSseConectado] = useState(false)
   const [estadoHistorial, setEstadoHistorial] = useState<MonitoreoTermico['estadoHistorial']>('cargando')
+  const [intento, setIntento] = useState(0)
+  const reintentar = useCallback(() => setIntento((actual) => actual + 1), [])
 
   useEffect(() => {
     let activo = true
-    // Se limpia al cambiar de ventana: mezclar una serie de 1 h con una
-    // recién ampliada a 7 días confundiría el resumen y la gráfica mientras
-    // llega la respuesta nueva.
-    setSerie([])
+    // Mantiene visible la ventana anterior mientras llega la nueva respuesta.
+    // Vaciarla aquí desmontaba el panel de monitoreo y producía un destello.
     setEstadoHistorial('cargando')
 
     const desde = new Date(Date.now() - horasVentana * 60 * 60 * 1000).toISOString()
+    const desdeMs = new Date(desde).getTime()
 
     apiClient
       .get<LecturaTermica[]>('/api/lecturas', { params: { desde, limite: MAX_LECTURAS_EN_MEMORIA } })
@@ -52,12 +54,19 @@ export function useMonitoreoTermico(horasVentana: number = VENTANA_HORAS_POR_DEF
         // justo la lectura que no puede perderse—. Se antepone el historial a
         // lo ya recibido, descartando por `id` lo que venga repetido.
         setSerie((previa) => {
-          const yaRecibidas = new Set(previa.map((lectura) => lectura.id))
+          const enVentana = previa.filter((lectura) => new Date(lectura.timestamp).getTime() >= desdeMs)
+          const yaRecibidas = new Set(enVentana.map((lectura) => lectura.id))
           const historial = [...data]
             .reverse()
+            .filter((lectura) => new Date(lectura.timestamp).getTime() >= desdeMs)
             .filter((lectura) => !yaRecibidas.has(lectura.id))
-          return [...historial, ...previa].slice(-MAX_LECTURAS_EN_MEMORIA)
+          return [...historial, ...enVentana].slice(-MAX_LECTURAS_EN_MEMORIA)
         })
+        const lecturaMasReciente = data.reduce<LecturaTermica | null>((reciente, lectura) =>
+          !reciente || lectura.timestamp > reciente.timestamp ? lectura : reciente, null)
+        if (lecturaMasReciente) {
+          setUltima((previa) => !previa || lecturaMasReciente.timestamp > previa.timestamp ? lecturaMasReciente : previa)
+        }
         setEstadoHistorial('completo')
       })
       .catch(() => {
@@ -66,6 +75,8 @@ export function useMonitoreoTermico(horasVentana: number = VENTANA_HORAS_POR_DEF
 
     const cerrar = suscribirseLecturas(
       (lectura) => {
+        setUltima((previa) => !previa || lectura.timestamp > previa.timestamp ? lectura : previa)
+        if (new Date(lectura.timestamp).getTime() < desdeMs) return
         setSerie((previa) => {
           if (previa.some((actual) => actual.id === lectura.id)) return previa
           return [...previa, lectura].slice(-MAX_LECTURAS_EN_MEMORIA)
@@ -78,7 +89,7 @@ export function useMonitoreoTermico(horasVentana: number = VENTANA_HORAS_POR_DEF
       activo = false
       cerrar()
     }
-  }, [horasVentana])
+  }, [horasVentana, intento])
 
-  return { ultima: serie.at(-1) ?? null, serie, sseConectado, estadoHistorial }
+  return { ultima, serie, sseConectado, estadoHistorial, reintentar }
 }

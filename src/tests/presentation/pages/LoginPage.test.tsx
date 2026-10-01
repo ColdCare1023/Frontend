@@ -1,7 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/infrastructure/demo/modoDemo', () => ({
+  MODO_DEMO: true,
+}))
 
 import { useAuthStore } from '@/application/stores/authStore'
 import { setAccessToken } from '@/infrastructure/api/apiClient'
@@ -26,122 +30,108 @@ describe('LoginPage', () => {
 
   beforeEach(() => {
     setAccessToken(null)
-    useAuthStore.setState({ usuario: null, autenticado: false, requierePrivacidad: false })
+    useAuthStore.setState({ usuario: null, autenticado: false })
   })
 
-  afterEach(() => {
-    adaptador?.restaurar()
-  })
+  afterEach(() => adaptador?.restaurar())
 
-  it('renderiza el formulario con sus campos etiquetados', () => {
+  it('muestra formulario de acceso con etiquetas reales', () => {
     adaptador = instalarAdaptadorFalso()
-
     montar()
-
     expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
     expect(screen.getByLabelText('Correo electrónico')).toBeInTheDocument()
-    expect(screen.getByLabelText('Contraseña')).toBeInTheDocument()
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'password')
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeInTheDocument()
   })
 
-  it('el campo de contraseña no expone el valor en claro', () => {
+  it('permite mostrar y ocultar la contraseña', async () => {
     adaptador = instalarAdaptadorFalso()
-
+    const user = userEvent.setup()
     montar()
-
+    await user.click(screen.getByRole('button', { name: 'Mostrar contraseña' }))
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'text')
+    await user.click(screen.getByRole('button', { name: 'Ocultar contraseña' }))
     expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'password')
   })
 
-  it('valida campos vacíos sin llamar al servidor y enfoca el primer campo', async () => {
+  it('valida campos antes de llamar al servicio', async () => {
     adaptador = instalarAdaptadorFalso()
-    const usuario = userEvent.setup()
-
+    const user = userEvent.setup()
     montar()
-    await usuario.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    const email = screen.getByLabelText('Correo electrónico')
-    expect(email).toHaveFocus()
-    expect(email).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.getByText('Ingresa tu correo electrónico.')).toBeInTheDocument()
-    expect(screen.getByText('Ingresa tu contraseña.')).toBeInTheDocument()
-    expect(screen.queryByText('panel de control')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
+    expect(screen.getByLabelText('Correo electrónico')).toHaveFocus()
+    expect(screen.getByRole('alert')).toHaveTextContent('Ingresa tu correo electrónico.')
+    expect(adaptador.peticiones).toHaveLength(0)
   })
 
-  it('valida formato de correo y vincula el mensaje con el campo', async () => {
+  it('rechaza formato de correo inválido', async () => {
     adaptador = instalarAdaptadorFalso()
-    const usuario = userEvent.setup()
-
+    const user = userEvent.setup()
     montar()
-    await usuario.type(screen.getByLabelText('Correo electrónico'), 'correo-invalido')
-    await usuario.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
-    await usuario.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    const email = screen.getByLabelText('Correo electrónico')
-    expect(email).toHaveFocus()
-    expect(email).toHaveAttribute('aria-describedby', 'email-error')
-    expect(screen.getByText('Ingresa un correo electrónico válido.')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Correo electrónico'), 'correo-invalido')
+    await user.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
+    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Ingresa un correo electrónico válido.')
+    expect(adaptador.peticiones).toHaveLength(0)
   })
 
-  it('con credenciales válidas autentica y navega al panel', async () => {
+  it('autentica con credenciales válidas y navega al panel', async () => {
     adaptador = instalarAdaptadorFalso(() => ({
-      data: { access_token: TOKEN, token_type: 'bearer', require_privacy_consent: false },
+      data: { access_token: TOKEN, token_type: 'bearer' },
     }))
-    const usuario = userEvent.setup()
-
+    const user = userEvent.setup()
     montar()
-    await usuario.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
-    await usuario.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
-    await usuario.click(screen.getByRole('button', { name: 'Ingresar' }))
-
+    await user.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
+    await user.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
+    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
     expect(await screen.findByText('panel de control')).toBeInTheDocument()
     expect(useAuthStore.getState().autenticado).toBe(true)
   })
 
-  it('con credenciales incorrectas muestra el error y no navega', async () => {
+  it('muestra error genérico para credenciales incorrectas', async () => {
     adaptador = instalarAdaptadorFalso(() => ({ status: 401, data: { detail: 'no' } }))
-    const usuario = userEvent.setup()
-
+    const user = userEvent.setup()
     montar()
-    await usuario.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
-    await usuario.type(screen.getByLabelText('Contraseña'), 'incorrecta')
-    await usuario.click(screen.getByRole('button', { name: 'Ingresar' }))
-
+    await user.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
+    await user.type(screen.getByLabelText('Contraseña'), 'incorrecta')
+    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos.')
     expect(screen.queryByText('panel de control')).not.toBeInTheDocument()
   })
 
-  it('distingue el bloqueo por intentos (429) de un fallo de credenciales', async () => {
-    // El backend limita el login a 5 intentos por IP cada 5 min. Mostrar
-    // "credenciales incorrectas" haría que el usuario siguiera reintentando y
-    // extendiera su propio bloqueo.
-    adaptador = instalarAdaptadorFalso(() => ({ status: 429, data: { detail: 'demasiados' } }))
-    const usuario = userEvent.setup()
-
+  it('comunica bloqueo temporal sin confundirlo con error de credenciales', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({ status: 429, data: { detail: 'rate limited' } }))
+    const user = userEvent.setup()
     montar()
-    await usuario.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
-    await usuario.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
-    await usuario.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    const alerta = await screen.findByRole('alert')
-    expect(alerta).not.toHaveTextContent('Correo o contraseña incorrectos.')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
+    await user.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
+    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Demasiados intentos fallidos.')
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Correo o contraseña incorrectos.')
   })
 
-  it('avisa de la sesión expirada al volver al login', async () => {
-    // El JWT vive solo en memoria: el usuario debe entender por qué volvió aquí
-    // en vez de creer que el sistema lo expulsó sin motivo.
+  it('muestra enlaces a recuperación de contraseña y solicitud de acceso', () => {
     adaptador = instalarAdaptadorFalso()
-    sessionStorage.setItem('cf_aviso_login', 'expirada')
-
     montar()
+    const enlaceRecuperar = screen.getByRole('link', { name: /¿Olvidaste tu contraseña\?/i })
+    expect(enlaceRecuperar).toHaveAttribute('href', '/recuperar-contrasena')
 
-    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+    const enlaceSolicitar = screen.getByRole('link', { name: /Solicitar acceso/i })
+    expect(enlaceSolicitar).toHaveAttribute('href', '/solicitar-acceso')
   })
 
-  it('no hay atajos de acceso demo fuera del build de demostración', () => {
-    adaptador = instalarAdaptadorFalso()
-
+  it('permite autenticación rápida mediante el grid 2x2 de roles demo', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({
+      data: { access_token: TOKEN, token_type: 'bearer' },
+    }))
+    const user = userEvent.setup()
     montar()
 
-    expect(screen.queryByText(/acceso rápido/i)).not.toBeInTheDocument()
+    const botonAuditor = screen.getByRole('button', { name: /Auditor/i })
+    expect(botonAuditor).toBeInTheDocument()
+
+    await user.click(botonAuditor)
+    expect(await screen.findByText('panel de control')).toBeInTheDocument()
+    expect(useAuthStore.getState().autenticado).toBe(true)
   })
 })

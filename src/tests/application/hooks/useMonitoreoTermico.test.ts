@@ -22,7 +22,7 @@ function lectura(indice: number, over: Partial<LecturaTermica> = {}): LecturaTer
   return {
     id: `l-${indice}`,
     device_id: 'FARM-01-CDL',
-    timestamp: new Date(2026, 6, 25, 12, 0, indice).toISOString(),
+    timestamp: new Date(Date.now() + indice * 1000).toISOString(),
     temperatura_ambiental: 21,
     humedad_ambiental: 60,
     temperatura_interna: 5,
@@ -159,6 +159,29 @@ describe('useMonitoreoTermico con flujo SSE sostenido', () => {
     })
     expect(result.current.estadoHistorial).toBe('completo')
     expect(result.current.serie).toEqual([])
+  })
+
+  it('conserva gráfica y lectura actual mientras cambia la ventana temporal', async () => {
+    const muestra = lectura(28, { timestamp: new Date().toISOString() })
+    const { result, rerender } = renderHook(
+      ({ horas }: { horas: number }) => useMonitoreoTermico(horas),
+      { initialProps: { horas: 24 } },
+    )
+    await act(async () => {
+      await new Promise((resolver) => setTimeout(resolver, 0))
+      emitir(muestra)
+    })
+
+    rerender({ horas: 1 })
+    expect(result.current.estadoHistorial).toBe('cargando')
+    expect(result.current.ultima).toEqual(muestra)
+    expect(result.current.serie).toEqual([muestra])
+
+    await act(async () => {
+      await new Promise((resolver) => setTimeout(resolver, 0))
+    })
+    expect(result.current.ultima).toEqual(muestra)
+    expect(result.current.serie).toEqual([muestra])
   })
 
   it('mantiene la serie en orden cronológico ascendente para la gráfica', async () => {

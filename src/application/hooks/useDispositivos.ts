@@ -52,14 +52,16 @@ export function useDispositivos() {
       fechaCalibracion: string,
       numeroCertificado: string,
       observaciones: string | undefined,
-      mesesVigencia: number,
+      validaHasta: string,
+      margenAvisoDias: number,
     ): Promise<'ok' | 'error'> => {
       try {
         await apiClient.patch(`/api/dispositivos/${deviceId}/calibracion`, {
           fecha_calibracion: fechaCalibracion,
           numero_certificado: numeroCertificado,
           observaciones: observaciones || undefined,
-          meses_vigencia: mesesVigencia,
+          valid_until: validaHasta,
+          margen_aviso_dias: margenAvisoDias,
         })
         await consultar()
         return 'ok'
@@ -128,6 +130,55 @@ export function useDispositivos() {
     [],
   )
 
+  const registrarDispositivo = useCallback(async (payload: {
+    device_id: string
+    nombre: string
+    ubicacion: string
+    sensores: Array<'DS18B20' | 'SHT31' | 'MC-38'>
+  }): Promise<'ok' | 'duplicado' | 'error'> => {
+    try {
+      await apiClient.post('/api/dispositivos', payload)
+      await consultar()
+      return 'ok'
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 409) return 'duplicado'
+      return 'error'
+    }
+  }, [consultar])
+
+  const rotarCredencial = useCallback(async (deviceId: string): Promise<'solicitada' | 'error'> => {
+    try {
+      await apiClient.post(`/api/dispositivos/${deviceId}/credencial/rotar`)
+      await consultar()
+      return 'solicitada'
+    } catch {
+      return 'error'
+    }
+  }, [consultar])
+
+  const revocarCredencial = useCallback(async (deviceId: string): Promise<'revocada' | 'error'> => {
+    try {
+      await apiClient.post(`/api/dispositivos/${deviceId}/credencial/revocar`)
+      await consultar()
+      return 'revocada'
+    } catch {
+      return 'error'
+    }
+  }, [consultar])
+
+  const simularEscenario = useCallback(async (
+    deviceId: string,
+    escenario: 'sin_datos' | 'buffer_pendiente' | 'buffer_lleno' | 'falla_sensor' | 'puerta_abierta' | 'puerta_cerrada' | 'recuperar',
+  ): Promise<boolean> => {
+    try {
+      await apiClient.post(`/api/demo/dispositivos/${deviceId}/simulacion`, { escenario })
+      await consultar()
+      return true
+    } catch {
+      return false
+    }
+  }, [consultar])
+
   return {
     dispositivos,
     cargando,
@@ -137,5 +188,9 @@ export function useDispositivos() {
     actualizarInstalacion,
     actualizarResponsable,
     obtenerHistorialConfiguracion,
+    registrarDispositivo,
+    rotarCredencial,
+    revocarCredencial,
+    simularEscenario,
   }
 }

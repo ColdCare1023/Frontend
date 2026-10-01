@@ -13,9 +13,11 @@ export interface FiltrosHistorial {
 export function useHistorial() {
   const [lecturas, setLecturas] = useState<LecturaTermica[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
 
   const consultar = useCallback(async (filtros: FiltrosHistorial = {}) => {
     setCargando(true)
+    setErrorCarga(false)
     try {
       const params: Record<string, string> = { limite: '200' }
       if (filtros.device_id) params.device_id = filtros.device_id
@@ -24,6 +26,8 @@ export function useHistorial() {
       if (filtros.hasta) params.hasta = new Date(filtros.hasta).toISOString()
       const { data } = await apiClient.get<LecturaTermica[]>('/api/lecturas', { params })
       setLecturas(data)
+    } catch {
+      setErrorCarga(true)
     } finally {
       setCargando(false)
     }
@@ -33,5 +37,5 @@ export function useHistorial() {
     void consultar()
   }, [consultar])
 
-  return { lecturas, cargando, consultar }
+  return { lecturas, cargando, errorCarga, consultar }
 }

@@ -49,13 +49,13 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
     useAuthStore.setState({
       usuario: { id: 'u-1', email: 'admin@upc.pe', rol: 'administrador', expiraEn: Date.now() + 3600_000 },
       autenticado: true,
-      requierePrivacidad: false,
+
     })
   })
 
   it('ofrece verificar la integridad de la cadena', () => {
     montar()
-    expect(screen.getByRole('button', { name: /verificar registros/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /revisar integridad/i })).toBeInTheDocument()
   })
 
   it('oculta sellos en vista básica y permite expandir detalles técnicos', async () => {
@@ -70,7 +70,7 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
     expect(screen.getByRole('button', { name: /ocultar detalles técnicos/i })).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('confirma que los registros están intactos cuando la cadena es íntegra', () => {
+  it('informa que no se detectaron cambios cuando la revisión es íntegra', () => {
     montar({
       verificacion: {
         integra: true,
@@ -81,7 +81,7 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
       },
     })
 
-    expect(screen.getByText(/registros intactos/i)).toBeInTheDocument()
+    expect(screen.getByText(/no se detectaron cambios/i)).toBeInTheDocument()
   })
 
   it('denuncia la alteración señalando el registro roto', () => {
@@ -113,6 +113,6 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
   it('avisa cuando la cadena quedó comprometida (HU-47)', () => {
     montar({ estadoCadena: { cadena_comprometida: true } })
 
-    expect(screen.getByText(/alteración crítica detectada en la cadena/i)).toBeInTheDocument()
+    expect(screen.getByText(/se detectó una inconsistencia en el historial/i)).toBeInTheDocument()
   })
 })

@@ -33,7 +33,7 @@ function sesionCon(rol: Rol) {
   useAuthStore.setState({
     usuario: { id: 'u-1', email: `${rol}@upc.pe`, rol, expiraEn: Date.now() + 3600_000 },
     autenticado: true,
-    requierePrivacidad: false,
+
   })
 }
 
@@ -74,15 +74,15 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
 
     const nombres = screen.getAllByRole('button').map((b) => b.textContent)
     expect(nombres).toEqual(
-      expect.arrayContaining(['Pendientes', 'Reconocidas', 'Atendidas', 'Todas']),
+      expect.arrayContaining(['Pendientes', 'Revisadas', 'Atendidas', 'Todas']),
     )
   })
 
-  it('permite a un farmacéutico reconocer una alerta pendiente', () => {
+  it('permite a un farmacéutico marcar una alerta pendiente como revisada', () => {
     sesionCon('farmaceutico')
     montar([alerta({ estado: 'pendiente' })])
 
-    expect(screen.getByRole('button', { name: /reconocer/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /marcar como revisada/i })).toBeInTheDocument()
   })
 
   it('abre detalle de alerta pendiente para consulta, incluso con rol auditor', async () => {
@@ -113,7 +113,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     sesionCon('tecnico')
     montar([alerta({ estado: 'pendiente' })])
 
-    expect(screen.queryByRole('button', { name: /reconocer/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).not.toBeInTheDocument()
   })
 
   it('un técnico sí puede registrar la acción correctiva aunque no reconozca', () => {
@@ -129,7 +129,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     sesionCon('auditor')
     montar([alerta({ estado: 'pendiente' })])
 
-    expect(screen.queryByRole('button', { name: /reconocer/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /acción correctiva/i })).not.toBeInTheDocument()
   })
 
@@ -137,7 +137,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     sesionCon('farmaceutico')
     montar([alerta({ estado: 'atendida' })])
 
-    expect(screen.queryByRole('button', { name: /reconocer/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /acción correctiva/i })).not.toBeInTheDocument()
   })
 
@@ -160,7 +160,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     })
     render(<MemoryRouter><AlertasPage /></MemoryRouter>)
 
-    await usuario.click(screen.getByRole('button', { name: /reconocer/i }))
+    await usuario.click(screen.getByRole('button', { name: /marcar como revisada/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/actualizada por otra persona/i)
   })

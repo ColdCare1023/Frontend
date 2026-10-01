@@ -40,7 +40,7 @@ function montarLayout() {
       expiraEn: Date.now() + 3600_000,
     },
     autenticado: true,
-    requierePrivacidad: false,
+
   })
   return render(
     <MemoryRouter initialEntries={['/dashboard']}>
@@ -135,7 +135,7 @@ describe('RiskBadge — el nivel no depende solo del color (WCAG 1.4.1)', () => 
 
     // `title` no lo alcanza el teclado ni lo lee la mayoría de lectores.
     expect(container.querySelector('[title]')).toBeNull()
-    expect(screen.getByText(/revisar el refrigerador ahora/i)).toBeInTheDocument()
+    expect(screen.getByText(/temperatura salió del rango 2–8 °C/i)).toBeInTheDocument()
   })
 
   it('marca cada nivel con una forma propia, oculta para el lector', () => {

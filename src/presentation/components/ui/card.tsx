@@ -4,7 +4,7 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   return (
     <div
       className={cn(
-        'rounded-(--radius-card) border border-border bg-surface shadow-(--shadow-card)',
+        'rounded-(--radius-card) border border-border bg-surface',
         className,
       )}
       {...props}
@@ -13,13 +13,30 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex flex-col gap-1 p-5 pb-3', className)} {...props} />
+  return <div className={cn('flex flex-col gap-1 p-4 pb-3 sm:px-5 sm:pt-5', className)} {...props} />
 }
 
-export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+type CardTitleLevel = 1 | 2 | 3 | 4 | 5 | 6
+
+const cardTitleTags: Record<CardTitleLevel, `h${CardTitleLevel}`> = {
+  1: 'h1',
+  2: 'h2',
+  3: 'h3',
+  4: 'h4',
+  5: 'h5',
+  6: 'h6',
+}
+
+interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  /** Heading level in the page outline; section titles default to h2. */
+  level?: CardTitleLevel
+}
+
+export function CardTitle({ level = 2, className, ...props }: CardTitleProps) {
+  const Tag = cardTitleTags[level]
   return (
-    <h3
-      className={cn('font-display text-xl leading-7 font-semibold tracking-tight text-foreground', className)}
+    <Tag
+      className={cn('font-display font-semibold tracking-tight text-foreground', level === 2 ? 'text-lg leading-6' : 'text-base leading-6', className)}
       {...props}
     />
   )
@@ -30,5 +47,5 @@ export function CardDescription({ className, ...props }: React.HTMLAttributes<HT
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('p-5 pt-2', className)} {...props} />
+  return <div className={cn('p-4 pt-0 sm:px-5 sm:pb-5', className)} {...props} />
 }

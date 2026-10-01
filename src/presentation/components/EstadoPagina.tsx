@@ -16,8 +16,24 @@ import { Card, CardContent } from './ui/card'
  * contenido de sitio, y todos declaran su rol: `status` para carga y vacío
  * (WCAG 4.1.3), `alert` para el error, que sí interrumpe.
  */
-export function EstadoCarga({ texto, className }: { texto?: string; className?: string }) {
+export function EstadoCarga({ texto, className, variant = 'inline', children }: { texto?: string; className?: string; variant?: 'inline' | 'dashboard'; children?: React.ReactNode }) {
   const { t } = useTranslation()
+  if (variant === 'dashboard') {
+    return (
+      <div role="status" className={cn('space-y-4', className)}>
+        <span className="sr-only">{texto ?? t('app.cargando')}</span>
+        <div aria-hidden className="min-h-[300px] sm:min-h-[240px] rounded-(--radius-card) border border-border bg-surface p-6">
+          <div className="h-4 w-40 rounded bg-cream-200" />
+          <div className="mt-8 h-14 w-52 rounded bg-cream-200" />
+          <div className="mt-5 h-4 w-64 max-w-full rounded bg-cream-200" />
+        </div>
+        <div aria-hidden className="grid grid-cols-2 gap-4">
+          {[0, 1].map(key => <div key={key} className="h-28 rounded-(--radius-card) border border-border bg-surface p-5"><div className="h-4 w-32 rounded bg-cream-200" /><div className="mt-5 h-9 w-28 rounded bg-cream-200" /></div>)}
+        </div>
+        {children}
+      </div>
+    )
+  }
   return (
     <p
       role="status"
@@ -44,7 +60,7 @@ export function EstadoVacio({
     <Card className="animate-rise">
       <CardContent
         role="status"
-        className="flex flex-col items-center gap-3 py-16 text-center"
+        className="flex flex-col items-center gap-3 py-9 text-center"
       >
         <span className="flex size-12 items-center justify-center rounded-full bg-cream-200 text-faint">
           <Icono className="size-6" />

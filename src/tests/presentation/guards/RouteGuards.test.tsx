@@ -10,7 +10,7 @@ function sesionCon(rol: Rol) {
   useAuthStore.setState({
     usuario: { id: 'u-1', email: `${rol}@upc.pe`, rol, expiraEn: Date.now() + 3600_000 },
     autenticado: true,
-    requierePrivacidad: false,
+
   })
 }
 
@@ -37,7 +37,7 @@ function montar(rutaInicial = '/protegida', roles?: Rol[]) {
 
 describe('RequireAuth', () => {
   beforeEach(() => {
-    useAuthStore.setState({ usuario: null, autenticado: false, requierePrivacidad: false })
+    useAuthStore.setState({ usuario: null, autenticado: false })
   })
 
   it('sin sesión redirige a /login', () => {
@@ -58,7 +58,7 @@ describe('RequireAuth', () => {
 
 describe('RequireRoles (RBAC)', () => {
   beforeEach(() => {
-    useAuthStore.setState({ usuario: null, autenticado: false, requierePrivacidad: false })
+    useAuthStore.setState({ usuario: null, autenticado: false })
   })
 
   it('deja pasar al rol permitido', () => {
@@ -89,7 +89,7 @@ describe('RequireRoles (RBAC)', () => {
   })
 
   it('roles vacíos significa solo administrador, no "todos"', () => {
-    // `roles={[]}` protege auditoría, usuarios, dispositivos y firmware. Si se
+    // `roles={[]}` protege auditoría, usuarios y dispositivos. Si se
     // interpretara como "sin restricción", cualquier técnico entraría a la
     // gestión de usuarios.
     sesionCon('farmaceutico')
@@ -101,7 +101,7 @@ describe('RequireRoles (RBAC)', () => {
   })
 
   it('sin usuario en el store redirige a /login en vez de mostrar el 403', () => {
-    useAuthStore.setState({ usuario: null, autenticado: true, requierePrivacidad: false })
+    useAuthStore.setState({ usuario: null, autenticado: true })
 
     montar('/protegida', ['farmaceutico'])
 

@@ -1,10 +1,10 @@
+import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download, FileDown, FileText, FileSearch } from 'lucide-react'
 
 import { useReportesBPA, MAX_DIAS_RANGO_REPORTE, diasDeRango } from '@/application/hooks/useReportesBPA'
 import { fechaCorta, fechaISOlocal } from '@/lib/formato'
-import { EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -43,17 +43,18 @@ export function ReportesPage() {
             : t('reportes.errorGenerar')
 
   return (
-    <div className="max-w-3xl">
+    <CompactWorkspace>
       <PageHeader eyebrow={t('nav.seccionCumplimiento')} titulo={t('reportes.titulo')} descripcion={t('reportes.descripcion')} />
 
+      <div className="space-y-4">
       {/* ── Configuración del periodo ───────────────────────── */}
-      <Card className="mb-5 animate-rise">
-        <CardHeader>
+      <Card className="rounded-lg border-border bg-surface shadow-none">
+        <CardHeader className="px-4 pt-4 pb-0">
           <CardTitle>{t('reportes.rango')}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           <form
-            className="grid grid-cols-1 items-end gap-3 min-[480px]:grid-cols-2 lg:grid-cols-4"
+            className="grid grid-cols-2 items-end gap-3 xl:grid-cols-[1fr_1fr_1.2fr_auto]"
             onSubmit={(e) => {
               e.preventDefault()
               void generar(desde, hasta, deviceId || undefined)
@@ -68,6 +69,8 @@ export function ReportesPage() {
                 value={desde}
                 onChange={(e) => setDesde(e.target.value)}
                 aria-describedby="reportes-periodo"
+                aria-invalid={rangoInvalido}
+                max={hasta || undefined}
               />
             </div>
             <div>
@@ -80,6 +83,7 @@ export function ReportesPage() {
                 value={hasta}
                 onChange={(e) => setHasta(e.target.value)}
                 aria-describedby="reportes-periodo"
+                aria-invalid={rangoInvalido}
               />
             </div>
             <div>
@@ -88,10 +92,10 @@ export function ReportesPage() {
                 id="r-device"
                 value={deviceId}
                 onChange={(e) => setDeviceId(e.target.value)}
-                placeholder="FARM-01-CDL"
+                placeholder={t('reportes.codigoEquipoEjemplo')}
               />
             </div>
-            <Button type="submit" disabled={generando || rangoInvalido}>
+            <Button type="submit" className="w-full xl:min-w-40" disabled={generando || rangoInvalido}>
               <FileText />
               {generando ? t('reportes.generando') : t('reportes.generar')}
             </Button>
@@ -106,7 +110,7 @@ export function ReportesPage() {
               ? t('reportes.errorRangoInvertido')
               : dias > MAX_DIAS_RANGO_REPORTE
                 ? t('reportes.errorPeriodoExcesivo', { max: MAX_DIAS_RANGO_REPORTE })
-                : t('reportes.periodoDias', { dias: dias + 1 })}
+                : t('reportes.periodoDias', { count: dias + 1 })}
           </p>
 
           {mensajeError && (
@@ -122,39 +126,43 @@ export function ReportesPage() {
 
       {/* ── Resumen ─────────────────────────────────────────── */}
       {reporte === null ? (
-        <EstadoVacio
-          icono={FileSearch}
-          titulo={t('reportes.sinReporte')}
-          detalle={t('reportes.sinReporteDetalle')}
-        />
+        <Card className="rounded-none border-0 border-b border-border bg-transparent shadow-none">
+          <CardContent className="flex items-start gap-3 px-0 py-4 text-left">
+            <span className="flex size-8 shrink-0 items-center justify-center text-muted"><FileSearch className="size-4" aria-hidden /></span>
+            <div>
+              <p className="text-sm font-semibold text-foreground">{t('reportes.sinReporte')}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted">{t('reportes.sinReporteDetalle')}</p>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <Card className="animate-rise">
-          <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="overflow-hidden rounded-lg border-border shadow-none">
+          <CardHeader className="gap-5 border-b border-border bg-background/60 pb-5">
             <CardTitle>{t('reportes.resumen')}</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* El PDF es el documento que se presenta en una inspección: lleva
-                  el veredicto de integridad de la cadena SHA-256 dentro. CSV y
-                  JSON son extracciones de datos, no evidencia firmada. */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              {/* El reporte es apoyo para revisión; el copy aclara que no reemplaza
+                  registros ni documentos oficiales. */}
               <Button
                 size="sm"
+                className="w-full sm:w-auto"
                 disabled={descargandoPdf || rangoInvalido}
                 onClick={() => void descargarPdf(desde, hasta, deviceId || undefined)}
               >
                 <FileDown />
                 {descargandoPdf ? t('reportes.generandoPdf') : t('reportes.descargarPdf')}
               </Button>
-              <Button variant="secondary" size="sm" onClick={descargarCsv}>
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={descargarCsv}>
                 <Download />
                 {t('reportes.descargarCsv')}
               </Button>
-              <Button variant="secondary" size="sm" onClick={descargarJson}>
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={descargarJson}>
                 <Download />
                 {t('reportes.descargarJson')}
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-3 divide-x divide-border text-center">
+          <CardContent className="pt-6">
+            <dl className="grid grid-cols-3 gap-4 text-left">
               {(
                 [
                   ['reportes.lecturas', reporte.lecturas.length],
@@ -162,22 +170,23 @@ export function ReportesPage() {
                   ['reportes.registrosTrazabilidad', reporte.registros_trazabilidad.length],
                 ] as const
               ).map(([clave, cantidad]) => (
-                <div key={clave} className="px-3 py-2">
+                <div key={clave} className="flex flex-col gap-2 py-2">
                   <dt className="text-xs text-muted">{t(clave)}</dt>
-                  <dd className="nums mt-1 text-2xl font-semibold tracking-tight">{cantidad}</dd>
+                  <dd className="nums text-2xl font-semibold tracking-tight">{cantidad}</dd>
                 </div>
               ))}
             </dl>
-            <p className="nums mt-4 text-center text-xs text-faint">
+            <p className="nums mt-5 break-words border-t border-border pt-5 text-xs text-faint">
               {fechaCorta(reporte.fecha_desde)} — {fechaCorta(reporte.fecha_hasta)}
               {reporte.device_id && ` · ${reporte.device_id}`}
             </p>
-            <p className="mt-3 border-t border-border pt-3 text-center text-xs leading-relaxed text-muted">
+            <p className="mt-3 text-xs leading-relaxed text-muted">
               {t('reportes.notaFormatos')}
             </p>
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </CompactWorkspace>
   )
 }

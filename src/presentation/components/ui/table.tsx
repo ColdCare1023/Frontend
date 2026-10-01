@@ -1,4 +1,7 @@
 import { cn } from '@/lib/utils'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { MoveHorizontal } from 'lucide-react'
 
 interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   /**
@@ -10,17 +13,42 @@ interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   titulo?: string
   /** Consulta en curso: marca la región como ocupada (WCAG 4.1.3). */
   cargando?: boolean
+  mobileLayout?: 'scroll' | 'stack'
 }
 
-export function Table({ className, titulo, cargando, children, ...props }: TableProps) {
+export function Table({ className, titulo, cargando, mobileLayout = 'scroll', children, ...props }: TableProps) {
+  const { t } = useTranslation()
+  const hintId = useId()
+  const regionRef = useRef<HTMLDivElement>(null)
+  const [overflowing, setOverflowing] = useState(false)
+  useLayoutEffect(() => {
+    const region = regionRef.current
+    if (!region) return
+    const update = () => setOverflowing(region.scrollWidth > region.clientWidth + 1)
+    if (typeof ResizeObserver === 'undefined') {
+      update()
+      window.addEventListener('resize', update)
+      return () => window.removeEventListener('resize', update)
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(region)
+    const table = region.querySelector('table')
+    if (table) observer.observe(table)
+    update()
+    return () => observer.disconnect()
+  }, [])
   return (
+    <div className={cn('coldcare-data-surface', mobileLayout === 'stack' && 'coldcare-data-stack')}>
+      {overflowing && <p id={hintId} className="mb-2 flex items-center gap-2 text-xs text-muted"><MoveHorizontal aria-hidden className="size-4" />{t('comunes.deslizarTabla')}</p>}
     <div
+      ref={regionRef}
       // El contenedor con scroll horizontal debe ser alcanzable por teclado:
       // sin `tabindex`, en móvil la tabla se desplaza con el dedo pero no con
       // el tabulador ni las flechas (WCAG 2.1.1).
       tabIndex={0}
       role="region"
       aria-label={titulo}
+      aria-describedby={overflowing ? hintId : undefined}
       aria-keyshortcuts="ArrowLeft ArrowRight Home End"
       aria-busy={cargando || undefined}
       onKeyDown={(event) => {
@@ -39,27 +67,29 @@ export function Table({ className, titulo, cargando, children, ...props }: Table
         event.preventDefault()
         region.scrollTo({ left: Math.max(0, Math.min(maxScroll, destino)), behavior: 'auto' })
       }}
-      className="w-full overflow-x-auto rounded-(--radius-card) border border-border bg-surface shadow-(--shadow-card) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      className="coldcare-table-region w-full overflow-x-auto rounded-(--radius-card) border border-border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
-      <table className={cn('w-full min-w-[560px] caption-bottom text-sm', className)} {...props}>
+      <table role="table" className={cn('w-full min-w-[640px] caption-bottom text-sm', className)} {...props}>
         {titulo && <caption className="sr-only">{titulo}</caption>}
         {children}
       </table>
+    </div>
     </div>
   )
 }
 
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('border-b border-border bg-cream-100/70', className)} {...props} />
+  return <thead role="rowgroup" className={cn('border-b border-border bg-cream-100', className)} {...props} />
 }
 
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn('divide-y divide-border', className)} {...props} />
+  return <tbody role="rowgroup" className={cn('divide-y divide-border', className)} {...props} />
 }
 
 export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
+      role="row"
       className={cn('transition-colors duration-100 hover:bg-cream-100/60', className)}
       {...props}
     />
@@ -73,9 +103,10 @@ export function TableHead({
 }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
+      role="columnheader"
       scope={scope}
       className={cn(
-        'h-11 px-4 text-left align-middle text-sm leading-5 font-semibold text-muted',
+        'h-11 px-3 py-2.5 text-left align-middle text-sm leading-5 font-semibold text-ink-700 sm:px-5',
         className,
       )}
       {...props}
@@ -84,14 +115,16 @@ export function TableHead({
 }
 
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('px-4 py-3 align-middle text-foreground', className)} {...props} />
+  return <td role="cell" className={cn('px-3 py-3 align-middle text-foreground sm:px-5', className)} {...props} />
 }
 
 export function TableEmpty({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="px-4 py-12 text-center text-sm text-muted">
-        {children}
+      <td colSpan={colSpan} className="p-0 text-sm text-muted">
+        <div className="sticky left-0 flex w-[min(100%,calc(100vw-2rem))] items-center justify-center px-4 py-8 text-center sm:static sm:w-full">
+          {children}
+        </div>
       </td>
     </tr>
   )

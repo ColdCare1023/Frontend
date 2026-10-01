@@ -1,10 +1,9 @@
 import { apiClient } from '../api/apiClient'
-import type { Rol } from '@/domain/value-objects/Rol'
+import { normalizarRol, type Rol } from '@/domain/value-objects/Rol'
 
 interface TokenResponse {
   access_token: string
   token_type: string
-  require_privacy_consent: boolean
 }
 
 export interface SesionUsuario {
@@ -17,7 +16,6 @@ export interface SesionUsuario {
 
 export interface ResultadoLogin {
   accessToken: string
-  requierePrivacidad: boolean
 }
 
 export async function login(email: string, password: string): Promise<ResultadoLogin> {
@@ -25,33 +23,32 @@ export async function login(email: string, password: string): Promise<ResultadoL
   const { data } = await apiClient.post<TokenResponse>('/api/auth/login', body, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   })
-  return { accessToken: data.access_token, requierePrivacidad: data.require_privacy_consent }
-}
-
-/**
- * Canjea el ID token de Google por el JWT interno del sistema.
- *
- * Google solo acredita la identidad: el backend comprueba la firma contra el
- * JWKS de Google y exige además que el correo esté dado de alta y activo en la
- * tabla de usuarios. El token que vuelve es el mismo JWT que el del acceso con
- * contraseña, así que el resto del frontend no distingue el método.
- */
-export async function loginConGoogle(idToken: string): Promise<ResultadoLogin> {
-  const { data } = await apiClient.post<TokenResponse>('/api/auth/google', {
-    id_token: idToken,
-  })
-  return { accessToken: data.access_token, requierePrivacidad: data.require_privacy_consent }
+  return { accessToken: data.access_token }
 }
 
 /** Decodifica el payload del JWT (sin verificar firma: eso lo hace el backend). */
 export function decodificarSesion(token: string): SesionUsuario {
-  const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+  const segmento = token.split('.')[1]
+  if (!segmento) throw new Error('Token de sesión inválido')
+  const base64 = segmento.replace(/-/g, '+').replace(/_/g, '/')
+  const relleno = '='.repeat((4 - (base64.length % 4)) % 4)
+  const payload: Record<string, unknown> = JSON.parse(atob(base64 + relleno))
+  const rol = normalizarRol(payload.rol)
+  const expiraEn = typeof payload.exp === 'number' ? payload.exp * 1000 : Number.NaN
+  if (
+    typeof payload.sub !== 'string' ||
+    typeof payload.email !== 'string' ||
+    !rol ||
+    !Number.isFinite(expiraEn)
+  ) {
+    throw new Error('Token de sesión inválido')
+  }
   return {
     id: payload.sub,
     email: payload.email,
-    rol: payload.rol,
+    rol,
     // `exp` viene en segundos (RFC 7519); el resto del frontend trabaja en
     // milisegundos, así que se normaliza aquí y no en cada consumidor.
-    expiraEn: typeof payload.exp === 'number' ? payload.exp * 1000 : 0,
+    expiraEn,
   }
 }

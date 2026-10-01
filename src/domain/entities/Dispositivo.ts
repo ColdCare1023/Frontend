@@ -13,6 +13,7 @@ export interface Dispositivo {
   fecha_ultima_calibracion: string | null
   numero_certificado_calibracion: string | null
   fecha_proxima_calibracion: string | null
+  margen_aviso_calibracion_dias?: number | null
   observaciones_calibracion: string | null
   // HU-51: metadatos de instalación.
   fecha_instalacion: string | null
@@ -22,6 +23,64 @@ export interface Dispositivo {
   responsable_nombre: string | null
   responsable_email: string | null
   responsable_telefono: string | null
+  // HU-19/HU-33/HU-48/HU-51/HU-55: telemetría y estado IoT del nodo.
+  registrado_en?: string | null
+  ultimo_reporte_en?: string | null
+  intervalo_reporte_segundos?: number
+  umbral_sin_datos_segundos?: number
+  umbral_puerta_abierta_segundos?: number
+  estado_operativo?: 'OPERATIVO' | 'SIN_DATOS' | 'FALLA_SENSOR'
+  incidencias_operativas?: IncidenteOperativo[]
+  sensores?: SensorIoT[]
+  buffer_littlefs?: BufferLittleFS
+  ultimo_evento?: SobreTelemetria | null
+  estado_credencial_broker?: 'activa' | 'pendiente' | 'error' | 'revocada' | 'sin_reportar'
+}
+
+export interface SensorIoT {
+  modelo: 'DS18B20' | 'SHT31' | 'MC-38'
+  estado: 'ok' | 'error' | 'no_instalado'
+  campo_telemetria: string
+}
+
+export interface BufferLittleFS {
+  pendientes: number
+  limite: number
+  desde: string | null
+  hasta: string | null
+  perdidas: number
+  brechas?: BrechaTelemetria[]
+  ultima_sincronizacion_en?: string | null
+}
+
+/** Incidente operativo separado de riesgo térmico y clasificación IA. */
+export interface IncidenteOperativo {
+  id: string
+  device_id: string
+  tipo: 'sin_datos'
+  estado: 'activo' | 'resuelto'
+  detectado_en: string
+  ultimo_reporte_en: string | null
+  umbral_silencio_segundos: number
+  recuperado_en: string | null
+}
+
+/** Tramo sin muestras nuevas cuando LittleFS llegó a su capacidad. */
+export interface BrechaTelemetria {
+  desde: string
+  hasta: string
+  muestras_perdidas: number
+  causa: 'buffer_agotado'
+  registrada_en: string
+}
+
+export interface SobreTelemetria {
+  schema_version: string
+  boot_id: string
+  seq_no: number
+  captured_at: string
+  received_at: string
+  time_quality: 'ntp' | 'rtc' | 'uptime'
 }
 
 // HU-49: un cambio de configuración/instalación/calibración/responsable.
@@ -41,13 +100,15 @@ export type MotivoBaja = (typeof MOTIVOS_BAJA)[number]
 /** HU-30: vigencia del certificado de calibración, para el badge de estado. */
 export type EstadoCalibracion = 'sin_registrar' | 'vigente' | 'proxima_a_vencer' | 'vencida'
 
-const MARGEN_AVISO_DIAS = 30
-
 export function estadoCalibracion(dispositivo: Dispositivo, hoy: Date = new Date()): EstadoCalibracion {
   if (!dispositivo.fecha_proxima_calibracion) return 'sin_registrar'
-  const proxima = new Date(dispositivo.fecha_proxima_calibracion)
-  const diasRestantes = Math.floor((proxima.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
+  const [anio, mes, dia] = dispositivo.fecha_proxima_calibracion.slice(0, 10).split('-').map(Number)
+  const proxima = new Date(Date.UTC(anio, mes - 1, dia))
+  if (!Number.isFinite(proxima.getTime()) || proxima.getUTCMonth() + 1 !== mes || proxima.getUTCDate() !== dia) return 'sin_registrar'
+  const hoyUTC = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
+  const diasRestantes = Math.round((proxima.getTime() - hoyUTC) / (1000 * 60 * 60 * 24))
   if (diasRestantes < 0) return 'vencida'
-  if (diasRestantes <= MARGEN_AVISO_DIAS) return 'proxima_a_vencer'
+  const margenAviso = Math.max(0, dispositivo.margen_aviso_calibracion_dias ?? 30)
+  if (diasRestantes <= margenAviso) return 'proxima_a_vencer'
   return 'vigente'
 }

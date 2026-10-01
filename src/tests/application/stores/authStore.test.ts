@@ -12,11 +12,10 @@ import {
 
 const TOKEN = tokenDe('farmaceutico', 'farmaceutico@upc.pe')
 
-function respuestaLogin(requierePrivacidad = false) {
+function respuestaLogin() {
   return {
     access_token: TOKEN,
     token_type: 'bearer',
-    require_privacy_consent: requierePrivacidad,
   }
 }
 
@@ -25,7 +24,7 @@ describe('authStore', () => {
 
   beforeEach(() => {
     setAccessToken(null)
-    useAuthStore.setState({ usuario: null, autenticado: false, requierePrivacidad: false })
+    useAuthStore.setState({ usuario: null, autenticado: false })
   })
 
   afterEach(() => {
@@ -72,14 +71,6 @@ describe('authStore', () => {
       const restanteMs = useAuthStore.getState().usuario!.expiraEn - Date.now()
       expect(restanteMs).toBeGreaterThan((VIGENCIA_TOKEN_S - 5) * 1000)
       expect(restanteMs).toBeLessThanOrEqual(VIGENCIA_TOKEN_S * 1000)
-    })
-
-    it('propaga el requisito de consentimiento de privacidad (HU-44)', async () => {
-      adaptador = instalarAdaptadorFalso(() => ({ data: respuestaLogin(true) }))
-
-      await useAuthStore.getState().login('farmaceutico@upc.pe', 'Secreta-2026')
-
-      expect(useAuthStore.getState().requierePrivacidad).toBe(true)
     })
 
     it('no deja sesión a medias si el backend rechaza las credenciales', async () => {
@@ -170,24 +161,4 @@ describe('authStore', () => {
     })
   })
 
-  describe('consentimiento de privacidad (Ley N.° 29733)', () => {
-    beforeEach(async () => {
-      adaptador = instalarAdaptadorFalso(() => ({ data: respuestaLogin(true) }))
-      await useAuthStore.getState().login('farmaceutico@upc.pe', 'Secreta-2026')
-    })
-
-    it('aceptar levanta el bloqueo tras confirmar el backend', async () => {
-      await useAuthStore.getState().aceptarPrivacidad()
-
-      expect(adaptador.ultima().url).toBe('/api/auth/privacidad/aceptar')
-      expect(useAuthStore.getState().requierePrivacidad).toBe(false)
-    })
-
-    it('rechazar no lanza pese al 401 intencional del backend', async () => {
-      adaptador.restaurar()
-      adaptador = instalarAdaptadorFalso(() => ({ status: 401, data: {} }))
-
-      await expect(useAuthStore.getState().rechazarPrivacidad()).resolves.toBeUndefined()
-    })
-  })
 })

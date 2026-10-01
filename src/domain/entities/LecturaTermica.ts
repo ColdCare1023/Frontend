@@ -26,6 +26,8 @@ export interface LecturaTermica {
   // null si el firmware no lo reportó (dispositivo desactualizado) o si no
   // hay MC-38 instalado.
   duracion_apertura_segundos: number | null
+  /** Umbral operativo configurado para alertar por apertura prolongada. */
+  umbral_puerta_abierta_segundos?: number | null
   estado_conectividad: string
   // HU-18/21/34: `nivel_riesgo` es la clase cruda del pipeline IA/salvaguarda
   // (model_class) — NUNCA se debe presentar como "excursión confirmada" sin
@@ -41,6 +43,12 @@ export interface LecturaTermica {
   estado_sensores?: Record<string, EstadoSensor> | null
   reading_id?: string | null
   schema_version?: number | null
+  /** Sobre MQTT: origen y orden del mensaje IoT. */
+  boot_id?: string | null
+  seq_no?: number | null
+  captured_at?: string | null
+  received_at?: string | null
+  time_quality?: string | null
   // HU-34: excursión confirmada por la regla directa de rango (2–8 °C),
   // independiente de la IA — nunca se infiere desde `nivel_riesgo`.
   excursion_confirmada: boolean

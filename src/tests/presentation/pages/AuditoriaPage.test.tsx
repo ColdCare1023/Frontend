@@ -29,7 +29,7 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     useAuditoria.mockReturnValue({ registros: [registro()], cargando: false })
     render(<AuditoriaPage />)
 
-    expect(screen.getByText('ALERTA_REVISADA')).toBeInTheDocument()
+    expect(screen.getByText(/alerta revisada|alert reviewed/i)).toBeInTheDocument()
     expect(screen.getByText('alertas/9f1')).toBeInTheDocument()
   })
 
@@ -44,7 +44,7 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     useAuditoria.mockReturnValue({ registros: [], cargando: false })
     render(<AuditoriaPage />)
 
-    expect(screen.getByText(/no hay acciones críticas/i)).toBeInTheDocument()
+    expect(screen.getByText(/no.*acciones registradas|no recorded actions/i)).toBeInTheDocument()
   })
 
   it('HU-50 criterio 1: permite filtrar por acción, usuario y periodo', async () => {

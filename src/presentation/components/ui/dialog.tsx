@@ -76,7 +76,7 @@ export function DialogTitle({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('font-display text-xl leading-7 font-semibold tracking-tight text-foreground', className)}
+      className={cn('pr-10 font-display text-xl leading-7 font-semibold tracking-tight text-foreground', className)}
       {...props}
     />
   )

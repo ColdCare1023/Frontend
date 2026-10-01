@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, HardDrive, History, MapPin, PowerOff, UserRound } from 'lucide-react'
+import { CalendarClock, ChevronDown, FlaskConical, HardDrive, History, KeyRound, MapPin, Plus, PowerOff, UserRound } from 'lucide-react'
 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import {
@@ -11,8 +11,10 @@ import {
   type MotivoBaja,
 } from '@/domain/entities/Dispositivo'
 import { fechaCorta, fechaHora } from '@/lib/formato'
+import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { rangoPagina } from '@/lib/paginacion'
 import { Paginacion } from '../components/Paginacion'
+import { ActionMenu } from '../components/ActionMenu'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -34,11 +36,12 @@ const FORM_BAJA_INICIAL: { motivo: MotivoBaja; descripcion: string; deviceIdReem
   deviceIdReemplazo: '',
 }
 
-const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', observaciones: '', mesesVigencia: '12' }
+const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', validaHasta: '', margenAvisoDias: '30', observaciones: '' }
 const FORM_INSTALACION_INICIAL = { ubicacion: '', fecha: '', observaciones: '' }
 const FORM_RESPONSABLE_INICIAL = { nombre: '', email: '', telefono: '' }
 
-type DialogoActivo = 'baja' | 'calibracion' | 'instalacion' | 'responsable' | 'historial' | null
+type DialogoActivo = 'crear' | 'simulacion' | 'baja' | 'calibracion' | 'instalacion' | 'responsable' | 'historial' | null
+type EscenarioIoT = 'sin_datos' | 'buffer_pendiente' | 'buffer_lleno' | 'falla_sensor' | 'recuperar'
 
 export function DispositivosPage() {
   const { t } = useTranslation()
@@ -50,6 +53,10 @@ export function DispositivosPage() {
     actualizarInstalacion,
     actualizarResponsable,
     obtenerHistorialConfiguracion,
+    registrarDispositivo,
+    rotarCredencial,
+    revocarCredencial,
+    simularEscenario,
   } = useDispositivos()
   const [pagina, setPagina] = useState(1)
   // Solo se pinta la página visible: estas listas crecen sin techo.
@@ -66,11 +73,52 @@ export function DispositivosPage() {
   const [formResponsable, setFormResponsable] = useState(FORM_RESPONSABLE_INICIAL)
   const [historial, setHistorial] = useState<HistorialConfiguracion[]>([])
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
+  const [mensajeFlota, setMensajeFlota] = useState<string | null>(null)
+  const [formNuevo, setFormNuevo] = useState({ id: '', nombre: '', ubicacion: '', mc38: false })
 
   const cerrarDialogo = () => {
     setDialogo(null)
     setDispositivoActivo(null)
     setMensaje(null)
+  }
+
+  const enviarNuevoDispositivo = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setEnviando(true)
+    setMensaje(null)
+    const resultado = await registrarDispositivo({
+      device_id: formNuevo.id.trim().toUpperCase(),
+      nombre: formNuevo.nombre.trim(),
+      ubicacion: formNuevo.ubicacion.trim(),
+      sensores: formNuevo.mc38 ? ['DS18B20', 'SHT31', 'MC-38'] : ['DS18B20', 'SHT31'],
+    })
+    setEnviando(false)
+    if (resultado === 'ok') {
+      setMensaje({ tipo: 'ok', texto: t('dispositivos.equipoRegistrado') })
+      setFormNuevo({ id: '', nombre: '', ubicacion: '', mc38: false })
+    } else {
+      setMensaje({ tipo: 'error', texto: t(resultado === 'duplicado' ? 'dispositivos.codigoDuplicado' : 'comunes.error') })
+    }
+  }
+
+  const ejecutarEscenario = async (escenario: EscenarioIoT) => {
+    if (!dispositivoActivo) return
+    setEnviando(true)
+    setMensaje(null)
+    const resultado = await simularEscenario(dispositivoActivo.id, escenario)
+    setEnviando(false)
+    setMensaje({ tipo: resultado ? 'ok' : 'error', texto: t(resultado ? 'dispositivos.escenarioAplicado' : 'comunes.error') })
+  }
+
+  const solicitarRotacion = async (dispositivo: Dispositivo) => {
+    const resultado = await rotarCredencial(dispositivo.id)
+    setMensajeFlota(t(resultado === 'solicitada' ? 'dispositivos.credencialPendiente' : 'comunes.error'))
+  }
+
+  const solicitarRevocacion = async (dispositivo: Dispositivo) => {
+    if (!window.confirm(t('dispositivos.confirmarRevocacion', { id: dispositivo.id }))) return
+    const resultado = await revocarCredencial(dispositivo.id)
+    setMensajeFlota(t(resultado === 'revocada' ? 'dispositivos.credencialRevocada' : 'comunes.error'))
   }
 
   const abrirBaja = (dispositivo: Dispositivo) => {
@@ -86,7 +134,8 @@ export function DispositivosPage() {
       fecha: '',
       certificado: dispositivo.numero_certificado_calibracion ?? '',
       observaciones: dispositivo.observaciones_calibracion ?? '',
-      mesesVigencia: '12',
+      validaHasta: dispositivo.fecha_proxima_calibracion ?? '',
+      margenAvisoDias: String(dispositivo.margen_aviso_calibracion_dias ?? 30),
     })
     setMensaje(null)
     setDialogo('calibracion')
@@ -155,7 +204,8 @@ export function DispositivosPage() {
       formCalibracion.fecha,
       formCalibracion.certificado,
       formCalibracion.observaciones,
-      Number(formCalibracion.mesesVigencia) || 12,
+      formCalibracion.validaHasta,
+      Number(formCalibracion.margenAvisoDias) || 30,
     )
     setEnviando(false)
     if (resultado === 'ok') {
@@ -212,26 +262,53 @@ export function DispositivosPage() {
         eyebrow={t('nav.seccionAdministracion')}
         titulo={t('dispositivos.titulo')}
         descripcion={t('dispositivos.descripcion')}
-      />
+      >
+        <Button onClick={() => {
+          setFormNuevo({ id: '', nombre: '', ubicacion: '', mc38: false })
+          setMensaje(null)
+          setDialogo('crear')
+        }}>
+          <Plus />
+          {t('dispositivos.nuevoEquipo')}
+        </Button>
+      </PageHeader>
 
-      <div className="animate-rise">
-        <Table titulo={t('dispositivos.titulo')} cargando={cargando}>
+      {mensajeFlota && (
+        <p role="status" className="mb-4 rounded-xl border border-[#BCEFFF] bg-[#E6FBFF] px-4 py-3 text-sm text-[#07546A]">
+          {mensajeFlota}
+        </p>
+      )}
+
+      <section aria-label={t('dispositivos.resumenIoT')} className="mb-6 grid grid-cols-2 divide-x divide-border border-y border-border bg-surface/60 lg:grid-cols-4">
+        {[
+          { clave: 'dispositivos.equiposRegistrados', valor: dispositivos.length, color: 'text-foreground' },
+          { clave: 'dispositivos.sinDatos', valor: dispositivos.filter((d) => d.estado_operativo === 'SIN_DATOS').length, color: 'text-clay-700' },
+          { clave: 'dispositivos.fallasSensor', valor: dispositivos.filter((d) => d.estado_operativo === 'FALLA_SENSOR').length, color: 'text-clay-700' },
+          { clave: 'dispositivos.bufferPendiente', valor: dispositivos.reduce((total, d) => total + (d.buffer_littlefs?.pendientes ?? 0), 0), color: 'text-glacier-700' },
+        ].map((resumen) => (
+          <div key={resumen.clave} className="min-w-0 px-4 py-3 sm:px-5">
+            <p className="text-xs font-medium leading-5 text-muted">{t(resumen.clave)}</p>
+            <p className={`nums mt-1 text-2xl font-semibold ${resumen.valor === 0 ? 'text-foreground' : resumen.color}`}>{resumen.valor}</p>
+          </div>
+        ))}
+      </section>
+
+      <div className="animate-rise [&_thead]:bg-background/60 [&_tbody_td]:align-middle [&_tbody_td]:py-3">
+        <Table mobileLayout="stack" className="min-w-[880px]" titulo={t('dispositivos.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
               <TableHead>{t('dispositivos.id')}</TableHead>
               <TableHead>{t('dispositivos.conectividad')}</TableHead>
-              <TableHead>{t('dispositivos.firmware')}</TableHead>
+              <TableHead>{t('dispositivos.sensores')}</TableHead>
               <TableHead>{t('dispositivos.calibracion')}</TableHead>
-              <TableHead>{t('dispositivos.ubicacion')}</TableHead>
-              <TableHead>{t('dispositivos.estado')}</TableHead>
               <TableHead>{t('comunes.acciones')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {cargando ? (
-              <TableEmpty colSpan={7}>{t('app.cargando')}</TableEmpty>
+              <TableEmpty colSpan={5}>{t('app.cargando')}</TableEmpty>
             ) : dispositivos.length === 0 ? (
-              <TableEmpty colSpan={7}>
+              <TableEmpty colSpan={5}>
                 <span className="inline-flex flex-col items-center gap-2">
                   <HardDrive className="size-5 text-faint" />
                   {t('dispositivos.sinDispositivos')}
@@ -242,18 +319,63 @@ export function DispositivosPage() {
                 const calibracion = estadoCalibracion(dispositivo)
                 return (
                 <TableRow key={dispositivo.id}>
-                  <TableCell className="font-medium">{dispositivo.id}</TableCell>
-                  <TableCell>
-                    <Badge variant={dispositivo.estado_conectividad === 'online' ? 'ok' : 'neutral'}>
-                      {dispositivo.estado_conectividad === 'online'
-                        ? t('dashboard.dispositivoOnline')
-                        : t('dashboard.dispositivoOffline')}
-                    </Badge>
+                  <TableCell data-label={t('dispositivos.id')} className="mobile-full min-w-48">
+                    <p className="font-semibold text-foreground">{dispositivo.id}</p>
+                    <p className="mt-1 max-w-72 break-words text-xs leading-5 text-muted">{dispositivo.ubicacion ?? '—'}</p>
                   </TableCell>
-                  <TableCell className="nums text-[13px] text-muted">
-                    {dispositivo.firmware_version}
+                  <TableCell data-label={t('dispositivos.conectividad')}>
+                    <div className="flex flex-col items-start gap-1">
+                      <Badge variant={dispositivo.estado_conectividad === 'online' ? 'ok' : 'neutral'}>
+                        {dispositivo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}
+                      </Badge>
+                      <div className="text-xs text-muted">
+                    {dispositivo.activo ? (
+                      <span>{t('dispositivos.activo')}</span>
+                    ) : (
+                      <Badge variant="critical">
+                        {t('dispositivos.inactivo')}
+                        {dispositivo.motivo_baja && (
+                          <span className="sr-only"> — {dispositivo.motivo_baja}</span>
+                        )}
+                      </Badge>
+                    )}
+                      </div>
+                      {dispositivo.estado_operativo && dispositivo.estado_operativo !== 'OPERATIVO' && (
+                        <Badge variant="critical">{t(`dispositivos.estadoOperativo.${dispositivo.estado_operativo}`)}</Badge>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label={t('dispositivos.sensores')} className="mobile-full min-w-48">
+                    <details className="group text-xs text-muted">
+                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md text-foreground focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {(dispositivo.sensores ?? []).map((sensor) => (
+                            <span key={sensor.modelo} className="inline-flex items-center gap-1.5 font-medium" title={t(`dispositivos.sensorEstado.${sensor.estado}`)}>
+                              <span aria-hidden className={`size-1.5 rounded-full ${sensor.estado === 'error' ? 'bg-critical' : sensor.estado === 'ok' ? 'bg-success-600' : 'bg-faint'}`} />
+                              {sensor.modelo}<span className="sr-only">: {t(`dispositivos.sensorEstado.${sensor.estado}`)}</span>
+                            </span>
+                          ))}
+                        </span>
+                        <ChevronDown className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
+                        <span className="sr-only">{t('dispositivos.verMapaIoT')}</span>
+                      </summary>
+                        <div className="mt-2 max-w-lg space-y-2 border-t border-border pt-3 text-xs leading-5">
+                          <p>{t('dispositivos.firmware')}: <span>{dispositivo.firmware_version ?? '—'}</span></p>
+                          {(dispositivo.sensores ?? []).map((sensor) => (
+                            <p key={sensor.modelo}><strong>{sensor.modelo}:</strong> {t(`dispositivos.sensorEstado.${sensor.estado}`)} · {sensor.campo_telemetria}</p>
+                          ))}
+                          <p>{t('dispositivos.reporteCada', { s: dispositivo.intervalo_reporte_segundos ?? 30 })} · {t('dispositivos.sinDatosTras', { s: dispositivo.umbral_sin_datos_segundos ?? 90 })}</p>
+                          <p>{t('dispositivos.bufferLittlefs', { n: dispositivo.buffer_littlefs?.pendientes ?? 0, max: dispositivo.buffer_littlefs?.limite ?? 128 })} · {t('dispositivos.perdidas', { n: dispositivo.buffer_littlefs?.perdidas ?? 0 })}</p>
+                          {dispositivo.buffer_littlefs?.desde && <p>{t('dispositivos.rangoBuffer', { desde: fechaHora(dispositivo.buffer_littlefs.desde), hasta: dispositivo.buffer_littlefs.hasta ? fechaHora(dispositivo.buffer_littlefs.hasta) : '—' })}</p>}
+                          <p>{t('dispositivos.credencialEstado')}: {t(`dispositivos.credencial.${dispositivo.estado_credencial_broker ?? 'sin_reportar'}`)}</p>
+                          <p>{t('dispositivos.ultimoReporte')}: {dispositivo.ultimo_reporte_en ? fechaHora(dispositivo.ultimo_reporte_en) : '—'}</p>
+                          {dispositivo.ultimo_evento && (
+                            <p className="break-all">schema {dispositivo.ultimo_evento.schema_version} · boot_id {dispositivo.ultimo_evento.boot_id} · seq_no {dispositivo.ultimo_evento.seq_no} · {dispositivo.ultimo_evento.time_quality}</p>
+                          )}
+                        </div>
+                    </details>
+                  </TableCell>
+                  <TableCell data-label={t('dispositivos.calibracion')} className="max-sm:col-start-2 max-sm:row-start-2">
                     <Badge
                       variant={
                         calibracion === 'vigente'
@@ -273,67 +395,82 @@ export function DispositivosPage() {
                       {t(`dispositivos.calibracionEstado.${calibracion}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-[16rem] truncate text-[13px] text-muted" title={dispositivo.ubicacion ?? undefined}>
-                    {dispositivo.ubicacion ?? '—'}
-                  </TableCell>
-                  <TableCell>
-                    {dispositivo.activo ? (
-                      <Badge variant="ok">{t('dispositivos.activo')}</Badge>
-                    ) : (
-                      <Badge variant="critical">
-                        {t('dispositivos.inactivo')}
-                        {dispositivo.motivo_baja && (
-                          <span className="sr-only"> — {dispositivo.motivo_baja}</span>
-                        )}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-wrap justify-end gap-1">
+                  <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-right">
+                    <ActionMenu label={dispositivo.id}>
                       <Button
                         variant="ghost"
                         size="sm"
-                        aria-label={t('dispositivos.calibrarA', { id: dispositivo.id })}
                         onClick={() => abrirCalibracion(dispositivo)}
                       >
                         <CalendarClock />
+                        {t('dispositivos.registrarCalibracion')}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        aria-label={t('dispositivos.editarInstalacionA', { id: dispositivo.id })}
                         onClick={() => abrirInstalacion(dispositivo)}
                       >
                         <MapPin />
+                        {t('dispositivos.editarInstalacion')}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        aria-label={t('dispositivos.editarResponsableA', { id: dispositivo.id })}
                         onClick={() => abrirResponsable(dispositivo)}
                       >
                         <UserRound />
+                        {t('dispositivos.editarResponsable')}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        aria-label={t('dispositivos.verHistorialA', { id: dispositivo.id })}
                         onClick={() => void abrirHistorial(dispositivo)}
                       >
                         <History />
+                        {t('dispositivos.historialConfiguracion')}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title={t('dispositivos.rotarCredencial')}
+                        disabled={!dispositivo.activo}
+                        onClick={() => void solicitarRotacion(dispositivo)}
+                      >
+                        <KeyRound />
+                        {t('dispositivos.rotarCredencial')}
+                      </Button>
+                      {dispositivo.estado_credencial_broker !== 'revocada' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title={t('dispositivos.revocarCredencial')}
+                          onClick={() => void solicitarRevocacion(dispositivo)}
+                        >
+                          <PowerOff />
+                          {t('dispositivos.revocarCredencial')}
+                        </Button>
+                      )}
+                      {MODO_DEMO && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => { setDispositivoActivo(dispositivo); setMensaje(null); setDialogo('simulacion') }}
+                        >
+                          <FlaskConical />
+                          {t('dispositivos.probarIoT')}
+                        </Button>
+                      )}
                       {dispositivo.activo && (
                         <Button
                           variant="secondary"
                           size="sm"
-                          aria-label={t('dispositivos.darDeBajaA', { id: dispositivo.id })}
                           onClick={() => abrirBaja(dispositivo)}
                         >
                           <PowerOff />
                           {t('dispositivos.darDeBaja')}
                         </Button>
                       )}
-                    </div>
+                    </ActionMenu>
                   </TableCell>
                 </TableRow>
                 )
@@ -343,6 +480,66 @@ export function DispositivosPage() {
         </Table>
         <Paginacion total={dispositivos.length} pagina={pagina} onCambiar={setPagina} />
       </div>
+
+      <Dialog open={dialogo === 'crear'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
+        <DialogContent>
+          <DialogTitle>{t('dispositivos.nuevoEquipo')}</DialogTitle>
+          <DialogDescription>{t('dispositivos.registroAyuda')}</DialogDescription>
+          <form onSubmit={(e) => void enviarNuevoDispositivo(e)} className="mt-4 space-y-3">
+            <div>
+              <Label htmlFor="nuevo-device-id">{t('dispositivos.id')}</Label>
+              <Input id="nuevo-device-id" value={formNuevo.id} onChange={(e) => setFormNuevo({ ...formNuevo, id: e.target.value.toUpperCase() })} placeholder="FARM-03-CDL" pattern="[A-Z0-9][A-Z0-9-]{2,39}" required />
+              <p className="mt-1 text-xs text-muted">{t('dispositivos.codigoUnicoAyuda')}</p>
+            </div>
+            <div>
+              <Label htmlFor="nuevo-device-nombre">{t('dispositivos.nombreEquipo')}</Label>
+              <Input id="nuevo-device-nombre" value={formNuevo.nombre} onChange={(e) => setFormNuevo({ ...formNuevo, nombre: e.target.value })} required />
+            </div>
+            <div>
+              <Label htmlFor="nuevo-device-ubicacion">{t('dispositivos.ubicacion')}</Label>
+              <Input id="nuevo-device-ubicacion" value={formNuevo.ubicacion} onChange={(e) => setFormNuevo({ ...formNuevo, ubicacion: e.target.value })} required />
+            </div>
+            <fieldset className="rounded-xl border border-border p-3">
+              <legend className="px-1 text-sm font-medium">{t('dispositivos.sensores')}</legend>
+              <p className="text-xs text-muted">DS18B20 · SHT31</p>
+              <label className="mt-3 flex min-h-11 items-center gap-2 text-sm">
+                <input type="checkbox" checked={formNuevo.mc38} onChange={(e) => setFormNuevo({ ...formNuevo, mc38: e.target.checked })} />
+                MC-38 · {t('dispositivos.opcional')}
+              </label>
+            </fieldset>
+            <MensajeFormulario mensaje={mensaje} />
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={cerrarDialogo} disabled={enviando}>{t('usuarios.cancelar')}</Button>
+              <Button type="submit" disabled={enviando}>{enviando ? t('dispositivos.procesando') : t('dispositivos.registrarEquipo')}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={MODO_DEMO && dialogo === 'simulacion'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
+        <DialogContent>
+          <DialogTitle>{t('dispositivos.probarIoT')}</DialogTitle>
+          <DialogDescription>{t('dispositivos.simulacionSoloDemo', { id: dispositivoActivo?.id ?? '' })}</DialogDescription>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {([
+              ['sin_datos', 'dispositivos.escenarioSinDatos'],
+              ['buffer_pendiente', 'dispositivos.escenarioBuffer'],
+              ['buffer_lleno', 'dispositivos.escenarioPerdida'],
+              ['falla_sensor', 'dispositivos.escenarioSensor'],
+              ['recuperar', 'dispositivos.escenarioRecuperacion'],
+            ] as const).map(([escenario, clave]) => (
+              <Button key={escenario} variant={escenario === 'recuperar' ? 'secondary' : 'primary'} disabled={enviando} onClick={() => void ejecutarEscenario(escenario)}>
+                {escenario === 'recuperar' ? <KeyRound /> : <FlaskConical />}
+                {t(clave)}
+              </Button>
+            ))}
+          </div>
+          <MensajeFormulario mensaje={mensaje} />
+          <div className="mt-3 flex justify-end">
+            <Button variant="ghost" onClick={cerrarDialogo}>{t('comunes.cerrar')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Dar de baja ─────────────────────────────────────────── */}
       <Dialog open={dialogo === 'baja'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
@@ -422,14 +619,25 @@ export function DispositivosPage() {
               />
             </div>
             <div>
-              <Label htmlFor="c-vigencia">{t('dispositivos.mesesVigencia')}</Label>
+              <Label htmlFor="c-vigencia">{t('dispositivos.validaHasta')}</Label>
               <Input
                 id="c-vigencia"
+                type="date"
+                value={formCalibracion.validaHasta}
+                onChange={(e) => setFormCalibracion({ ...formCalibracion, validaHasta: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="c-margen">{t('dispositivos.margenAviso')}</Label>
+              <Input
+                id="c-margen"
                 type="number"
-                min={1}
-                max={60}
-                value={formCalibracion.mesesVigencia}
-                onChange={(e) => setFormCalibracion({ ...formCalibracion, mesesVigencia: e.target.value })}
+                min={0}
+                max={365}
+                value={formCalibracion.margenAvisoDias}
+                onChange={(e) => setFormCalibracion({ ...formCalibracion, margenAvisoDias: e.target.value })}
+                required
               />
             </div>
             <div>
@@ -550,14 +758,14 @@ export function DispositivosPage() {
         <DialogContent>
           <DialogTitle>{t('dispositivos.historialConfiguracion')}</DialogTitle>
           <DialogDescription>{dispositivoActivo?.id}</DialogDescription>
-          <div className="mt-3 max-h-96 space-y-2 overflow-y-auto">
+          <div className="mt-5 max-h-96 divide-y divide-border overflow-y-auto">
             {cargandoHistorial ? (
               <p className="text-sm text-muted">{t('app.cargando')}</p>
             ) : historial.length === 0 ? (
               <p className="text-sm text-muted">{t('dispositivos.sinHistorial')}</p>
             ) : (
               historial.map((h) => (
-                <div key={h.id} className="rounded-(--radius-field) bg-cream-100 px-3 py-2 text-[13px]">
+                <div key={h.id} className="border-l-2 border-primary/20 py-4 pl-4 text-[13px]">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">{h.campo}</span>
                     <span className="nums text-xs text-faint">{fechaHora(h.created_at)}</span>

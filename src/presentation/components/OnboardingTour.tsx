@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useTranslation } from 'react-i18next'
 import type { Rol } from '@/domain/value-objects/Rol'
-import { useAuthStore } from '@/application/stores/authStore'
 
 const STORAGE_KEY = 'cf_onboarding_seen_v1'
 export const REOPEN_TOUR_EVENT = 'cf:reopen-onboarding'
@@ -16,19 +15,22 @@ function rememberSeen(key: string): void {
 }
 
 const STEPS = [
-  { route: '/dashboard', title: ['Monitoreo', 'Monitoring'], detail: ['Consulta la temperatura junto al medicamento, el estado térmico y la conexión en tiempo real.', 'Check medicine temperature, thermal status, and connection in real time.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
-  { route: '/alertas', title: ['Alertas', 'Alerts'], detail: ['Distingue riesgo preventivo de excursión crítica y registra las acciones tomadas.', 'Distinguish preventive risk from critical excursion and record actions taken.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
-  { route: '/historial', title: ['Historial', 'History'], detail: ['Filtra mediciones para reconstruir cuándo ocurrió un cambio térmico.', 'Filter readings to reconstruct when a thermal change occurred.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
-  { route: '/trazabilidad', title: ['Trazabilidad', 'Traceability'], detail: ['Verifica la integridad de los registros encadenados.', 'Verify integrity of chained records.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
-  { route: '/reportes', title: ['Reportes', 'Reports'], detail: ['Genera evidencia del periodo cuando la necesites.', 'Generate period evidence when needed.'], roles: ['farmaceutico', 'auditor', 'administrador'] },
-  { route: '/checklist-bpa', title: ['Checklist BPA', 'BPA checklist'], detail: ['Completa la verificación diaria y guarda constancia.', 'Complete the daily check and save evidence.'], roles: ['farmaceutico', 'administrador'] },
+  { route: '/dashboard', title: ['Monitoreo', 'Monitoring'], detail: ['Consulta la temperatura del refrigerador, sus condiciones y las alertas que requieren atención.', 'Check refrigerator temperature, conditions, and alerts that need attention.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
+  { route: '/alertas', title: ['Alertas', 'Alerts'], detail: ['Revisa el nivel de riesgo, el estado y la cronología de atención de cada alerta.', 'Review each alert’s risk level, status, and response history.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
+  { route: '/historial', title: ['Historial', 'History'], detail: ['Filtra lecturas para reconstruir cuándo cambió la temperatura.', 'Filter readings to see when the temperature changed.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
+  { route: '/trazabilidad', title: ['Integridad de registros', 'Record integrity'], detail: ['Comprueba la integridad de lecturas y acciones registradas.', 'Check the integrity of recorded readings and actions.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
+  { route: '/guia', title: ['Guía de uso', 'User guide'], detail: ['Consulta qué hace cada pantalla y cuándo usarla.', 'Learn what each screen does and when to use it.'], roles: ['farmaceutico', 'tecnico', 'auditor', 'administrador'] },
+  { route: '/reportes', title: ['Reportes', 'Reports'], detail: ['Consulta y descarga lecturas, alertas y acciones para revisiones internas.', 'Review and download readings, alerts, and actions for internal reviews.'], roles: ['farmaceutico', 'auditor', 'administrador'] },
+  { route: '/metricas-ia', title: ['Métricas de IA', 'AI metrics'], detail: ['Revisa el desempeño y la procedencia del clasificador de riesgo térmico.', 'Review the performance and provenance of the thermal-risk classifier.'], roles: ['farmaceutico', 'auditor', 'administrador'] },
+  { route: '/auditoria', title: ['Bitácora de auditoría', 'Audit log'], detail: ['Consulta las acciones críticas registradas en el sistema.', 'Review critical actions recorded in the system.'], roles: ['auditor', 'administrador'] },
+  { route: '/usuarios', title: ['Usuarios y roles', 'Users and roles'], detail: ['Administra quién accede al sistema, sus roles y el estado de sus cuentas.', 'Manage who can access the system, their roles, and account status.'], roles: ['administrador'] },
+  { route: '/dispositivos', title: ['Dispositivos ESP32', 'ESP32 devices'], detail: ['Revisa el ciclo de vida de los sensores registrados en el sistema.', 'Review the lifecycle of sensors registered in the system.'], roles: ['administrador'] },
 ] as const
 
 type Rect = { top: number; left: number; width: number; height: number }
 
 export function OnboardingTour({ rol, userId }: { rol: Rol; userId: string }) {
   const { i18n } = useTranslation()
-  const requiresPrivacy = useAuthStore((state) => state.requierePrivacidad)
   const en = i18n.language.startsWith('en')
   const steps = useMemo(() => STEPS.filter((step) => (step.roles as readonly string[]).includes(rol)), [rol])
   const storageKey = `${STORAGE_KEY}:${userId}`
@@ -43,7 +45,7 @@ export function OnboardingTour({ rol, userId }: { rol: Rol; userId: string }) {
   }, [])
 
   useEffect(() => {
-    if (!open || requiresPrivacy || !steps[index]) return
+    if (!open || !steps[index]) return
     const update = () => {
       const mobile = window.matchMedia('(max-width: 1023px)').matches
       const target = document.querySelector<HTMLElement>(
@@ -55,7 +57,7 @@ export function OnboardingTour({ rol, userId }: { rol: Rol; userId: string }) {
     update()
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
-  }, [open, requiresPrivacy, index, steps])
+  }, [open, index, steps])
 
   const finish = () => {
     rememberSeen(storageKey)
@@ -67,14 +69,14 @@ export function OnboardingTour({ rol, userId }: { rol: Rol; userId: string }) {
   const shade = 'fixed bg-ink-900/60 motion-reduce:transition-none'
 
   return (
-    <Dialog.Root open={open && !requiresPrivacy} onOpenChange={(next) => { if (!next) finish() }}>
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) finish() }}>
       <Dialog.Portal>
         {rect ? <>
           <div className={shade} style={{ zIndex: 70, top: 0, left: 0, right: 0, height: rect.top }} />
           <div className={shade} style={{ zIndex: 70, top: rect.top, left: 0, width: rect.left, height: rect.height }} />
           <div className={shade} style={{ zIndex: 70, top: rect.top, left: rect.left + rect.width, right: 0, height: rect.height }} />
           <div className={shade} style={{ zIndex: 70, top: rect.top + rect.height, left: 0, right: 0, bottom: 0 }} />
-          <div className="pointer-events-none fixed rounded-lg border-2 border-honey-500 shadow-[0_0_0_3px_rgba(255,255,255,0.85)]" style={{ zIndex: 71, ...rect }} />
+          <div className="pointer-events-none fixed rounded-lg border-2 border-primary shadow-[0_0_0_3px_rgba(255,255,255,0.85)]" style={{ zIndex: 71, ...rect }} />
         </> : <div className={`${shade} inset-0`} style={{ zIndex: 70 }} />}
         <Dialog.Content
           aria-describedby="tour-description"

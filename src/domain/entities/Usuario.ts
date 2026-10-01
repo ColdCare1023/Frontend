@@ -20,5 +20,6 @@ export interface RegistroAuditoria {
   recurso: string
   detalle: Record<string, unknown> | null
   ip_origen: string | null
+  resultado?: string | null
   created_at: string
 }

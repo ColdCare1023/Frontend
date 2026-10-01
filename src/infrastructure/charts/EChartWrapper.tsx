@@ -6,6 +6,7 @@ import {
   TooltipComponent,
   MarkLineComponent,
   MarkAreaComponent,
+  MarkPointComponent,
   LegendComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -30,6 +31,7 @@ echarts.use([
   TooltipComponent,
   MarkLineComponent,
   MarkAreaComponent,
+  MarkPointComponent,
   LegendComponent,
   CanvasRenderer,
 ])
@@ -81,7 +83,8 @@ export function EChartWrapper({
   }, [])
 
   useEffect(() => {
-    chartRef.current?.setOption(option, { notMerge: false })
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    chartRef.current?.setOption({ ...option, ...(reducedMotion ? { animation: false } : {}) }, { notMerge: false })
   }, [option])
 
   return (

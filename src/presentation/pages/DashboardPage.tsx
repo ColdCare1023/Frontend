@@ -2,25 +2,31 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import type { EChartsCoreOption } from 'echarts/core'
-import { AlertTriangle, DoorClosed, DoorOpen, Droplets, RadioTower, ShieldQuestion, TableProperties, Thermometer, Wind } from 'lucide-react'
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, ChevronDown, DoorClosed, DoorOpen, Droplets, FlaskConical, RadioTower, ShieldQuestion, TableProperties, Thermometer, Wind } from 'lucide-react'
 
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
+import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
+import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
+import { apiClient } from '@/infrastructure/api/apiClient'
 import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
-import { duracionBreve, hora as formatearHora } from '@/lib/formato'
+import { temaGrafica } from '@/infrastructure/charts/temaColdCare'
+import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/datosDemo'
+import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
+import { duracionBreve, fechaHora, hora as formatearHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
 import { EstadoCarga, EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { RiskBadge } from '../components/RiskBadge'
 import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
 
-// HU-35 criterio 2: a partir de este umbral, la advertencia de puerta
-// abierta se resalta. Es una guía operativa de la UI, no una regla de
-// alertas del backend (que sigue siendo puramente térmica, HU-21).
-const UMBRAL_PUERTA_ABIERTA_SEGUNDOS = 120
+// HU-35: el nodo entrega su umbral configurado; 120 s cubre respuestas de
+// backends anteriores que todavía no publican este campo.
+const UMBRAL_PUERTA_ABIERTA_POR_DEFECTO = 120
 
 // HU-33 criterio 2: a partir de este umbral sin una lectura nueva, el dato
 // mostrado se marca como desactualizado — no basta con "hay un valor", tiene
@@ -48,12 +54,15 @@ function TarjetaMetrica({
   // que el sensor falló, para no confundirlo con "todavía no llegó nada".
   fallaSensor = false,
   textoFallaSensor,
+  sinLectura = false,
+  textoSinLectura,
   // HU-33 criterio 2: dato presente pero desactualizado — distinto de
   // `fallaSensor` (dato ausente porque el sensor falló). Se atenúa la
   // tarjeta y se avisa, en vez de mostrar un número viejo como si fuera
   // vigente.
   desactualizado = false,
   textoDesactualizado,
+  textoDelta,
   // HU-32 criterio 4: indicador "En vivo/Tiempo real" JUNTO AL VALOR (no solo
   // en la cabecera de la página), con el timestamp de la última
   // actualización, para que no haya ambigüedad entre una lectura activa y
@@ -69,62 +78,57 @@ function TarjetaMetrica({
   destacada?: boolean
   fallaSensor?: boolean
   textoFallaSensor?: string
+  sinLectura?: boolean
+  textoSinLectura?: string
   desactualizado?: boolean
   textoDesactualizado?: string
+  textoDelta?: string
   enVivo?: { conectado: boolean; texto: string }
 }) {
   return (
     <Card
       className={cn(
-        'card-lift animate-rise',
-        destacada && !fallaSensor && !desactualizado && 'border-pine-200 bg-primary-tint/50',
-        fallaSensor && 'border-clay-200 bg-clay-50/40',
-        !fallaSensor && desactualizado && 'opacity-60',
+        'rounded-none border-0 bg-transparent shadow-none',
+        destacada && !fallaSensor && !sinLectura && !desactualizado && 'border-pine-200 bg-primary-tint/50',
+        (fallaSensor || sinLectura) && 'border-clay-200 bg-clay-50/40',
+        !fallaSensor && !sinLectura && desactualizado && 'opacity-60',
       )}
       style={{ animationDelay: `${retraso}ms` }}
     >
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] font-medium text-muted">{etiqueta}</p>
-          <span
-            className={cn(
-              'flex size-7 items-center justify-center rounded-md',
-              fallaSensor || desactualizado
-                ? 'bg-clay-100 text-clay-600'
-                : destacada
-                  ? 'bg-pine-100 text-pine-600'
-                  : 'bg-cream-100 text-faint',
-            )}
-          >
-            {fallaSensor || desactualizado ? (
+      <CardContent className="p-4">
+        <div className="flex min-h-5 items-start justify-between gap-2">
+          <p className="text-sm leading-5 font-medium text-muted">{etiqueta}</p>
+          <span className={cn('flex size-7 items-center justify-center', fallaSensor || sinLectura || desactualizado ? 'text-clay-600' : destacada ? 'text-secondary' : 'text-faint')}>
+            {fallaSensor || sinLectura || desactualizado ? (
               <AlertTriangle className="size-4" />
             ) : (
               <Icono className="size-4" />
             )}
           </span>
         </div>
-        {fallaSensor ? (
-          <p role="alert" className="mt-2 text-sm font-medium leading-snug text-clay-700">
-            {textoFallaSensor}
+        {fallaSensor || sinLectura ? (
+          <p role={fallaSensor ? 'alert' : 'status'} className="mt-2 text-sm font-medium leading-snug text-clay-700">
+            {fallaSensor ? textoFallaSensor : textoSinLectura}
           </p>
         ) : (
           <>
-            <p className="mt-2 flex items-baseline gap-1">
-              <span className="nums text-[32px] font-semibold leading-none tracking-tight">
+            <p className="mt-2 flex flex-wrap items-baseline gap-x-1 gap-y-2">
+              <span className="nums text-[26px] sm:text-[28px] font-semibold leading-none tracking-tight">
                 {valor}
               </span>
               <span className="text-sm text-muted">{unidad}</span>
               {delta != null && Math.abs(delta) >= 0.05 && (
                 <span
-                  className={cn(
-                    'nums ml-auto text-xs font-medium',
-                    delta > 0 ? 'text-honey-600' : 'text-pine-600',
-                  )}
+                  className="nums ml-auto flex items-center gap-0.5 text-xs font-medium text-muted"
                 >
-                  {delta > 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}
+                  {delta > 0 ? <ArrowUpRight aria-hidden className="size-3.5" /> : <ArrowDownRight aria-hidden className="size-3.5" />}
+                  {Math.abs(delta).toFixed(1)} °C
                 </span>
               )}
             </p>
+            {delta != null && Math.abs(delta) >= 0.05 && textoDelta && (
+              <p className="mt-1 text-right text-xs text-muted">{textoDelta}</p>
+            )}
             {desactualizado && (
               <p className="mt-1 text-xs font-medium leading-snug text-clay-700">
                 {textoDesactualizado}
@@ -153,6 +157,149 @@ function TarjetaMetrica({
   )
 }
 
+function EstadoPrincipal({
+  ultima,
+  riesgo,
+  segundosDesdeUltima,
+  desactualizado,
+}: {
+  ultima: LecturaTermica
+  riesgo: LecturaTermica['riesgo_efectivo']
+  segundosDesdeUltima: number | null
+  desactualizado: boolean
+}) {
+  const { t } = useTranslation()
+  const lectura = ultima.temperatura_interna
+  const minimoIndicador = 0
+  const maximoIndicador = 10
+  const lecturaFinita = lectura != null && Number.isFinite(lectura)
+  const fueraDeEscala = lecturaFinita && (lectura < minimoIndicador || lectura > maximoIndicador)
+  const porcentaje = !lecturaFinita
+    ? 50
+    : Math.max(minimoIndicador, Math.min(maximoIndicador, lectura)) * 10
+  const colorIndicador = riesgo === 'excursion_critica'
+    ? 'var(--color-clay-600)'
+    : riesgo === 'riesgo_preventivo'
+      ? 'var(--color-honey-600)'
+      : 'var(--color-primary)'
+  const sensorFallido = fallaSensor(ultima, 'temperatura_interna')
+  const sinLectura = lectura == null
+  const umbralConfigurado = ultima.umbral_puerta_abierta_segundos
+  const umbralPuerta = typeof umbralConfigurado === 'number' && Number.isFinite(umbralConfigurado) && umbralConfigurado > 0
+    ? umbralConfigurado
+    : UMBRAL_PUERTA_ABIERTA_POR_DEFECTO
+  const aperturaProlongada = ultima.apertura_refrigerador === true &&
+    ultima.duracion_apertura_segundos != null && ultima.duracion_apertura_segundos >= umbralPuerta
+
+  return (
+    <Card className="overflow-hidden border-border bg-surface shadow-none">
+      <CardContent className="grid gap-5 p-4 sm:p-5 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] sm:items-center">
+        <section aria-labelledby="resumen-termico-titulo" className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p id="resumen-termico-titulo" className="text-sm font-semibold text-foreground">
+              {desactualizado ? t('dashboard.ultimaTemperatura') : t('dashboard.estadoRefrigerador')}
+            </p>
+            <RiskBadge nivel={riesgo} />
+          </div>
+          {riesgo
+            ? <p className="mt-1.5 text-sm text-muted">
+                {desactualizado
+                  ? t('dashboard.riesgoUltimaLectura')
+                  : t(`riesgo.detalle.${riesgo}`)}
+              </p>
+            : <p className="mt-1.5 text-sm text-muted">{t('dashboard.sinClasificacion')}</p>}
+          {ultima.excursion_confirmada && (
+            <p className="mt-1.5 text-xs font-semibold text-clay-700">{t('dashboard.excursionConfirmada')}</p>
+          )}
+          {!ultima.excursion_confirmada && ultima.nivel_riesgo === 'excursion_critica' && riesgo !== 'excursion_critica' && (
+            <p className="mt-1.5 flex items-start gap-1.5 text-xs text-honey-700">
+              <ShieldQuestion className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              {t('dashboard.clasificacionIaDivergente')}
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
+            {sensorFallido || sinLectura ? (
+              <p role={sensorFallido ? 'alert' : 'status'} className="text-sm font-medium text-clay-700">
+                {sensorFallido ? t('dashboard.fallaSensor') : t('dashboard.sinLecturaDisponible')}
+              </p>
+            ) : (
+              <>
+                <span className="mb-1 flex size-8 items-center justify-center text-muted" aria-hidden="true">
+                  <Thermometer className="size-6" />
+                </span>
+                <p className="nums text-[48px] font-semibold leading-none tracking-[-0.03em] text-foreground sm:text-[56px]">
+                  {lectura?.toFixed(1) ?? '—'}
+                </p>
+                <span className="pb-1 text-xl font-medium text-muted">°C</span>
+              </>
+            )}
+          </div>
+          <div className="mt-4 max-w-[340px]" aria-hidden="true">
+            <div className="relative h-2 rounded-full bg-cream-200">
+              <span className="absolute inset-y-0 left-[20%] w-[60%] bg-secondary/40" />
+              {lecturaFinita && <span className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white" style={{left: `${porcentaje}%`, background: colorIndicador}} />}
+            </div>
+            <div className="mt-3 flex justify-between text-xs text-muted"><span>0 °C</span><span>{t('dashboard.rangoConservacion')}</span><span>10 °C</span></div>
+          </div>
+          {fueraDeEscala && lectura != null && (
+            <p role="note" className="mt-2 text-xs font-medium text-clay-700">
+              {lectura > maximoIndicador
+                ? t('dashboard.lecturaSobreEscala', { temperatura: lectura.toFixed(1) })
+                : t('dashboard.lecturaBajoEscala', { temperatura: lectura.toFixed(1) })}
+            </p>
+          )}
+          <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <span className={cn('size-2 rounded-full', desactualizado ? 'bg-clay-600' : 'bg-success-600')} />
+            {desactualizado
+              ? t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })
+              : t('dashboard.lecturaReciente', { s: segundosDesdeUltima })}
+            <span aria-hidden="true">·</span>
+            <span>{t('dashboard.ultimaLecturaHora')}:</span>
+            <time dateTime={ultima.timestamp}>{formatearHora(ultima.timestamp)}</time>
+          </p>
+        </section>
+
+
+        <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-1 sm:border-t-0 sm:border-l sm:pl-5 sm:pt-0">
+          <div className="py-1.5">
+            <dt className="flex items-center gap-2 text-xs font-medium text-muted">{ultima.apertura_refrigerador ? <DoorOpen className="size-4 text-honey-600" aria-hidden /> : <DoorClosed className="size-4 text-primary" aria-hidden />}{t('dashboard.puerta')}</dt>
+            <dd
+              className={cn('mt-2 text-sm font-semibold', ultima.apertura_refrigerador ? 'text-honey-700' : 'text-foreground')}
+              role={aperturaProlongada ? 'alert' : undefined}
+              data-testid={ultima.apertura_refrigerador ? 'puerta-advertencia' : undefined}
+            >
+              {ultima.apertura_refrigerador === null
+                ? t('dashboard.puertaSinDato')
+                : ultima.apertura_refrigerador
+                  ? t('dashboard.puertaAbierta')
+                  : t('dashboard.puertaCerrada')}
+              {ultima.apertura_refrigerador && ultima.duracion_apertura_segundos != null && (() => {
+                const duracion = ultima.duracion_apertura_segundos
+                const prolongada = duracion >= umbralPuerta
+                return <span className={cn('nums ml-1 font-normal', prolongada ? 'text-clay-700' : 'text-muted')}>· {duracionBreve(duracion)}{prolongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}</span>
+              })()}
+              {aperturaProlongada && (
+                <span className="mt-1 block text-xs font-medium text-clay-700">
+                  {t('dashboard.puertaSuperaUmbral', { segundos: umbralPuerta })}
+                </span>
+              )}
+            </dd>
+          </div>
+          <div className="py-1.5">
+            <dt className="flex items-center gap-2 text-xs font-medium text-muted"><RadioTower className="size-4 text-primary" aria-hidden />{t('dashboard.conexionEquipo')}</dt>
+            <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+              <Badge variant={ultima.estado_conectividad === 'online' ? 'ok' : 'neutral'} dot data-testid="conectividad-dispositivo">
+                {ultima.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}
+              </Badge>
+            </dd>
+            <dd className="nums mt-1 break-all text-xs text-faint">{ultima.device_id}</dd>
+          </div>
+        </dl>
+      </CardContent>
+    </Card>
+  )
+}
+
 // HU-33 criterio 3: `estado_sensores` distingue un sensor que falló
 // (invalido/fisicamente_imposible/ausente) de uno que simplemente no aplica
 // a esta lectura — un valor `null` sin más contexto es indistinguible de
@@ -166,47 +313,55 @@ function fallaSensor(lectura: LecturaTermica, campo: string): boolean {
 function construirOpcionCurva(serie: LecturaTermica[], etiquetas: {
   interna: string
   ambiental: string
+  rangoEsperado: string
 }): EChartsCoreOption {
-  const horas = serie.map((l) => formatearHora(l.timestamp))
+  const horas = serie.map((l) => l.timestamp)
+  const colores = temaGrafica()
   return {
-    textStyle: { fontFamily: 'Inter, sans-serif', color: '#0F172A' },
-    grid: { left: 44, right: 16, top: 32, bottom: 28 },
+    // Range controls update the dataset in place; keep the curve stable instead
+    // of fading out and animating every point between unrelated time scales.
+    animation: false,
+    textStyle: { fontFamily: 'Inter Variable, sans-serif', color: colores.foreground },
+    grid: { left: 44, right: 40, top: 32, bottom: 28 },
     tooltip: {
+      confine: true,
       trigger: 'axis',
-      backgroundColor: '#FFFFFF',
-      borderColor: '#DCE5F0',
-      textStyle: { color: '#0F172A', fontSize: 12, fontFamily: 'Inter, sans-serif' },
+      axisPointer: { label: { formatter: ({ value }: { value: string | number }) => fechaHora(String(value)) } },
+      backgroundColor: colores.surface,
+      borderColor: colores.border,
+      textStyle: { color: colores.foreground, fontSize: 12, fontFamily: 'Inter Variable, sans-serif' },
       valueFormatter: (v: unknown) => (typeof v === 'number' ? `${v.toFixed(1)} °C` : '—'),
     },
     legend: {
+      selected: { [etiquetas.ambiental]: false },
       top: 0,
       right: 0,
       icon: 'roundRect',
       itemWidth: 14,
       itemHeight: 3,
       formatter: etiquetaCortaTemperatura,
-      textStyle: { color: '#59677C', fontSize: 12, fontFamily: 'Inter, sans-serif' },
+      textStyle: { color: colores.muted, fontSize: 12, fontFamily: 'Inter Variable, sans-serif' },
     },
     xAxis: {
       type: 'category',
       data: horas,
       boundaryGap: false,
-      axisLine: { lineStyle: { color: '#DCE5F0' } },
+      axisLine: { lineStyle: { color: colores.border } },
       axisTick: { show: false },
-      axisLabel: { fontSize: 11, color: '#59677C', fontFamily: 'Inter, sans-serif' },
+      axisLabel: { formatter: (value: string) => formatearHora(value), fontSize: 11, color: colores.muted, fontFamily: 'Inter Variable, sans-serif' },
     },
     yAxis: {
       type: 'value',
       min: (value: { min: number }) => Math.floor(Math.min(value.min, 0)),
       max: (value: { max: number }) => Math.ceil(Math.max(value.max, 10)),
-      splitLine: { lineStyle: { color: '#DCE5F0' } },
-      axisLabel: { fontSize: 11, color: '#59677C', fontFamily: 'Inter, sans-serif', formatter: '{value} °C' },
+      splitLine: { lineStyle: { color: colores.grid } },
+      axisLabel: { fontSize: 11, color: colores.muted, fontFamily: 'Inter Variable, sans-serif', formatter: '{value} °C' },
     },
     series: [
       {
         name: etiquetas.interna,
         type: 'line',
-        smooth: true,
+        smooth: false,
         symbol: 'none',
         // HU-31 criterio 3: con la ventana ampliada a días, miles de puntos
         // continuos se muestrean automáticamente (LTTB conserva la forma
@@ -215,42 +370,43 @@ function construirOpcionCurva(serie: LecturaTermica[], etiquetas: {
         sampling: 'lttb',
         large: true,
         data: serie.map((l) => l.temperatura_interna),
-        lineStyle: { width: 2.5, color: '#0B5CFF' },
-        itemStyle: { color: '#0B5CFF' },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(11, 92, 255, 0.14)' },
-              { offset: 1, color: 'rgba(11, 92, 255, 0)' },
-            ],
-          },
-        },
+        lineStyle: { width: 2.5, color: colores.primary },
+        itemStyle: { color: colores.primary },
+        areaStyle: { color: colores.primary, opacity: 0.1 },
         markArea: {
           silent: true,
-          itemStyle: { color: 'rgba(11, 92, 255, 0.06)' },
+          itemStyle: { color: colores.primary, opacity: 0.06 },
+          label: { show: true, position: 'insideTop', color: colores.primary, fontSize: 10, formatter: etiquetas.rangoEsperado },
           data: [[{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }]],
         },
         markLine: {
           silent: true,
           symbol: 'none',
           // Tono `clay-700` existente: mantiene semántica de excursión crítica.
-          lineStyle: { color: '#8F3320', type: 'dashed', width: 1 },
-          label: { color: '#8F3320', fontSize: 10, fontFamily: 'Inter, sans-serif', formatter: '{c} °C' },
+          lineStyle: { color: colores.critical, type: 'dashed', width: 1 },
+          label: { color: colores.critical, fontSize: 10, fontFamily: 'Inter Variable, sans-serif', formatter: '{c} °C' },
           data: [{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }],
+        },
+        markPoint: {
+          symbol: 'circle',
+          symbolSize: 14,
+          itemStyle: { color: colores.critical, borderColor: colores.surface, borderWidth: 2 },
+          label: { show: true, formatter: '!', color: '#FFFFFF', fontWeight: 700, fontSize: 10 },
+          data: serie.flatMap((lectura, indice) => lectura.excursion_confirmada && lectura.temperatura_interna != null
+            ? [{ coord: [horas[indice], lectura.temperatura_interna], name: 'Excursión confirmada' }]
+            : []),
         },
       },
       {
         name: etiquetas.ambiental,
         type: 'line',
-        smooth: true,
+        smooth: false,
         symbol: 'none',
         sampling: 'lttb',
         large: true,
         data: serie.map((l) => l.temperatura_ambiental),
-        lineStyle: { width: 1.5, color: '#08738F', type: 'dashed' },
-        itemStyle: { color: '#08738F' },
+        lineStyle: { width: 1.5, color: colores.secondary, type: 'dashed' },
+        itemStyle: { color: colores.secondary },
       },
     ],
   }
@@ -260,6 +416,239 @@ function etiquetaCortaTemperatura(nombre: string): string {
   return nombre
     .replace(/^temperatura\s+/i, '')
     .replace(/\s+temperature$/i, '')
+}
+
+function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
+  const { t } = useTranslation()
+  if (equipos.length === 0) return null
+
+  return (
+    <Card className="mb-5 rounded-(--radius-card) border-border bg-surface">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <RadioTower className="mt-0.5 size-5 shrink-0 text-glacier-600" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">{t('dashboard.estadoIoTTitulo')}</p>
+            <p className="sr-only">{t('dashboard.estadoIoTDetalle')}</p>
+            <ul className="mt-2 space-y-2">
+              {equipos.map((dispositivo) => {
+                const buffer = dispositivo.buffer_littlefs
+                const pendientes = buffer?.pendientes ?? 0
+                const perdidas = buffer?.perdidas ?? 0
+                const incidentes = dispositivo.incidencias_operativas ?? []
+                const incidenteActivo = incidentes.find((incidente) => incidente.estado === 'activo')
+                const incidentesResueltos = incidentes.filter((incidente) => incidente.estado === 'resuelto')
+
+                return (
+                  <li key={dispositivo.id} className="border-t border-glacier-200 pt-2 text-sm">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <span className="font-semibold">{dispositivo.nombre || dispositivo.id}</span>
+                      <span className="font-mono text-xs text-muted">{dispositivo.id}</span>
+                      {dispositivo.estado_operativo === 'SIN_DATOS' && (
+                        <Badge variant="critical">
+                          {t('dashboard.estadoSinDatos', {
+                            segundos: incidenteActivo?.umbral_silencio_segundos ?? dispositivo.umbral_sin_datos_segundos ?? 90,
+                          })}
+                        </Badge>
+                      )}
+                      {dispositivo.estado_operativo === 'FALLA_SENSOR' && <Badge variant="critical">{t('dispositivos.estadoOperativo.FALLA_SENSOR')}</Badge>}
+                      {dispositivo.estado_operativo === 'OPERATIVO' && incidentesResueltos.length > 0 && <Badge variant="ok">{t('dispositivos.estadoOperativo.OPERATIVO')}</Badge>}
+                    </div>
+                    {incidenteActivo && (
+                      <p role="status" className="mt-1.5 text-xs font-medium text-clay-700">
+                        {t('dashboard.alertaSilencio', {
+                          fecha: fechaHora(incidenteActivo.detectado_en),
+                          segundos: incidenteActivo.umbral_silencio_segundos,
+                        })}
+                      </p>
+                    )}
+                    {dispositivo.estado_operativo === 'SIN_DATOS' && (
+                      <p className="mt-1 text-xs text-muted">
+                        {dispositivo.ultimo_reporte_en
+                          ? t('dashboard.ultimoDatoOperativo', { fecha: fechaHora(dispositivo.ultimo_reporte_en) })
+                          : t('dashboard.nuncaReporto')}
+                      </p>
+                    )}
+                    {buffer && (
+                      <div className="mt-2 flex flex-col gap-1 text-xs text-muted">
+                        {pendientes > 0 ? (
+                          <span>{t('dispositivos.bufferLittlefs', { n: pendientes, max: buffer.limite })}</span>
+                        ) : buffer.ultima_sincronizacion_en ? (
+                          <span className="text-success-700">
+                            {t('dashboard.sinPendientes', { fecha: fechaHora(buffer.ultima_sincronizacion_en) })}
+                          </span>
+                        ) : null}
+                        {buffer.desde && (
+                          <span>
+                            {t('dispositivos.rangoBuffer', {
+                              desde: fechaHora(buffer.desde),
+                              hasta: buffer.hasta ? fechaHora(buffer.hasta) : '—',
+                            })}
+                          </span>
+                        )}
+                        {perdidas > 0 && (
+                          <span className="font-semibold text-honey-600">
+                            {t('dispositivos.perdidas', { n: perdidas })}
+                          </span>
+                        )}
+                        {buffer.brechas?.slice(-2).map((brecha) => (
+                          <span key={`${brecha.desde}-${brecha.hasta}`} className="rounded-md bg-critical-tint px-2 py-1 text-clay-700">
+                            {t('dashboard.brechaBuffer', { n: brecha.muestras_perdidas })} · {t('dashboard.causaBufferAgotado')}
+                            <span className="mt-0.5 block font-normal">
+                              {t('dashboard.periodoBrecha', {
+                                desde: fechaHora(brecha.desde),
+                                hasta: fechaHora(brecha.hasta),
+                              })}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {incidentesResueltos.length > 0 && (
+                      <details className="group mt-2 text-xs text-muted">
+                        <summary className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded px-1 font-medium hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary">
+                          {t('dashboard.incidentesRecientes', { n: incidentesResueltos.length })}
+                          <ChevronDown className="size-3.5" aria-hidden />
+                        </summary>
+                        <ul className="mt-1 space-y-1 pl-3">
+                          {incidentesResueltos.slice(-3).map((incidente) => (
+                            <li key={incidente.id}>
+                              {t('dashboard.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+type EscenarioDashboard =
+  | 'sin_datos'
+  | 'buffer_pendiente'
+  | 'buffer_lleno'
+  | 'falla_sensor'
+  | 'puerta_abierta'
+  | 'puerta_cerrada'
+  | 'recuperar'
+
+const ESCENARIOS_DASHBOARD: Array<{ id: EscenarioDashboard; clave: string }> = [
+  { id: 'sin_datos', clave: 'dashboard.demoSinDatos' },
+  { id: 'buffer_pendiente', clave: 'dashboard.demoBufferPendiente' },
+  { id: 'buffer_lleno', clave: 'dashboard.demoBufferLleno' },
+  { id: 'falla_sensor', clave: 'dashboard.demoFallaSensor' },
+  { id: 'puerta_abierta', clave: 'dashboard.demoPuertaAbierta' },
+  { id: 'puerta_cerrada', clave: 'dashboard.demoPuertaCerrada' },
+  { id: 'recuperar', clave: 'dashboard.demoRecuperar' },
+]
+
+function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<void> }) {
+  const { t } = useTranslation()
+  const [ejecutando, setEjecutando] = useState<EscenarioDashboard | null>(null)
+  const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+  const [umbralSilencio, setUmbralSilencio] = useState(90)
+  const [umbralPuerta, setUmbralPuerta] = useState(120)
+
+  const ejecutar = async (escenario: EscenarioDashboard) => {
+    setEjecutando(escenario)
+    setMensaje(null)
+    try {
+      await apiClient.post(`/api/demo/dispositivos/${DISPOSITIVO_DEMO}/simulacion`, {
+        escenario,
+        umbral_sin_datos_segundos: umbralSilencio,
+        umbral_puerta_abierta_segundos: umbralPuerta,
+      })
+      await onActualizado()
+      setMensaje({ tipo: 'ok', texto: t('dashboard.demoAplicado') })
+    } catch {
+      setMensaje({ tipo: 'error', texto: t('dashboard.demoError') })
+    } finally {
+      setEjecutando(null)
+    }
+  }
+
+  if (!MODO_DEMO) return null
+
+  return (
+    <details className="group mb-4 rounded-xl border border-border bg-surface">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-foreground hover:bg-cream-100/70 focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2.5">
+          <FlaskConical className="size-4 text-primary" aria-hidden />
+          {t('dashboard.demoTitulo')}
+          <span className="rounded-full bg-[#E9F8FF] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-glacier-600">
+            {t('demo.badge')}
+          </span>
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="border-t border-border px-4 pb-4 pt-3">
+        <p className="mb-3 max-w-3xl text-xs leading-relaxed text-muted">{t('dashboard.demoAyuda')}</p>
+        <div className="mb-3 grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1.5 text-xs font-medium text-muted" htmlFor="umbral-silencio-demo">
+            {t('dashboard.umbralSilencio')}
+            <select
+              id="umbral-silencio-demo"
+              className="min-h-10 rounded-lg border border-border bg-surface px-3 text-sm font-normal text-foreground focus-visible:outline-2 focus-visible:outline-primary"
+              disabled={ejecutando !== null}
+              value={umbralSilencio}
+              onChange={(event) => setUmbralSilencio(Number(event.target.value))}
+            >
+              <option value={60}>60 s</option>
+              <option value={90}>90 s</option>
+              <option value={180}>180 s</option>
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-xs font-medium text-muted" htmlFor="umbral-puerta-demo">
+            {t('dashboard.umbralPuerta')}
+            <select
+              id="umbral-puerta-demo"
+              className="min-h-10 rounded-lg border border-border bg-surface px-3 text-sm font-normal text-foreground focus-visible:outline-2 focus-visible:outline-primary"
+              disabled={ejecutando !== null}
+              value={umbralPuerta}
+              onChange={(event) => setUmbralPuerta(Number(event.target.value))}
+            >
+              <option value={60}>1 min</option>
+              <option value={120}>2 min</option>
+              <option value={300}>5 min</option>
+            </select>
+          </label>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {ESCENARIOS_DASHBOARD.map(({ id, clave }) => (
+            <Button
+              key={id}
+              type="button"
+              variant={id === 'recuperar' ? 'primary' : 'secondary'}
+              size="sm"
+              className="justify-center"
+              disabled={ejecutando !== null}
+              onClick={() => void ejecutar(id)}
+            >
+              {ejecutando === id ? t('dashboard.demoAplicando') : t(clave)}
+            </Button>
+          ))}
+        </div>
+        {mensaje && (
+          <p
+            role={mensaje.tipo === 'error' ? 'alert' : 'status'}
+            className={cn(
+              'mt-3 text-xs font-medium',
+              mensaje.tipo === 'error' ? 'text-clay-700' : 'text-success-700',
+            )}
+          >
+            {mensaje.texto}
+          </p>
+        )}
+      </div>
+    </details>
+  )
 }
 
 function resumenVentana(serie: LecturaTermica[]) {
@@ -296,6 +685,7 @@ const TablaAlternativaMonitoreo = memo(function TablaAlternativaMonitoreo({
     t('dashboard.tempInterna'),
     t('dashboard.tempAmbiental'),
     t('historial.riesgo'),
+    t('dashboard.eventoGrafica'),
   ]
   const filas = useMemo(
     () =>
@@ -305,6 +695,7 @@ const TablaAlternativaMonitoreo = memo(function TablaAlternativaMonitoreo({
             lectura.temperatura_interna?.toFixed(1) ?? '—',
             lectura.temperatura_ambiental?.toFixed(1) ?? '—',
             lectura.riesgo_efectivo ? t(`riesgo.${lectura.riesgo_efectivo}`) : '—',
+            lectura.excursion_confirmada ? t('dashboard.excursionEvento') : '—',
           ])
         : [],
     [abierto, serie, t],
@@ -361,7 +752,9 @@ const TablaAlternativaMonitoreo = memo(function TablaAlternativaMonitoreo({
 export function DashboardPage() {
   const { t } = useTranslation()
   const [horasVentana, setHorasVentana] = useState<number>(24)
-  const { ultima, serie, sseConectado, estadoHistorial } = useMonitoreoTermico(horasVentana)
+  const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana)
+  const { equipos: equiposConIncidencias, consultar: consultarEstadoOperativo } = useEstadoOperativo()
+  const estadoIoTPrincipal = equiposConIncidencias.find((equipo) => equipo.id === DISPOSITIVO_DEMO)
   const previa = serie.at(-2) ?? null
   const resumen = useMemo(() => resumenVentana(serie), [serie])
 
@@ -376,7 +769,8 @@ export function DashboardPage() {
   }, [])
 
   const segundosDesdeUltima = ultima ? Math.max(0, Math.floor((ahora - new Date(ultima.timestamp).getTime()) / 1000)) : null
-  const datoDesactualizado = segundosDesdeUltima != null && segundosDesdeUltima >= UMBRAL_FRESCURA_SEGUNDOS
+  const datoDesactualizado = estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' ||
+    (segundosDesdeUltima != null && segundosDesdeUltima >= UMBRAL_FRESCURA_SEGUNDOS)
 
   const deltaDe = (
     actual: number | null | undefined,
@@ -389,16 +783,25 @@ export function DashboardPage() {
       construirOpcionCurva(serie, {
         interna: t('dashboard.tempInterna'),
         ambiental: t('dashboard.tempAmbiental'),
+        rangoEsperado: t('dashboard.rangoEsperadoCorto'),
       }),
     [serie, t],
   )
+
+  const actualizarDemo = async () => {
+    await consultarEstadoOperativo()
+    reintentar()
+  }
 
   return (
     <div>
       {/* RF-11 + WCAG 4.1.3: la excursión térmica que llega por SSE se anuncia.
           HU-34: se anuncia el riesgo EFECTIVO, no la clase cruda de la IA —
           es lo que decide si hay que actuar, no lo que opinó el modelo. */}
-      <AnuncioRiesgo nivel={ultima?.riesgo_efectivo ?? null} temperatura={ultima?.temperatura_interna} />
+      <AnuncioRiesgo
+        nivel={datoDesactualizado ? null : ultima?.riesgo_efectivo ?? null}
+        temperatura={datoDesactualizado ? null : ultima?.temperatura_interna}
+      />
 
       <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('dashboard.titulo')} descripcion={t('dashboard.descripcion')}>
         <span
@@ -406,36 +809,44 @@ export function DashboardPage() {
             'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',
             sseConectado
               ? 'border-glacier-200 bg-glacier-100 text-glacier-700'
-              : 'border-border bg-cream-200 text-foreground',
+              : 'border-honey-600/25 bg-honey-100 text-honey-700',
           )}
         >
           <span className="relative flex size-2">
-            {sseConectado && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-glacier-600 opacity-60" />
-            )}
             <span
               className={cn(
                 'relative inline-flex size-2 rounded-full',
-                sseConectado ? 'bg-glacier-600' : 'bg-faint',
+                sseConectado ? 'bg-glacier-600' : 'bg-honey-600',
               )}
             />
           </span>
-          {sseConectado ? t('dashboard.conectado') : t('dashboard.desconectado')}
-          <span className="text-foreground">· {t('dashboard.tiempoReal')}</span>
+          {sseConectado ? t('dashboard.actualizacionActiva') : t('dashboard.actualizacionReconectando')}
         </span>
       </PageHeader>
 
       {estadoHistorial === 'error' && (
         <div className="mb-4">
-          <EstadoError mensaje={t('comunes.error')} />
+          <EstadoError mensaje={t('dashboard.errorHistorial')}>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
+              {t('comunes.reintentar')}
+            </Button>
+          </EstadoError>
         </div>
       )}
 
+      {/* El estado del nodo no depende de que exista una lectura térmica para
+          mostrar: una cámara sin telemetría también debe aparecer aquí. */}
+      {!ultima && estadoHistorial !== 'cargando' && <EstadoEquiposIoT equipos={equiposConIncidencias} />}
+
       {ultima === null && estadoHistorial === 'cargando' ? (
-        <EstadoCarga />
+        <EstadoCarga variant="dashboard">
+          {equiposConIncidencias.length > 0
+            ? <EstadoEquiposIoT equipos={equiposConIncidencias} />
+            : <div aria-hidden className="h-52 rounded-(--radius-card) border border-border bg-surface p-5"><div className="h-4 w-48 rounded bg-cream-200" /><div className="mt-6 h-4 w-64 max-w-full rounded bg-cream-200" /></div>}
+        </EstadoCarga>
       ) : ultima === null && estadoHistorial === 'error' ? null : ultima === null ? (
         <Card className="animate-rise">
-          <CardContent className="flex flex-col items-center gap-3 py-20 text-center">
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <span className="flex size-12 items-center justify-center rounded-full bg-cream-200 text-faint">
               <RadioTower className="size-6" />
             </span>
@@ -445,177 +856,68 @@ export function DashboardPage() {
         </Card>
       ) : (
         <>
-          {/* ── Métricas ────────────────────────────────────── */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <TarjetaMetrica
-              etiqueta={t('dashboard.tempInterna')}
-              valor={ultima.temperatura_interna?.toFixed(1) ?? '—'}
-              unidad="°C"
-              icono={Thermometer}
-              delta={deltaDe(ultima.temperatura_interna, previa?.temperatura_interna)}
-              destacada
-              fallaSensor={fallaSensor(ultima, 'temperatura_interna')}
-              textoFallaSensor={t('dashboard.fallaSensor')}
-              desactualizado={datoDesactualizado}
-              textoDesactualizado={t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })}
-              enVivo={{
-                conectado: sseConectado,
-                texto: sseConectado
-                  ? t('dashboard.enVivoDesde', { hora: formatearHora(ultima.timestamp) })
-                  : t('dashboard.desconectadoDesde', { hora: formatearHora(ultima.timestamp) }),
-              }}
-            />
+          <div className="mb-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.7fr)]">
+          <EstadoPrincipal
+            ultima={ultima}
+            riesgo={ultima.riesgo_efectivo}
+            segundosDesdeUltima={segundosDesdeUltima}
+            desactualizado={datoDesactualizado}
+          />
+
+          {/* El bloque principal prioriza estado y temperatura. Estas métricas
+              quedan como contexto secundario para una lectura rápida. */}
+          <div className="grid grid-cols-2 divide-x divide-border overflow-hidden rounded-(--radius-card) border border-border bg-surface xl:grid-cols-1 xl:divide-x-0 xl:divide-y">
             <TarjetaMetrica
               etiqueta={t('dashboard.tempAmbiental')}
               valor={ultima.temperatura_ambiental?.toFixed(1) ?? '—'}
               unidad="°C"
               icono={Wind}
               delta={deltaDe(ultima.temperatura_ambiental, previa?.temperatura_ambiental)}
+              textoDelta={t('dashboard.variacionVsAnterior')}
               retraso={60}
               fallaSensor={fallaSensor(ultima, 'temperatura_ambiental')}
               textoFallaSensor={t('dashboard.fallaSensor')}
+              sinLectura={ultima.temperatura_ambiental == null && !fallaSensor(ultima, 'temperatura_ambiental')}
+              textoSinLectura={t('dashboard.sinLecturaDisponible')}
               desactualizado={datoDesactualizado}
               textoDesactualizado={t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })}
             />
             <TarjetaMetrica
               etiqueta={t('dashboard.humedad')}
               valor={ultima.humedad_ambiental?.toFixed(0) ?? '—'}
-              unidad="% HR"
+              unidad="%"
               fallaSensor={fallaSensor(ultima, 'humedad_ambiental')}
               textoFallaSensor={t('dashboard.fallaSensor')}
+              sinLectura={ultima.humedad_ambiental == null && !fallaSensor(ultima, 'humedad_ambiental')}
+              textoSinLectura={t('dashboard.sinLecturaDisponible')}
               icono={Droplets}
               retraso={120}
               desactualizado={datoDesactualizado}
               textoDesactualizado={t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })}
             />
-            <Card className="card-lift animate-rise" style={{ animationDelay: '180ms' }}>
-              <CardContent className="p-5">
-                <p className="text-[13px] font-medium text-muted">{t('dashboard.estadoActual')}</p>
-                <div className="mt-2.5">
-                  {/* HU-34 criterios 1-3: el semáforo principal es el riesgo
-                      EFECTIVO (regla directa + IA combinadas), nunca la
-                      clase cruda de la IA por sí sola. */}
-                  <RiskBadge nivel={ultima.riesgo_efectivo} />
-                </div>
-                {ultima.riesgo_efectivo && (
-                  <p className="mt-1.5 text-xs leading-snug text-muted">
-                    {t(`riesgo.detalle.${ultima.riesgo_efectivo}`)}
-                  </p>
-                )}
-                {ultima.excursion_confirmada && (
-                  <p className="mt-1 text-xs font-medium leading-snug text-clay-700">
-                    {t('dashboard.excursionConfirmada')}
-                  </p>
-                )}
-                {/* HU-34 criterio 4: si la IA clasificó más severo que el
-                    riesgo efectivo (p. ej. excursión crítica con la
-                    temperatura todavía en rango), se muestra diferenciado —
-                    nunca se afirma una excursión que la regla directa no
-                    confirmó. */}
-                {!ultima.excursion_confirmada &&
-                  ultima.nivel_riesgo === 'excursion_critica' &&
-                  ultima.riesgo_efectivo !== 'excursion_critica' && (
-                    <p className="mt-1.5 flex items-start gap-1 text-xs leading-snug text-honey-700">
-                      <ShieldQuestion className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                      {t('dashboard.clasificacionIaDivergente')}
-                    </p>
-                  )}
-                <p className="mt-1.5 text-xs leading-snug text-muted">
-                  {ultima.estado_inferencia && ultima.estado_inferencia !== 'completada' ? (
-                    <>
-                      {t(`ia.estado.${ultima.estado_inferencia}`)}
-                      {ultima.origen_clasificacion && <> · {t(`ia.origen.${ultima.origen_clasificacion}`)}</>}
-                      {ultima.motivo_no_inferencia && <> · {ultima.motivo_no_inferencia}</>}
-                    </>
-                  ) : ultima.origen_clasificacion ? (
-                    <>
-                      {t(`ia.origen.${ultima.origen_clasificacion}`)}
-                      {ultima.confianza_ia !== null && (
-                        <> · {t('ia.confianza')} {(ultima.confianza_ia * 100).toFixed(0)}%</>
-                      )}
-                      {(ultima.modelo_version ?? ultima.model_version) && (
-                        <> · {t('ia.version')} {ultima.modelo_version ?? ultima.model_version}</>
-                      )}
-                    </>
-                  ) : (
-                    t('ia.sinInferencia')
-                  )}
-                </p>
-                {/* HU-35 criterio 4: sin MC-38 instalado, `apertura_refrigerador`
-                    llega como null — no se presenta como "cerrada", que
-                    sería una falsa lectura de un sensor que no existe. */}
-                {ultima.apertura_refrigerador === null ? (
-                  <p className="mt-2.5 flex items-center gap-1.5 text-[13px] text-faint">
-                    <ShieldQuestion className="size-3.5" aria-hidden />
-                    {t('dashboard.puerta')}: {t('dashboard.puertaSinSensor')}
-                  </p>
-                ) : ultima.apertura_refrigerador ? (
-                  (() => {
-                    // HU-35 criterio 2: se resalta y se muestra el tiempo
-                    // transcurrido cuando supera el umbral configurado.
-                    const duracion = ultima.duracion_apertura_segundos ?? 0
-                    const prolongada = duracion >= UMBRAL_PUERTA_ABIERTA_SEGUNDOS
-                    return (
-                      <p
-                        className={cn(
-                          'mt-2.5 flex items-center gap-1.5 text-[13px]',
-                          prolongada ? 'font-medium text-clay-700' : 'text-muted',
-                        )}
-                        role={prolongada ? 'alert' : undefined}
-                        data-testid="puerta-advertencia"
-                      >
-                        <DoorOpen
-                          className={cn('size-3.5', prolongada ? 'text-clay-600' : 'text-honey-600')}
-                        />
-                        {t('dashboard.puerta')}: {t('dashboard.puertaAbierta')}
-                        {ultima.duracion_apertura_segundos !== null && (
-                          <span className="nums">· {duracionBreve(duracion)}</span>
-                        )}
-                        {prolongada && (
-                          <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>
-                        )}
-                      </p>
-                    )
-                  })()
-                ) : (
-                  <p className="mt-2.5 flex items-center gap-1.5 text-[13px] text-muted">
-                    <DoorClosed className="size-3.5" />
-                    {t('dashboard.puerta')}: {t('dashboard.puertaCerrada')}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+          </div>
+
           </div>
 
           {/* ── Curva térmica ───────────────────────────────── */}
-          <Card className="mt-4 animate-rise" style={{ animationDelay: '240ms' }}>
+          <div className={cn("grid items-start gap-4", equiposConIncidencias.length > 0 && "xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.8fr)]")}><Card className="min-w-0">
             <CardHeader className="gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <div>
-                <CardTitle>{t('dashboard.curvaTermica')}</CardTitle>
+              <CardTitle>{t('dashboard.curvaTermica')}</CardTitle>
                 <CardDescription>
                   {t('dashboard.ultimasLecturas', { n: serie.length })} ·{' '}
                   {t('dashboard.rangoConservacion')}
                 </CardDescription>
               </div>
-              <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 {/* RF-18: el dashboard muestra el estado de conectividad del
                     dispositivo. Es distinto del indicador SSE de la cabecera,
                     que refleja la salud del stream del navegador, no la del nodo. */}
-                <p className="flex items-center gap-2 text-xs text-faint">
-                  {t('dashboard.dispositivo')}:{' '}
-                  <span className="nums text-ink-700">{ultima.device_id}</span>
-                  <Badge
-                    variant={ultima.estado_conectividad === 'online' ? 'ok' : 'neutral'}
-                    dot
-                    data-testid="conectividad-dispositivo"
-                  >
-                    {ultima.estado_conectividad === 'online'
-                      ? t('dashboard.dispositivoOnline')
-                      : t('dashboard.dispositivoOffline')}
-                  </Badge>
-                </p>
                 {/* HU-31 criterio 4: ventana de 24 h por defecto, con opción
                     de ampliar o acotar sin salir del dashboard. */}
+                {estadoHistorial === 'cargando' && ultima && (
+                  <span role="status" className="text-xs text-muted">{t('app.cargando')}</span>
+                )}
                 <div role="group" aria-label={t('dashboard.rangoVentana')} className="flex gap-1">
                   {OPCIONES_VENTANA_HORAS.map((horas) => (
                     <button
@@ -624,7 +926,7 @@ export function DashboardPage() {
                       onClick={() => setHorasVentana(horas)}
                       aria-pressed={horasVentana === horas}
                       className={cn(
-                        'rounded-(--radius-field) px-2 py-1 text-xs font-medium transition-colors',
+                        'min-h-11 rounded-(--radius-field) px-3 py-2 text-sm font-medium transition-colors',
                         horasVentana === horas
                           ? 'bg-pine-100 text-pine-700'
                           : 'text-faint hover:bg-cream-200 hover:text-muted',
@@ -643,7 +945,7 @@ export function DashboardPage() {
             <CardContent>
               <EChartWrapper
                 option={opcionCurva}
-                height="320px"
+                height="260px"
                 ariaLabel={t('dashboard.graficaEtiqueta', { n: serie.length })}
                 ariaDescribedBy="curva-termica-datos"
               />
@@ -668,7 +970,7 @@ export function DashboardPage() {
                     ] as const
                   ).map(([clave, valor, alerta]) => (
                     <div key={clave} className="px-3 text-center first:pl-0 last:pr-0">
-                      <dt className="eyebrow">{t(clave)}</dt>
+                      <dt className="text-xs font-medium text-muted">{t(clave)}</dt>
                       <dd
                         className={cn(
                           'nums mt-1 text-lg font-semibold tracking-tight',
@@ -683,16 +985,19 @@ export function DashboardPage() {
               )}
             </CardContent>
           </Card>
+          {equiposConIncidencias.length > 0 && <aside className="min-w-0"><EstadoEquiposIoT equipos={equiposConIncidencias} /></aside>}
+          </div>
 
           <p className="mt-3 text-right text-xs text-faint">
             {t('dashboard.ultimaActualizacion')}:{' '}
             <span className="nums">{formatearHora(ultima.timestamp)}</span> ·{' '}
-            <Link to="/alertas" className="text-pine-600 underline-offset-2 hover:underline">
+            <Link to="/alertas" className="text-pine-600 underline underline-offset-2 hover:text-primary-hover">
               {t('dashboard.verAlertas')}
             </Link>
           </p>
         </>
       )}
+      <SimuladorDashboard onActualizado={actualizarDemo} />
     </div>
   )
 }

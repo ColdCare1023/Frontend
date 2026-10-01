@@ -47,7 +47,10 @@ export function AnuncioRiesgo({
     }
     if (nivel === nivelPrevio.current) return
     nivelPrevio.current = nivel
-    if (!nivel) return
+    if (!nivel) {
+      setMensaje('')
+      return
+    }
 
     setMensaje(
       temperatura == null

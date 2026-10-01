@@ -1,9 +1,9 @@
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import type { IncidenteOperativo } from '@/domain/entities/Dispositivo'
 import type { RegistroTrazabilidad } from '@/domain/entities/RegistroTrazabilidad'
 import type { RegistroAuditoria, Usuario } from '@/domain/entities/Usuario'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
-import type { Rol } from '@/domain/value-objects/Rol'
 
 export const DISPOSITIVO_DEMO = 'FARM-01-CDL'
 
@@ -40,10 +40,8 @@ export interface EstadoDemo {
   trazabilidad: RegistroTrazabilidad[]
   usuarios: Usuario[]
   auditoria: RegistroAuditoria[]
-  /** HU-37: la verificación del día. `null` mientras no se registre. */
-  checklist: Record<string, unknown> | null
   dispositivos: Record<string, unknown>[]
-  firmware: Record<string, unknown>[]
+  incidentesOperativos: IncidenteOperativo[]
 }
 
 export const USUARIOS_DEMO: Usuario[] = [
@@ -71,6 +69,20 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
     nombre: 'Refrigerador principal',
     ubicacion: 'Sala de dispensación',
     estado_conectividad: 'online',
+    estado_operativo: 'OPERATIVO',
+    ultimo_reporte_en: new Date().toISOString(),
+    registrado_en: new Date().toISOString(),
+    intervalo_reporte_segundos: 30,
+    umbral_sin_datos_segundos: 90,
+    umbral_puerta_abierta_segundos: 120,
+    sensores: [
+      { modelo: 'DS18B20', estado: 'ok', campo_telemetria: 'temperatura_interna' },
+      { modelo: 'SHT31', estado: 'ok', campo_telemetria: 'temperatura_ambiental, humedad_ambiental' },
+      { modelo: 'MC-38', estado: 'ok', campo_telemetria: 'apertura_refrigerador' },
+    ],
+    buffer_littlefs: { pendientes: 0, limite: 128, desde: null, hasta: null, perdidas: 0 },
+    ultimo_evento: { schema_version: '1.0', boot_id: 'demo-boot-01', seq_no: 18420, captured_at: new Date().toISOString(), received_at: new Date().toISOString(), time_quality: 'ntp' },
+    estado_credencial_broker: 'activa',
     activo: true,
     firmware_version: '1.0.0',
     motivo_baja: null,
@@ -87,6 +99,20 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
     nombre: 'Cámara fría de vacunas',
     ubicacion: 'Almacén',
     estado_conectividad: 'offline',
+    estado_operativo: 'SIN_DATOS',
+    ultimo_reporte_en: new Date(Date.now() - 120_000).toISOString(),
+    registrado_en: new Date(Date.now() - 7 * DIA_MS).toISOString(),
+    intervalo_reporte_segundos: 30,
+    umbral_sin_datos_segundos: 90,
+    umbral_puerta_abierta_segundos: 120,
+    sensores: [
+      { modelo: 'DS18B20', estado: 'ok', campo_telemetria: 'temperatura_interna' },
+      { modelo: 'SHT31', estado: 'ok', campo_telemetria: 'temperatura_ambiental, humedad_ambiental' },
+      { modelo: 'MC-38', estado: 'no_instalado', campo_telemetria: 'apertura_refrigerador' },
+    ],
+    buffer_littlefs: { pendientes: 6, limite: 128, desde: new Date(Date.now() - 180_000).toISOString(), hasta: new Date(Date.now() - 120_000).toISOString(), perdidas: 0 },
+    ultimo_evento: { schema_version: '1.0', boot_id: 'demo-boot-02', seq_no: 512, captured_at: new Date(Date.now() - 120_000).toISOString(), received_at: new Date(Date.now() - 120_000).toISOString(), time_quality: 'ntp' },
+    estado_credencial_broker: 'activa',
     activo: true,
     firmware_version: '1.0.0',
     motivo_baja: null,
@@ -97,16 +123,6 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
     numero_certificado_calibracion: 'CAL-2026-0119',
     fecha_proxima_calibracion: '2027-03-02',
     observaciones_calibracion: null,
-  },
-]
-
-const FIRMWARE_DEMO: Record<string, unknown>[] = [
-  {
-    id: 'fw-1',
-    version: '1.0.0',
-    hash_sha256: 'a3f1c9e07b24d8156ee40b93cc7a25d1f8b06e4390a27cd51b3e8f0c9d24a761',
-    descripcion: 'Versión inicial del nodo de campo',
-    fecha_compilacion: '2026-06-01T09:00:00Z',
   },
 ]
 
@@ -159,11 +175,18 @@ function generarEstadoInicial(): EstadoDemo {
       id: `lec-${String(i).padStart(4, '0')}`,
       device_id: DISPOSITIVO_DEMO,
       timestamp: new Date(ts).toISOString(),
+      schema_version: 1,
+      boot_id: 'demo-boot-01',
+      seq_no: i + 1,
+      captured_at: new Date(ts).toISOString(),
+      received_at: new Date(ts + 250).toISOString(),
+      time_quality: 'ntp',
       temperatura_interna: redondear(interna, 1),
       temperatura_ambiental: redondear(ambiental, 1),
       humedad_ambiental: redondear(humedad, 0),
       apertura_refrigerador: puerta,
       duracion_apertura_segundos: puerta ? Math.round(30 + rng() * 400) : 0,
+      umbral_puerta_abierta_segundos: 120,
       estado_conectividad: 'online',
       nivel_riesgo: clasificar(interna),
       excursion_confirmada: excursionConfirmada,
@@ -303,25 +326,27 @@ function generarEstadoInicial(): EstadoDemo {
     return registro
   })
 
-  const ipsDemo = ['181.65.203.44', '181.65.203.44', '38.25.16.102', '190.42.77.15']
-  const plantillaAuditoria: Array<[string, string, string | null]> = [
-    ['LOGIN_EXITOSO', '/api/auth/login', 'u-01'],
-    ['ALERTA_REVISADA', '/api/alertas', 'u-01'],
-    ['REPORTE_BPA_GENERADO', '/api/reportes/bpa', 'u-01'],
-    ['LOGIN_EXITOSO', '/api/auth/login', 'u-03'],
-    ['LOGIN_FALLIDO', '/api/auth/login', null],
-    ['USUARIO_CREADO', '/api/usuarios', 'u-02'],
-    ['LOGIN_EXITOSO', '/api/auth/login', 'u-02'],
-    ['ACCION_CORRECTIVA_REGISTRADA', '/api/alertas', 'u-01'],
+  const ipsDemo = ['198.51.100.10', '203.0.113.24', '192.0.2.18']
+  const plantillaAuditoria: Array<[string, string, string | null, string]> = [
+    ['LOGIN_EXITOSO', '/api/auth/login', 'u-01', 'exitoso'],
+    ['ALERTA_REVISADA', '/api/alertas', 'u-01', 'exitoso'],
+    ['REPORTE_BPA_GENERADO', '/api/reportes/bpa', 'u-01', 'exitoso'],
+    ['LOGIN_EXITOSO', '/api/auth/login', 'u-03', 'exitoso'],
+    ['LOGIN_FALLIDO', '/api/auth/login', null, 'fallido'],
+    ['BLOQUEO_TEMPORAL', '/api/auth/login', null, 'bloqueado'],
+    ['RBAC_DENEGADO', '/api/usuarios', 'u-05', 'denegado'],
+    ['USUARIO_CREADO', '/api/usuarios', 'u-02', 'exitoso'],
+    ['ACCION_CORRECTIVA_REGISTRADA', '/api/alertas', 'u-01', 'exitoso'],
   ]
   const auditoria: RegistroAuditoria[] = Array.from({ length: 18 }, (_, i) => {
-    const [accion, recurso, usuarioId] = plantillaAuditoria[i % plantillaAuditoria.length]
+    const [accion, recurso, usuarioId, resultado] = plantillaAuditoria[i % plantillaAuditoria.length]
     return {
       id: `au-${String(i + 1).padStart(3, '0')}`,
       usuario_id: usuarioId,
       accion,
       recurso,
       detalle: null,
+      resultado,
       ip_origen: ipsDemo[Math.floor(rng() * ipsDemo.length)],
       created_at: new Date(ahora - i * 5 * 60 * 60 * 1000 - Math.floor(rng() * 40) * 60 * 1000).toISOString(),
     }
@@ -334,23 +359,85 @@ function generarEstadoInicial(): EstadoDemo {
     trazabilidad,
     usuarios: [...USUARIOS_DEMO],
     auditoria,
-    checklist: null,
     dispositivos: [...DISPOSITIVOS_DEMO],
-    firmware: [...FIRMWARE_DEMO],
+    incidentesOperativos: [],
   }
 }
 
 export const estadoDemo: EstadoDemo = generarEstadoInicial()
 
+/** El stream falso deja de publicar mientras el equipo principal no reporta. */
+export function puedeTransmitirLecturaDemo(): boolean {
+  const equipo = estadoDemo.dispositivos.find((dispositivo) => dispositivo.id === DISPOSITIVO_DEMO)
+  return equipo?.estado_operativo !== 'SIN_DATOS' && equipo?.estado_conectividad !== 'offline'
+}
+
+/** Reconstruye lecturas pendientes dentro del intervalo que el nodo conservó. */
+export function generarLecturasBuffer(
+  deviceId: string,
+  desde: string | null,
+  hasta: string | null,
+  cantidad: number,
+): LecturaTermica[] {
+  const inicio = desde ? Date.parse(desde) : Number.NaN
+  const fin = hasta ? Date.parse(hasta) : Number.NaN
+  if (!Number.isFinite(inicio) || !Number.isFinite(fin) || fin <= inicio || cantidad < 1) return []
+
+  const total = Math.min(256, Math.floor(cantidad))
+  return Array.from({ length: total }, (_, indice) => {
+    const instante = inicio + ((indice + 1) / (total + 1)) * (fin - inicio)
+    const timestamp = new Date(instante).toISOString()
+    const temperatura = redondear(4.8 + Math.sin(indice / 2.7) * 0.35, 1)
+    return {
+      id: `lec-buffer-${deviceId}-${Math.floor(instante)}`,
+      device_id: deviceId,
+      timestamp,
+      schema_version: 1,
+      boot_id: 'demo-buffer-recovery-01',
+      seq_no: 30_000 + indice,
+      captured_at: timestamp,
+      received_at: new Date(Date.now() + indice).toISOString(),
+      time_quality: 'rtc',
+      temperatura_interna: temperatura,
+      temperatura_ambiental: redondear(21.8 + Math.cos(indice / 4) * 0.4, 1),
+      humedad_ambiental: Math.round(62 + Math.sin(indice / 5) * 2),
+      apertura_refrigerador: false,
+      duracion_apertura_segundos: 0,
+      umbral_puerta_abierta_segundos: 120,
+      estado_conectividad: 'online',
+      nivel_riesgo: clasificar(temperatura),
+      excursion_confirmada: temperatura < 2 || temperatura > 8,
+      riesgo_efectivo: clasificar(temperatura),
+      confianza_ia: 0.91,
+      modelo_version: 'demo-3.0.0',
+      origen_clasificacion: 'random_forest',
+      estado_inferencia: 'completada',
+      motivo_no_inferencia: null,
+      estado_sensores: {
+        temperatura_interna: 'valido',
+        temperatura_ambiental: 'valido',
+        humedad_ambiental: 'valido',
+        apertura_refrigerador: 'valido',
+      },
+    }
+  })
+}
+
 /* ── Lecturas en vivo para el stream simulado ───────────────────── */
 const rngVivo = crearRng(Date.now() % 2147483647)
 let empujeVivo = 0
+let secuenciaVivo = 20_000
 
 export function generarLecturaEnVivo(): LecturaTermica {
+  secuenciaVivo += 1
   const previa = estadoDemo.lecturas.at(-1)
   const basePrevia = previa?.temperatura_interna ?? 4.9
 
-  const puerta = rngVivo() < 0.04
+  const equipo = estadoDemo.dispositivos.find((dispositivo) => dispositivo.id === DISPOSITIVO_DEMO)
+  const sensores = (equipo?.sensores ?? []) as Array<{ modelo?: string; estado?: string }>
+  const fallaInterna = sensores.some((sensor) => sensor.modelo === 'DS18B20' && sensor.estado === 'error')
+  const tieneMC38 = sensores.some((sensor) => sensor.modelo === 'MC-38' && sensor.estado === 'ok')
+  const puerta = tieneMC38 && rngVivo() < 0.04
   if (puerta) empujeVivo = 0.8 + rngVivo() * 0.6
 
   let interna = basePrevia + (rngVivo() - 0.5) * 0.3 + empujeVivo * 0.4
@@ -363,22 +450,42 @@ export function generarLecturaEnVivo(): LecturaTermica {
     id: `lec-vivo-${Date.now()}`,
     device_id: DISPOSITIVO_DEMO,
     timestamp: new Date().toISOString(),
-    temperatura_interna: redondear(interna, 1),
+    schema_version: 1,
+    boot_id: 'demo-boot-live-01',
+    seq_no: secuenciaVivo,
+    captured_at: new Date().toISOString(),
+    received_at: new Date(Date.now() + 250).toISOString(),
+    time_quality: 'ntp',
+    temperatura_interna: fallaInterna ? null : redondear(interna, 1),
     temperatura_ambiental: redondear(21.8 + (rngVivo() - 0.5) * 1.4, 1),
     humedad_ambiental: redondear(62 + (rngVivo() - 0.5) * 5, 0),
-    apertura_refrigerador: puerta,
-    duracion_apertura_segundos: puerta ? Math.round(30 + rngVivo() * 400) : 0,
+    apertura_refrigerador: tieneMC38 ? puerta : null,
+    duracion_apertura_segundos: tieneMC38 ? (puerta ? Math.round(30 + rngVivo() * 400) : 0) : null,
+    umbral_puerta_abierta_segundos: typeof equipo?.umbral_puerta_abierta_segundos === 'number'
+      ? equipo.umbral_puerta_abierta_segundos
+      : 120,
     estado_conectividad: 'online',
-    nivel_riesgo: clasificar(interna),
-    excursion_confirmada: interna < 2 || interna > 8,
-    riesgo_efectivo: clasificar(interna),
-    confianza_ia: 0.9,
-    modelo_version: 'demo-3.0.0',
-    origen_clasificacion: 'random_forest',
-    estado_inferencia: 'completada',
-    motivo_no_inferencia: null,
+    nivel_riesgo: fallaInterna ? null : clasificar(interna),
+    excursion_confirmada: !fallaInterna && (interna < 2 || interna > 8),
+    riesgo_efectivo: fallaInterna ? null : clasificar(interna),
+    confianza_ia: fallaInterna ? null : 0.9,
+    modelo_version: fallaInterna ? null : 'demo-3.0.0',
+    origen_clasificacion: fallaInterna ? 'fallo_sensor' : 'random_forest',
+    estado_inferencia: fallaInterna ? 'omitida' : 'completada',
+    motivo_no_inferencia: fallaInterna ? 'SENSOR_FAULT' : null,
+    estado_sensores: {
+      temperatura_interna: fallaInterna ? 'invalido' : 'valido',
+      temperatura_ambiental: 'valido',
+      humedad_ambiental: 'valido',
+      apertura_refrigerador: tieneMC38 ? 'valido' : 'ausente',
+    },
   }
   estadoDemo.lecturas.push(lectura)
+  if (equipo && equipo.estado_operativo !== 'SIN_DATOS') {
+    equipo.ultimo_reporte_en = lectura.timestamp
+    equipo.estado_conectividad = 'online'
+    equipo.estado_operativo = fallaInterna ? 'FALLA_SENSOR' : 'OPERATIVO'
+  }
   return lectura
 }
 
@@ -389,24 +496,25 @@ function base64url(texto: string): string {
 
 export function crearTokenDemo(email: string): string {
   const normalizado = email.trim().toLowerCase()
-  const conocido = USUARIOS_DEMO.find((u) => u.email === normalizado)
-  const rol: Rol =
-    conocido?.rol ??
-    (normalizado.includes('admin')
-      ? 'administrador'
-      : normalizado.includes('tec')
-        ? 'tecnico'
-        : 'farmaceutico')
+  const conocido = estadoDemo.usuarios.find((usuario) => usuario.email.toLowerCase() === normalizado)
+  if (!conocido?.is_active) throw new Error('La cuenta demo no está habilitada')
   const cabecera = base64url(JSON.stringify({ alg: 'none', typ: 'JWT' }))
   const payload = base64url(
-    JSON.stringify({ sub: conocido?.id ?? 'u-demo', email: normalizado, rol }),
+    JSON.stringify({
+      sub: conocido.id,
+      email: normalizado,
+      rol: conocido.rol,
+      exp: Math.floor(Date.now() / 1000) + 30 * 60,
+    }),
   )
   return `${cabecera}.${payload}.demo`
 }
 
-/** RNF-04: métricas del clasificador, con las cifras reales del modelo v3. */
+/** RNF-04: valores de referencia para mostrar la evaluación del clasificador en la demostración. */
 export const METRICAS_IA_DEMO = {
   modelo_disponible: true,
+  datos_simulados: true,
+  estado_evaluacion: 'ilustrativa_no_reportable' as const,
   metadata: null,
   metricas: {
     model_name: 'RandomForestClassifier',

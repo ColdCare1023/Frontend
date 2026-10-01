@@ -1,9 +1,11 @@
+import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertOctagon, Link2, ScanSearch, ShieldAlert, ShieldCheck } from 'lucide-react'
 
 import { useTrazabilidad } from '@/application/hooks/useTrazabilidad'
 import { useAuthStore } from '@/application/stores/authStore'
+import { apiClient } from '@/infrastructure/api/apiClient'
 import { fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { rangoPagina } from '@/lib/paginacion'
@@ -32,6 +34,12 @@ const TIPOS_EVENTO = [
   'AUDITORIA',
   'CONECTIVIDAD',
 ]
+
+function etiquetaEvento(tipo: string, t: ReturnType<typeof useTranslation>['t']) {
+  return t(`trazabilidad.eventos.${tipo}`, {
+    defaultValue: tipo.replaceAll('_', ' ').toLocaleLowerCase(),
+  })
+}
 
 function HashCorto({ hash }: { hash: string }) {
   return (
@@ -88,7 +96,7 @@ export function TrazabilidadPage() {
   }
 
   return (
-    <div>
+    <CompactWorkspace>
       <PageHeader eyebrow={t('nav.seccionCumplimiento')} titulo={t('trazabilidad.titulo')} descripcion={t('trazabilidad.descripcion')}>
         <Button onClick={() => void verificarIntegridad()} disabled={verificando}>
           <ShieldCheck />
@@ -170,7 +178,7 @@ export function TrazabilidadPage() {
                   <dd className="nums break-all font-medium">{detalle.id}</dd>
 
                   <dt className="text-muted">{t('trazabilidad.evento')}</dt>
-                  <dd className="font-medium">{detalle.tipo_evento}</dd>
+                  <dd className="font-medium">{etiquetaEvento(detalle.tipo_evento, t)}</dd>
 
                   <dt className="text-muted">{t('trazabilidad.fecha')}</dt>
                   <dd className="nums font-medium">{fechaHora(detalle.timestamp)}</dd>
@@ -196,31 +204,32 @@ export function TrazabilidadPage() {
         </Card>
       )}
 
-      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-(--radius-card) border border-border bg-surface px-4 py-3 text-sm text-muted">
-        <span className="font-medium text-foreground">{t('trazabilidad.registroN')}</span>
-        <span aria-hidden className="text-pine-600">→</span>
-        <span>{t('trazabilidad.selloCompartido')}</span>
-        <span aria-hidden className="text-pine-600">→</span>
-        <span className="font-medium text-foreground">{t('trazabilidad.registroSiguiente')}</span>
-        <span className="w-full text-xs">{t('trazabilidad.cadenaExplicacion')}</span>
+      <div className="mb-3 flex items-start gap-2 text-xs leading-5 text-muted">
+        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+        <p>{t('trazabilidad.cadenaExplicacion')}</p>
       </div>
 
       {/* ── HU-37: verificación acotada a un dispositivo y periodo ──── */}
-      <Card className="mb-5 animate-rise">
+      <Card className="mb-4 rounded-lg border border-border bg-surface shadow-none">
         <CardContent className="p-4">
-          <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+          <p className="mb-3 flex items-center gap-2 text-xs font-medium text-muted">
             <ScanSearch className="size-4 text-pine-600" aria-hidden />
             {t('trazabilidad.verificarSegmento')}
           </p>
           <form
-            className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+            className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]"
             onSubmit={(e) => {
               e.preventDefault()
-              if (!segmentoDeviceId || !segmentoDesde || !segmentoHasta) return
+              if (!segmentoDeviceId || !segmentoDesde) return
+              if (segmentoHasta && segmentoDesde > segmentoHasta) return
+              const desdeISO = new Date(`${segmentoDesde}T00:00:00`).toISOString()
+              const hastaISO = segmentoHasta
+                ? new Date(`${segmentoHasta}T23:59:59.999`).toISOString()
+                : new Date().toISOString()
               void verificarPorDispositivo(
                 segmentoDeviceId,
-                new Date(segmentoDesde).toISOString(),
-                new Date(segmentoHasta).toISOString(),
+                desdeISO,
+                hastaISO,
               )
             }}
           >
@@ -238,20 +247,23 @@ export function TrazabilidadPage() {
               <Label htmlFor="seg-desde">{t('historial.desde')}</Label>
               <Input
                 id="seg-desde"
-                type="datetime-local"
+                type="date"
                 value={segmentoDesde}
                 onChange={(e) => setSegmentoDesde(e.target.value)}
                 required
+                max={segmentoHasta || undefined}
+                aria-describedby="segmento-desde-ayuda"
               />
             </div>
             <div>
               <Label htmlFor="seg-hasta">{t('historial.hasta')}</Label>
               <Input
                 id="seg-hasta"
-                type="datetime-local"
+                type="date"
                 value={segmentoHasta}
                 onChange={(e) => setSegmentoHasta(e.target.value)}
-                required
+                min={segmentoDesde || undefined}
+                aria-describedby="segmento-hasta-ayuda"
               />
             </div>
             <div className="flex items-end">
@@ -260,6 +272,10 @@ export function TrazabilidadPage() {
               </Button>
             </div>
           </form>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+            <p id="segmento-desde-ayuda">{t('trazabilidad.desdeAyuda')}</p>
+            <p id="segmento-hasta-ayuda">{t('trazabilidad.hastaOpcional')}</p>
+          </div>
 
           {errorSegmento && (
             <p role="alert" className="mt-3 rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700">
@@ -300,7 +316,7 @@ export function TrazabilidadPage() {
                   {verificacionSegmento.registros_del_dispositivo.map((r) => (
                     <li key={r.id} className="flex items-center justify-between gap-2">
                       <span className="nums text-muted">{fechaHora(r.timestamp)}</span>
-                      <span className="font-medium">{r.tipo_evento}</span>
+                      <span className="font-medium">{etiquetaEvento(r.tipo_evento, t)}</span>
                       <Badge variant={r.integro ? 'ok' : 'critical'}>
                         {r.integro ? t('trazabilidad.integro') : t('trazabilidad.corrupto')}
                       </Badge>
@@ -314,7 +330,8 @@ export function TrazabilidadPage() {
       </Card>
 
       {/* ── Filtro por tipo ─────────────────────────────────── */}
-      <div className="mb-4 max-w-64 animate-rise">
+      <div className="flex flex-wrap items-end gap-3 border-b border-border pb-4">
+      <div className="w-full sm:w-72">
         <Label htmlFor="f-evento">{t('trazabilidad.tipoEvento')}</Label>
         <NativeSelect
           id="f-evento"
@@ -332,16 +349,30 @@ export function TrazabilidadPage() {
           ))}
         </NativeSelect>
       </div>
+      {import.meta.env.MODE === 'demo' && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="min-h-11"
+          onClick={async () => {
+            await apiClient.post('/api/demo/trazabilidad/simular-inconsistencia')
+            await verificarIntegridad()
+          }}
+        >
+          Simular inconsistencia (demo)
+        </Button>
+      )}
 
-      <div className="animate-rise" style={{ animationDelay: '60ms' }}>
         <button
           type="button"
           aria-expanded={mostrarSellos}
           onClick={() => setMostrarSellos((actual) => !actual)}
-          className="mb-3 rounded-md text-sm font-medium text-pine-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="inline-flex min-h-11 items-center rounded-(--radius-field) border border-border bg-surface px-4 text-sm font-medium text-primary underline-offset-2 hover:bg-primary-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           {mostrarSellos ? t('trazabilidad.ocultarSellos') : t('trazabilidad.mostrarSellos')}
         </button>
+      </div>
+      <div className="animate-rise [&_thead]:bg-cream-100" style={{ animationDelay: '60ms' }}>
         <Table titulo={t('trazabilidad.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
@@ -392,7 +423,7 @@ export function TrazabilidadPage() {
                     {fechaHora(registro.timestamp)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="neutral">{registro.tipo_evento}</Badge>
+                    <Badge variant="neutral">{etiquetaEvento(registro.tipo_evento, t)}</Badge>
                   </TableCell>
                   <TableCell className="text-[13px]">{registro.device_id ?? '—'}</TableCell>
                   {mostrarSellos && (
@@ -410,8 +441,8 @@ export function TrazabilidadPage() {
         <Paginacion total={registros.length} pagina={pagina} onCambiar={setPagina} />
       </div>
 
-      {/* Aislar un registro corrupto es irreversible y afecta a la evidencia
-          que se presenta en una inspección. Era la única acción destructiva
+      {/* Aislar un registro inconsistente es irreversible y afecta los datos
+          que quedan disponibles para revisión. Era la única acción destructiva
           del sistema que se ejecutaba con un solo clic, sin confirmación. */}
       <Dialog
         open={confirmarAislar}
@@ -446,6 +477,6 @@ export function TrazabilidadPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </CompactWorkspace>
   )
 }

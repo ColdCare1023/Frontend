@@ -77,7 +77,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
 
     // El indicador SSE sigue en línea, y no es la insignia del dispositivo:
     // ambos comparten vocabulario pero no estado.
-    const enLinea = screen.getAllByText('En línea')
+    const enLinea = screen.getAllByText('Actualización automática activa')
     expect(enLinea.length).toBeGreaterThan(0)
     expect(enLinea.some((el) => insignia.contains(el))).toBe(false)
   })
@@ -99,7 +99,7 @@ describe('DashboardPage — HU-34: riesgo efectivo vs. clasificación IA', () =>
   it('marca la excursión como confirmada cuando la regla directa la respalda', () => {
     renderizar(lectura({ riesgo_efectivo: 'excursion_critica', excursion_confirmada: true }))
 
-    expect(screen.getAllByText(/confirmada por temperatura/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/temperatura salió del rango/i).length).toBeGreaterThan(0)
   })
 
   it('no afirma una excursión confirmada si solo la IA la clasificó y la temperatura sigue en rango', () => {
@@ -110,8 +110,8 @@ describe('DashboardPage — HU-34: riesgo efectivo vs. clasificación IA', () =>
       lectura({ nivel_riesgo: 'excursion_critica', riesgo_efectivo: 'normal', excursion_confirmada: false }),
     )
 
-    expect(screen.queryByText(/confirmada por temperatura/i)).not.toBeInTheDocument()
-    expect(screen.getAllByText(/clasificó excursión crítica, pero la temperatura/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/temperatura salió del rango/i)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/análisis automático sugiere revisar/i).length).toBeGreaterThan(0)
   })
 })
 
@@ -128,7 +128,7 @@ describe('DashboardPage — HU-33 criterio 3: falla de sensor distinguible de "s
       }),
     )
 
-    expect(screen.getAllByText(/falla de sensor/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/no hay lectura de temperatura/i).length).toBeGreaterThan(0)
   })
 
   it('no marca falla cuando el sensor está válido, aunque el valor puntual sea 0', () => {
@@ -140,6 +140,13 @@ describe('DashboardPage — HU-33 criterio 3: falla de sensor distinguible de "s
     )
 
     expect(screen.queryByText(/falla de sensor/i)).not.toBeInTheDocument()
+  })
+
+  it('explica cuando la lectura real supera la escala visual fija del indicador', () => {
+    renderizar(lectura({ temperatura_interna: 12.4, nivel_riesgo: 'excursion_critica', riesgo_efectivo: 'excursion_critica', excursion_confirmada: true }))
+
+    expect(screen.getByText(/sobre la escala del indicador \(0–10 °C\)/i)).toBeInTheDocument()
+    expect(screen.getByText(/Valor real: 12\.4 °C/i)).toBeInTheDocument()
   })
 })
 
@@ -173,7 +180,7 @@ describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
   it('no presenta una falsa "puerta cerrada" cuando el dispositivo no tiene MC-38', () => {
     renderizar(lectura({ apertura_refrigerador: null }))
 
-    expect(screen.getAllByText(/sin sensor mc-38/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/no disponible/i).length).toBeGreaterThan(0)
     expect(screen.queryAllByText(/puerta: abierta/i)).toHaveLength(0)
     expect(screen.queryAllByText(/puerta: cerrada/i)).toHaveLength(0)
   })

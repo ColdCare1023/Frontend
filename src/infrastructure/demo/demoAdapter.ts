@@ -6,9 +6,45 @@ import {
 } from 'axios'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
+import type { BufferLittleFS, Dispositivo, HistorialConfiguracion, IncidenteOperativo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { MOTIVOS_DESACTIVACION, type Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
-import { crearTokenDemo, estadoDemo, METRICAS_IA_DEMO } from './datosDemo'
+import { ROLES } from '@/domain/value-objects/Rol'
+import {
+  crearTokenDemo,
+  estadoDemo,
+  generarLecturaEnVivo,
+  generarLecturasBuffer,
+  METRICAS_IA_DEMO,
+} from './datosDemo'
+
+// Flujos que tienen estado propio del adapter durante la sesión demo.
+const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>()
+const registrosAisladosDemo = new Set<string>()
+const registrosCorrompidosDemo = new Set<string>()
+const intentosLoginDemo = new Map<string, { cantidad: number; inicio: number; bloqueadoHasta: number }>()
+let siguienteCambioDemo = 1
+let cadenaComprometidaDemo = false
+
+function registrarAuditoriaDemo(
+  accion: string,
+  recurso: string,
+  usuarioId: string | null,
+  resultado: string,
+  detalle: Record<string, unknown> | null = null,
+): void {
+  estadoDemo.auditoria.unshift({
+    id: `au-demo-${Date.now()}-${estadoDemo.auditoria.length}`,
+    usuario_id: usuarioId,
+    accion,
+    recurso,
+    detalle,
+    resultado,
+    ip_origen: '198.51.100.10',
+    created_at: new Date().toISOString(),
+  })
+}
 
 /**
  * Adapter de Axios para el modo demostración: intercepta cada request del
@@ -129,6 +165,111 @@ function alertasFiltradas(params: Record<string, string>): AlertaTermica[] {
   return resultado.slice(0, Number(params.limite ?? 200))
 }
 
+function usuarioDemo(id: string): Usuario | undefined {
+  return estadoDemo.usuarios.find((usuario) => usuario.id === id)
+}
+
+function dispositivoDemo(id: string): Dispositivo | undefined {
+  return estadoDemo.dispositivos.find((dispositivo) => dispositivo.id === id) as
+    | Dispositivo
+    | undefined
+}
+
+/** Watchdog local del fake API. Evalúa silencio por última lectura, no por LWT. */
+function revisarSilencioDemo(dispositivo: Dispositivo, ahora = Date.now()): void {
+  if (!dispositivo.activo) return
+  const ultimoReporte = dispositivo.ultimo_reporte_en ?? dispositivo.ultimo_evento?.received_at ?? null
+  const referencia = ultimoReporte ?? dispositivo.registrado_en ?? null
+  const timestamp = referencia ? Date.parse(referencia) : Number.NaN
+  if (!Number.isFinite(timestamp)) return
+
+  const intervalo = Math.max(1, dispositivo.intervalo_reporte_segundos ?? 30)
+  const umbral = Math.max(1, dispositivo.umbral_sin_datos_segundos ?? intervalo * 3)
+  const sinDatos = ahora - timestamp >= umbral * 1000
+  const incidentes = estadoDemo.incidentesOperativos.filter((incidente) => incidente.device_id === dispositivo.id)
+  const activo = incidentes.find((incidente) => incidente.estado === 'activo')
+
+  if (sinDatos) {
+    dispositivo.estado_operativo = 'SIN_DATOS'
+    if (!activo) {
+      const incidente: IncidenteOperativo = {
+        id: `op-${dispositivo.id}-${timestamp}`,
+        device_id: dispositivo.id,
+        tipo: 'sin_datos',
+        estado: 'activo',
+        detectado_en: new Date(timestamp + umbral * 1000).toISOString(),
+        ultimo_reporte_en: ultimoReporte ? new Date(Date.parse(ultimoReporte)).toISOString() : null,
+        umbral_silencio_segundos: umbral,
+        recuperado_en: null,
+      }
+      estadoDemo.incidentesOperativos.push(incidente)
+    }
+    return
+  }
+
+  if (activo) {
+    activo.estado = 'resuelto'
+    activo.recuperado_en = new Date(ahora).toISOString()
+  }
+  if (dispositivo.estado_operativo === 'SIN_DATOS' || activo) {
+    const ds18b20 = dispositivo.sensores?.find((sensor) => sensor.modelo === 'DS18B20')
+    dispositivo.estado_operativo = ds18b20?.estado === 'error' ? 'FALLA_SENSOR' : 'OPERATIVO'
+  }
+}
+
+function sesionDemo(config: InternalAxiosRequestConfig): { sub?: unknown; email?: unknown } | null {
+  const authorization = config.headers.get('Authorization')
+  if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) return null
+
+  try {
+    const payload = authorization.slice('Bearer '.length).split('.')[1]
+    if (!payload) return null
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const relleno = '='.repeat((4 - (base64.length % 4)) % 4)
+    return JSON.parse(atob(base64 + relleno)) as { sub?: unknown; email?: unknown }
+  } catch {
+    return null
+  }
+}
+
+function actorDemo(config: InternalAxiosRequestConfig): string | null {
+  const actor = sesionDemo(config)?.sub
+  return typeof actor === 'string' ? actor : null
+}
+
+function registrarCambioDispositivo(
+  deviceId: string,
+  campo: string,
+  anterior: unknown,
+  nuevo: unknown,
+  config: InternalAxiosRequestConfig,
+): void {
+  if (Object.is(anterior, nuevo)) return
+  const historial = historialConfiguracionDemo.get(deviceId) ?? []
+  historial.unshift({
+    id: `cfg-demo-${siguienteCambioDemo++}`,
+    device_id: deviceId,
+    campo,
+    valor_anterior: anterior == null ? null : String(anterior),
+    valor_nuevo: nuevo == null ? null : String(nuevo),
+    actor_id: actorDemo(config),
+    created_at: new Date().toISOString(),
+  })
+  historialConfiguracionDemo.set(deviceId, historial)
+}
+
+function cambiarCampoDispositivo(
+  dispositivo: Dispositivo,
+  deviceId: string,
+  campo: keyof Dispositivo,
+  valor: unknown,
+  config: InternalAxiosRequestConfig,
+): void {
+  const anterior = dispositivo[campo]
+  registrarCambioDispositivo(deviceId, campo, anterior, valor, config)
+  Object.assign(dispositivo, { [campo]: valor })
+}
+
 export const demoAdapter: AxiosAdapter = async (config) => {
   await esperar(180 + Math.random() * 240)
 
@@ -140,7 +281,37 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'post' && url === '/api/auth/login') {
     const cuerpo = new URLSearchParams(String(config.data ?? ''))
     const email = cuerpo.get('username') ?? 'farmaceutico@demo.pe'
-    return responder(config, { access_token: crearTokenDemo(email), token_type: 'bearer' })
+    const emailNormalizado = email.trim().toLowerCase()
+    const password = cuerpo.get('password') ?? ''
+    const usuario = estadoDemo.usuarios.find((item) => item.email.toLowerCase() === emailNormalizado)
+    const ahora = Date.now()
+    const control = intentosLoginDemo.get(emailNormalizado) ?? { cantidad: 0, inicio: ahora, bloqueadoHasta: 0 }
+    if (ahora >= control.inicio + 5 * 60_000 && ahora >= control.bloqueadoHasta) {
+      control.cantidad = 0
+      control.inicio = ahora
+      intentosLoginDemo.set(emailNormalizado, control)
+    }
+    if (control.bloqueadoHasta > ahora) {
+      registrarAuditoriaDemo('BLOQUEO_TEMPORAL', '/api/auth/login', usuario?.id ?? null, 'bloqueado')
+      fallar(config, 429, 'Demasiados intentos fallidos')
+    }
+    if (!usuario || !usuario.is_active || password !== 'demo-2026') {
+      control.cantidad += 1
+      if (control.cantidad >= 5) control.bloqueadoHasta = ahora + 5 * 60_000
+      intentosLoginDemo.set(emailNormalizado, control)
+      registrarAuditoriaDemo('LOGIN_FALLIDO', '/api/auth/login', usuario?.id ?? null, 'fallido')
+      if (control.bloqueadoHasta > ahora) {
+        registrarAuditoriaDemo('BLOQUEO_TEMPORAL', '/api/auth/login', usuario?.id ?? null, 'bloqueado')
+        fallar(config, 429, 'Demasiados intentos fallidos')
+      }
+      fallar(config, 401, 'Correo o contraseña incorrectos')
+    }
+    intentosLoginDemo.delete(emailNormalizado)
+    registrarAuditoriaDemo('LOGIN_EXITOSO', '/api/auth/login', usuario.id, 'exitoso')
+    return responder(config, {
+      access_token: crearTokenDemo(email),
+      token_type: 'bearer',
+    })
   }
   if (metodo === 'post' && url === '/api/auth/sse-ticket') {
     return responder(config, { ticket: 'ticket-demo' })
@@ -225,16 +396,75 @@ export const demoAdapter: AxiosAdapter = async (config) => {
 
   /* ── Trazabilidad ───────────────────────────────────────────── */
   if (metodo === 'get' && url === '/api/trazabilidad/verificar') {
+    const inconsistente = [...estadoDemo.trazabilidad].find((registro) => !registrosAisladosDemo.has(registro.id) && registrosCorrompidosDemo.has(registro.id))
     return responder(config, {
+      integra: !inconsistente,
+      total_registros: estadoDemo.trazabilidad.filter((registro) => !registrosAisladosDemo.has(registro.id)).length,
+      primer_registro_inconsistente: inconsistente ? estadoDemo.trazabilidad.indexOf(inconsistente) : null,
+      detalle_inconsistencia: inconsistente ? {
+        id: inconsistente.id,
+        tipo_evento: inconsistente.tipo_evento,
+        timestamp: inconsistente.timestamp,
+        hash_esperado: `${inconsistente.hash_actual.slice(0, -1)}0`,
+        hash_almacenado: inconsistente.hash_actual,
+        mensaje: 'Inconsistencia simulada en datos de demostración',
+      } : null,
+      registros_posteriores_afectados: inconsistente ? estadoDemo.trazabilidad.length - estadoDemo.trazabilidad.indexOf(inconsistente) - 1 : 0,
+    })
+  }
+  if (metodo === 'get' && url === '/api/trazabilidad/verificar-dispositivo') {
+    const deviceId = String(params.device_id ?? '')
+    const desde = String(params.desde ?? '')
+    const hasta = String(params.hasta ?? '')
+    const inicio = Date.parse(desde)
+    const fin = Date.parse(hasta)
+    if (!deviceId || !Number.isFinite(inicio) || !Number.isFinite(fin) || inicio > fin) {
+      fallar(config, 422, 'El dispositivo y un periodo válido son obligatorios')
+    }
+    const registros = estadoDemo.trazabilidad.filter((registro) => {
+      const timestamp = Date.parse(registro.timestamp)
+      return (
+        registro.device_id === deviceId &&
+        timestamp >= inicio &&
+        timestamp <= fin &&
+        !registrosAisladosDemo.has(registro.id)
+      )
+    })
+    return responder(config, {
+      device_id: deviceId,
+      desde,
+      hasta,
       integra: true,
-      total_registros: estadoDemo.trazabilidad.length,
+      total_bloques_verificados: registros.length,
+      registros_del_dispositivo: registros.map(({ id, tipo_evento, timestamp }) => ({
+        id,
+        tipo_evento,
+        timestamp,
+        integro: true,
+      })),
       primer_registro_inconsistente: null,
     })
+  }
+  if (metodo === 'post' && url === '/api/demo/trazabilidad/simular-inconsistencia') {
+    const registro = estadoDemo.trazabilidad[0]
+    if (!registro) fallar(config, 404, 'No hay registros de demostración')
+    registrosCorrompidosDemo.add(registro.id)
+    cadenaComprometidaDemo = true
+    return responder(config, { simulado: true, registro_id: registro.id })
   }
   if (metodo === 'get' && url === '/api/trazabilidad') {
     let registros = [...estadoDemo.trazabilidad].reverse()
     if (params.tipo_evento) registros = registros.filter((r) => r.tipo_evento === params.tipo_evento)
     return responder(config, registros.slice(0, Number(params.limite ?? 200)))
+  }
+  const aislar = /^\/api\/trazabilidad\/corrupcion\/([^/]+)\/aislar$/.exec(url)
+  if (metodo === 'post' && aislar) {
+    const registro = estadoDemo.trazabilidad.find((r) => r.id === aislar[1])
+    if (!registro) fallar(config, 404, 'Registro de trazabilidad no encontrado')
+    registrosAisladosDemo.add(registro.id)
+    registrosCorrompidosDemo.delete(registro.id)
+    cadenaComprometidaDemo = false
+    return responder(config, { registro_id: registro.id, aislado: true })
   }
 
   /* ── Reportes BPA ───────────────────────────────────────────── */
@@ -252,40 +482,6 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     })
   }
 
-  /* ── Checklist BPA (HU-37) ──────────────────────────────────
-     Faltaba: en modo demo la página mostraba "No se pudo cargar la
-     verificación de hoy", porque el adapter respondía 404 a una ruta que sí
-     existe en el backend real. */
-  if (metodo === 'get' && url === '/api/checklist-bpa') {
-    // `null` —no 404— es el estado normal de "aún no verificado hoy".
-    return responder(config, estadoDemo.checklist)
-  }
-  if (metodo === 'post' && url === '/api/checklist-bpa') {
-    const cuerpo = cuerpoJson(config)
-    const items = [
-      'temperatura', 'termometro', 'registros', 'alertas_revisadas',
-      'acciones_documentadas', 'puerta', 'limpieza', 'exclusivo',
-      'rotulado', 'respaldo',
-    ]
-    const conformes = items.filter((i) => cuerpo[i] === true).length
-    const guardado = {
-      id: `chk-demo-${Date.now()}`,
-      usuario_id: 'u-01',
-      fecha: String(cuerpo.fecha ?? new Date().toISOString().slice(0, 10)),
-      observaciones: (cuerpo.observaciones as string | null) ?? null,
-      total_conformes: conformes,
-      conforme: conformes === items.length,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      ...Object.fromEntries(items.map((i) => [i, cuerpo[i] === true])),
-    }
-    estadoDemo.checklist = guardado
-    return responder(config, guardado, 201)
-  }
-  if (metodo === 'get' && url === '/api/checklist-bpa/historial') {
-    return responder(config, estadoDemo.checklist ? [estadoDemo.checklist] : [])
-  }
-
   /* ── Reporte BPA en PDF (HU-38) ─────────────────────────────
      Faltaba: el botón de PDF no descargaba nada en la demo. Aquí se compone
      un PDF mínimo pero VÁLIDO en el navegador. En el backend real lo genera
@@ -297,17 +493,132 @@ export const demoAdapter: AxiosAdapter = async (config) => {
 
   /* ── Estado de la cadena (HU-47) ────────────────────────────── */
   if (metodo === 'get' && url === '/api/trazabilidad/estado') {
-    return responder(config, { cadena_comprometida: false })
+    return responder(config, { cadena_comprometida: cadenaComprometidaDemo })
   }
 
   /* ── Métricas del modelo (RNF-04) ───────────────────────────── */
   if (metodo === 'get' && url === '/api/ia/modelo') {
     return responder(config, METRICAS_IA_DEMO)
   }
+  const detalleInferencia = /^\/api\/ia\/inferencias\/([^/]+)$/.exec(url)
+  if (metodo === 'get' && detalleInferencia) {
+    const lectura = estadoDemo.lecturas.find((item) => item.id === detalleInferencia[1])
+    if (!lectura) fallar(config, 404, 'Lectura no encontrada')
+    const clase = lectura.nivel_riesgo
+    const probabilidades = clase === 'normal'
+      ? { excursion_critica: 0.03, riesgo_preventivo: 0.08, normal: 0.89 }
+      : clase === 'riesgo_preventivo'
+        ? { excursion_critica: 0.07, riesgo_preventivo: 0.84, normal: 0.09 }
+        : clase === 'excursion_critica'
+          ? { excursion_critica: 0.88, riesgo_preventivo: 0.09, normal: 0.03 }
+          : null
+    return responder(config, {
+      reading_id: lectura.id,
+      model_version: lectura.modelo_version,
+      inference_at: lectura.timestamp,
+      inference_status: lectura.estado_inferencia,
+      model_class: clase,
+      probabilities: probabilidades,
+      feature_vector: {
+        temperatura_interna: lectura.temperatura_interna,
+        temperatura_ambiental: lectura.temperatura_ambiental,
+        humedad_ambiental: lectura.humedad_ambiental,
+        apertura_refrigerador: lectura.apertura_refrigerador,
+      },
+      excursion_confirmada: lectura.excursion_confirmada,
+      effective_risk: lectura.riesgo_efectivo,
+      datos_simulados: true,
+    })
+  }
 
   /* ── Dispositivos (HU-30, HU-43, RF-18) ─────────────────────── */
+  if (metodo === 'post' && url === '/api/dispositivos') {
+    const cuerpo = cuerpoJson(config)
+    const deviceId = String(cuerpo.device_id ?? '').trim()
+    const nombre = String(cuerpo.nombre ?? '').trim()
+    const ubicacion = String(cuerpo.ubicacion ?? '').trim()
+    const modelos = Array.isArray(cuerpo.sensores) ? cuerpo.sensores.map(String) : []
+    if (!/^[A-Z0-9][A-Z0-9-]{2,39}$/.test(deviceId) || !nombre || !ubicacion || !modelos.includes('DS18B20') || !modelos.includes('SHT31')) {
+      fallar(config, 422, 'Use un código válido y registre nombre, ubicación, DS18B20 y SHT31')
+    }
+    if (estadoDemo.dispositivos.some((dispositivo) => dispositivo.id === deviceId)) {
+      fallar(config, 409, 'Ya existe un equipo con ese código')
+    }
+    const sensores = [
+      { modelo: 'DS18B20', estado: 'ok', campo_telemetria: 'temperatura_interna' },
+      { modelo: 'SHT31', estado: 'ok', campo_telemetria: 'temperatura_ambiental, humedad_ambiental' },
+      { modelo: 'MC-38', estado: modelos.includes('MC-38') ? 'ok' : 'no_instalado', campo_telemetria: 'apertura_refrigerador' },
+    ]
+    const dispositivo = {
+      id: deviceId,
+      nombre,
+      ubicacion,
+      estado_conectividad: 'sin_registrar',
+      estado_operativo: 'SIN_DATOS',
+      ultimo_reporte_en: null,
+      registrado_en: new Date().toISOString(),
+      intervalo_reporte_segundos: 30,
+      umbral_sin_datos_segundos: 90,
+      umbral_puerta_abierta_segundos: 120,
+      sensores,
+      buffer_littlefs: { pendientes: 0, limite: 128, desde: null, hasta: null, perdidas: 0 },
+      ultimo_evento: null,
+      estado_credencial_broker: 'pendiente',
+      activo: true,
+      firmware_version: 'sin_reportar',
+      motivo_baja: null,
+      descripcion_baja: null,
+      dado_de_baja_en: null,
+      reemplaza_a_device_id: null,
+      fecha_ultima_calibracion: null,
+      numero_certificado_calibracion: null,
+      fecha_proxima_calibracion: null,
+      margen_aviso_calibracion_dias: 30,
+      observaciones_calibracion: null,
+      fecha_instalacion: new Date().toISOString().slice(0, 10),
+      instalado_por: actorDemo(config),
+      observaciones_instalacion: null,
+      responsable_nombre: null,
+      responsable_email: null,
+      responsable_telefono: null,
+    }
+    estadoDemo.dispositivos.push(dispositivo)
+    return responder(config, dispositivo, 201)
+  }
   if (metodo === 'get' && url === '/api/dispositivos') {
-    return responder(config, estadoDemo.dispositivos)
+    // HTTP entrega arrays deserializados con identidad nueva. Snapshot evita
+    // dejar memos de React apuntando al array mutable interno.
+    return responder(config, estadoDemo.dispositivos.map((dispositivo) => ({ ...dispositivo })))
+  }
+  if (metodo === 'get' && url === '/api/dispositivos/estado-operativo') {
+    const ahora = Date.now()
+    const equipos = estadoDemo.dispositivos
+      .map((dispositivo) => dispositivo as unknown as Dispositivo)
+      .map((dispositivo) => {
+        revisarSilencioDemo(dispositivo, ahora)
+        return dispositivo
+      })
+    const eventosRecientes = estadoDemo.incidentesOperativos.filter((incidente) =>
+      incidente.estado === 'activo' || ahora - Date.parse(incidente.detectado_en) < 7 * 24 * 60 * 60 * 1000,
+    )
+    const equiposConIncidencias = equipos.filter((dispositivo) => {
+        const buffer = dispositivo.buffer_littlefs
+        const tieneIncidente = eventosRecientes.some((evento) => evento.device_id === dispositivo.id)
+        return dispositivo.estado_operativo !== 'OPERATIVO' ||
+          (buffer?.pendientes ?? 0) > 0 ||
+          (buffer?.perdidas ?? 0) > 0 ||
+          (buffer?.brechas?.length ?? 0) > 0 ||
+          tieneIncidente
+      })
+    const respuesta = equiposConIncidencias
+      .map((dispositivo) => ({
+        ...dispositivo,
+        buffer_littlefs: dispositivo.buffer_littlefs
+          ? { ...dispositivo.buffer_littlefs, brechas: [...(dispositivo.buffer_littlefs.brechas ?? [])] }
+          : undefined,
+        incidencias_operativas: eventosRecientes.filter((evento) => evento.device_id === dispositivo.id),
+      }))
+    return responder(config, respuesta)
   }
   const baja = /^\/api\/dispositivos\/([^/]+)\/baja$/.exec(url)
   if (metodo === 'post' && baja) {
@@ -316,28 +627,262 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     d.activo = false
     d.motivo_baja = String(cuerpoJson(config).motivo ?? 'reemplazo')
     d.dado_de_baja_en = new Date().toISOString()
+    d.estado_credencial_broker = 'revocada'
     return responder(config, d)
   }
-
-  /* ── Firmware / OTA (HU-46) ─────────────────────────────────── */
-  if (metodo === 'get' && url === '/api/firmware/releases') {
-    return responder(config, estadoDemo.firmware)
+  const rotarCredencial = /^\/api\/dispositivos\/([^/]+)\/credencial\/rotar$/.exec(url)
+  if (metodo === 'post' && rotarCredencial) {
+    const dispositivo = dispositivoDemo(rotarCredencial[1])
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    if (!dispositivo.activo) fallar(config, 409, 'El equipo está dado de baja')
+    dispositivo.estado_credencial_broker = 'pendiente'
+    return responder(config, {
+      device_id: dispositivo.id,
+      estado: 'pendiente_de_sincronizacion',
+      credencial_expuesta: false,
+      aplicada: false,
+      demo: true,
+    }, 202)
   }
-  if (metodo === 'get' && url === '/api/firmware/despliegues') {
-    return responder(config, [])
+  const revocarCredencial = /^\/api\/dispositivos\/([^/]+)\/credencial\/revocar$/.exec(url)
+  if (metodo === 'post' && revocarCredencial) {
+    const dispositivo = dispositivoDemo(revocarCredencial[1])
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    if (!dispositivo.activo) fallar(config, 409, 'El equipo está dado de baja')
+    dispositivo.estado_credencial_broker = 'revocada'
+    return responder(config, { device_id: dispositivo.id, estado: 'revocada', credencial_expuesta: false, demo: true })
+  }
+  const simulacionIoT = /^\/api\/demo\/dispositivos\/([^/]+)\/simulacion$/.exec(url)
+  if (metodo === 'post' && simulacionIoT) {
+    const dispositivo = dispositivoDemo(simulacionIoT[1])
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    const escenario = String(cuerpoJson(config).escenario ?? '')
+    const cuerpoSimulacion = cuerpoJson(config)
+    const sensores = (dispositivo.sensores ?? []) as Array<{ modelo: string; estado: string }>
+    const buffer: BufferLittleFS = dispositivo.buffer_littlefs ?? {
+      pendientes: 0,
+      limite: 128,
+      desde: null,
+      hasta: null,
+      perdidas: 0,
+      brechas: [],
+    }
+    const ahora = Date.now()
+    const momento = (milisegundos: number) => new Date(ahora - milisegundos).toISOString()
+    const umbralSilencio = Number(cuerpoSimulacion.umbral_sin_datos_segundos)
+    const umbralPuerta = Number(cuerpoSimulacion.umbral_puerta_abierta_segundos)
+    if (Number.isFinite(umbralSilencio) && umbralSilencio >= 30 && umbralSilencio <= 600) {
+      dispositivo.umbral_sin_datos_segundos = Math.round(umbralSilencio)
+    }
+    if (Number.isFinite(umbralPuerta) && umbralPuerta >= 30 && umbralPuerta <= 1800) {
+      dispositivo.umbral_puerta_abierta_segundos = Math.round(umbralPuerta)
+    }
+    if (escenario === 'sin_datos') {
+      // Deja MQTT en línea para mostrar que watchdog se basa en lecturas
+      // recibidas y funciona incluso si el LWT no reporta desconexión.
+      dispositivo.estado_conectividad = 'online'
+      dispositivo.estado_operativo = 'SIN_DATOS'
+      dispositivo.ultimo_reporte_en = momento((dispositivo.umbral_sin_datos_segundos ?? 90) * 1000 + 1000)
+      const limiteLectura = Date.parse(dispositivo.ultimo_reporte_en)
+      const desfase = ahora - limiteLectura + 2_000
+      for (const lectura of estadoDemo.lecturas) {
+        if (lectura.device_id !== dispositivo.id || Date.parse(lectura.timestamp) <= limiteLectura) continue
+        lectura.timestamp = new Date(Date.parse(lectura.timestamp) - desfase).toISOString()
+        if (lectura.captured_at) lectura.captured_at = new Date(Date.parse(lectura.captured_at) - desfase).toISOString()
+        if (lectura.received_at) lectura.received_at = new Date(Date.parse(lectura.received_at) - desfase).toISOString()
+      }
+      buffer.pendientes = Math.max(buffer.pendientes, 3)
+      buffer.desde ??= momento(180_000)
+      buffer.hasta = dispositivo.ultimo_reporte_en
+      revisarSilencioDemo(dispositivo, ahora)
+    } else if (escenario === 'buffer_pendiente') {
+      dispositivo.estado_conectividad = 'offline'
+      dispositivo.estado_operativo = 'OPERATIVO'
+      dispositivo.ultimo_reporte_en = momento(0)
+      buffer.pendientes = 12
+      buffer.desde = momento(360_000)
+      buffer.hasta = momento(0)
+    } else if (escenario === 'buffer_lleno') {
+      dispositivo.estado_conectividad = 'offline'
+      dispositivo.estado_operativo = 'OPERATIVO'
+      dispositivo.ultimo_reporte_en = momento(0)
+      buffer.pendientes = buffer.limite
+      buffer.desde = momento(3_600_000)
+      buffer.hasta = momento(0)
+      buffer.perdidas += 3
+      buffer.brechas = [
+        ...(buffer.brechas ?? []),
+        {
+          desde: momento(5 * 60_000),
+          hasta: momento(0),
+          muestras_perdidas: 3,
+          causa: 'buffer_agotado',
+          registrada_en: momento(0),
+        },
+      ]
+    } else if (escenario === 'falla_sensor') {
+      const sensor = sensores.find((item) => item.modelo === 'DS18B20')
+      if (sensor) sensor.estado = 'error'
+      dispositivo.estado_conectividad = 'online'
+      dispositivo.estado_operativo = 'FALLA_SENSOR'
+      dispositivo.ultimo_reporte_en = momento(0)
+      if (dispositivo.id === 'FARM-01-CDL') {
+        const previa = estadoDemo.lecturas.at(-1)
+        estadoDemo.lecturas.push({
+          ...(previa ?? {} as LecturaTermica),
+          id: `lec-falla-demo-${Date.now()}`,
+          device_id: dispositivo.id,
+          timestamp: momento(0),
+          schema_version: 1,
+          boot_id: 'demo-boot-fault-01',
+          seq_no: (previa?.seq_no ?? 0) + 1,
+          captured_at: momento(0),
+          received_at: momento(0),
+          time_quality: 'ntp',
+          temperatura_interna: null,
+          nivel_riesgo: null,
+          riesgo_efectivo: null,
+          excursion_confirmada: false,
+          confianza_ia: null,
+          modelo_version: null,
+          origen_clasificacion: 'fallo_sensor',
+          estado_inferencia: 'omitida',
+          motivo_no_inferencia: 'SENSOR_FAULT',
+          estado_sensores: { temperatura_interna: 'invalido', temperatura_ambiental: 'valido', humedad_ambiental: 'valido' },
+        })
+      }
+    } else if (escenario === 'recuperar') {
+      dispositivo.estado_conectividad = 'online'
+      dispositivo.estado_operativo = 'OPERATIVO'
+      dispositivo.ultimo_reporte_en = momento(0)
+      for (const sensor of sensores) if (sensor.modelo === 'DS18B20' && sensor.estado === 'error') sensor.estado = 'ok'
+      const lecturasRecuperadas = generarLecturasBuffer(
+        dispositivo.id,
+        buffer.desde,
+        buffer.hasta,
+        buffer.pendientes,
+      )
+      if (lecturasRecuperadas.length > 0) {
+        estadoDemo.lecturas.push(...lecturasRecuperadas)
+        estadoDemo.lecturas.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
+      }
+      buffer.pendientes = 0
+      buffer.desde = null
+      buffer.hasta = null
+      buffer.ultima_sincronizacion_en = momento(0)
+      dispositivo.ultimo_evento = {
+        schema_version: '1.0',
+        boot_id: `demo-recovery-${Date.now()}`,
+        seq_no: Number(dispositivo.ultimo_evento?.seq_no ?? 0) + 1,
+        captured_at: momento(0),
+        received_at: momento(0),
+        time_quality: 'ntp',
+      }
+      if (dispositivo.id === 'FARM-01-CDL') generarLecturaEnVivo()
+    } else if (escenario === 'puerta_abierta' || escenario === 'puerta_cerrada') {
+      dispositivo.estado_conectividad = 'online'
+      dispositivo.ultimo_reporte_en = momento(0)
+      const lectura = generarLecturaEnVivo()
+      lectura.apertura_refrigerador = escenario === 'puerta_abierta'
+      lectura.duracion_apertura_segundos = escenario === 'puerta_abierta' ? 240 : 0
+    } else {
+      fallar(config, 422, 'Escenario demo desconocido')
+    }
+    revisarSilencioDemo(dispositivo, Date.now())
+    dispositivo.buffer_littlefs = buffer
+    return responder(config, { device_id: dispositivo.id, escenario, demo: true, dispositivo: { ...dispositivo } })
+  }
+  const dispositivoCalibracion = /^\/api\/dispositivos\/([^/]+)\/calibracion$/.exec(url)
+  if (metodo === 'patch' && dispositivoCalibracion) {
+    const deviceId = dispositivoCalibracion[1]
+    const dispositivo = dispositivoDemo(deviceId)
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    const cuerpo = cuerpoJson(config)
+    const fecha = String(cuerpo.fecha_calibracion ?? '')
+    const certificado = String(cuerpo.numero_certificado ?? '')
+    const proxima = String(cuerpo.valid_until ?? '')
+    const margen = Number(cuerpo.margen_aviso_dias ?? 30)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(proxima) || !certificado.trim() || !Number.isInteger(margen) || margen < 0 || margen > 365) {
+      fallar(config, 422, 'La fecha de validez, el certificado y un margen de aviso válido son obligatorios')
+    }
+    cambiarCampoDispositivo(dispositivo, deviceId, 'fecha_ultima_calibracion', fecha, config)
+    cambiarCampoDispositivo(dispositivo, deviceId, 'numero_certificado_calibracion', certificado, config)
+    cambiarCampoDispositivo(
+      dispositivo,
+      deviceId,
+      'fecha_proxima_calibracion',
+      proxima,
+      config,
+    )
+    cambiarCampoDispositivo(dispositivo, deviceId, 'margen_aviso_calibracion_dias', margen, config)
+    if (cuerpo.observaciones !== undefined) {
+      cambiarCampoDispositivo(
+        dispositivo,
+        deviceId,
+        'observaciones_calibracion',
+        cuerpo.observaciones,
+        config,
+      )
+    }
+    return responder(config, dispositivo)
+  }
+  const dispositivoInstalacion = /^\/api\/dispositivos\/([^/]+)\/instalacion$/.exec(url)
+  if (metodo === 'patch' && dispositivoInstalacion) {
+    const deviceId = dispositivoInstalacion[1]
+    const dispositivo = dispositivoDemo(deviceId)
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    const cuerpo = cuerpoJson(config)
+    if (cuerpo.ubicacion !== undefined) {
+      cambiarCampoDispositivo(dispositivo, deviceId, 'ubicacion', cuerpo.ubicacion, config)
+    }
+    if (cuerpo.fecha_instalacion !== undefined) {
+      cambiarCampoDispositivo(dispositivo, deviceId, 'fecha_instalacion', cuerpo.fecha_instalacion, config)
+      cambiarCampoDispositivo(dispositivo, deviceId, 'instalado_por', actorDemo(config), config)
+    }
+    if (cuerpo.observaciones !== undefined) {
+      cambiarCampoDispositivo(
+        dispositivo,
+        deviceId,
+        'observaciones_instalacion',
+        cuerpo.observaciones,
+        config,
+      )
+    }
+    return responder(config, dispositivo)
+  }
+  const dispositivoResponsable = /^\/api\/dispositivos\/([^/]+)\/responsable$/.exec(url)
+  if (metodo === 'patch' && dispositivoResponsable) {
+    const deviceId = dispositivoResponsable[1]
+    const dispositivo = dispositivoDemo(deviceId)
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    const cuerpo = cuerpoJson(config)
+    const campos = [
+      ['nombre', 'responsable_nombre'],
+      ['email', 'responsable_email'],
+      ['telefono', 'responsable_telefono'],
+    ] as const
+    for (const [origen, destino] of campos) {
+      if (cuerpo[origen] !== undefined) {
+        cambiarCampoDispositivo(dispositivo, deviceId, destino, cuerpo[origen], config)
+      }
+    }
+    return responder(config, dispositivo)
+  }
+  const historialDispositivo = /^\/api\/dispositivos\/([^/]+)\/historial-configuracion$/.exec(url)
+  if (metodo === 'get' && historialDispositivo) {
+    const deviceId = historialDispositivo[1]
+    if (!dispositivoDemo(deviceId)) fallar(config, 404, 'Dispositivo no encontrado')
+    return responder(config, [...(historialConfiguracionDemo.get(deviceId) ?? [])])
   }
 
-  /* ── Sesión y privacidad (HU-44) ────────────────────────────── */
+  /* ── Sesión ──────────────────────────────────────────────────── */
   if (metodo === 'post' && url === '/api/auth/logout') {
     return responder(config, null, 204)
-  }
-  if (metodo === 'post' && url.startsWith('/api/auth/privacidad/')) {
-    return responder(config, { privacy_accepted: url.endsWith('aceptar'), privacy_version_accepted: '1.0' })
   }
 
   /* ── Usuarios y auditoría ───────────────────────────────────── */
   if (metodo === 'get' && url === '/api/usuarios') {
-    return responder(config, estadoDemo.usuarios)
+    return responder(config, estadoDemo.usuarios.map((usuario) => ({ ...usuario })))
   }
   if (metodo === 'post' && url === '/api/usuarios') {
     const cuerpo = cuerpoJson(config)
@@ -354,11 +899,48 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       motivo_desactivacion: null,
       desactivado_en: null,
     }
-    estadoDemo.usuarios.push(nuevo)
+    estadoDemo.usuarios.unshift(nuevo)
     return responder(config, nuevo, 201)
   }
+  const desactivarUsuario = /^\/api\/usuarios\/([^/]+)\/desactivar$/.exec(url)
+  if (metodo === 'patch' && desactivarUsuario) {
+    const usuario = usuarioDemo(desactivarUsuario[1])
+    if (!usuario) fallar(config, 404, 'Usuario no encontrado')
+    if (!usuario.is_active) fallar(config, 409, 'El usuario ya está desactivado')
+    const motivo = String(cuerpoJson(config).motivo ?? '')
+    if (!MOTIVOS_DESACTIVACION.includes(motivo as (typeof MOTIVOS_DESACTIVACION)[number])) {
+      fallar(config, 422, 'Motivo de desactivación inválido')
+    }
+    usuario.is_active = false
+    usuario.motivo_desactivacion = motivo
+    usuario.desactivado_en = new Date().toISOString()
+    return responder(config, usuario)
+  }
+  const cambiarRolUsuario = /^\/api\/usuarios\/([^/]+)\/rol$/.exec(url)
+  if (metodo === 'patch' && cambiarRolUsuario) {
+    const usuario = usuarioDemo(cambiarRolUsuario[1])
+    if (!usuario) fallar(config, 404, 'Usuario no encontrado')
+    const rol = cuerpoJson(config).rol
+    if (typeof rol !== 'string' || !ROLES.includes(rol as Rol)) {
+      fallar(config, 422, 'Rol inválido')
+    }
+    usuario.rol = rol as Rol
+    return responder(config, usuario)
+  }
   if (metodo === 'get' && url === '/api/auditoria') {
-    return responder(config, estadoDemo.auditoria.slice(0, Number(params.limite ?? 200)))
+    let registros = [...estadoDemo.auditoria]
+    if (params.accion) {
+      const accion = String(params.accion).toLocaleLowerCase()
+      registros = registros.filter((registro) => registro.accion.toLocaleLowerCase().includes(accion))
+    }
+    if (params.usuario_id) {
+      registros = registros.filter((registro) => registro.usuario_id === String(params.usuario_id))
+    }
+    const desde = params.desde ? Date.parse(String(params.desde)) : Number.NEGATIVE_INFINITY
+    const hasta = params.hasta ? Date.parse(String(params.hasta)) : Number.POSITIVE_INFINITY
+    if (Number.isFinite(desde)) registros = registros.filter((registro) => Date.parse(registro.created_at) >= desde)
+    if (Number.isFinite(hasta)) registros = registros.filter((registro) => Date.parse(registro.created_at) <= hasta)
+    return responder(config, registros.slice(0, Number(params.limite ?? 200)))
   }
 
   fallar(config, 404, `Ruta demo no implementada: ${metodo.toUpperCase()} ${url}`)

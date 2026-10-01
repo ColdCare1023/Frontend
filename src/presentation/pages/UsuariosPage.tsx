@@ -8,6 +8,7 @@ import { MOTIVOS_DESACTIVACION } from '@/domain/entities/Usuario'
 import { ROLES, type Rol } from '@/domain/value-objects/Rol'
 import { rangoPagina } from '@/lib/paginacion'
 import { Paginacion } from '../components/Paginacion'
+import { ActionMenu } from '../components/ActionMenu'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -24,10 +25,10 @@ import {
 } from '../components/ui/table'
 
 const VARIANTE_POR_ROL = {
-  administrador: 'critical',
-  farmaceutico: 'ok',
+  administrador: 'neutral',
+  farmaceutico: 'neutral',
   tecnico: 'neutral',
-  auditor: 'warn',
+  auditor: 'neutral',
 } as const
 
 const FORM_INICIAL = { nombre: '', email: '', password: '', rol: 'tecnico' as Rol }
@@ -124,8 +125,8 @@ export function UsuariosPage() {
         </Button>
       </PageHeader>
 
-      <div className="animate-rise">
-        <Table titulo={t('usuarios.titulo')} cargando={cargando}>
+      <div className="animate-rise border-t border-border pt-5 [&_thead]:bg-primary-tint/60 sm:[&_tbody_tr]:h-20">
+        <Table mobileLayout="stack" className="min-w-[900px]" titulo={t('usuarios.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
               <TableHead>{t('usuarios.nombre')}</TableHead>
@@ -148,14 +149,14 @@ export function UsuariosPage() {
             ) : (
               visibles.map((usuario) => (
                 <TableRow key={usuario.id}>
-                  <TableCell className="font-medium">{usuario.nombre}</TableCell>
-                  <TableCell className="text-muted">{usuario.email}</TableCell>
-                  <TableCell>
+                  <TableCell data-label={t('usuarios.nombre')} className="mobile-full font-semibold">{usuario.nombre}</TableCell>
+                  <TableCell data-label={t('usuarios.email')} className="mobile-full break-all text-muted">{usuario.email}</TableCell>
+                  <TableCell data-label={t('usuarios.rol')}>
                     <Badge variant={VARIANTE_POR_ROL[usuario.rol]}>
                       {t(`roles.${usuario.rol}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label={t('usuarios.estado')}>
                     {usuario.is_active ? (
                       <Badge variant="ok">{t('usuarios.activo')}</Badge>
                     ) : (
@@ -167,9 +168,9 @@ export function UsuariosPage() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-right">
                     {usuario.is_active && (
-                      <div className="inline-flex gap-1.5">
+                      <ActionMenu label={usuario.nombre}>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -196,7 +197,7 @@ export function UsuariosPage() {
                           <UserX />
                           {t('usuarios.desactivar')}
                         </Button>
-                      </div>
+                      </ActionMenu>
                     )}
                   </TableCell>
                 </TableRow>
@@ -243,7 +244,7 @@ export function UsuariosPage() {
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button variant="ghost" onClick={() => setUsuarioCambiarRol(null)} disabled={cambiandoRol}>
                 {t('usuarios.cancelar')}
               </Button>
@@ -291,7 +292,7 @@ export function UsuariosPage() {
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button variant="ghost" onClick={() => setUsuarioDesactivar(null)} disabled={desactivando}>
                 {t('usuarios.cancelar')}
               </Button>
@@ -368,7 +369,7 @@ export function UsuariosPage() {
               </p>
             )}
 
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button variant="ghost" onClick={() => setDialogoAbierto(false)} disabled={creando}>
                 {t('usuarios.cancelar')}
               </Button>

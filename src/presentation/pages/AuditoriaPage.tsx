@@ -1,6 +1,7 @@
+import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FilterX, ScrollText, SlidersHorizontal } from 'lucide-react'
+import { Download, FilterX, ScrollText, SlidersHorizontal } from 'lucide-react'
 
 import { useAuditoria, type FiltrosAuditoria } from '@/application/hooks/useAuditoria'
 import { fechaHora } from '@/lib/formato'
@@ -44,23 +45,51 @@ export function AuditoriaPage() {
     void consultar(FILTROS_INICIALES)
   }
 
+  const exportar = () => {
+    const columnas = [t('auditoria.fecha'), t('auditoria.usuarioId'), t('auditoria.accion'), t('auditoria.recurso'), t('auditoria.resultado'), t('auditoria.ip')]
+    const csvCell = (value: unknown) => {
+      let text = String(value ?? '')
+      if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`
+      return `"${text.replaceAll('"', '""')}"`
+    }
+    const rows = registros.map((r) => [r.created_at, r.usuario_id, r.accion, r.recurso, r.resultado, r.ip_origen])
+    const blob = new Blob([`\uFEFF${[columnas, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
+    const href = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = href
+    link.download = 'coldcare-auditoria.csv'
+    link.click()
+    URL.revokeObjectURL(href)
+  }
+  const bloqueos = registros.filter((r) => r.accion === 'BLOQUEO_TEMPORAL').length
+
   return (
-    <div>
+    <CompactWorkspace>
       <PageHeader eyebrow={t('nav.seccionAdministracion')} titulo={t('auditoria.titulo')} descripcion={t('auditoria.descripcion')} />
 
+      {bloqueos > 0 && (
+        <Card className="mb-5 border-clay-100 bg-clay-100/60">
+          <CardContent role="status" className="p-4 text-sm text-clay-700">
+            {t('auditoria.bloqueosTemporales', { count: bloqueos })}
+          </CardContent>
+        </Card>
+      )}
+
       {/* HU-50 criterio 1: filtrar por periodo, usuario o tipo de acción. */}
-      <Card className="mb-5 animate-rise">
-        <CardContent className="p-5">
-          <p
-            id="titulo-filtros-auditoria"
-            className="mb-3 flex items-center gap-2 text-[13px] font-medium text-muted"
-          >
-            <SlidersHorizontal className="size-3.5" aria-hidden />
-            {t('auditoria.filtros')}
-          </p>
+      <Card className="mb-4 rounded-lg border border-border bg-surface shadow-none">
+        <CardContent className="p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <p id="titulo-filtros-auditoria" className="flex items-center gap-2 text-xs font-medium text-muted">
+              <SlidersHorizontal className="size-3.5" aria-hidden />
+              {t('auditoria.filtros')}
+            </p>
+            <Button variant="secondary" size="sm" onClick={exportar} disabled={cargando || registros.length === 0}>
+              <Download />{t('auditoria.exportar')}
+            </Button>
+          </div>
           <form
             aria-labelledby="titulo-filtros-auditoria"
-            className="grid grid-cols-1 items-end gap-3 min-[480px]:grid-cols-2 lg:grid-cols-5"
+            className="grid grid-cols-2 items-end gap-3 xl:grid-cols-[1fr_1fr_1.2fr_1.2fr_auto]"
             onSubmit={(e) => {
               e.preventDefault()
               void consultar(filtros)
@@ -72,8 +101,10 @@ export function AuditoriaPage() {
                 id="fa-accion"
                 value={filtros.accion ?? ''}
                 onChange={(e) => actualizarFiltro('accion', e.target.value)}
-                placeholder="LOGIN_FALLIDO"
+                placeholder={t('auditoria.accionPlaceholder')}
+                aria-describedby="fa-accion-ayuda"
               />
+
             </div>
             <div>
               <Label htmlFor="fa-usuario">{t('auditoria.usuario')}</Label>
@@ -81,7 +112,7 @@ export function AuditoriaPage() {
                 id="fa-usuario"
                 value={filtros.usuario_id ?? ''}
                 onChange={(e) => actualizarFiltro('usuario_id', e.target.value)}
-                placeholder="UUID"
+                placeholder={t('auditoria.usuarioPlaceholder')}
               />
             </div>
             <div>
@@ -102,7 +133,7 @@ export function AuditoriaPage() {
                 onChange={(e) => actualizarFiltro('hasta', e.target.value)}
               />
             </div>
-            <div className="flex gap-2 min-[480px]:col-span-2 lg:col-span-1">
+            <div className="flex gap-2 col-span-2 xl:col-span-1">
               <Button type="submit" className="flex-1">
                 {t('historial.aplicar')}
               </Button>
@@ -111,25 +142,27 @@ export function AuditoriaPage() {
               </Button>
             </div>
           </form>
+          <p id="fa-accion-ayuda" className="mt-2 text-xs text-faint">{t('auditoria.ayudaAccion')}</p>
         </CardContent>
       </Card>
 
-      <div className="animate-rise">
-        <Table titulo={t('auditoria.titulo')} cargando={cargando}>
+      <div className="animate-rise [&_thead]:bg-cream-100 ">
+        <Table className="min-w-[1080px]" titulo={t('auditoria.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
               <TableHead>{t('auditoria.fecha')}</TableHead>
               <TableHead>{t('auditoria.accion')}</TableHead>
               <TableHead>{t('auditoria.recurso')}</TableHead>
-              <TableHead>{t('auditoria.usuario')}</TableHead>
+              <TableHead>{t('auditoria.usuarioId')}</TableHead>
+              <TableHead>{t('auditoria.resultado')}</TableHead>
               <TableHead>{t('auditoria.ip')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {cargando ? (
-              <TableEmpty colSpan={5}>{t('app.cargando')}</TableEmpty>
+              <TableEmpty colSpan={6}>{t('app.cargando')}</TableEmpty>
             ) : registros.length === 0 ? (
-              <TableEmpty colSpan={5}>
+              <TableEmpty colSpan={6}>
                 <span className="inline-flex flex-col items-center gap-2">
                   <ScrollText className="size-5 text-faint" aria-hidden />
                   {t('auditoria.sinRegistros')}
@@ -138,15 +171,27 @@ export function AuditoriaPage() {
             ) : (
               visibles.map((registro) => (
                 <TableRow key={registro.id}>
-                  <TableCell className="nums text-[13px]">
+                  <TableCell className="nums whitespace-nowrap text-[13px]">
                     {fechaHora(registro.created_at)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="neutral">{registro.accion}</Badge>
+                    <Badge variant="neutral">
+                      {t(`auditoria.eventos.${registro.accion}`, {
+                        defaultValue: registro.accion
+                          .toLocaleLowerCase()
+                          .replaceAll('_', ' ')
+                          .replace(/^\p{L}/u, (letra) => letra.toLocaleUpperCase()),
+                      })}
+                    </Badge>
                   </TableCell>
                   <TableCell className="nums text-[13px] text-muted">{registro.recurso}</TableCell>
                   <TableCell className="nums text-xs text-muted">
                     {registro.usuario_id ? `${registro.usuario_id.slice(0, 8)}…` : '—'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={registro.resultado === 'exitoso' ? 'ok' : registro.resultado ? 'critical' : 'neutral'}>
+                      {registro.resultado ?? '—'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="nums text-[13px] text-muted">
                     {registro.ip_origen ?? '—'}
@@ -158,6 +203,6 @@ export function AuditoriaPage() {
         </Table>
         <Paginacion total={registros.length} pagina={pagina} onCambiar={setPagina} />
       </div>
-    </div>
+    </CompactWorkspace>
   )
 }

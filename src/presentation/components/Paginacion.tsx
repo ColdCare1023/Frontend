@@ -56,7 +56,9 @@ export function Paginacion({ total, pagina, onCambiar, tamano = TAMANO_PAGINA }:
   // Una sola página no necesita controles, pero el recuento sigue orientando.
   if (paginas <= 1) {
     return total > 0 ? (
-      <p className="mt-3 text-xs text-muted">{t('comunes.totalRegistros', { total })}</p>
+      <p className="mt-3 text-xs text-muted">
+        {t(total === 1 ? 'comunes.totalRegistrosUno' : 'comunes.totalRegistrosVarios', { total })}
+      </p>
     ) : null
   }
 

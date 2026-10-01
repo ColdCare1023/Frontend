@@ -14,7 +14,7 @@ function sesionQueExpiraEn(ms: number) {
   useAuthStore.setState({
     usuario: { id: 'u-1', email: 'farmaceutico@upc.pe', rol: 'farmaceutico', expiraEn: AHORA + ms },
     autenticado: true,
-    requierePrivacidad: false,
+
   })
 }
 
@@ -22,7 +22,7 @@ describe('useExpiracionSesion (FS5)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(AHORA)
-    useAuthStore.setState({ usuario: null, autenticado: false, requierePrivacidad: false })
+    useAuthStore.setState({ usuario: null, autenticado: false })
   })
 
   afterEach(() => {
@@ -110,7 +110,7 @@ describe('useExpiracionSesion (FS5)', () => {
     useAuthStore.setState({
       usuario: { id: 'u-1', email: 'x@upc.pe', rol: 'tecnico', expiraEn: 0 },
       autenticado: true,
-      requierePrivacidad: false,
+
     })
     const alExpirar = vi.fn()
 

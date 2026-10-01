@@ -49,6 +49,9 @@ interface RespuestaModelo {
   modelo_disponible: boolean
   metadata: MetadataModelo | null
   metricas: MetricasModelo
+  /** El backend debe declarar el origen; si falta, la evaluación queda como no verificada. */
+  datos_simulados?: boolean
+  estado_evaluacion?: 'validada' | 'ilustrativa_no_reportable' | 'no_disponible'
 }
 
 /**

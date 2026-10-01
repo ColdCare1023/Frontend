@@ -60,7 +60,7 @@ describe('HistorialPage (RF-12, HU-36)', () => {
     // Dispositivo, nivel de riesgo y rango de fechas: los ejes por los que se
     // reconstruye un episodio en una auditoría.
     expect(screen.getAllByText(/filtros/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/nivel de riesgo/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/nivel de riesgo/i)).toBeInTheDocument()
     expect(screen.getByText(/^desde$/i)).toBeInTheDocument()
     expect(screen.getByText(/^hasta$/i)).toBeInTheDocument()
   })
@@ -117,7 +117,7 @@ describe('HistorialPage — HU-34/HU-35: riesgo efectivo y puerta MC-38 opcional
   it('marca la puerta con un icono distinto cuando no hay MC-38 instalado, no como cerrada', () => {
     montar([lectura({ apertura_refrigerador: null })])
 
-    expect(screen.getByRole('img', { name: /sin sensor mc-38/i })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /no disponible/i })).toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /^cerrada$/i })).not.toBeInTheDocument()
   })
 })

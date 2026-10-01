@@ -1,3 +1,4 @@
+import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -12,6 +13,7 @@ import { fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { rangoPagina } from '@/lib/paginacion'
 import { Paginacion } from '../components/Paginacion'
+import { EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { RiskBadge } from '../components/RiskBadge'
 import { Badge } from '../components/ui/badge'
@@ -48,6 +50,8 @@ export function AlertasPage() {
   const {
     alertas,
     cargando,
+    errorCarga,
+    reintentar,
     filtro,
     setFiltro,
     reconocerAlerta,
@@ -127,12 +131,13 @@ export function AlertasPage() {
   }
 
   return (
-    <div>
-      <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')}>
+    <CompactWorkspace>
+      <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')} />
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         <div
           role="group"
           aria-label={t('alertas.filtroEstado')}
-          className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-border-strong bg-surface p-1 sm:inline-flex sm:w-auto sm:grid-cols-none sm:gap-0 sm:rounded-full sm:p-0.5"
+          className="grid w-full grid-cols-4 gap-1 border-b border-border sm:inline-flex sm:w-auto"
         >
           {FILTROS.map((opcion) => (
             <button
@@ -141,20 +146,30 @@ export function AlertasPage() {
               onClick={() => setFiltro(opcion)}
               aria-pressed={filtro === opcion}
               className={cn(
-                'min-h-11 cursor-pointer whitespace-nowrap rounded-full px-3 py-2 text-center text-xs font-medium transition-colors duration-150 sm:min-h-0 sm:py-1.5',
+                'min-h-11 cursor-pointer whitespace-nowrap border-b-2 px-2 py-2 text-center text-xs sm:px-4 sm:text-sm font-medium transition-colors duration-150',
                 filtro === opcion
-                  ? 'bg-primary text-cream-50'
-                  : 'text-muted hover:text-foreground',
+                  ? 'border-foreground text-foreground'
+                  : 'border-transparent text-muted hover:text-foreground',
               )}
             >
               {t(`alertas.filtro.${opcion}`)}
             </button>
           ))}
         </div>
-      </PageHeader>
+      </div>
 
-      <div className="animate-rise">
-        <Table titulo={t('alertas.titulo')} cargando={cargando}>
+      {errorCarga && (
+        <div className="mb-4">
+          <EstadoError mensaje={t('alertas.errorCargar')}>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
+              {t('comunes.reintentar')}
+            </Button>
+          </EstadoError>
+        </div>
+      )}
+
+      <div className="animate-rise [&_thead]:bg-cream-100 ">
+        <Table mobileLayout="stack" className="min-w-[1080px]" titulo={t('alertas.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
               <TableHead>{t('alertas.fecha')}</TableHead>
@@ -166,43 +181,53 @@ export function AlertasPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {cargando ? (
+            {errorCarga ? (
+              <TableEmpty colSpan={6}>{t('alertas.errorTabla')}</TableEmpty>
+            ) : cargando ? (
               <TableEmpty colSpan={6}>{t('app.cargando')}</TableEmpty>
             ) : alertas.length === 0 ? (
               <TableEmpty colSpan={6}>
                 <span className="inline-flex flex-col items-center gap-2">
                   <BellOff className="size-5 text-faint" />
-                  {t('alertas.sinAlertas')}
+                  {t(
+                    filtro === 'pendiente'
+                      ? 'alertas.sinPendientes'
+                      : filtro === 'reconocida'
+                        ? 'alertas.sinRevisadas'
+                        : filtro === 'atendida'
+                          ? 'alertas.sinAtendidas'
+                          : 'alertas.sinAlertas',
+                  )}
                 </span>
               </TableEmpty>
             ) : (
               visibles.map((alerta) => (
                 <TableRow key={alerta.id}>
-                  <TableCell className="nums text-[13px]">
+                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap text-[13px]">
                     {fechaHora(alerta.created_at)}
                   </TableCell>
-                  <TableCell className="text-[13px]">{alerta.device_id}</TableCell>
-                  <TableCell>
+                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap text-[13px]">{alerta.device_id}</TableCell>
+                  <TableCell data-label={t('historial.riesgo')}>
                     <RiskBadge nivel={alerta.nivel_riesgo} />
                   </TableCell>
-                  <TableCell className="max-w-72 text-[13px] text-muted">{alerta.mensaje}</TableCell>
-                  <TableCell>
+                  <TableCell data-label={t('alertas.mensaje')} className="mobile-full max-w-72 text-sm text-muted">{alerta.mensaje}</TableCell>
+                  <TableCell data-label={t('alertas.estado')}>
                     <Badge variant={VARIANTE_POR_ESTADO[alerta.estado]}>
                       {t(`alertas.estadoAlerta.${alerta.estado}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex flex-col items-end gap-1">
-                    <div className="inline-flex gap-1.5">
+                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions text-right">
+                    <div className="inline-flex flex-col items-start gap-2 sm:items-end">
+                    <div className="inline-flex flex-wrap gap-1.5">
                       {alerta.estado === 'pendiente' && puedeReconocer && (
                         <Button
                           size="sm"
                           variant="secondary"
                           onClick={() => void reconocer(alerta.id)}
-                          title={t('alertas.reconocer')}
+                          title={t('alertas.marcarRevisada')}
                         >
                           <CheckCheck />
-                          {t('alertas.reconocer')}
+                          {t('alertas.marcarRevisada')}
                         </Button>
                       )}
                       {alerta.estado !== 'atendida' && puedeRegistrarAccion && (
@@ -237,7 +262,7 @@ export function AlertasPage() {
             )}
           </TableBody>
         </Table>
-        <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} />
+        {!errorCarga && <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} />}
       </div>
 
       {/* ── Diálogo de acción correctiva ────────────────────── */}
@@ -286,7 +311,7 @@ export function AlertasPage() {
                 {t('alertas.conflictoEstado')}
               </p>
             )}
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button
                 variant="ghost"
                 onClick={() => setAlertaSeleccionada(null)}
@@ -311,7 +336,7 @@ export function AlertasPage() {
           <DialogTitle>{t('alertas.cicloAtencion')}</DialogTitle>
           <DialogDescription>{alertaDetalle?.mensaje}</DialogDescription>
           {alertaDetalle && (
-            <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-border bg-cream-100/60 p-3 text-sm">
+            <dl className="mt-5 grid grid-cols-1 gap-4 border-y border-border py-4 text-sm min-[420px]:grid-cols-2">
               <div>
                 <dt className="text-xs text-muted">{t('historial.dispositivo')}</dt>
                 <dd className="nums mt-1 font-medium">{alertaDetalle.device_id}</dd>
@@ -322,7 +347,7 @@ export function AlertasPage() {
               </div>
             </dl>
           )}
-          <ol className="mt-3 max-h-96 space-y-3 overflow-y-auto border-l-2 border-border pl-4">
+          <ol className="mt-3 max-h-96 space-y-5 overflow-y-auto border-l border-border pl-4 [&>li]:relative [&>li]:before:absolute [&>li]:before:-left-[21px] [&>li]:before:top-1 [&>li]:before:size-2 [&>li]:before:rounded-full [&>li]:before:bg-primary">
             {alertaDetalle?.created_at && (
               <li>
                 <p className="text-[13px] font-medium">{t('alertas.eventoCreada')}</p>
@@ -368,6 +393,6 @@ export function AlertasPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </CompactWorkspace>
   )
 }

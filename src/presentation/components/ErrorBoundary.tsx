@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle } from 'lucide-react'
 
+import i18n from '@/infrastructure/i18n'
 import { Button } from './ui/button'
 
 interface Props {
@@ -13,8 +14,8 @@ interface State {
 
 /**
  * Sin este límite, cualquier excepción durante el render desmonta el árbol
- * entero y el operador se queda ante una pantalla en blanco, sin saber si el
- * refrigerador sigue monitorizado. Aquí al menos ve qué pasó y puede recuperar.
+ * entero. La interfaz muestra cómo intentar recuperarse, sin afirmar que los
+ * datos del servidor estén a salvo ni revelar detalles internos del error.
  *
  * React no ofrece equivalente en componentes de función: los límites de error
  * siguen requiriendo una clase.
@@ -41,18 +42,16 @@ export class ErrorBoundary extends Component<Props, State> {
         <span className="flex size-11 items-center justify-center rounded-full bg-clay-100 text-clay-700">
           <AlertTriangle className="size-5" />
         </span>
-        <h1 className="font-display text-[28px] leading-[34px] font-bold tracking-tight">Algo salió mal</h1>
+        <h1 className="font-display text-[28px] leading-[34px] font-bold tracking-tight">
+          {i18n.t('comunes.errorPantallaTitulo')}
+        </h1>
         <p className="max-w-md text-sm leading-relaxed text-muted">
-          La aplicación encontró un error inesperado. Los datos registrados no se han visto
-          afectados: la información térmica y la cadena de trazabilidad viven en el servidor.
+          {i18n.t('comunes.errorPantallaDetalle')}
         </p>
-        <pre className="max-w-lg overflow-auto rounded-(--radius-field) bg-cream-200 px-3 py-2 text-left text-xs text-clay-700">
-          {error.message}
-        </pre>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button onClick={() => window.location.reload()}>Recargar la página</Button>
+          <Button onClick={() => window.location.reload()}>{i18n.t('comunes.recargarPagina')}</Button>
           <Button variant="secondary" onClick={() => this.setState({ error: null })}>
-            Reintentar
+            {i18n.t('comunes.intentarDeNuevo')}
           </Button>
         </div>
       </div>

@@ -95,23 +95,21 @@ describe('Trazabilidad — cadena de custodia (RF-14, RF-15, HU-47)', () => {
         expiraEn: Date.now() + 3600_000,
       },
       autenticado: true,
-      requierePrivacidad: false,
+
     })
   })
 
   it('identifica CUÁL registro se alteró, no solo que la cadena está rota', () => {
-    // RF-15. «Rota en la posición 17» no permite actuar: el auditor necesita
-    // el identificador, el tipo de evento y el instante del registro.
+    // RF-15: auditor necesita identificador, tipo de evento y hora del registro.
     montarTrazabilidad({ verificacion: CADENA_ROTA })
 
     const detalle = screen.getByTestId('detalle-inconsistencia')
     expect(within(detalle).getByText('r-17')).toBeInTheDocument()
-    expect(within(detalle).getByText('ALERTA_TERMICA')).toBeInTheDocument()
+    expect(within(detalle).getByText('Alerta de temperatura')).toBeInTheDocument()
   })
 
   it('contrasta el sello recalculado con el almacenado', () => {
-    // Es la prueba material de la alteración: si ambos sellos coincidieran no
-    // habría nada que denunciar. Mostrar solo uno no demuestra nada.
+    // Los detalles técnicos permiten comparar ambos sellos durante la revisión.
     montarTrazabilidad({ verificacion: CADENA_ROTA })
 
     const detalle = screen.getByTestId('detalle-inconsistencia')
@@ -154,7 +152,7 @@ describe('Trazabilidad — cadena de custodia (RF-14, RF-15, HU-47)', () => {
     montarTrazabilidad({ estadoCadena: { cadena_comprometida: true } })
 
     const alerta = screen.getByRole('alert')
-    expect(alerta).toHaveTextContent(/alteración crítica detectada en la cadena/i)
+    expect(alerta).toHaveTextContent(/se detectó una inconsistencia en el historial/i)
   })
 
   it('anuncia también el resultado de la verificación', () => {
@@ -200,7 +198,7 @@ describe('Trazabilidad — cadena de custodia (RF-14, RF-15, HU-47)', () => {
         expiraEn: Date.now() + 3600_000,
       },
       autenticado: true,
-      requierePrivacidad: false,
+
     })
     montarTrazabilidad({
       estadoCadena: { cadena_comprometida: true },
@@ -245,7 +243,12 @@ function metricas(over: Record<string, unknown> = {}) {
 
 function montarMetricas(over: Record<string, unknown> = {}) {
   useModeloIA.mockReturnValue({
-    datos: { modelo_disponible: true, metadata: null, metricas: metricas(over) },
+    datos: {
+      modelo_disponible: true,
+      datos_simulados: false,
+      metadata: null,
+      metricas: metricas({ dataset_hash: 'dataset-hash', model_hash: 'model-hash', particion: 'test', ...over }),
+    },
     cargando: false,
     noEntrenado: false,
     error: null,
@@ -263,15 +266,13 @@ describe('Métricas de IA — veredicto frente al umbral RNF-04', () => {
     montarMetricas({ f1_weighted: 0.72 })
 
     const veredicto = screen.getByTestId('veredicto-umbral')
-    expect(veredicto).toHaveTextContent(/NO alcanza el umbral/i)
+    expect(veredicto).toHaveTextContent(/no alcanza el criterio de evaluación/i)
   })
 
-  it('explica la consecuencia del incumplimiento, no solo lo constata', () => {
+  it('aclara que el resultado no describe el estado actual del refrigerador', () => {
     montarMetricas({ f1_weighted: 0.72 })
 
-    expect(screen.getByTestId('veredicto-umbral')).toHaveTextContent(
-      /deben confirmarse manualmente/i,
-    )
+    expect(screen.getByText(/no indica el estado actual del refrigerador/i)).toBeInTheDocument()
   })
 
   it('anuncia el veredicto como estado, no como decoración', () => {
@@ -295,12 +296,12 @@ describe('Métricas de IA — veredicto frente al umbral RNF-04', () => {
 
   it('respeta el límite exacto: 0.85 cumple', () => {
     montarMetricas({ f1_weighted: 0.85 })
-    expect(screen.getByTestId('veredicto-umbral')).toHaveTextContent(/cumple el umbral/i)
+    expect(screen.getByTestId('veredicto-umbral')).toHaveTextContent(/alcanza el criterio/i)
   })
 
   it('justo por debajo del límite ya no cumple', () => {
     montarMetricas({ f1_weighted: 0.8499 })
-    expect(screen.getByTestId('veredicto-umbral')).toHaveTextContent(/NO alcanza el umbral/i)
+    expect(screen.getByTestId('veredicto-umbral')).toHaveTextContent(/no alcanza el criterio/i)
   })
 })
 
@@ -447,7 +448,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
         expiraEn: Date.now() + 3600_000,
       },
       autenticado: true,
-      requierePrivacidad: false,
+
     })
   })
 
@@ -528,7 +529,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     expect(within(dialogo).getByLabelText(/descripción/i)).toBeInTheDocument()
   })
 
-  it('un técnico no puede reconocer la alerta (RBAC en la vista)', () => {
+  it('un técnico no puede marcar una alerta como revisada (RBAC en la vista)', () => {
     useAuthStore.setState({
       usuario: {
         id: 'u-3',
@@ -537,18 +538,18 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
         expiraEn: Date.now() + 3600_000,
       },
       autenticado: true,
-      requierePrivacidad: false,
+
     })
     montarAlertas()
 
-    expect(screen.queryByRole('button', { name: /reconocer/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).toBeNull()
   })
 
-  it('el farmacéutico reconoce la alerta pendiente', async () => {
+  it('el farmacéutico marca la alerta pendiente como revisada', async () => {
     const usuario = userEvent.setup()
     const { reconocerAlerta } = montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /reconocer/i }))
+    await usuario.click(screen.getByRole('button', { name: /marcar como revisada/i }))
 
     expect(reconocerAlerta).toHaveBeenCalledWith('a-1')
   })

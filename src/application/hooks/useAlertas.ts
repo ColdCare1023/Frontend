@@ -14,15 +14,19 @@ export type FiltroEstado = 'todas' | EstadoAlerta
 export function useAlertas() {
   const [alertas, setAlertas] = useState<AlertaTermica[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
   const [filtro, setFiltro] = useState<FiltroEstado>('pendiente')
 
   const consultar = useCallback(async (filtroActual: FiltroEstado) => {
     setCargando(true)
+    setErrorCarga(false)
     try {
       const params: Record<string, string> = { limite: '200' }
       if (filtroActual !== 'todas') params.estado = filtroActual
       const { data } = await apiClient.get<AlertaTermica[]>('/api/alertas', { params })
       setAlertas(data)
+    } catch {
+      setErrorCarga(true)
     } finally {
       setCargando(false)
     }
@@ -31,6 +35,8 @@ export function useAlertas() {
   useEffect(() => {
     void consultar(filtro)
   }, [consultar, filtro])
+
+  const reintentar = useCallback(() => void consultar(filtro), [consultar, filtro])
 
   // HU-23 Escenario 1: PENDIENTE -> RECONOCIDA. El nombre del endpoint
   // (/revisar) es histórico — se conserva por compatibilidad con el backend.
@@ -86,6 +92,8 @@ export function useAlertas() {
   return {
     alertas,
     cargando,
+    errorCarga,
+    reintentar,
     filtro,
     setFiltro,
     reconocerAlerta,

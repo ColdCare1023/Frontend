@@ -41,35 +41,56 @@ function montar(over: Record<string, unknown> = {}) {
   render(<MetricasIAPage />)
 }
 
-describe('MetricasIAPage (RNF-04, hallazgo F-03)', () => {
+describe('MetricasIAPage', () => {
   beforeEach(() => useModeloIA.mockReset())
 
-  it('expone el F1 ponderado, que es la métrica que RNF-04 exige', () => {
+  it('presenta el F1 en porcentaje con contexto de evaluación', () => {
     montar()
     expect(screen.getAllByText(/F1 ponderado/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/96[.,]71 %/)).toBeInTheDocument()
+    expect(screen.getByText(/no son mediciones de temperatura/i)).toBeInTheDocument()
   })
 
-  it('declara que el modelo cumple el umbral cuando F1 ≥ 0.85', () => {
+  it('no trata métricas de origen desconocido como evaluación aprobada', () => {
     montar()
-    expect(screen.getByText(/cumple el umbral/i)).toBeInTheDocument()
+    expect(screen.getByText(/evaluación no verificada/i)).toBeInTheDocument()
+    expect(screen.getByText(/datos sintéticos/i)).toBeInTheDocument()
   })
 
-  it('declara el incumplimiento cuando F1 cae por debajo del umbral', () => {
-    // Un tablero que solo sabe felicitar no sirve como evidencia: la pantalla
-    // tiene que ser capaz de decir que el modelo NO cumple.
+  it('compara el umbral solo con origen y huellas explícitos', () => {
     montar({
       datos: {
         modelo_disponible: true,
+        datos_simulados: false,
         metadata: null,
-        metricas: metricas({ f1_weighted: 0.62, accuracy: 0.6 }),
+        metricas: metricas({ dataset_hash: 'dataset-hash', model_hash: 'model-hash', particion: 'test', f1_weighted: 0.62, accuracy: 0.6 }),
       },
     })
 
-    expect(screen.getByText(/NO alcanza el umbral/i)).toBeInTheDocument()
+    expect(screen.getByText(/no alcanza el criterio de evaluación/i)).toBeInTheDocument()
+  })
+
+  it('permite informar criterio superado cuando evaluación tiene origen verificable', () => {
+    montar({
+      datos: {
+        modelo_disponible: true,
+        datos_simulados: false,
+        metadata: null,
+        metricas: metricas({ dataset_hash: 'dataset-hash', model_hash: 'model-hash', particion: 'test' }),
+      },
+    })
+    expect(screen.getByText(/alcanza el criterio de evaluación/i)).toBeInTheDocument()
   })
 
   it('identifica la versión del modelo para poder auditar qué clasificó', () => {
     montar()
     expect(screen.getByText(/3\.0\.0-reproducible/)).toBeInTheDocument()
+  })
+
+  it('mantiene la cantidad de casos de prueba separada del total de registros', () => {
+    montar()
+    expect(screen.getByText('4,032')).toBeInTheDocument()
+    expect(screen.getByText(/20,160/)).toBeInTheDocument()
+    expect(screen.queryByText(/muestras de entrenamiento/i)).not.toBeInTheDocument()
   })
 })

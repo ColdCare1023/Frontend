@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import {
@@ -7,8 +7,6 @@ import {
   Activity,
   Bell,
   Brain,
-  ClipboardCheck,
-  DownloadCloud,
   FileText,
   FlaskConical,
   HardDrive,
@@ -46,25 +44,20 @@ const SECCIONES: SeccionNav[] = [
   {
     claveI18n: 'nav.seccionOperacion',
     items: [
-      // La guía va primero y la ve todo el mundo: es el punto de entrada para
-      // quien abre el sistema por primera vez.
-      //
+      // El tablero va primero: responde de inmediato cómo está el refrigerador.
       // HU-41: AUDITOR entra aquí explícitamente en dashboard/historial/
       // alertas/trazabilidad — el backend le da lectura sobre los mismos
       // endpoints (lecturas_router, alertas_router, trazabilidad_router).
-      { ruta: '/guia', icono: BookOpen, claveI18n: 'nav.guia', roles: ['farmaceutico', 'tecnico', 'auditor'] },
       { ruta: '/dashboard', icono: Activity, claveI18n: 'nav.dashboard', roles: ['farmaceutico', 'tecnico', 'auditor'] },
-      { ruta: '/historial', icono: History, claveI18n: 'nav.historial', roles: ['farmaceutico', 'tecnico', 'auditor'] },
       { ruta: '/alertas', icono: Bell, claveI18n: 'nav.alertas', roles: ['farmaceutico', 'tecnico', 'auditor'] },
+      { ruta: '/historial', icono: History, claveI18n: 'nav.historial', roles: ['farmaceutico', 'tecnico', 'auditor'] },
+      { ruta: '/guia', icono: BookOpen, claveI18n: 'nav.guia', roles: ['farmaceutico', 'tecnico', 'auditor'] },
     ],
   },
   {
     claveI18n: 'nav.seccionCumplimiento',
     items: [
       { ruta: '/trazabilidad', icono: Link2, claveI18n: 'nav.trazabilidad', roles: ['farmaceutico', 'tecnico', 'auditor'] },
-      // El checklist BPA NO está en la matriz de AUDITOR del backend
-      // (checklist_router.py solo admite FARMACEUTICO/ADMINISTRADOR).
-      { ruta: '/checklist-bpa', icono: ClipboardCheck, claveI18n: 'nav.checklist', roles: ['farmaceutico'] },
       { ruta: '/reportes', icono: FileText, claveI18n: 'nav.reportes', roles: ['farmaceutico', 'auditor'] },
       { ruta: '/metricas-ia', icono: Brain, claveI18n: 'nav.metricasIA', roles: ['farmaceutico', 'auditor'] },
     ],
@@ -78,14 +71,13 @@ const SECCIONES: SeccionNav[] = [
       { ruta: '/auditoria', icono: ScrollText, claveI18n: 'nav.auditoria', roles: ['auditor'] },
       { ruta: '/usuarios', icono: Users, claveI18n: 'nav.usuarios', roles: [] },
       { ruta: '/dispositivos', icono: HardDrive, claveI18n: 'nav.dispositivos', roles: [] },
-      { ruta: '/firmware', icono: DownloadCloud, claveI18n: 'nav.firmware', roles: [] },
     ],
   },
 ]
 
 function MarcaApp() {
   const { t } = useTranslation()
-  return <ColdCareBrand subtitulo={t('app.subtitulo')} />
+  return <ColdCareBrand tone="dark" subtitulo={t('app.subtitulo')} />
 }
 
 function BadgeDemo({ className }: { className?: string }) {
@@ -136,18 +128,17 @@ function ContenidoSidebar({
 
   return (
     <>
-      <nav aria-label={etiquetaNav} className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+      <nav aria-label={etiquetaNav} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4">
         {SECCIONES.map((seccion) => {
           const visibles = seccion.items.filter((item) => tienePermiso(usuario.rol, item.roles))
           if (visibles.length === 0) return null
           const idTitulo = `${sufijoId}-${seccion.claveI18n.replace(/\./g, '-')}`
           return (
             <div key={seccion.claveI18n}>
-              <p id={idTitulo} className="eyebrow mb-1.5 flex items-center gap-2 px-2">
+              <p id={idTitulo} className="mb-2 px-3 text-[11px] font-semibold uppercase leading-5 tracking-[0.12em] text-faint">
                 {t(seccion.claveI18n)}
-                <span className="h-px flex-1 bg-border/80" aria-hidden />
               </p>
-              <ul aria-labelledby={idTitulo} className="space-y-0.5">
+              <ul aria-labelledby={idTitulo} className="space-y-1">
                 {visibles.map((item) => (
                   <li key={item.ruta}>
                     <NavLink
@@ -156,27 +147,19 @@ function ContenidoSidebar({
                       onClick={alNavegar}
                       className={({ isActive }) =>
                         cn(
-                          'group relative flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-[color,background-color,transform] duration-150',
+                          'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                           isActive
-                            ? 'bg-primary-tint text-pine-700 shadow-[inset_0_0_0_1px_rgb(11_92_255_/_0.12)]'
-                            : 'text-muted hover:translate-x-0.5 hover:bg-cream-200/70 hover:text-foreground',
+                            ? 'bg-primary-tint text-primary'
+                            : 'text-muted hover:bg-background hover:text-foreground',
                         )
                       }
                     >
                       {({ isActive }) => (
                         <>
-                          {/* Barra de tinta que marca la sección activa */}
-                          <span
-                            aria-hidden
-                            className={cn(
-                              'absolute -left-3 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary transition-opacity duration-150',
-                              isActive ? 'opacity-100' : 'opacity-0',
-                            )}
-                          />
                           <item.icono
                             className={cn(
                               'size-4 transition-colors',
-                              isActive ? 'text-pine-600' : 'text-faint group-hover:text-muted',
+                              isActive ? 'text-primary' : 'text-faint group-hover:text-foreground',
                             )}
                           />
                           {t(item.claveI18n)}
@@ -191,20 +174,20 @@ function ContenidoSidebar({
         })}
       </nav>
 
-      <div className="border-t border-border px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mb-3 flex items-center gap-2.5 rounded-lg border border-border/80 bg-surface px-2.5 py-2 shadow-(--shadow-card)">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-pine-200 font-display text-sm font-semibold text-pine-700 ring-2 ring-pine-100">
+      <div className="border-t border-border px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mb-3 flex items-center gap-3 px-3 py-1">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-sm font-semibold text-primary">
             {usuario.email.charAt(0).toUpperCase()}
           </span>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[13px] font-medium text-foreground">{usuario.email}</p>
-            <p className="text-[11px] text-pine-600">{t(`roles.${usuario.rol}`)}</p>
+            <p className="mt-1 text-xs leading-4 text-faint">{t(`roles.${usuario.rol}`)}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={cerrarSesion}
-          className="flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-clay-100 hover:text-clay-700"
+          className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors duration-150 hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <LogOut className="size-4" />
           {t('nav.cerrarSesion')}
@@ -218,6 +201,10 @@ export function AppLayout() {
   const { t, i18n } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const [drawerAbierto, setDrawerAbierto] = useState(false)
+  const { pathname } = useLocation()
+  const rutaActual = SECCIONES.flatMap((seccion) => seccion.items).find((item) =>
+    pathname === item.ruta || pathname.startsWith(`${item.ruta}/`),
+  )
 
   if (!usuario) return null
 
@@ -228,7 +215,7 @@ export function AppLayout() {
   })
 
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex min-h-dvh bg-[#F4F7FB]">
       {/* WCAG 2.4.1 (Evitar bloques): la navegación son doce enlaces repetidos
           en cada página. Sin este atajo, llegar al contenido con el teclado
           exigía atravesarlos uno a uno en todas las rutas. Se mantiene oculto
@@ -241,8 +228,8 @@ export function AppLayout() {
       </a>
 
       {/* ── Sidebar de escritorio ────────────────────────────── */}
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-gradient-to-b from-cream-100/90 to-cream-100/50 lg:flex">
-        <div className="px-5 pb-5 pt-6">
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-white lg:flex">
+        <div className="px-5 pb-7 pt-6">
           <MarcaApp />
         </div>
         <ContenidoSidebar etiquetaNav={t('nav.principal')} sufijoId="nav-escritorio" />
@@ -254,14 +241,14 @@ export function AppLayout() {
           <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-[2px] data-[state=open]:animate-fade lg:hidden" />
           <DialogPrimitive.Content
             aria-describedby={undefined}
-            className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border bg-background shadow-(--shadow-raised) data-[state=open]:animate-(--animate-drawer) lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[90vw] flex-col bg-white shadow-(--shadow-raised) data-[state=open]:animate-(--animate-drawer) lg:hidden"
           >
             <DialogPrimitive.Title className="sr-only">{t('app.nombre')}</DialogPrimitive.Title>
-            <div className="flex items-center justify-between px-5 pb-5 pt-6">
+            <div className="flex items-center justify-between gap-3 px-5 pb-6 pt-5">
               <MarcaApp />
               <DialogPrimitive.Close
                 aria-label={t('comunes.cerrar')}
-                className="flex size-11 items-center justify-center rounded-md text-muted transition-colors hover:bg-cream-200 hover:text-foreground"
+                className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 <X className="size-4.5" />
               </DialogPrimitive.Close>
@@ -278,20 +265,25 @@ export function AppLayout() {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* FS5: por encima de la cabecera, para que se vea en cualquier ruta. */}
           <AvisoExpiracionSesion />
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-sm sm:px-6">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-[#E2E8F0] bg-white px-4 sm:px-6 lg:px-7">
             <DialogPrimitive.Trigger
               aria-label={t('nav.abrirMenu')}
               data-tour-mobile-menu
-              className="-ml-1 flex size-11 items-center justify-center rounded-md text-muted transition-colors hover:bg-cream-200 hover:text-foreground lg:hidden"
+              className="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-lg text-[#475569] transition-colors hover:bg-[#F4F7FB] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B5CFF] lg:hidden"
             >
               <Menu className="size-5" />
             </DialogPrimitive.Trigger>
 
             <ColdCareBrand className="lg:hidden" />
 
-            <p className="hidden font-display text-[13px] italic text-faint first-letter:uppercase lg:block">
-              {fechaHoy}
-            </p>
+            <div className="hidden min-w-0 items-center gap-5 lg:flex">
+              <p className="truncate text-sm font-semibold text-[#0F172A]">
+                {rutaActual ? t(rutaActual.claveI18n) : t('app.nombre')}
+              </p>
+              <p className="text-xs text-[#64748B] first-letter:uppercase">
+                {fechaHoy}
+              </p>
+            </div>
 
             <div className="ml-auto flex items-center gap-2.5">
               <BadgeDemo className="hidden sm:inline-flex" />
@@ -303,10 +295,10 @@ export function AppLayout() {
             id="contenido-principal"
             tabIndex={-1}
             aria-label={t('nav.contenidoPrincipal')}
-            className="min-w-0 flex-1 overflow-x-clip px-4 py-5 focus:outline-none sm:px-6 sm:py-6 lg:px-8"
+            className="min-w-0 flex-1 overflow-x-clip bg-[#F4F7FB] px-4 py-5 focus:outline-none sm:px-6 sm:py-6 lg:px-7"
           >
             {/* Tope de ancho: en monitores muy anchos el contenido no se estira sin fin */}
-            <div className="mx-auto w-full max-w-[1400px]">
+            <div className="mx-auto w-full max-w-[1600px]">
               <Outlet />
             </div>
           </main>

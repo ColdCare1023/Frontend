@@ -71,6 +71,12 @@ describe('Paginacion', () => {
     render(<Paginacion total={8} pagina={1} onCambiar={vi.fn()} />)
 
     expect(screen.queryByRole('button', { name: 'Página siguiente' })).not.toBeInTheDocument()
-    expect(screen.getByText(/8 registro/)).toBeInTheDocument()
+    expect(screen.getByText('8 registros')).toBeInTheDocument()
+  })
+
+  it('usa singular cuando solo hay un registro', () => {
+    render(<Paginacion total={1} pagina={1} onCambiar={vi.fn()} />)
+
+    expect(screen.getByText('1 registro')).toBeInTheDocument()
   })
 })

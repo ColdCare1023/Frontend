@@ -52,8 +52,7 @@ describe('ReportesPage (RF-13, HU-38)', () => {
   })
 
   it('ofrece los tres formatos que exige RF-13 una vez generado', () => {
-    // CSV y JSON para reproceso, PDF para el expediente que se entrega en una
-    // fiscalización. Los tres, o el requisito no está cubierto.
+    // Mantener disponibles los tres formatos de descarga del reporte.
     montar({ reporte: REPORTE })
 
     expect(screen.getByRole('button', { name: /csv/i })).toBeInTheDocument()
