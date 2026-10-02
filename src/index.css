@@ -73,6 +73,7 @@
   --color-primary-end: #1464e8;
   --color-critical: #a33255;
   --color-critical-tint: #fff0f4;
+  --color-critical-strong: #54152d;
 
   /* ── Radios (variados a propósito) ──────────────────────── */
   --radius-field: 0.625rem;

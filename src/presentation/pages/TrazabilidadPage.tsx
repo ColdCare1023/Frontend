@@ -1,7 +1,7 @@
 import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertOctagon, Link2, ScanSearch, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { AlertOctagon, ChevronDown, Link2, ScanSearch, ShieldAlert, ShieldCheck } from 'lucide-react'
 
 import { useTrazabilidad } from '@/application/hooks/useTrazabilidad'
 import { useAuthStore } from '@/application/stores/authStore'
@@ -41,11 +41,18 @@ function etiquetaEvento(tipo: string, t: ReturnType<typeof useTranslation>['t'])
   })
 }
 
-function HashCorto({ hash }: { hash: string }) {
+function SelloTecnico({ etiqueta, hash, textoCompleto }: { etiqueta: string; hash: string; textoCompleto: string }) {
   return (
-    <span className="nums text-xs text-muted" title={hash}>
-      {hash.slice(0, 10)}…{hash.slice(-6)}
-    </span>
+    <details className="group min-w-0 text-left">
+      <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-1 rounded-md px-1.5 py-1 hover:bg-background focus-visible:outline-2 focus-visible:outline-primary">
+        <span className="min-w-0">
+          <span className="block text-[9px] font-medium uppercase tracking-wide text-muted">{etiqueta}</span>
+          <code className="nums block max-w-full truncate font-mono text-[10px] leading-4 text-foreground">{hash.slice(0, 12)}…{hash.slice(-8)}</code>
+        </span>
+        <ChevronDown aria-hidden className="size-3 shrink-0 text-faint transition-transform group-open:rotate-180" />
+      </summary>
+      <code className="mt-1 block break-all rounded-md border border-border bg-background p-2 font-mono text-[10px] leading-4 text-muted">{textoCompleto}</code>
+    </details>
   )
 }
 
@@ -373,29 +380,20 @@ export function TrazabilidadPage() {
         </button>
       </div>
       <div className="animate-rise [&_thead]:bg-cream-100" style={{ animationDelay: '60ms' }}>
-        <Table className="table-fixed min-w-[640px]" titulo={t('trazabilidad.titulo')} cargando={cargando}>
+        <Table mobileLayout="stack" className="table-fixed min-w-0" titulo={t('trazabilidad.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[28%]">{t('trazabilidad.fecha')}</TableHead>
-              <TableHead className="w-[42%]">{t('trazabilidad.evento')}</TableHead>
-              <TableHead className="w-[30%]">{t('historial.dispositivo')}</TableHead>
-              {mostrarSellos && (
-                <>
-                  <TableHead title={t('trazabilidad.selloAyuda')} className="cursor-help text-center">
-                    {t('trazabilidad.hashAnterior')}
-                  </TableHead>
-                  <TableHead title={t('trazabilidad.selloAyuda')} className="cursor-help text-center">
-                    {t('trazabilidad.hash')}
-                  </TableHead>
-                </>
-              )}
+              <TableHead className={mostrarSellos ? 'w-[21%]' : 'w-[30%]'}>{t('trazabilidad.fecha')}</TableHead>
+              <TableHead className={mostrarSellos ? 'w-[26%]' : 'w-[40%]'}>{t('trazabilidad.evento')}</TableHead>
+              <TableHead className={mostrarSellos ? 'w-[18%]' : 'w-[30%]'}>{t('historial.dispositivo')}</TableHead>
+              {mostrarSellos && <TableHead className="w-[35%]">{t('trazabilidad.sellos')}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {cargando ? (
-              <TableEmpty colSpan={mostrarSellos ? 5 : 3}>{t('app.cargando')}</TableEmpty>
+              <TableEmpty colSpan={mostrarSellos ? 4 : 3}>{t('app.cargando')}</TableEmpty>
             ) : registros.length === 0 ? (
-              <TableEmpty colSpan={mostrarSellos ? 5 : 3}>
+              <TableEmpty colSpan={mostrarSellos ? 4 : 3}>
                 <span className="inline-flex flex-col items-center gap-2">
                   <Link2 className="size-5 text-faint" aria-hidden />
                   {t('trazabilidad.sinRegistros')}
@@ -408,31 +406,33 @@ export function TrazabilidadPage() {
                 // llega a la fila desplazándose, tiene que reconocerla.
                 const corrupto = detalle?.id === registro.id
                 return (
-                <TableRow
-                  key={registro.id}
-                  data-testid={corrupto ? 'fila-corrupta' : undefined}
-                  className={cn(corrupto && 'bg-clay-100/70 hover:bg-clay-100')}
-                >
-                  <TableCell className="nums whitespace-nowrap text-[13px]">
-                    {corrupto && (
-                      <span className="mr-1.5 font-semibold text-clay-700">
-                        <span aria-hidden>⚠</span>
-                        <span className="sr-only">{t('trazabilidad.registroAfectado')}: </span>
-                      </span>
+                  <TableRow
+                    key={registro.id}
+                    data-testid={corrupto ? 'fila-corrupta' : undefined}
+                    className={cn(corrupto && 'bg-clay-100/70 hover:bg-clay-100')}
+                  >
+                    <TableCell data-label={t('trazabilidad.fecha')} className="nums whitespace-nowrap text-[13px]">
+                      {corrupto && (
+                        <span className="mr-1.5 font-semibold text-clay-700">
+                          <span aria-hidden>⚠</span>
+                          <span className="sr-only">{t('trazabilidad.registroAfectado')}: </span>
+                        </span>
+                      )}
+                      {fechaHora(registro.timestamp)}
+                    </TableCell>
+                    <TableCell data-label={t('trazabilidad.evento')}>
+                      <Badge variant="neutral">{etiquetaEvento(registro.tipo_evento, t)}</Badge>
+                    </TableCell>
+                    <TableCell data-label={t('historial.dispositivo')} className="text-[13px]">{registro.device_id ?? '—'}</TableCell>
+                    {mostrarSellos && (
+                      <TableCell data-label={t('trazabilidad.sellos')} className="min-w-0 px-2 py-1.5">
+                        <div className="grid min-w-0 grid-cols-2 gap-1">
+                          <SelloTecnico etiqueta={t('trazabilidad.hashAnterior')} hash={registro.previous_hash} textoCompleto={registro.previous_hash} />
+                          <SelloTecnico etiqueta={t('trazabilidad.hash')} hash={registro.hash_actual} textoCompleto={registro.hash_actual} />
+                        </div>
+                      </TableCell>
                     )}
-                    {fechaHora(registro.timestamp)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="neutral">{etiquetaEvento(registro.tipo_evento, t)}</Badge>
-                  </TableCell>
-                  <TableCell className="text-[13px]">{registro.device_id ?? '—'}</TableCell>
-                  {mostrarSellos && (
-                    <>
-                      <TableCell className="text-center"><HashCorto hash={registro.previous_hash} /></TableCell>
-                      <TableCell className="text-center"><HashCorto hash={registro.hash_actual} /></TableCell>
-                    </>
-                  )}
-                </TableRow>
+                  </TableRow>
                 )
               })
             )}

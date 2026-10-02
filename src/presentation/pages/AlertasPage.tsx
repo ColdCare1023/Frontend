@@ -173,12 +173,12 @@ export function AlertasPage() {
         <Table mobileLayout="stack" className="table-fixed min-w-[0]" titulo={t('alertas.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[17%] px-2 text-xs">{t('alertas.fecha')}</TableHead>
-              <TableHead className="w-[13%] px-2 text-xs">{t('historial.dispositivo')}</TableHead>
-              <TableHead className="w-[17%] px-2 text-xs">{t('historial.riesgo')}</TableHead>
-              <TableHead className="w-[22%] px-2 text-xs">{t('alertas.mensaje')}</TableHead>
-              <TableHead className="w-[10%] px-2 text-xs">{t('alertas.estado')}</TableHead>
-              <TableHead className="w-[21%] px-2 text-xs">{t('alertas.acciones')}</TableHead>
+              <TableHead className="w-[16%] px-2 text-center text-xs">{t('alertas.fecha')}</TableHead>
+              <TableHead className="w-[14%] px-2 text-center text-xs">{t('historial.dispositivo')}</TableHead>
+              <TableHead className="w-[17%] px-2 text-center text-xs">{t('historial.riesgo')}</TableHead>
+              <TableHead className="w-[23%] px-2 text-center text-xs">{t('alertas.mensaje')}</TableHead>
+              <TableHead className="w-[12%] px-2 text-center text-xs">{t('alertas.estado')}</TableHead>
+              <TableHead className="w-[18%] px-2 text-center text-xs">{t('alertas.acciones')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -204,21 +204,21 @@ export function AlertasPage() {
             ) : (
               visibles.map((alerta) => (
                 <TableRow key={alerta.id}>
-                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap px-2 text-[11px]">
+                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap px-2 text-center text-[11px]">
                     {fechaHora(alerta.created_at)}
                   </TableCell>
-                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap px-2 text-[11px]">{alerta.device_id}</TableCell>
-                  <TableCell data-label={t('historial.riesgo')}>
-                    <RiskBadge nivel={alerta.nivel_riesgo} />
+                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap px-2 text-center text-[11px]">{alerta.device_id}</TableCell>
+                  <TableCell data-label={t('historial.riesgo')} className="text-center">
+                    <span className="inline-flex justify-center"><RiskBadge nivel={alerta.nivel_riesgo} /></span>
                   </TableCell>
-                  <TableCell data-label={t('alertas.mensaje')} className="px-2 text-xs leading-5 text-muted">{alerta.mensaje}</TableCell>
-                  <TableCell data-label={t('alertas.estado')}>
+                  <TableCell data-label={t('alertas.mensaje')} className="px-2 text-center text-xs leading-5 text-muted">{alerta.mensaje}</TableCell>
+                  <TableCell data-label={t('alertas.estado')} className="text-center">
                     <Badge variant={VARIANTE_POR_ESTADO[alerta.estado]}>
                       {t(`alertas.estadoAlerta.${alerta.estado}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions">
-                    <div className="flex flex-col items-start gap-1.5 sm:items-center">
+                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions text-center">
+                    <div className="flex flex-col items-center gap-1.5">
                       <ActionMenu label={`${t('alertas.acciones')}: ${alerta.device_id}`}>
                       {alerta.estado === 'pendiente' && puedeReconocer && (
                         <Button

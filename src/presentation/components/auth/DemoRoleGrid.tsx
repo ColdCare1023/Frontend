@@ -54,7 +54,7 @@ const ROLES_DEMO: DemoRoleConfig[] = [
   },
   {
     rol: 'auditor',
-    email: 'auditor@demo.pe',
+    email: 'cajero@demo.pe',
     claveI18n: 'auditor',
     icono: ClipboardCheck,
     colorFondo: 'bg-primary-tint',

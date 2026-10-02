@@ -63,7 +63,7 @@ export function RegistroPage() {
             <option value="" disabled>{copy('Seleccionar rol', 'Select a role')}</option>
             <option value="farmaceutico">{copy('Químico Farmacéutico', 'Pharmacist')}</option>
             <option value="tecnico">{copy('Técnico de Farmacia', 'Pharmacy technician')}</option>
-            <option value="auditor">{copy('Auditor', 'Auditor')}</option>
+            <option value="auditor">{copy('Cajero', 'Cashier')}</option>
             <option value="administrador">{copy('Administrador', 'Administrator')}</option>
           </NativeSelect></div>
         </div>

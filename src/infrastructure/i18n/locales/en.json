@@ -68,7 +68,7 @@
     "administrador": "Administrator",
     "farmaceutico": "Pharmacist",
     "tecnico": "Pharmacy Technician",
-    "auditor": "Auditor (read-only)"
+    "auditor": "Cashier"
   },
   "riesgo": {
     "normal": "Normal",
@@ -208,8 +208,8 @@
         "descripcion": "Operations and query"
       },
       "auditor": {
-        "titulo": "Auditor",
-        "descripcion": "Read-only"
+        "titulo": "Cashier",
+        "descripcion": "Records access"
       }
     }
   },
@@ -321,6 +321,7 @@
     "fecha": "Date",
     "hash": "Digital seal",
     "hashAnterior": "Previous seal",
+    "sellos": "Digital seals",
     "registroN": "Record N",
     "selloCompartido": "Digital seal → previous seal",
     "registroSiguiente": "Record N+1",

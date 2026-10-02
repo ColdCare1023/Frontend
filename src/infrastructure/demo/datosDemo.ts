@@ -49,9 +49,9 @@ export const USUARIOS_DEMO: Usuario[] = [
   { id: 'u-02', nombre: 'Diego Soto Quispe', email: 'admin@demo.pe', rol: 'administrador', is_active: true, motivo_desactivacion: null, desactivado_en: null },
   { id: 'u-03', nombre: 'María Ccahuana Ríos', email: 'tecnico@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
   { id: 'u-04', nombre: 'Jorge Villanueva Paz', email: 'jorge.villanueva@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
-  // HU-41: quinta cuenta demo de solo lectura, para poder probar la UI
-  // condicionada al rol AUDITOR sin backend real.
-  { id: 'u-05', nombre: 'Renzo Aguilar Prado', email: 'auditor@demo.pe', rol: 'auditor', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  // Quinta cuenta demo de consulta; conserva el identificador RBAC requerido
+  // por el backend actual mientras se muestra como Cajero en la interfaz.
+  { id: 'u-05', nombre: 'Renzo Aguilar Prado', email: 'cajero@demo.pe', rol: 'auditor', is_active: true, motivo_desactivacion: null, desactivado_en: null },
 ]
 
 const DIA_MS = 24 * 60 * 60 * 1000

@@ -68,7 +68,7 @@
     "administrador": "Administrador",
     "farmaceutico": "Químico Farmacéutico",
     "tecnico": "Técnico de Farmacia",
-    "auditor": "Auditor (solo lectura)"
+    "auditor": "Cajero"
   },
   "riesgo": {
     "normal": "Normal",
@@ -208,8 +208,8 @@
         "descripcion": "Operación y consulta"
       },
       "auditor": {
-        "titulo": "Auditor",
-        "descripcion": "Solo lectura"
+        "titulo": "Cajero",
+        "descripcion": "Consulta de registros"
       }
     }
   },
@@ -321,6 +321,7 @@
     "fecha": "Fecha",
     "hash": "Sello digital",
     "hashAnterior": "Sello anterior",
+    "sellos": "Sellos digitales",
     "registroN": "Registro N",
     "selloCompartido": "Sello digital → sello anterior",
     "registroSiguiente": "Registro N+1",

@@ -56,43 +56,171 @@ function registrarAuditoriaDemo(
 /**
  * Compone un PDF válido en el navegador para el modo demostración.
  *
- * En el backend real este documento lo genera ReportLab e incluye el veredicto
- * de integridad calculado sobre la cadena SHA-256 (HU-38). Aquí no hay backend,
- * así que se emite un PDF mínimo pero bien formado —con su tabla xref— y el
- * propio documento advierte que es una muestra. Antes esta ruta no existía en
- * el adapter y el botón de PDF simplemente no descargaba nada.
+ * The demo PDF uses browser-simulated records. It must never claim a verified
+ * integrity result; production report generation remains a backend concern.
  */
 function pdfDemostracion(params: Record<string, string>): Blob {
-  const esc = (t: string) => t.replace(/([()\\])/g, '\\$1')
   const desde = (params.fecha_desde ?? '').slice(0, 10)
   const hasta = (params.fecha_hasta ?? '').slice(0, 10)
+  const dentroDelPeriodo = (timestamp: string | null) =>
+    timestamp !== null && timestamp >= (params.fecha_desde ?? '') && timestamp <= (params.fecha_hasta ?? '\uffff')
+  const coincideEquipo = (deviceId: string | null) => !params.device_id || deviceId === params.device_id
+  const lecturas = estadoDemo.lecturas
+    .filter((lectura) => dentroDelPeriodo(lectura.timestamp) && coincideEquipo(lectura.device_id))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+  const alertas = estadoDemo.alertas
+    .filter((alerta) => dentroDelPeriodo(alerta.created_at) && coincideEquipo(alerta.device_id))
+    .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+  const trazabilidad = estadoDemo.trazabilidad
+    .filter((registro) => dentroDelPeriodo(registro.timestamp) && coincideEquipo(registro.device_id))
+  const alertasPorId = new Map(estadoDemo.alertas.map((alerta) => [alerta.id, alerta]))
+  const acciones = estadoDemo.acciones.filter((accion) => {
+    const alerta = alertasPorId.get(accion.alert_id)
+    return dentroDelPeriodo(accion.created_at) && coincideEquipo(alerta?.device_id ?? null)
+  })
+  const temperaturas = lecturas
+    .map((lectura) => lectura.temperatura_interna)
+    .filter((temperatura): temperatura is number => temperatura !== null)
+  const minimo = temperaturas.length ? Math.min(...temperaturas) : null
+  const maximo = temperaturas.length ? Math.max(...temperaturas) : null
+  const promedio = temperaturas.length
+    ? temperaturas.reduce((total, temperatura) => total + temperatura, 0) / temperaturas.length
+    : null
 
-  const lineas: Array<[number, string]> = [
-    [20, 'Reporte BPA - Cadena de Frio'],
-    [13, `Periodo: ${desde} a ${hasta}`],
-    [13, `Dispositivo: ${params.device_id || 'todos'}`],
-    [11, `Lecturas en el periodo: ${estadoDemo.lecturas.length}`],
-    [11, `Alertas registradas: ${estadoDemo.alertas.length}`],
-    [11, `Registros de trazabilidad: ${estadoDemo.trazabilidad.length}`],
-    [11, 'Cadena SHA-256: integra'],
-    [10, 'Documento de DEMOSTRACION generado en el navegador.'],
-    [10, 'En la instalacion real lo emite el backend con ReportLab.'],
+  // PDF uses WinAnsi for Helvetica. Convert text to one-byte hex strings so
+  // accented Spanish labels keep valid stream lengths and cross-reference offsets.
+  const extras: Record<string, number> = {
+    '€': 0x80, '‚': 0x82, 'ƒ': 0x83, '„': 0x84, '…': 0x85, '†': 0x86, '‡': 0x87,
+    'ˆ': 0x88, '‰': 0x89, 'Š': 0x8a, '‹': 0x8b, 'Œ': 0x8c, 'Ž': 0x8e, '‘': 0x91,
+    '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97, '˜': 0x98,
+    '™': 0x99, 'š': 0x9a, '›': 0x9b, 'œ': 0x9c, 'ž': 0x9e, 'Ÿ': 0x9f,
+  }
+  const hex = (value: string) => `<${Array.from(value).map((char) => {
+    const code = extras[char] ?? char.codePointAt(0) ?? 0x3f
+    return (code <= 0xff ? code : 0x3f).toString(16).padStart(2, '0')
+  }).join('')}>`
+  const ops: string[] = []
+  const fill = (color: string, x: number, y: number, w: number, h: number) => ops.push(`${color} rg ${x} ${y} ${w} ${h} re f`)
+  const stroke = (color: string, x1: number, y1: number, x2: number, y2: number, width = 1) =>
+    ops.push(`${color} RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S`)
+  const text = (value: string, x: number, y: number, size = 10, color = '0.06 0.09 0.16', bold = false) => {
+    ops.push(`BT /${bold ? 'F2' : 'F1'} ${size} Tf ${color} rg ${x} ${y} Td ${hex(value)} Tj ET`)
+  }
+  const circle = (x: number, y: number, radius: number, color: string) => {
+    const c = radius * 0.55228475
+    ops.push(`${color} rg ${x + radius} ${y} m ${x + radius} ${y + c} ${x + c} ${y + radius} ${x} ${y + radius} c ${x - c} ${y + radius} ${x - radius} ${y + c} ${x - radius} ${y} c ${x - radius} ${y - c} ${x - c} ${y - radius} ${x} ${y - radius} c ${x + c} ${y - radius} ${x + radius} ${y - c} ${x + radius} ${y} c f`)
+  }
+  const fecha = (value: string | null) => value ? value.slice(0, 16).replace('T', ' ') : '—'
+  const temp = (value: number | null) => value === null ? '—' : `${value.toFixed(1)} °C`
+
+  // Calm, branded report: clear period, measured counts, temperature context,
+  // recent records, alert summary, and a truthful demo-data notice.
+  fill('0.96 0.97 0.99', 0, 0, 595, 842)
+  fill('0.04 0.36 1.00', 0, 830, 595, 12)
+  ops.push('0.00 0.82 1.00 RG 2.5 w 1 J 45.4 781.5 m 45.4 793.7 51.4 802.1 60 802.1 c S')
+  ops.push('0.04 0.36 1.00 RG 2.5 w 1 J 60 802.1 m 65.2 802.1 69.2 798.8 71.4 793.5 c S')
+  ops.push('1.00 0.48 0.64 RG 2.5 w 1 J 71.4 793.5 m 73.4 789.8 74.6 785.5 74.6 781.5 c S')
+  stroke('0.04 0.36 1.00', 60, 793.5, 60, 784.8, 2.4)
+  circle(60, 782.5, 4.5, '0.04 0.36 1.00')
+  stroke('0.00 0.82 1.00', 60, 786.5, 60, 793, 1.2)
+  text('Cold', 88, 793, 18, '0.06 0.09 0.16', true)
+  text('Care', 128, 793, 18, '0.04 0.36 1.00', true)
+  text('MONITOREO DE CADENA DE FRÍO', 88, 778, 7.5, '0.28 0.36 0.48', true)
+  fill('1.00 0.94 0.96', 437, 780, 116, 22)
+  text('DEMOSTRACIÓN', 451, 788, 8, '0.56 0.16 0.30', true)
+
+  text('Reporte de monitoreo', 42, 724, 24, '0.06 0.09 0.16', true)
+  text('Resumen del periodo y evidencia térmica del dispositivo seleccionado.', 42, 703, 10, '0.28 0.36 0.48')
+
+  fill('1 1 1', 42, 636, 511, 48)
+  fill('0.04 0.36 1.00', 42, 636, 3, 48)
+  text('PERIODO', 58, 665, 7.5, '0.35 0.42 0.53', true)
+  text(`${desde} — ${hasta}`, 58, 648, 10, '0.06 0.09 0.16', true)
+  stroke('0.85 0.89 0.94', 334, 646, 334, 674, 0.7)
+  text('DISPOSITIVO', 352, 665, 7.5, '0.35 0.42 0.53', true)
+  text(params.device_id || 'Todos los equipos', 352, 648, 10, '0.06 0.09 0.16', true)
+
+  const kpis: Array<[string, number, number]> = [
+    ['LECTURAS', lecturas.length, 42],
+    ['ALERTAS', alertas.length, 172],
+    ['ACCIONES', acciones.length, 302],
+    ['TRAZABILIDAD', trazabilidad.length, 432],
   ]
+  for (const [label, value, x] of kpis) {
+    fill('1 1 1', x, 556, 121, 62)
+    fill('0.85 0.89 0.94', x, 556, 121, 0.8)
+    text(label, x + 10, 596, 6.6, '0.35 0.42 0.53', true)
+    text(String(value), x + 10, 570, 19, '0.06 0.09 0.16', true)
+  }
 
-  let y = 780
-  const texto = lineas
-    .map(([tam, linea]) => {
-      y -= tam + 12
-      return `BT /F1 ${tam} Tf 56 ${y} Td (${esc(linea)}) Tj ET`
+  fill('0.92 0.95 1', 42, 487, 511, 51)
+  text('TEMPERATURA INTERNA', 57, 539, 7.5, '0.04 0.36 1.00', true)
+  const stats: Array<[string, string, number]> = [
+    ['MÍNIMA', temp(minimo), 57],
+    ['PROMEDIO', temp(promedio), 224],
+    ['MÁXIMA', temp(maximo), 391],
+  ]
+  for (const [label, value, x] of stats) {
+    text(label, x, 521, 7, '0.35 0.42 0.53', true)
+    text(value, x, 502, 12, '0.06 0.09 0.16', true)
+  }
+  text('Rango de conservación esperado: 2–8 °C', 57, 492, 7.5, '0.28 0.36 0.48')
+
+  text('Lecturas recientes', 42, 458, 12, '0.06 0.09 0.16', true)
+  text(`Mostrando ${Math.min(5, lecturas.length)} de ${lecturas.length}`, 457, 458, 8, '0.35 0.42 0.53')
+  fill('0.91 0.94 0.97', 42, 432, 511, 19)
+  text('FECHA Y HORA', 51, 439, 7, '0.28 0.36 0.48', true)
+  text('EQUIPO', 205, 439, 7, '0.28 0.36 0.48', true)
+  text('TEMP. INTERNA', 344, 439, 7, '0.28 0.36 0.48', true)
+  text('RIESGO', 472, 439, 7, '0.28 0.36 0.48', true)
+  const etiquetasRiesgo: Record<string, string> = {
+    normal: 'Normal', riesgo_preventivo: 'Preventivo', excursion_critica: 'Crítico',
+  }
+  const filas = lecturas.slice(0, 5)
+  if (!filas.length) {
+    text('Sin lecturas registradas en este periodo.', 51, 416, 9, '0.35 0.42 0.53')
+  } else {
+    filas.forEach((lectura, index) => {
+      const y = 405 - index * 20
+      if (index % 2 === 0) fill('1 1 1', 42, y - 7, 511, 18)
+      text(fecha(lectura.timestamp), 51, y, 8, '0.06 0.09 0.16')
+      text(lectura.device_id, 205, y, 8, '0.06 0.09 0.16')
+      text(temp(lectura.temperatura_interna), 344, y, 8, '0.06 0.09 0.16', true)
+      text(etiquetasRiesgo[lectura.riesgo_efectivo ?? lectura.nivel_riesgo ?? ''] ?? 'Sin clasificar', 472, y, 7.5, '0.28 0.36 0.48')
+      stroke('0.85 0.89 0.94', 42, y - 8, 553, y - 8, 0.45)
     })
-    .join('\n')
+  }
+
+  const alertY = 252
+  fill('1 1 1', 42, alertY, 511, 54)
+  fill('1.00 0.48 0.64', 42, alertY, 3, 54)
+  text('Alertas del periodo', 57, alertY + 35, 10, '0.06 0.09 0.16', true)
+  text(`${alertas.length} alertas registradas`, 57, alertY + 17, 8.5, '0.28 0.36 0.48')
+  if (alertas[0]) {
+    const severidad = etiquetasRiesgo[alertas[0].nivel_riesgo] ?? 'Alerta'
+    text(`Más reciente: ${severidad} · ${fecha(alertas[0].created_at)}`, 294, alertY + 24, 7.5, '0.35 0.20 0.28')
+  } else {
+    text('Sin alertas registradas en el periodo.', 294, alertY + 24, 8, '0.35 0.42 0.53')
+  }
+
+  text('Trazabilidad', 42, 224, 10, '0.06 0.09 0.16', true)
+  text(`${trazabilidad.length} registros · ${acciones.length} acciones correctivas relacionadas con alertas del periodo.`, 42, 207, 8, '0.28 0.36 0.48')
+  text('Verificación de integridad', 42, 177, 9, '0.06 0.09 0.16', true)
+  fill('1.00 0.94 0.96', 42, 132, 511, 32)
+  text('No ejecutada en modo demostración; requiere verificación del backend.', 54, 145, 8, '0.35 0.20 0.28')
+  stroke('0.85 0.89 0.94', 42, 96, 553, 96, 0.8)
+  text('Muestra con datos simulados. No sustituye el reporte firmado.', 42, 77, 8, '0.28 0.36 0.48')
+  text('ColdCare · Cadena de frío farmacéutica', 42, 53, 7, '0.35 0.42 0.53')
+
+  const contenido = ops.join('\n')
 
   const objetos = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-    `<< /Length ${texto.length} >>\nstream\n${texto}\nendstream`,
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>',
+    `<< /Length ${contenido.length} >>\nstream\n${contenido}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
   ]
 
   let pdf = '%PDF-1.4\n'
@@ -106,7 +234,8 @@ function pdfDemostracion(params: Record<string, string>): Blob {
   pdf += offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')
   pdf += `trailer\n<< /Size ${objetos.length + 1} /Root 1 0 R >>\nstartxref\n${inicioXref}\n%%EOF`
 
-  return new Blob([pdf], { type: 'application/pdf' })
+  const bytes = Uint8Array.from(pdf, (char) => char.charCodeAt(0) & 0xff)
+  return new Blob([bytes], { type: 'application/pdf' })
 }
 
 function esperar(ms: number): Promise<void> {
