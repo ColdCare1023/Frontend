@@ -59,7 +59,7 @@ function registrarAuditoriaDemo(
  * The demo PDF uses browser-simulated records. It must never claim a verified
  * integrity result; production report generation remains a backend concern.
  */
-async function pdfDemostracion(params: Record<string, string>): Promise<Blob> {
+function pdfDemostracion(params: Record<string, string>): Blob {
   const desde = (params.fecha_desde ?? '').slice(0, 10)
   const hasta = (params.fecha_hasta ?? '').slice(0, 10)
   const dentroDelPeriodo = (timestamp: string | null) =>
@@ -156,30 +156,22 @@ async function pdfDemostracion(params: Record<string, string>): Promise<Blob> {
     text(String(value), x + 10, 570, 19, '0.06 0.09 0.16', true)
   }
 
-  fill('0.92 0.95 1', 42, 465, 511, 73)
-  text('TEMPERATURA INTERNA', 57, 526, 7.5, '0.04 0.36 1.00', true)
+  fill('1 1 1', 42, 465, 511, 73)
+  fill('0.04 0.36 1.00', 42, 536, 511, 2)
+  text('RESUMEN DE TEMPERATURA INTERNA', 57, 524, 7.5, '0.04 0.36 1.00', true)
   const stats: Array<[string, string, number]> = [
     ['MÍNIMA', temp(minimo), 57],
-    ['PROMEDIO', temp(promedio), 224],
-    ['MÁXIMA', temp(maximo), 391],
+    ['PROMEDIO', temp(promedio), 184],
+    ['MÁXIMA', temp(maximo), 311],
+    ['RANGO ESPERADO', '2–8 °C', 438],
   ]
   for (const [label, value, x] of stats) {
-    text(label, x, 510, 7, '0.35 0.42 0.53', true)
-    text(value, x, 493, 12, '0.06 0.09 0.16', true)
+    text(label, x, 505, 7, '0.35 0.42 0.53', true)
+    text(value, x, 482, 15, '0.06 0.09 0.16', true)
   }
-  const escalaX = 57
-  const escalaAncho = 480
-  const escalaY = 480
-  fill('0.84 0.88 0.93', escalaX, escalaY, escalaAncho, 4)
-  fill('0.00 0.70 0.85', escalaX + escalaAncho * 0.2, escalaY, escalaAncho * 0.6, 4)
-  if (minimo !== null && maximo !== null && promedio !== null) {
-    const posicion = (temperatura: number) => escalaX + escalaAncho * Math.max(0, Math.min(10, temperatura)) / 10
-    stroke('0.04 0.36 1.00', posicion(minimo), escalaY - 2, posicion(maximo), escalaY - 2, 1.2)
-    circle(posicion(minimo), escalaY + 2, 2.5, '0.04 0.36 1.00')
-    circle(posicion(maximo), escalaY + 2, 2.5, '1.00 0.48 0.64')
-    circle(posicion(promedio), escalaY + 2, 2.6, '0.06 0.09 0.16')
-  }
-  text('Escala 0–10 °C · rango de conservación esperado 2–8 °C', 57, 468, 6.8, '0.28 0.36 0.48')
+  stroke('0.85 0.89 0.94', 170, 477, 170, 508, 0.6)
+  stroke('0.85 0.89 0.94', 297, 477, 297, 508, 0.6)
+  stroke('0.85 0.89 0.94', 424, 477, 424, 508, 0.6)
 
   text('Lecturas recientes', 42, 446, 12, '0.06 0.09 0.16', true)
   text(`Mostrando ${Math.min(5, lecturas.length)} de ${lecturas.length}`, 457, 446, 8, '0.35 0.42 0.53')
@@ -224,60 +216,19 @@ async function pdfDemostracion(params: Record<string, string>): Promise<Blob> {
   fill('1.00 0.94 0.96', 42, 130, 511, 24)
   fill('1.00 0.48 0.64', 42, 130, 3, 24)
   text('Verificación criptográfica no disponible en modo demostración.', 54, 139, 8, '0.35 0.20 0.28')
-
-  // Report footer stamp: original ColdCare vector mark plus generated emblem,
-  // with demo status explicit so it cannot be mistaken for a certified seal.
-  fill('1 1 1', 42, 50, 511, 72)
-  stroke('0.85 0.89 0.94', 42, 122, 553, 122, 0.8)
-  fill('0.95 0.97 1', 51, 59, 54, 54)
-  text('COLDCARE', 117, 96, 8, '0.04 0.36 1.00', true)
-  text('REPORTE DE MONITOREO', 117, 82, 9, '0.06 0.09 0.16', true)
-  text('CADENA DE FRIO · DATOS SIMULADOS', 117, 68, 7, '0.28 0.36 0.48')
-  fill('1.00 0.94 0.96', 420, 78, 120, 24)
-  text('SELLO VISUAL · DEMO', 430, 87, 7.2, '0.56 0.16 0.30', true)
-  text('Sin validación criptográfica', 117, 56, 6.6, '0.40 0.46 0.56')
+  stroke('0.85 0.89 0.94', 42, 91, 553, 91, 0.8)
+  text('Documento de demostración generado en navegador · ColdCare', 42, 73, 7, '0.35 0.42 0.53')
 
   const contenido = ops.join('\n')
-
-  const sealResponse = await fetch(`${import.meta.env.BASE_URL}assets/coldcare-report-seal.png`)
-  const sealBitmap = await createImageBitmap(await sealResponse.blob())
-  const sealCanvas = document.createElement('canvas')
-  sealCanvas.width = 250
-  sealCanvas.height = 250
-  const sealContext = sealCanvas.getContext('2d', { willReadFrequently: true })
-  if (!sealContext) throw new Error('No se pudo preparar el sello visual del reporte.')
-  sealContext.drawImage(sealBitmap, 0, 0, 250, 250)
-  sealBitmap.close()
-  const { data: sealPixels } = sealContext.getImageData(0, 0, 250, 250)
-  const sealRgb = new Uint8Array(250 * 250 * 3)
-  const sealAlpha = new Uint8Array(250 * 250)
-  for (let source = 0, rgb = 0, alpha = 0; source < sealPixels.length; source += 4) {
-    sealRgb[rgb++] = sealPixels[source]
-    sealRgb[rgb++] = sealPixels[source + 1]
-    sealRgb[rgb++] = sealPixels[source + 2]
-    sealAlpha[alpha++] = sealPixels[source + 3]
-  }
-  const comprimir = async (bytes: Uint8Array) => {
-    const copia = new Uint8Array(bytes.length)
-    copia.set(bytes)
-    const stream = new Blob([copia.buffer]).stream().pipeThrough(new CompressionStream('deflate'))
-    return new Uint8Array(await new Response(stream).arrayBuffer())
-  }
-  const [rgbComprimido, alphaComprimido] = await Promise.all([comprimir(sealRgb), comprimir(sealAlpha)])
 
   const objetos = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> /XObject << /Seal 7 0 R >> >> /Contents 4 0 R >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>',
     `<< /Length ${contenido.length} >>\nstream\n${contenido}\nendstream`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
-    `<< /Type /XObject /Subtype /Image /Width 250 /Height 250 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /SMask 8 0 R /Length ${rgbComprimido.length} >>\nstream\n${String.fromCharCode(...rgbComprimido)}\nendstream`,
-    `<< /Type /XObject /Subtype /Image /Width 250 /Height 250 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length ${alphaComprimido.length} >>\nstream\n${String.fromCharCode(...alphaComprimido)}\nendstream`,
   ]
-  const selloPdfOps = `q 52 0 0 52 52 60 cm /Seal Do Q`
-  const contenidoConSello = `${contenido}\n${selloPdfOps}`
-  objetos[3] = `<< /Length ${contenidoConSello.length} >>\nstream\n${contenidoConSello}\nendstream`
 
   let pdf = '%PDF-1.4\n'
   const offsets: number[] = []
@@ -673,7 +624,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
      ReportLab con el veredicto de integridad calculado sobre la cadena; esto
      es una muestra de la demostración y lo dice en el propio documento. */
   if (metodo === 'get' && url === '/api/reportes/bpa/pdf') {
-    return responder(config, await pdfDemostracion(params) as unknown, 200)
+    return responder(config, pdfDemostracion(params) as unknown, 200)
   }
 
   /* ── Estado de la cadena (HU-47) ────────────────────────────── */

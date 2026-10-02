@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import type { EChartsCoreOption } from 'echarts/core'
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, ChevronDown, DoorClosed, DoorOpen, Droplets, FlaskConical, RadioTower, ShieldQuestion, TableProperties, Thermometer, Wind } from 'lucide-react'
+import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, ChevronDown, Clock3, DoorClosed, DoorOpen, Droplets, FlaskConical, RadioTower, ShieldQuestion, TableProperties, Thermometer, Wind } from 'lucide-react'
 
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
@@ -1064,13 +1064,26 @@ export function DashboardPage() {
             </section>
           )}
 
-          <p className="mt-3 text-right text-xs text-faint">
-            {t('dashboard.ultimaActualizacion')}:{' '}
-            <span className="nums">{formatearHora(ultima.timestamp)}</span> ·{' '}
-            <Link to="/alertas" className="text-pine-600 underline underline-offset-2 hover:text-primary-hover">
+          <div role="status" className="mt-4 flex flex-col gap-3 border-t border-border px-1 pt-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary">
+                <Clock3 className="size-4" aria-hidden />
+              </span>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-xs text-muted">{t('dashboard.ultimaActualizacion')}</span>
+                <time dateTime={ultima.timestamp} className="nums text-sm font-semibold text-foreground">
+                  {formatearHora(ultima.timestamp)}
+                </time>
+              </div>
+            </div>
+            <Link
+              to="/alertas"
+              className="inline-flex min-h-9 items-center justify-center gap-2 self-start rounded-md border border-primary/20 bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary-tint sm:self-auto"
+            >
               {t('dashboard.verAlertas')}
+              <ArrowRight className="size-3.5" aria-hidden />
             </Link>
-          </p>
+          </div>
         </>
       )}
       <SimuladorDashboard onActualizado={actualizarDemo} />
