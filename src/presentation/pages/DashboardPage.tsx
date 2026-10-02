@@ -997,7 +997,7 @@ export function DashboardPage() {
           </div>
           {equiposConIncidencias.length > 0 && (
             <section className={cn(
-              'mt-4 grid items-start gap-4 sm:grid-cols-2',
+              'mt-4 grid items-stretch gap-4 sm:grid-cols-2',
               equiposConIncidencias.length >= 2 ? 'xl:grid-cols-3' : 'xl:grid-cols-2',
             )}>
               {equiposConIncidencias.map((equipo) => {
@@ -1064,7 +1064,7 @@ export function DashboardPage() {
             </section>
           )}
 
-          <div role="status" className="mt-4 flex flex-col gap-3 border-t border-border px-1 pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <div role="status" className="mt-4 mb-4 flex flex-col gap-3 border-t border-border px-1 pt-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2.5">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary">
                 <Clock3 className="size-4" aria-hidden />
