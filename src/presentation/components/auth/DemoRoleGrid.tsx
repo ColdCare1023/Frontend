@@ -91,7 +91,7 @@ export function DemoRoleGrid({
   }
 
   return (
-    <div className={cn('space-y-2.5', !hideHeader && 'pt-4 border-t border-border', className)}>
+    <div className={cn('space-y-2', !hideHeader && 'pt-4 border-t border-border', className)}>
       {!hideHeader && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
@@ -125,7 +125,7 @@ export function DemoRoleGrid({
         variants={getAccessibleVariants(demoGridVariants, shouldReduceMotion)}
         initial={false}
         animate="visible"
-        className="grid grid-cols-1 gap-0 overflow-hidden rounded-(--radius-field) border border-border sm:grid-cols-2 sm:gap-px sm:bg-border"
+        className="grid grid-cols-1 gap-0 overflow-hidden rounded-(--radius-field) border border-border min-[480px]:grid-cols-2 min-[480px]:gap-px min-[480px]:bg-border"
       >
         {ROLES_DEMO.map(({ rol, email, claveI18n, icono: Icono, colorFondo, colorTexto }) => {
           const titulo = t(`demo.roles.${claveI18n}.titulo`, {
@@ -148,7 +148,7 @@ export function DemoRoleGrid({
               onClick={() => void manejarClick(email, titulo)}
               data-demo-role={rol}
               className={cn(
-                'group relative flex min-h-[58px] items-center gap-2.5 border-b border-border bg-surface px-3 py-2.5 text-left transition-colors cursor-pointer last:border-b-0 sm:border-b-0',
+                'group relative flex min-h-[58px] items-center gap-2.5 border-b border-border bg-surface px-3 py-2.5 text-left transition-colors cursor-pointer last:border-b-0 min-[480px]:border-b-0',
                 'hover:bg-primary-tint focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 estaCargandoEsteRol && 'bg-primary-tint',

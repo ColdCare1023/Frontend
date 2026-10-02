@@ -126,14 +126,14 @@ export function UsuariosPage() {
       </PageHeader>
 
       <div className="animate-rise border-t border-border pt-5 [&_thead]:bg-primary-tint/60 sm:[&_tbody_tr]:h-20">
-        <Table mobileLayout="stack" className="min-w-[900px]" titulo={t('usuarios.titulo')} cargando={cargando}>
+        <Table mobileLayout="stack" className="table-fixed min-w-[900px]" titulo={t('usuarios.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('usuarios.nombre')}</TableHead>
-              <TableHead>{t('usuarios.email')}</TableHead>
-              <TableHead>{t('usuarios.rol')}</TableHead>
-              <TableHead>{t('usuarios.estado')}</TableHead>
-              <TableHead>{t('comunes.acciones')}</TableHead>
+              <TableHead className="w-[27%]">{t('usuarios.nombre')}</TableHead>
+              <TableHead className="w-[28%]">{t('usuarios.email')}</TableHead>
+              <TableHead className="w-[20%] text-center">{t('usuarios.rol')}</TableHead>
+              <TableHead className="w-[13%] text-center">{t('usuarios.estado')}</TableHead>
+              <TableHead className="w-[12%] text-center">{t('comunes.acciones')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -151,12 +151,12 @@ export function UsuariosPage() {
                 <TableRow key={usuario.id}>
                   <TableCell data-label={t('usuarios.nombre')} className="mobile-full font-semibold">{usuario.nombre}</TableCell>
                   <TableCell data-label={t('usuarios.email')} className="mobile-full break-all text-muted">{usuario.email}</TableCell>
-                  <TableCell data-label={t('usuarios.rol')}>
+                  <TableCell data-label={t('usuarios.rol')} className="text-center">
                     <Badge variant={VARIANTE_POR_ROL[usuario.rol]}>
                       {t(`roles.${usuario.rol}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell data-label={t('usuarios.estado')}>
+                  <TableCell data-label={t('usuarios.estado')} className="text-center">
                     {usuario.is_active ? (
                       <Badge variant="ok">{t('usuarios.activo')}</Badge>
                     ) : (
@@ -168,7 +168,7 @@ export function UsuariosPage() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-right">
+                  <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-center">
                     {usuario.is_active && (
                       <ActionMenu label={usuario.nombre}>
                         <Button

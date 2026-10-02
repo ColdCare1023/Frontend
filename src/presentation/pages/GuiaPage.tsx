@@ -158,6 +158,11 @@ export function GuiaPage() {
   const usuario = useAuthStore((s) => s.usuario)
   const rol = usuario?.rol
   const visibles = SECCIONES.filter((s) => (rol ? tienePermiso(rol, s.roles) : false))
+  const enlacesVisibles = GRUPOS.flatMap((grupo) =>
+    visibles
+      .filter((seccion) => seccion.grupo === grupo)
+      .map((seccion) => ({ ...seccion, grupo })),
+  )
 
   return (
     <CompactWorkspace>
@@ -274,42 +279,31 @@ export function GuiaPage() {
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted">{t('guia.pantallasDescripcion')}</p>
         </div>
-        <div className="mt-5 grid gap-4 xl:grid-cols-3">
-          {GRUPOS.map((grupo) => {
-            const secciones = visibles.filter((seccion) => seccion.grupo === grupo)
-            if (!secciones.length) return null
-
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {enlacesVisibles.map((seccion) => {
+            const Icono = seccion.icono
             return (
-              <section key={grupo} aria-labelledby={`grupo-${grupo}`}>
-                <h3 id={`grupo-${grupo}`} className="mb-2 text-sm font-semibold text-ink-700">
-                  {t(`guia.grupos.${grupo}`)}
-                </h3>
-                <ul className="divide-y divide-border border-y border-border">
-                  {secciones.map((seccion) => {
-                    const Icono = seccion.icono
-                    return (
-                      <li key={seccion.ruta}>
-                        <Link
-                          to={seccion.ruta}
-                          className="group flex min-h-16 items-center gap-3 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        >
-                          <Icono aria-hidden className="size-[18px] shrink-0 text-primary" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold text-foreground underline-offset-4 group-hover:text-primary group-hover:underline">
-                              {t(seccion.tituloKey)}
-                            </span>
-                            <span className="mt-0.5 block text-xs leading-relaxed text-muted">{t(seccion.descripcionKey)}</span>
-                          </span>
-                          <ArrowRight aria-hidden className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none" />
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </section>
+              <li key={seccion.ruta} className="min-w-0">
+                <Link
+                  to={seccion.ruta}
+                  className="group flex h-full min-h-28 items-start gap-3 rounded-lg border border-border bg-surface p-4 transition-colors hover:border-primary/30 hover:bg-primary-tint/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  <Icono aria-hidden className="mt-0.5 size-[18px] shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1">
+                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">
+                      {t(`guia.grupos.${seccion.grupo}`)}
+                    </span>
+                    <span className="block text-sm font-semibold text-foreground underline-offset-4 group-hover:text-primary group-hover:underline">
+                      {t(seccion.tituloKey)}
+                    </span>
+                    <span className="mt-1 block text-xs leading-relaxed text-muted">{t(seccion.descripcionKey)}</span>
+                  </span>
+                  <ArrowRight aria-hidden className="mt-0.5 size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none" />
+                </Link>
+              </li>
             )
           })}
-        </div>
+        </ul>
       </section>
 
       <section aria-labelledby="guia-conceptos-titulo" className="space-y-2">

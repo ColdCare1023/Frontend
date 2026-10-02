@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, ChevronDown, FlaskConical, HardDrive, History, KeyRound, MapPin, Plus, PowerOff, UserRound } from 'lucide-react'
+import { CalendarClock, Eye, FlaskConical, HardDrive, History, KeyRound, MapPin, Plus, PowerOff, UserRound } from 'lucide-react'
 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import {
@@ -40,7 +40,7 @@ const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', validaHasta: '', 
 const FORM_INSTALACION_INICIAL = { ubicacion: '', fecha: '', observaciones: '' }
 const FORM_RESPONSABLE_INICIAL = { nombre: '', email: '', telefono: '' }
 
-type DialogoActivo = 'crear' | 'simulacion' | 'baja' | 'calibracion' | 'instalacion' | 'responsable' | 'historial' | null
+type DialogoActivo = 'crear' | 'simulacion' | 'baja' | 'calibracion' | 'instalacion' | 'responsable' | 'historial' | 'sensores' | null
 type EscenarioIoT = 'sin_datos' | 'buffer_pendiente' | 'buffer_lleno' | 'falla_sensor' | 'recuperar'
 
 export function DispositivosPage() {
@@ -294,14 +294,14 @@ export function DispositivosPage() {
       </section>
 
       <div className="animate-rise [&_thead]:bg-background/60 [&_tbody_td]:align-middle [&_tbody_td]:py-3">
-        <Table mobileLayout="stack" className="min-w-[880px]" titulo={t('dispositivos.titulo')} cargando={cargando}>
+        <Table mobileLayout="stack" className="table-fixed min-w-[820px]" titulo={t('dispositivos.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('dispositivos.id')}</TableHead>
-              <TableHead>{t('dispositivos.conectividad')}</TableHead>
-              <TableHead>{t('dispositivos.sensores')}</TableHead>
-              <TableHead>{t('dispositivos.calibracion')}</TableHead>
-              <TableHead>{t('comunes.acciones')}</TableHead>
+              <TableHead className="w-[25%]">{t('dispositivos.id')}</TableHead>
+              <TableHead className="w-[23%]">{t('dispositivos.conectividad')}</TableHead>
+              <TableHead className="w-[26%]">{t('dispositivos.sensores')}</TableHead>
+              <TableHead className="w-[12%]">{t('dispositivos.calibracion')}</TableHead>
+              <TableHead className="w-[14%]">{t('comunes.acciones')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -322,60 +322,37 @@ export function DispositivosPage() {
                   <TableCell data-label={t('dispositivos.id')} className="mobile-full min-w-48">
                     <p className="font-semibold text-foreground">{dispositivo.id}</p>
                     <p className="mt-1 max-w-72 break-words text-xs leading-5 text-muted">{dispositivo.ubicacion ?? '—'}</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                      <span aria-hidden className={`size-1.5 rounded-full ${dispositivo.activo ? 'bg-success-600' : 'bg-faint'}`} />
+                      {dispositivo.activo ? t('dispositivos.activo') : t('dispositivos.inactivo')}
+                      {!dispositivo.activo && dispositivo.motivo_baja && <span className="sr-only"> — {dispositivo.motivo_baja}</span>}
+                    </p>
                   </TableCell>
                   <TableCell data-label={t('dispositivos.conectividad')}>
-                    <div className="flex flex-col items-start gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={dispositivo.estado_conectividad === 'online' ? 'ok' : 'neutral'}>
                         {dispositivo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}
                       </Badge>
-                      <div className="text-xs text-muted">
-                    {dispositivo.activo ? (
-                      <span>{t('dispositivos.activo')}</span>
-                    ) : (
-                      <Badge variant="critical">
-                        {t('dispositivos.inactivo')}
-                        {dispositivo.motivo_baja && (
-                          <span className="sr-only"> — {dispositivo.motivo_baja}</span>
-                        )}
-                      </Badge>
-                    )}
-                      </div>
                       {dispositivo.estado_operativo && dispositivo.estado_operativo !== 'OPERATIVO' && (
                         <Badge variant="critical">{t(`dispositivos.estadoOperativo.${dispositivo.estado_operativo}`)}</Badge>
                       )}
                     </div>
                   </TableCell>
-                  <TableCell data-label={t('dispositivos.sensores')} className="mobile-full min-w-48">
-                    <details className="group text-xs text-muted">
-                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md text-foreground focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
-                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          {(dispositivo.sensores ?? []).map((sensor) => (
-                            <span key={sensor.modelo} className="inline-flex items-center gap-1.5 font-medium" title={t(`dispositivos.sensorEstado.${sensor.estado}`)}>
-                              <span aria-hidden className={`size-1.5 rounded-full ${sensor.estado === 'error' ? 'bg-critical' : sensor.estado === 'ok' ? 'bg-success-600' : 'bg-faint'}`} />
-                              {sensor.modelo}<span className="sr-only">: {t(`dispositivos.sensorEstado.${sensor.estado}`)}</span>
-                            </span>
-                          ))}
-                        </span>
-                        <ChevronDown className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
-                        <span className="sr-only">{t('dispositivos.verMapaIoT')}</span>
-                      </summary>
-                        <div className="mt-2 max-w-lg space-y-2 border-t border-border pt-3 text-xs leading-5">
-                          <p>{t('dispositivos.firmware')}: <span>{dispositivo.firmware_version ?? '—'}</span></p>
-                          {(dispositivo.sensores ?? []).map((sensor) => (
-                            <p key={sensor.modelo}><strong>{sensor.modelo}:</strong> {t(`dispositivos.sensorEstado.${sensor.estado}`)} · {sensor.campo_telemetria}</p>
-                          ))}
-                          <p>{t('dispositivos.reporteCada', { s: dispositivo.intervalo_reporte_segundos ?? 30 })} · {t('dispositivos.sinDatosTras', { s: dispositivo.umbral_sin_datos_segundos ?? 90 })}</p>
-                          <p>{t('dispositivos.bufferLittlefs', { n: dispositivo.buffer_littlefs?.pendientes ?? 0, max: dispositivo.buffer_littlefs?.limite ?? 128 })} · {t('dispositivos.perdidas', { n: dispositivo.buffer_littlefs?.perdidas ?? 0 })}</p>
-                          {dispositivo.buffer_littlefs?.desde && <p>{t('dispositivos.rangoBuffer', { desde: fechaHora(dispositivo.buffer_littlefs.desde), hasta: dispositivo.buffer_littlefs.hasta ? fechaHora(dispositivo.buffer_littlefs.hasta) : '—' })}</p>}
-                          <p>{t('dispositivos.credencialEstado')}: {t(`dispositivos.credencial.${dispositivo.estado_credencial_broker ?? 'sin_reportar'}`)}</p>
-                          <p>{t('dispositivos.ultimoReporte')}: {dispositivo.ultimo_reporte_en ? fechaHora(dispositivo.ultimo_reporte_en) : '—'}</p>
-                          {dispositivo.ultimo_evento && (
-                            <p className="break-all">schema {dispositivo.ultimo_evento.schema_version} · boot_id {dispositivo.ultimo_evento.boot_id} · seq_no {dispositivo.ultimo_evento.seq_no} · {dispositivo.ultimo_evento.time_quality}</p>
-                          )}
-                        </div>
-                    </details>
+                  <TableCell data-label={t('dispositivos.sensores')} className="mobile-full">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto min-h-9 max-w-full justify-start gap-2 whitespace-normal px-2 text-left"
+                      onClick={() => { setDispositivoActivo(dispositivo); setDialogo('sensores') }}
+                      aria-label={`${(dispositivo.sensores ?? []).length} sensores. ${t('dispositivos.verMapaIoT')} — ${dispositivo.id}`}
+                    >
+                      <HardDrive className="size-4 shrink-0" />
+                      <span className="shrink-0 font-semibold">{(dispositivo.sensores ?? []).length} sensores</span>
+                      <span className="min-w-0 truncate text-xs font-normal text-muted">{(dispositivo.sensores ?? []).map((sensor) => sensor.modelo).join(' · ')}</span>
+                      <Eye className="ml-auto size-4 shrink-0 text-muted" aria-hidden />
+                    </Button>
                   </TableCell>
-                  <TableCell data-label={t('dispositivos.calibracion')} className="max-sm:col-start-2 max-sm:row-start-2">
+                  <TableCell data-label={t('dispositivos.calibracion')} className="max-sm:col-start-2 max-sm:row-start-2 text-center">
                     <Badge
                       variant={
                         calibracion === 'vigente'
@@ -395,7 +372,7 @@ export function DispositivosPage() {
                       {t(`dispositivos.calibracionEstado.${calibracion}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-right">
+                  <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-center">
                     <ActionMenu label={dispositivo.id}>
                       <Button
                         variant="ghost"
@@ -480,6 +457,45 @@ export function DispositivosPage() {
         </Table>
         <Paginacion total={dispositivos.length} pagina={pagina} onCambiar={setPagina} />
       </div>
+
+      <Dialog open={dialogo === 'sensores'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle>{t('dispositivos.sensores')}</DialogTitle>
+          <DialogDescription>{dispositivoActivo?.id} · {dispositivoActivo?.ubicacion ?? '—'}</DialogDescription>
+          {dispositivoActivo && (
+            <div className="mt-5 space-y-4">
+              <section aria-label={t('dispositivos.sensores')} className="grid gap-2 sm:grid-cols-2">
+                {(dispositivoActivo.sensores ?? []).map((sensor) => (
+                  <article key={sensor.modelo} className="rounded-lg border border-border bg-cream-100/70 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="flex items-center gap-2 font-semibold">
+                        <span aria-hidden className={`size-2 rounded-full ${sensor.estado === 'error' ? 'bg-accent' : sensor.estado === 'ok' ? 'bg-success-600' : 'bg-faint'}`} />
+                        {sensor.modelo}
+                      </p>
+                      <Badge variant={sensor.estado === 'ok' ? 'ok' : sensor.estado === 'error' ? 'critical' : 'neutral'}>
+                        {t(`dispositivos.sensorEstado.${sensor.estado}`)}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-xs text-muted">{sensor.campo_telemetria}</p>
+                  </article>
+                ))}
+              </section>
+              <dl className="grid gap-x-5 rounded-lg border border-border p-3 text-[13px] sm:grid-cols-2">
+                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.firmware')}</dt><dd className="font-medium">{dispositivoActivo.firmware_version ?? '—'}</dd></div>
+                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.intervaloReporte')}</dt><dd className="font-medium">{t('dispositivos.reporteCada', { s: dispositivoActivo.intervalo_reporte_segundos ?? 30 })}</dd></div>
+                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">Buffer local</dt><dd className="font-medium">{dispositivoActivo.buffer_littlefs?.pendientes ?? 0} / {dispositivoActivo.buffer_littlefs?.limite ?? 128} · {t('dispositivos.perdidas', { n: dispositivoActivo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
+                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="font-medium">{t(`dispositivos.credencial.${dispositivoActivo.estado_credencial_broker ?? 'sin_reportar'}`)}</dd></div>
+                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.ultimoReporte')}</dt><dd className="text-right font-medium">{dispositivoActivo.ultimo_reporte_en ? fechaHora(dispositivoActivo.ultimo_reporte_en) : '—'}</dd></div>
+                {dispositivoActivo.buffer_littlefs?.desde && <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">Periodo en cola</dt><dd className="text-right font-medium">{fechaHora(dispositivoActivo.buffer_littlefs.desde)} – {dispositivoActivo.buffer_littlefs.hasta ? fechaHora(dispositivoActivo.buffer_littlefs.hasta) : '—'}</dd></div>}
+                {dispositivoActivo.ultimo_evento && <div className="py-2 sm:col-span-2"><dt className="text-muted">Telemetría</dt><dd className="mt-1 break-all font-mono text-xs">schema {dispositivoActivo.ultimo_evento.schema_version} · boot_id {dispositivoActivo.ultimo_evento.boot_id} · seq_no {dispositivoActivo.ultimo_evento.seq_no} · {dispositivoActivo.ultimo_evento.time_quality}</dd></div>}
+              </dl>
+            </div>
+          )}
+          <div className="mt-4 flex justify-end">
+            <Button variant="ghost" onClick={cerrarDialogo}>{t('comunes.cerrar')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogo === 'crear'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
         <DialogContent>

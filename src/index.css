@@ -39,12 +39,15 @@
   --color-success-100: #e6fbff;
 
   /* ── Semánticos térmicos ────────────────────────────────── */
+  /* ColdCare accent: rosy alert surfaces; deep text stays readable on pale pink. */
   --color-honey-700: #8f284c;
   --color-honey-600: #a8385e;
   --color-honey-100: #fff0f4;
   --color-clay-700: #8f284c;
-  --color-clay-600: #982c50;
-  --color-clay-100: #ffe7ef;
+  --color-clay-600: #b8325b;
+  --color-clay-100: #fff0f4;
+  --color-clay-200: #ffd6e2;
+  --color-clay-50: #fff8fa;
 
   /* Estados operativos siguen semánticos; no heredan el color decorativo. */
   --color-glacier-700: #07546a;
@@ -68,7 +71,7 @@
   --color-primary-hover: #084ad1;
   --color-primary-tint: #eaf1ff;
   --color-primary-end: #1464e8;
-  --color-critical: #982c50;
+  --color-critical: #a33255;
   --color-critical-tint: #fff0f4;
 
   /* ── Radios (variados a propósito) ──────────────────────── */

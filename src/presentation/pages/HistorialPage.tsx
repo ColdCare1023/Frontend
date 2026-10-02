@@ -311,17 +311,17 @@ export function HistorialPage() {
 
       {/* ── Tabla ───────────────────────────────────────────── */}
       <div id="historial-datos-tabla" className="animate-rise [&_thead]:bg-cream-100 " style={{ animationDelay: '60ms' }}>
-        <Table className="min-w-[1040px]" titulo={t('historial.titulo')} cargando={cargando}>
+        <Table className="table-fixed min-w-[1040px]" titulo={t('historial.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('historial.fecha')}</TableHead>
-              <TableHead>{t('historial.codigoEquipo')}</TableHead>
-              <TableHead className="text-right">{t('historial.tempInterna')}</TableHead>
-              <TableHead className="text-right">{t('historial.tempAmbiental')}</TableHead>
-              <TableHead className="text-right">{t('historial.humedad')}</TableHead>
-              <TableHead>{t('historial.puerta')}</TableHead>
-              <TableHead>{t('historial.riesgo')}</TableHead>
-              <TableHead>{t('historial.evidenciaModelo')}</TableHead>
+              <TableHead className="w-[17%] text-center">{t('historial.fecha')}</TableHead>
+              <TableHead className="w-[15%] text-center">{t('historial.codigoEquipo')}</TableHead>
+              <TableHead className="w-[13%] text-center">{t('historial.tempInterna')}</TableHead>
+              <TableHead className="w-[14%] text-center">{t('historial.tempAmbiental')}</TableHead>
+              <TableHead className="w-[10%] text-center">{t('historial.humedad')}</TableHead>
+              <TableHead className="w-[8%] text-center">{t('historial.puerta')}</TableHead>
+              <TableHead className="w-[11%] text-center">{t('historial.riesgo')}</TableHead>
+              <TableHead className="w-[12%] text-center">{t('historial.evidenciaModelo')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -334,22 +334,23 @@ export function HistorialPage() {
             ) : (
               visibles.map((lectura) => (
                 <TableRow key={lectura.id}>
-                  <TableCell className="nums whitespace-nowrap text-[13px]">
+                  <TableCell className="nums whitespace-nowrap text-center text-[13px]">
                     {fechaHora(lectura.timestamp)}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-[13px]">{lectura.device_id}</TableCell>
-                  <TableCell className="nums text-right font-medium">
+                  <TableCell className="whitespace-nowrap text-center text-[13px]">{lectura.device_id}</TableCell>
+                  <TableCell className="nums text-center font-medium">
                     {lectura.temperatura_interna?.toFixed(1) ?? '—'} °C
                   </TableCell>
-                  <TableCell className="nums text-right text-muted">
+                  <TableCell className="nums text-center text-muted">
                     {lectura.temperatura_ambiental?.toFixed(1) ?? '—'} °C
                   </TableCell>
-                  <TableCell className="nums text-right text-muted">
+                  <TableCell className="nums text-center text-muted">
                     {lectura.humedad_ambiental?.toFixed(0) ?? '—'} %
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {/* HU-35 criterio 4: si el dato de puerta no está disponible, null no es
                         "cerrada" — se marca aparte para no fingir un dato. */}
+                    <span className="inline-flex w-full justify-center">
                     {lectura.apertura_refrigerador === null ? (
                       <ShieldQuestion role="img" className="size-4 text-faint" aria-label={t('dashboard.puertaSinSensor')} />
                     ) : lectura.apertura_refrigerador ? (
@@ -357,13 +358,14 @@ export function HistorialPage() {
                     ) : (
                       <DoorClosed role="img" className="size-4 text-faint" aria-label={t('dashboard.puertaCerrada')} />
                     )}
+                    </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {/* HU-34: el historial también debe mostrar el riesgo
                         EFECTIVO, no la clase cruda de la IA. */}
                     <RiskBadge nivel={lectura.riesgo_efectivo} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={() => void abrirEvidencia(lectura)}>
                       {t('historial.verEvidencia')}
                     </Button>

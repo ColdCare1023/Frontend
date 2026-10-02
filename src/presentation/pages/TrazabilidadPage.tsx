@@ -111,7 +111,7 @@ export function TrazabilidadPage() {
       {estadoCadena?.cadena_comprometida && (
         <Card className="mb-5 animate-rise border-clay-100 bg-clay-100/60">
           <CardContent role="alert" className="flex flex-wrap items-center gap-3 p-4">
-            <AlertOctagon className="size-5 shrink-0 text-clay-600" aria-hidden />
+            <AlertOctagon className="size-5 shrink-0 text-accent" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-clay-700">{t('trazabilidad.cadenaComprometida')}</p>
               <p className="text-[13px] text-muted">{t('trazabilidad.cadenaComprometidaDetalle')}</p>
@@ -144,7 +144,7 @@ export function TrazabilidadPage() {
             {verificacion.integra ? (
               <ShieldCheck className="mt-0.5 size-5 shrink-0 text-pine-600" aria-hidden />
             ) : (
-              <ShieldAlert className="mt-0.5 size-5 shrink-0 text-clay-600" aria-hidden />
+              <ShieldAlert className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
             )}
             <div className="min-w-0">
               <p
@@ -330,8 +330,8 @@ export function TrazabilidadPage() {
       </Card>
 
       {/* ── Filtro por tipo ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-end gap-3 border-b border-border pb-4">
-      <div className="w-full sm:w-72">
+      <div className="flex flex-wrap items-end justify-start gap-3 border-b border-border pb-4">
+      <div className="w-full max-w-sm sm:w-72">
         <Label htmlFor="f-evento">{t('trazabilidad.tipoEvento')}</Label>
         <NativeSelect
           id="f-evento"
@@ -373,18 +373,18 @@ export function TrazabilidadPage() {
         </button>
       </div>
       <div className="animate-rise [&_thead]:bg-cream-100" style={{ animationDelay: '60ms' }}>
-        <Table titulo={t('trazabilidad.titulo')} cargando={cargando}>
+        <Table className="table-fixed min-w-[640px]" titulo={t('trazabilidad.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('trazabilidad.fecha')}</TableHead>
-              <TableHead>{t('trazabilidad.evento')}</TableHead>
-              <TableHead>{t('historial.dispositivo')}</TableHead>
+              <TableHead className="w-[28%]">{t('trazabilidad.fecha')}</TableHead>
+              <TableHead className="w-[42%]">{t('trazabilidad.evento')}</TableHead>
+              <TableHead className="w-[30%]">{t('historial.dispositivo')}</TableHead>
               {mostrarSellos && (
                 <>
-                  <TableHead title={t('trazabilidad.selloAyuda')} className="cursor-help">
+                  <TableHead title={t('trazabilidad.selloAyuda')} className="cursor-help text-center">
                     {t('trazabilidad.hashAnterior')}
                   </TableHead>
-                  <TableHead title={t('trazabilidad.selloAyuda')} className="cursor-help">
+                  <TableHead title={t('trazabilidad.selloAyuda')} className="cursor-help text-center">
                     {t('trazabilidad.hash')}
                   </TableHead>
                 </>
@@ -413,7 +413,7 @@ export function TrazabilidadPage() {
                   data-testid={corrupto ? 'fila-corrupta' : undefined}
                   className={cn(corrupto && 'bg-clay-100/70 hover:bg-clay-100')}
                 >
-                  <TableCell className="nums text-[13px]">
+                  <TableCell className="nums whitespace-nowrap text-[13px]">
                     {corrupto && (
                       <span className="mr-1.5 font-semibold text-clay-700">
                         <span aria-hidden>⚠</span>
@@ -428,8 +428,8 @@ export function TrazabilidadPage() {
                   <TableCell className="text-[13px]">{registro.device_id ?? '—'}</TableCell>
                   {mostrarSellos && (
                     <>
-                      <TableCell><HashCorto hash={registro.previous_hash} /></TableCell>
-                      <TableCell><HashCorto hash={registro.hash_actual} /></TableCell>
+                      <TableCell className="text-center"><HashCorto hash={registro.previous_hash} /></TableCell>
+                      <TableCell className="text-center"><HashCorto hash={registro.hash_actual} /></TableCell>
                     </>
                   )}
                 </TableRow>

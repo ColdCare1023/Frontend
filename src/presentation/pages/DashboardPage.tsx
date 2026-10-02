@@ -98,7 +98,7 @@ function TarjetaMetrica({
       <CardContent className="p-4">
         <div className="flex min-h-5 items-start justify-between gap-2">
           <p className="text-sm leading-5 font-medium text-muted">{etiqueta}</p>
-          <span className={cn('flex size-7 items-center justify-center', fallaSensor || sinLectura || desactualizado ? 'text-clay-600' : destacada ? 'text-secondary' : 'text-faint')}>
+          <span className={cn('flex size-7 items-center justify-center', fallaSensor || sinLectura || desactualizado ? 'text-accent' : destacada ? 'text-secondary' : 'text-faint')}>
             {fallaSensor || sinLectura || desactualizado ? (
               <AlertTriangle className="size-4" />
             ) : (
@@ -107,7 +107,7 @@ function TarjetaMetrica({
           </span>
         </div>
         {fallaSensor || sinLectura ? (
-          <p role={fallaSensor ? 'alert' : 'status'} className="mt-2 text-sm font-medium leading-snug text-clay-700">
+          <p role={fallaSensor ? 'alert' : 'status'} className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-2 text-sm font-medium leading-snug text-clay-700">
             {fallaSensor ? textoFallaSensor : textoSinLectura}
           </p>
         ) : (
@@ -130,7 +130,7 @@ function TarjetaMetrica({
               <p className="mt-1 text-right text-xs text-muted">{textoDelta}</p>
             )}
             {desactualizado && (
-              <p className="mt-1 text-xs font-medium leading-snug text-clay-700">
+              <p className="mt-1 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium leading-snug text-clay-700">
                 {textoDesactualizado}
               </p>
             )}
@@ -242,7 +242,7 @@ function EstadoPrincipal({
             <div className="mt-3 flex justify-between text-xs text-muted"><span>0 °C</span><span>{t('dashboard.rangoConservacion')}</span><span>10 °C</span></div>
           </div>
           {fueraDeEscala && lectura != null && (
-            <p role="note" className="mt-2 text-xs font-medium text-clay-700">
+            <p role="note" className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium text-clay-700">
               {lectura > maximoIndicador
                 ? t('dashboard.lecturaSobreEscala', { temperatura: lectura.toFixed(1) })
                 : t('dashboard.lecturaBajoEscala', { temperatura: lectura.toFixed(1) })}
@@ -423,14 +423,16 @@ function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
   if (equipos.length === 0) return null
 
   return (
-    <Card className="mb-5 rounded-(--radius-card) border-border bg-surface">
+    <Card className="rounded-(--radius-card) border-border bg-surface">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <RadioTower className="mt-0.5 size-5 shrink-0 text-glacier-600" aria-hidden />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-foreground">{t('dashboard.estadoIoTTitulo')}</p>
-            <p className="sr-only">{t('dashboard.estadoIoTDetalle')}</p>
-            <ul className="mt-2 space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
+              <p className="text-sm font-semibold text-foreground">{t('dashboard.estadoIoTTitulo')}</p>
+              <p className="text-xs text-muted">{t('dashboard.estadoIoTDetalle')}</p>
+            </div>
+            <ul className="mt-2 grid gap-3 md:grid-cols-2">
               {equipos.map((dispositivo) => {
                 const buffer = dispositivo.buffer_littlefs
                 const pendientes = buffer?.pendientes ?? 0
@@ -627,7 +629,7 @@ function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<vo
               type="button"
               variant={id === 'recuperar' ? 'primary' : 'secondary'}
               size="sm"
-              className="justify-center"
+              className={cn('justify-center', id === 'recuperar' && 'sm:col-span-2 xl:col-span-2')}
               disabled={ejecutando !== null}
               onClick={() => void ejecutar(id)}
             >
@@ -720,11 +722,14 @@ const TablaAlternativaMonitoreo = memo(function TablaAlternativaMonitoreo({
             <caption className="sr-only">{titulo}</caption>
             <thead className="sticky top-0 bg-cream-100">
               <tr>
-                {columnas.map((columna) => (
+                {columnas.map((columna, indice) => (
                   <th
                     key={columna}
                     scope="col"
-                    className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint"
+                    className={cn(
+                      'px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint',
+                      indice > 0 && 'text-center',
+                    )}
                   >
                     {columna}
                   </th>
@@ -735,7 +740,7 @@ const TablaAlternativaMonitoreo = memo(function TablaAlternativaMonitoreo({
               {filas.map((fila, indice) => (
                 <tr key={indice}>
                   {fila.map((celda, columna) => (
-                    <td key={columna} className="nums px-3 py-1.5">
+                    <td key={columna} className={cn('nums px-3 py-1.5', columna > 0 && 'text-center')}>
                       {celda}
                     </td>
                   ))}
@@ -757,6 +762,10 @@ export function DashboardPage() {
   const estadoIoTPrincipal = equiposConIncidencias.find((equipo) => equipo.id === DISPOSITIVO_DEMO)
   const previa = serie.at(-2) ?? null
   const resumen = useMemo(() => resumenVentana(serie), [serie])
+  const lecturasRecientes = useMemo(
+    () => [...serie].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp)).slice(0, 4),
+    [serie],
+  )
 
   // HU-32 criterio 4 / HU-33 criterio 2: si "hace cuánto" solo se recalculara
   // al recibir una lectura nueva, se congelaría hasta la siguiente — este
@@ -900,7 +909,7 @@ export function DashboardPage() {
           </div>
 
           {/* ── Curva térmica ───────────────────────────────── */}
-          <div className={cn("grid items-start gap-4", equiposConIncidencias.length > 0 && "xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.8fr)]")}><Card className="min-w-0">
+          <div><Card className="min-w-0">
             <CardHeader className="gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <div>
               <CardTitle>{t('dashboard.curvaTermica')}</CardTitle>
@@ -985,8 +994,75 @@ export function DashboardPage() {
               )}
             </CardContent>
           </Card>
-          {equiposConIncidencias.length > 0 && <aside className="min-w-0"><EstadoEquiposIoT equipos={equiposConIncidencias} /></aside>}
           </div>
+          {equiposConIncidencias.length > 0 && (
+            <section className={cn(
+              'mt-4 grid items-start gap-4 sm:grid-cols-2',
+              equiposConIncidencias.length >= 2 ? 'xl:grid-cols-3' : 'xl:grid-cols-2',
+            )}>
+              {equiposConIncidencias.map((equipo) => {
+                const ultimaLectura = equipo.ultimo_reporte_en ? fechaHora(equipo.ultimo_reporte_en) : '—'
+                const segundosSilencio = equipo.umbral_sin_datos_segundos ?? 90
+                const lecturasPendientes = equipo.buffer_littlefs?.pendientes ?? 0
+                const incidenteActivo = equipo.incidencias_operativas?.find((incidente) => incidente.estado === 'activo')
+                return (
+                  <Card key={equipo.id} className="border-l-4 border-l-glacier-500">
+                    <CardContent className="p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">{equipo.nombre || equipo.id}</p>
+                          <p className="mt-0.5 font-mono text-xs text-muted">{equipo.id}</p>
+                        </div>
+                        <Badge variant={equipo.estado_operativo === 'OPERATIVO' ? 'ok' : 'critical'}>
+                          {equipo.estado_operativo === 'SIN_DATOS'
+                            ? t('dashboard.estadoSinDatos', { segundos: segundosSilencio })
+                            : equipo.estado_operativo === 'FALLA_SENSOR'
+                              ? t('dispositivos.estadoOperativo.FALLA_SENSOR')
+                              : t('dispositivos.estadoOperativo.OPERATIVO')}
+                        </Badge>
+                      </div>
+                      {incidenteActivo && <p role="status" className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium text-clay-700">{t('dashboard.alertaSilencio', { fecha: fechaHora(incidenteActivo.detectado_en), segundos: incidenteActivo.umbral_silencio_segundos })}</p>}
+                      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3 text-xs">
+                        <div><dt className="text-muted">{t('dispositivos.ultimoReporte')}</dt><dd className="mt-0.5 font-medium">{ultimaLectura}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.conectividad')}</dt><dd className="mt-0.5 font-medium">{equipo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.fallasSensor')}</dt><dd className="mt-0.5 font-medium">{(equipo.sensores ?? []).filter((sensor) => sensor.estado === 'error').length}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.bufferLittlefs', { n: lecturasPendientes, max: equipo.buffer_littlefs?.limite ?? 128 })}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.perdidas', { n: equipo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.intervaloReporte')}</dt><dd className="mt-0.5 font-medium">{equipo.intervalo_reporte_segundos ?? 30} s</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.umbralSinDatos')}</dt><dd className="mt-0.5 font-medium">{segundosSilencio} s</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.firmware')}</dt><dd className="mt-0.5 font-medium">{equipo.firmware_version || '—'}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="mt-0.5 font-medium">{t(`dispositivos.credencial.${equipo.estado_credencial_broker ?? 'sin_reportar'}`)}</dd></div>
+                        {equipo.buffer_littlefs?.desde && <div><dt className="text-muted">{t('dispositivos.ventanaCola')}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.rangoBuffer', { desde: fechaHora(equipo.buffer_littlefs.desde), hasta: equipo.buffer_littlefs.hasta ? fechaHora(equipo.buffer_littlefs.hasta) : '—' })}</dd></div>}
+                      </dl>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+              {lecturasRecientes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('dashboard.lecturasRecientesTitulo')}</CardTitle>
+                    <CardDescription>{t('dashboard.lecturasRecientesAyuda')}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ol className="divide-y divide-border">
+                      {lecturasRecientes.map((lectura) => (
+                        <li key={`${lectura.device_id}-${lectura.timestamp}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                          <div>
+                            <time dateTime={lectura.timestamp} className="text-xs text-muted">{fechaHora(lectura.timestamp)}</time>
+                            <p className="mt-0.5 text-xs font-medium">{lectura.device_id}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="nums text-sm font-semibold">{lectura.temperatura_interna?.toFixed(1) ?? '—'} °C</span>
+                            <RiskBadge nivel={lectura.riesgo_efectivo} />
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </CardContent>
+                </Card>
+              )}
+            </section>
+          )}
 
           <p className="mt-3 text-right text-xs text-faint">
             {t('dashboard.ultimaActualizacion')}:{' '}

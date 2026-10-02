@@ -12,6 +12,7 @@ import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTe
 import { fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { rangoPagina } from '@/lib/paginacion'
+import { ActionMenu } from '../components/ActionMenu'
 import { Paginacion } from '../components/Paginacion'
 import { EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
@@ -169,15 +170,15 @@ export function AlertasPage() {
       )}
 
       <div className="animate-rise [&_thead]:bg-cream-100 ">
-        <Table mobileLayout="stack" className="min-w-[1080px]" titulo={t('alertas.titulo')} cargando={cargando}>
+        <Table mobileLayout="stack" className="table-fixed min-w-[0]" titulo={t('alertas.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('alertas.fecha')}</TableHead>
-              <TableHead>{t('historial.dispositivo')}</TableHead>
-              <TableHead>{t('historial.riesgo')}</TableHead>
-              <TableHead>{t('alertas.mensaje')}</TableHead>
-              <TableHead>{t('alertas.estado')}</TableHead>
-              <TableHead className="text-right">{t('alertas.acciones')}</TableHead>
+              <TableHead className="w-[17%] px-2 text-xs">{t('alertas.fecha')}</TableHead>
+              <TableHead className="w-[13%] px-2 text-xs">{t('historial.dispositivo')}</TableHead>
+              <TableHead className="w-[17%] px-2 text-xs">{t('historial.riesgo')}</TableHead>
+              <TableHead className="w-[22%] px-2 text-xs">{t('alertas.mensaje')}</TableHead>
+              <TableHead className="w-[10%] px-2 text-xs">{t('alertas.estado')}</TableHead>
+              <TableHead className="w-[21%] px-2 text-xs">{t('alertas.acciones')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -203,22 +204,22 @@ export function AlertasPage() {
             ) : (
               visibles.map((alerta) => (
                 <TableRow key={alerta.id}>
-                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap text-[13px]">
+                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap px-2 text-[11px]">
                     {fechaHora(alerta.created_at)}
                   </TableCell>
-                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap text-[13px]">{alerta.device_id}</TableCell>
+                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap px-2 text-[11px]">{alerta.device_id}</TableCell>
                   <TableCell data-label={t('historial.riesgo')}>
                     <RiskBadge nivel={alerta.nivel_riesgo} />
                   </TableCell>
-                  <TableCell data-label={t('alertas.mensaje')} className="mobile-full max-w-72 text-sm text-muted">{alerta.mensaje}</TableCell>
+                  <TableCell data-label={t('alertas.mensaje')} className="px-2 text-xs leading-5 text-muted">{alerta.mensaje}</TableCell>
                   <TableCell data-label={t('alertas.estado')}>
                     <Badge variant={VARIANTE_POR_ESTADO[alerta.estado]}>
                       {t(`alertas.estadoAlerta.${alerta.estado}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions text-right">
-                    <div className="inline-flex flex-col items-start gap-2 sm:items-end">
-                    <div className="inline-flex flex-wrap gap-1.5">
+                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions">
+                    <div className="flex flex-col items-start gap-1.5 sm:items-center">
+                      <ActionMenu label={`${t('alertas.acciones')}: ${alerta.device_id}`}>
                       {alerta.estado === 'pendiente' && puedeReconocer && (
                         <Button
                           size="sm"
@@ -248,8 +249,9 @@ export function AlertasPage() {
                         aria-label={`${t('alertas.verDetalle')}: ${alerta.device_id}`}
                       >
                         <History />
+                        {t('alertas.verDetalle')}
                       </Button>
-                    </div>
+                      </ActionMenu>
                     {conflictoReconocer === alerta.id && (
                       <p role="alert" className="text-xs text-clay-700">
                         {t('alertas.conflictoEstado')}
