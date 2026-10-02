@@ -544,9 +544,15 @@ export function DispositivosPage() {
               ['falla_sensor', 'dispositivos.escenarioSensor'],
               ['recuperar', 'dispositivos.escenarioRecuperacion'],
             ] as const).map(([escenario, clave]) => (
-              <Button key={escenario} variant={escenario === 'recuperar' ? 'secondary' : 'primary'} disabled={enviando} onClick={() => void ejecutarEscenario(escenario)}>
+              <Button
+                key={escenario}
+                variant={escenario === 'recuperar' ? 'secondary' : 'primary'}
+                className="h-auto min-h-11 w-full min-w-0 justify-start px-3 py-2 text-left"
+                disabled={enviando}
+                onClick={() => void ejecutarEscenario(escenario)}
+              >
                 {escenario === 'recuperar' ? <KeyRound /> : <FlaskConical />}
-                {t(clave)}
+                <span className="min-w-0 whitespace-normal break-words leading-snug">{t(clave)}</span>
               </Button>
             ))}
           </div>

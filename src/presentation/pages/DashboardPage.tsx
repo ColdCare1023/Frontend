@@ -996,18 +996,20 @@ export function DashboardPage() {
           </Card>
           </div>
           {equiposConIncidencias.length > 0 && (
-            <section className={cn(
-              'mt-4 grid items-stretch gap-4 sm:grid-cols-2',
-              equiposConIncidencias.length >= 2 ? 'xl:grid-cols-3' : 'xl:grid-cols-2',
-            )}>
-              {equiposConIncidencias.map((equipo) => {
-                const ultimaLectura = equipo.ultimo_reporte_en ? fechaHora(equipo.ultimo_reporte_en) : '—'
-                const segundosSilencio = equipo.umbral_sin_datos_segundos ?? 90
-                const lecturasPendientes = equipo.buffer_littlefs?.pendientes ?? 0
-                const incidenteActivo = equipo.incidencias_operativas?.find((incidente) => incidente.estado === 'activo')
-                return (
-                  <Card key={equipo.id} className="border-l-4 border-l-glacier-500">
-                    <CardContent className="p-4">
+            <section className="mt-4 grid items-stretch gap-4 xl:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('dashboard.estadoIoTTitulo')}</CardTitle>
+                  <CardDescription>{t('dashboard.estadoIoTDetalle')}</CardDescription>
+                </CardHeader>
+                <CardContent className="divide-y divide-border">
+                  {equiposConIncidencias.map((equipo) => {
+                    const ultimaLectura = equipo.ultimo_reporte_en ? fechaHora(equipo.ultimo_reporte_en) : '—'
+                    const segundosSilencio = equipo.umbral_sin_datos_segundos ?? 90
+                    const lecturasPendientes = equipo.buffer_littlefs?.pendientes ?? 0
+                    const incidenteActivo = equipo.incidencias_operativas?.find((incidente) => incidente.estado === 'activo')
+                    return (
+                      <article key={equipo.id} className="py-4 first:pt-0 last:pb-0">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p className="text-sm font-semibold">{equipo.nombre || equipo.id}</p>
@@ -1033,10 +1035,11 @@ export function DashboardPage() {
                         <div><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="mt-0.5 font-medium">{t(`dispositivos.credencial.${equipo.estado_credencial_broker ?? 'sin_reportar'}`)}</dd></div>
                         {equipo.buffer_littlefs?.desde && <div><dt className="text-muted">{t('dispositivos.ventanaCola')}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.rangoBuffer', { desde: fechaHora(equipo.buffer_littlefs.desde), hasta: equipo.buffer_littlefs.hasta ? fechaHora(equipo.buffer_littlefs.hasta) : '—' })}</dd></div>}
                       </dl>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                      </article>
+                    )
+                  })}
+                </CardContent>
+              </Card>
               {lecturasRecientes.length > 0 && (
                 <Card>
                   <CardHeader>
