@@ -113,6 +113,7 @@
     "lecturaReciente": "Recent reading · {{s}}s ago",
     "ultimaLecturaHora": "Last reading",
     "actualizacionActiva": "Automatic updates active",
+    "equipo": "Device",
     "actualizacionReconectando": "Reconnecting to reading stream…",
     "fallaSensor": "No temperature reading. Check the sensor.",
     "sinLecturaDisponible": "No reading is available for this metric.",

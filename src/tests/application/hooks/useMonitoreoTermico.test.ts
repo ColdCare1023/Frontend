@@ -239,3 +239,54 @@ describe('useMonitoreoTermico con flujo SSE sostenido', () => {
     expect(suscribirseLecturas).toHaveBeenCalledTimes(1)
   })
 })
+
+
+describe('useMonitoreoTermico por dispositivo (HU-31/HU-33)', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+  let emitir: (lectura: LecturaTermica) => void
+
+  beforeEach(() => {
+    adaptador = instalarAdaptadorFalso(() => ({ data: [] }))
+    suscribirseLecturas.mockReset()
+    suscribirseLecturas.mockImplementation((onLectura) => {
+      emitir = onLectura
+      return vi.fn()
+    })
+  })
+
+  afterEach(() => adaptador.restaurar())
+
+  it('pide el historial solo del equipo seleccionado', async () => {
+    renderHook(() => useMonitoreoTermico(24, 'ESP32_FARMACIA_01'))
+    await act(async () => {})
+
+    const historial = adaptador.peticiones.find((p) => p.url === '/api/lecturas')
+    expect(historial?.params.device_id).toBe('ESP32_FARMACIA_01')
+  })
+
+  it('ignora en vivo las lecturas de otros equipos', async () => {
+    const { result } = renderHook(() => useMonitoreoTermico(24, 'ESP32_FARMACIA_01'))
+
+    await act(async () => {
+      emitir(lectura(1, { id: 'otro', device_id: 'ESP32_FARMACIA_02', temperatura_interna: 30 }))
+      emitir(lectura(2, { id: 'propio', device_id: 'ESP32_FARMACIA_01', temperatura_interna: 5 }))
+    })
+
+    expect(result.current.serie.map((l) => l.id)).toEqual(['propio'])
+    expect(result.current.ultima?.device_id).toBe('ESP32_FARMACIA_01')
+  })
+
+  it('al cambiar de equipo descarta la serie del anterior', async () => {
+    const { result, rerender } = renderHook(({ id }) => useMonitoreoTermico(24, id), {
+      initialProps: { id: 'ESP32_FARMACIA_01' },
+    })
+    await act(async () => emitir(lectura(1, { device_id: 'ESP32_FARMACIA_01' })))
+    expect(result.current.serie).toHaveLength(1)
+
+    rerender({ id: 'ESP32_FARMACIA_02' })
+    await act(async () => {})
+
+    expect(result.current.serie).toHaveLength(0)
+    expect(result.current.ultima).toBeNull()
+  })
+})

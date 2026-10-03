@@ -754,11 +754,26 @@ const TablaAlternativaMonitoreo = memo(function TablaAlternativaMonitoreo({
   )
 })
 
+/** Nodo que reportó más recientemente; null si aún no hay ninguno. */
+function equipoMasReciente(equipos: Dispositivo[]): string | null {
+  const conReporte = equipos.filter((equipo) => equipo.ultimo_reporte_en)
+  const candidatos = conReporte.length > 0 ? conReporte : equipos
+  if (candidatos.length === 0) return null
+  return [...candidatos].sort((a, b) =>
+    Date.parse(b.ultimo_reporte_en ?? '') - Date.parse(a.ultimo_reporte_en ?? '') || a.id.localeCompare(b.id),
+  )[0].id
+}
+
 export function DashboardPage() {
   const { t } = useTranslation()
   const [horasVentana, setHorasVentana] = useState<number>(24)
-  const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana)
   const { equipos: equiposConIncidencias, consultar: consultarEstadoOperativo } = useEstadoOperativo()
+  // HU-31/HU-33: el dashboard muestra UN refrigerador a la vez. Por defecto,
+  // el que reportó más recientemente; con más de uno, se elige en el selector.
+  const { equipos } = useEstadoOperativo(true)
+  const [equipoElegido, setEquipoElegido] = useState<string | null>(null)
+  const deviceId = equipoElegido ?? equipoMasReciente(equipos)
+  const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana, deviceId)
   const estadoIoTPrincipal = equiposConIncidencias.find((equipo) => equipo.id === DISPOSITIVO_DEMO)
   const previa = serie.at(-2) ?? null
   const resumen = useMemo(() => resumenVentana(serie), [serie])
@@ -813,6 +828,22 @@ export function DashboardPage() {
       />
 
       <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('dashboard.titulo')} descripcion={t('dashboard.descripcion')}>
+        {equipos.length > 1 && (
+          <label className="flex items-center gap-2 text-sm text-muted">
+            {t('dashboard.equipo')}
+            <select
+              value={deviceId ?? ''}
+              onChange={(evento) => setEquipoElegido(evento.target.value)}
+              className="min-h-11 rounded-(--radius-field) border border-border bg-surface px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-primary sm:min-h-9"
+            >
+              {equipos.map((equipo) => (
+                <option key={equipo.id} value={equipo.id}>
+                  {equipo.nombre ? `${equipo.nombre} (${equipo.id})` : equipo.id}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span
           className={cn(
             'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',

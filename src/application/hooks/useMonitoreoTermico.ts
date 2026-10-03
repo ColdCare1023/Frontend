@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
@@ -25,26 +25,42 @@ interface MonitoreoTermico {
 /**
  * Carga historial para la ventana activa y conserva última lectura en vivo al
  * cambiarla. La serie se mantiene en orden cronológico ascendente.
+ *
+ * Con `deviceId`, historial y flujo SSE se limitan a ese nodo: sin filtro, con
+ * dos o más refrigeradores la curva intercalaba lecturas de equipos distintos
+ * y "temperatura actual" mostraba la del último que reportó, fuera cual fuera.
  */
-export function useMonitoreoTermico(horasVentana: number = VENTANA_HORAS_POR_DEFECTO): MonitoreoTermico {
+export function useMonitoreoTermico(
+  horasVentana: number = VENTANA_HORAS_POR_DEFECTO,
+  deviceId: string | null = null,
+): MonitoreoTermico {
   const [serie, setSerie] = useState<LecturaTermica[]>([])
   const [ultima, setUltima] = useState<LecturaTermica | null>(null)
   const [sseConectado, setSseConectado] = useState(false)
   const [estadoHistorial, setEstadoHistorial] = useState<MonitoreoTermico['estadoHistorial']>('cargando')
   const [intento, setIntento] = useState(0)
   const reintentar = useCallback(() => setIntento((actual) => actual + 1), [])
+  const deviceAnterior = useRef<string | null>(deviceId)
 
   useEffect(() => {
     let activo = true
     // Mantiene visible la ventana anterior mientras llega la nueva respuesta.
     // Vaciarla aquí desmontaba el panel de monitoreo y producía un destello.
     setEstadoHistorial('cargando')
+    // Al cambiar de equipo, lo mostrado pertenece a otro refrigerador.
+    if (deviceAnterior.current !== deviceId) {
+      deviceAnterior.current = deviceId
+      setSerie([])
+      setUltima(null)
+    }
 
     const desde = new Date(Date.now() - horasVentana * 60 * 60 * 1000).toISOString()
     const desdeMs = new Date(desde).getTime()
 
     apiClient
-      .get<LecturaTermica[]>('/api/lecturas', { params: { desde, limite: MAX_LECTURAS_EN_MEMORIA } })
+      .get<LecturaTermica[]>('/api/lecturas', {
+        params: { desde, limite: MAX_LECTURAS_EN_MEMORIA, ...(deviceId ? { device_id: deviceId } : {}) },
+      })
       .then(({ data }) => {
         if (!activo) return
         // El historial no puede sobrescribir la serie: la suscripción SSE se
@@ -75,6 +91,7 @@ export function useMonitoreoTermico(horasVentana: number = VENTANA_HORAS_POR_DEF
 
     const cerrar = suscribirseLecturas(
       (lectura) => {
+        if (deviceId && lectura.device_id !== deviceId) return
         setUltima((previa) => !previa || lectura.timestamp > previa.timestamp ? lectura : previa)
         if (new Date(lectura.timestamp).getTime() < desdeMs) return
         setSerie((previa) => {
@@ -89,7 +106,7 @@ export function useMonitoreoTermico(horasVentana: number = VENTANA_HORAS_POR_DEF
       activo = false
       cerrar()
     }
-  }, [horasVentana, intento])
+  }, [horasVentana, deviceId, intento])
 
   return { ultima, serie, sseConectado, estadoHistorial, reintentar }
 }
