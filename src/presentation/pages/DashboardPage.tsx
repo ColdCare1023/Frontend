@@ -1081,7 +1081,7 @@ export function DashboardPage() {
             </div>
             <Link
               to="/alertas"
-              className="inline-flex min-h-9 items-center justify-center gap-2 self-start rounded-md border border-primary/20 bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary-tint sm:self-auto"
+              className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-md border border-primary/20 bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary-tint sm:min-h-9 sm:self-auto"
             >
               {t('dashboard.verAlertas')}
               <ArrowRight className="size-3.5" aria-hidden />

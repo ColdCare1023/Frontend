@@ -212,7 +212,7 @@ export function MetricasIAPage() {
             <span>{t('metricasIA.definicionesTabla')}</span>
           </p>
           <p className="mb-4 text-sm leading-6 text-muted">{t('metricasIA.reglaIndependiente')}</p>
-          <Table titulo={t('metricasIA.porClase')}>
+          <Table mobileLayout="stack" className="min-w-0" titulo={t('metricasIA.porClase')}>
             <TableHeader>
               <TableRow>
                 <TableHead>{t('metricasIA.situacion')}</TableHead>
@@ -227,11 +227,11 @@ export function MetricasIAPage() {
                 const fila = m.classification_report[clase] as MetricasPorClase
                 return (
                   <TableRow key={clase}>
-                    <TableCell className="font-medium">{t(`riesgo.${clase}`)}</TableCell>
-                    <TableCell className="nums">{porcentaje(fila['f1-score'], i18n.resolvedLanguage ?? i18n.language)}</TableCell>
-                    <TableCell className="nums">{porcentaje(fila.precision, i18n.resolvedLanguage ?? i18n.language)}</TableCell>
-                    <TableCell className="nums">{porcentaje(fila.recall, i18n.resolvedLanguage ?? i18n.language)}</TableCell>
-                    <TableCell className="nums text-muted">{fila.support.toLocaleString(i18n.resolvedLanguage?.startsWith('en') ? 'en-US' : 'es-PE')}</TableCell>
+                    <TableCell data-label={t('metricasIA.situacion')} className="font-medium">{t(`riesgo.${clase}`)}</TableCell>
+                    <TableCell data-label="F1" className="nums">{porcentaje(fila['f1-score'], i18n.resolvedLanguage ?? i18n.language)}</TableCell>
+                    <TableCell data-label={t('metricasIA.precision')} className="nums">{porcentaje(fila.precision, i18n.resolvedLanguage ?? i18n.language)}</TableCell>
+                    <TableCell data-label={t('metricasIA.deteccion')} className="nums">{porcentaje(fila.recall, i18n.resolvedLanguage ?? i18n.language)}</TableCell>
+                    <TableCell data-label={t('metricasIA.casosEvaluados')} className="nums text-muted">{fila.support.toLocaleString(i18n.resolvedLanguage?.startsWith('en') ? 'en-US' : 'es-PE')}</TableCell>
                   </TableRow>
                 )
               })}

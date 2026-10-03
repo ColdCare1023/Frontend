@@ -679,7 +679,6 @@
     "eyebrow": "ColdCare help",
     "titulo": "Using ColdCare",
     "descripcion": "What to check, how to respond to an alert, and where to find records.",
-    "volverAVerRecorrido": "Replay the tour",
     "inicioEyebrow": "During your shift",
     "navegacion": "Guide sections",
     "nav": {
@@ -826,7 +825,7 @@
         "respuesta": "No. They summarize how a classifier performed on test cases; they do not show current temperatures or alerts."
       }
     },
-    "nota": "The tour and available screens depend on your role. Actions that change records also follow your system permissions."
+    "nota": "Available screens depend on your role. Actions that change records also follow your system permissions."
   },
   "recuperarContrasena": {
     "titulo": "Recover password",

@@ -26,7 +26,6 @@ import { cn } from '@/lib/utils'
 import { AvisoExpiracionSesion } from '../components/AvisoExpiracionSesion'
 import { ColdCareBrand } from '../components/ColdCareBrand'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
-import { OnboardingTour } from '../components/OnboardingTour'
 
 interface ItemNav {
   ruta: string
@@ -143,7 +142,6 @@ function ContenidoSidebar({
                   <li key={item.ruta}>
                     <NavLink
                       to={item.ruta}
-                      data-tour-route={item.ruta}
                       onClick={alNavegar}
                       className={({ isActive }) =>
                         cn(
@@ -268,7 +266,6 @@ export function AppLayout() {
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-[#E2E8F0] bg-white px-4 sm:px-6 lg:px-7">
             <DialogPrimitive.Trigger
               aria-label={t('nav.abrirMenu')}
-              data-tour-mobile-menu
               className="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-lg text-[#475569] transition-colors hover:bg-[#F4F7FB] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B5CFF] lg:hidden"
             >
               <Menu className="size-5" />
@@ -304,7 +301,6 @@ export function AppLayout() {
           </main>
         </div>
       </DialogPrimitive.Root>
-      <OnboardingTour rol={usuario.rol} userId={usuario.id} />
     </div>
   )
 }

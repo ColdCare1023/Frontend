@@ -4,7 +4,6 @@ import { Link } from 'react-router'
 import {
   ArrowRight,
   Bell,
-  BookOpenText,
   CircleDot,
   CircleAlert,
   CircleCheck,
@@ -24,7 +23,6 @@ import {
 import { useAuthStore } from '@/application/stores/authStore'
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
 import { PageHeader } from '../components/PageHeader'
-import { REOPEN_TOUR_EVENT } from '../components/OnboardingTour'
 
 type GrupoId = 'vigilar' | 'consultar' | 'administrar'
 
@@ -183,15 +181,6 @@ export function GuiaPage() {
           </a>
         ))}
       </nav>
-
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event(REOPEN_TOUR_EVENT))}
-        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-cream-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >
-        <BookOpenText aria-hidden className="size-4 text-primary" />
-        {t('guia.volverAVerRecorrido', { defaultValue: 'Volver a ver recorrido' })}
-      </button>
 
       <section aria-labelledby="guia-inicio-titulo" className="grid scroll-mt-20 gap-4 border-b border-border pb-4 lg:grid-cols-2 lg:gap-4">
         <div className="flex flex-col justify-center">

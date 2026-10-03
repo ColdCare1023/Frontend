@@ -679,7 +679,6 @@
     "eyebrow": "Ayuda de ColdCare",
     "titulo": "Consulta y usa ColdCare",
     "descripcion": "Qué revisar, cómo responder a un aviso y dónde consultar los registros.",
-    "volverAVerRecorrido": "Volver a ver el recorrido",
     "inicioEyebrow": "Durante tu jornada",
     "navegacion": "Secciones de la guía",
     "nav": {
@@ -826,7 +825,7 @@
         "respuesta": "No. Resumen cómo se evaluó el clasificador con casos de prueba; no muestran la temperatura ni las alertas actuales."
       }
     },
-    "nota": "El recorrido y las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema."
+    "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema."
   },
   "recuperarContrasena": {
     "titulo": "Recuperar contraseña",

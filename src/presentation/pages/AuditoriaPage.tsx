@@ -147,7 +147,7 @@ export function AuditoriaPage() {
       </Card>
 
       <div className="animate-rise [&_thead]:bg-cream-100 ">
-        <Table className="min-w-[1080px]" titulo={t('auditoria.titulo')} cargando={cargando}>
+        <Table mobileLayout="stack" className="min-w-0" titulo={t('auditoria.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
               <TableHead>{t('auditoria.fecha')}</TableHead>
@@ -171,10 +171,10 @@ export function AuditoriaPage() {
             ) : (
               visibles.map((registro) => (
                 <TableRow key={registro.id}>
-                  <TableCell className="nums whitespace-nowrap text-[13px]">
+                  <TableCell data-label={t('auditoria.fecha')} className="nums text-[13px]">
                     {fechaHora(registro.created_at)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label={t('auditoria.accion')}>
                     <Badge variant="neutral">
                       {t(`auditoria.eventos.${registro.accion}`, {
                         defaultValue: registro.accion
@@ -184,16 +184,16 @@ export function AuditoriaPage() {
                       })}
                     </Badge>
                   </TableCell>
-                  <TableCell className="nums text-[13px] text-muted">{registro.recurso}</TableCell>
-                  <TableCell className="nums text-xs text-muted">
+                  <TableCell data-label={t('auditoria.recurso')} className="nums text-[13px] text-muted">{registro.recurso}</TableCell>
+                  <TableCell data-label={t('auditoria.usuarioId')} className="nums text-xs text-muted">
                     {registro.usuario_id ? `${registro.usuario_id.slice(0, 8)}…` : '—'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-label={t('auditoria.resultado')}>
                     <Badge variant={registro.resultado === 'exitoso' ? 'ok' : registro.resultado ? 'critical' : 'neutral'}>
                       {registro.resultado ?? '—'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="nums text-[13px] text-muted">
+                  <TableCell data-label={t('auditoria.ip')} className="nums text-[13px] text-muted">
                     {registro.ip_origen ?? '—'}
                   </TableCell>
                 </TableRow>

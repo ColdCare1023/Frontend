@@ -30,8 +30,6 @@ beforeEach(async () => {
 
 /** Sesión mínima para montar el layout, igual que en las pruebas de guardias. */
 function montarLayout() {
-  // Estas pruebas inspeccionan layout tras completar recorrido inicial.
-  localStorage.setItem('cf_onboarding_seen_v1:u-1', 'true')
   useAuthStore.setState({
     usuario: {
       id: 'u-1',

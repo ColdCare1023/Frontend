@@ -311,7 +311,7 @@ export function HistorialPage() {
 
       {/* ── Tabla ───────────────────────────────────────────── */}
       <div id="historial-datos-tabla" className="animate-rise [&_thead]:bg-cream-100 " style={{ animationDelay: '60ms' }}>
-        <Table className="table-fixed min-w-[1040px]" titulo={t('historial.titulo')} cargando={cargando}>
+        <Table mobileLayout="stack" className="table-fixed min-w-0" titulo={t('historial.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[17%] text-center">{t('historial.fecha')}</TableHead>
@@ -334,20 +334,20 @@ export function HistorialPage() {
             ) : (
               visibles.map((lectura) => (
                 <TableRow key={lectura.id}>
-                  <TableCell className="nums whitespace-nowrap text-center text-[13px]">
+                  <TableCell data-label={t('historial.fecha')} className="nums text-center text-[13px]">
                     {fechaHora(lectura.timestamp)}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap text-center text-[13px]">{lectura.device_id}</TableCell>
-                  <TableCell className="nums text-center font-medium">
+                  <TableCell data-label={t('historial.codigoEquipo')} className="text-center text-[13px]">{lectura.device_id}</TableCell>
+                  <TableCell data-label={t('historial.tempInterna')} className="nums text-center font-medium">
                     {lectura.temperatura_interna?.toFixed(1) ?? '—'} °C
                   </TableCell>
-                  <TableCell className="nums text-center text-muted">
+                  <TableCell data-label={t('historial.tempAmbiental')} className="nums text-center text-muted">
                     {lectura.temperatura_ambiental?.toFixed(1) ?? '—'} °C
                   </TableCell>
-                  <TableCell className="nums text-center text-muted">
+                  <TableCell data-label={t('historial.humedad')} className="nums text-center text-muted">
                     {lectura.humedad_ambiental?.toFixed(0) ?? '—'} %
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label={t('historial.puerta')} className="text-center">
                     {/* HU-35 criterio 4: si el dato de puerta no está disponible, null no es
                         "cerrada" — se marca aparte para no fingir un dato. */}
                     <span className="inline-flex w-full justify-center">
@@ -360,12 +360,12 @@ export function HistorialPage() {
                     )}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label={t('historial.riesgo')} className="text-center">
                     {/* HU-34: el historial también debe mostrar el riesgo
                         EFECTIVO, no la clase cruda de la IA. */}
                     <RiskBadge nivel={lectura.riesgo_efectivo} />
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell data-label={t('historial.evidenciaModelo')} className="mobile-full text-center">
                     <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={() => void abrirEvidencia(lectura)}>
                       {t('historial.verEvidencia')}
                     </Button>
