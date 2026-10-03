@@ -774,7 +774,9 @@ export function DashboardPage() {
   const [equipoElegido, setEquipoElegido] = useState<string | null>(null)
   const deviceId = equipoElegido ?? equipoMasReciente(equipos)
   const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana, deviceId)
-  const estadoIoTPrincipal = equiposConIncidencias.find((equipo) => equipo.id === DISPOSITIVO_DEMO)
+  const estadoIoTPrincipal =
+    equipos.find((equipo) => equipo.id === deviceId) ??
+    equiposConIncidencias.find((equipo) => equipo.id === (deviceId ?? DISPOSITIVO_DEMO))
   const previa = serie.at(-2) ?? null
   const resumen = useMemo(() => resumenVentana(serie), [serie])
   const lecturasRecientes = useMemo(
