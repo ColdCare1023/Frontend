@@ -77,7 +77,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
 
     // El indicador SSE sigue en línea, y no es la insignia del dispositivo:
     // ambos comparten vocabulario pero no estado.
-    const enLinea = screen.getAllByText('Actualización automática activa')
+    const enLinea = screen.getAllByText('En vivo')
     expect(enLinea.length).toBeGreaterThan(0)
     expect(enLinea.some((el) => insignia.contains(el))).toBe(false)
   })

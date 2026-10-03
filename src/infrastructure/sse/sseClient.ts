@@ -4,7 +4,10 @@ import { generarLecturaEnVivo, puedeTransmitirLecturaDemo } from '../demo/datosD
 import { MODO_DEMO } from '../demo/modoDemo'
 
 const SSE_URL = import.meta.env.VITE_SSE_URL ?? `${API_BASE_URL}/api/sse/lecturas`
-const REINTENTO_MS = 5000
+// HU-32: reconexión con backoff exponencial (1 s → 2 s → 4 s … tope 30 s);
+// vuelve a 1 s en cuanto la conexión se reabre.
+export const REINTENTO_BASE_MS = 1000
+export const REINTENTO_MAX_MS = 30_000
 const INTERVALO_DEMO_MS = 8000
 
 /** Stream simulado para el modo demo: emite una lectura nueva cada pocos segundos. */
@@ -40,10 +43,12 @@ export function suscribirseLecturas(
   let source: EventSource | null = null
   let temporizador: ReturnType<typeof setTimeout> | null = null
   let cancelado = false
+  let espera = REINTENTO_BASE_MS
 
   const reintentar = () => {
     if (cancelado) return
-    temporizador = setTimeout(conectar, REINTENTO_MS)
+    temporizador = setTimeout(conectar, espera)
+    espera = Math.min(espera * 2, REINTENTO_MAX_MS)
   }
 
   const conectar = () => {
@@ -55,7 +60,10 @@ export function suscribirseLecturas(
         if (cancelado) return
         source = new EventSource(`${SSE_URL}?ticket=${encodeURIComponent(data.ticket)}`)
 
-        source.onopen = () => onEstado?.(true)
+        source.onopen = () => {
+          espera = REINTENTO_BASE_MS
+          onEstado?.(true)
+        }
         source.onerror = () => {
           // Ticket expirado o red caída: cerramos y reconectamos con ticket fresco.
           onEstado?.(false)

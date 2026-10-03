@@ -112,7 +112,7 @@
     "excursionEvento": "Temperatura fuera del rango",
     "lecturaReciente": "Lectura reciente · hace {{s}} s",
     "ultimaLecturaHora": "Última lectura",
-    "actualizacionActiva": "Actualización automática activa",
+    "actualizacionActiva": "En vivo",
     "equipo": "Equipo",
     "actualizacionReconectando": "Reconectando al flujo de lecturas…",
     "fallaSensor": "No hay lectura de temperatura. Revisa el sensor.",
