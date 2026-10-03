@@ -344,7 +344,7 @@ export function DispositivosPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-auto min-h-9 max-w-full justify-start gap-2 whitespace-normal px-2 text-left"
+                      className="h-auto min-h-11 max-w-full justify-start gap-2 whitespace-normal px-2 text-left sm:min-h-9"
                       onClick={() => { setDispositivoActivo(dispositivo); setDialogo('sensores') }}
                       aria-label={`${(dispositivo.sensores ?? []).length} sensores. ${t('dispositivos.verMapaIoT')} — ${dispositivo.id}`}
                     >

@@ -170,12 +170,12 @@ export function GuiaPage() {
         descripcion={t('guia.descripcion')}
       />
 
-      <nav aria-label={t('guia.navegacion')} className="relative -mx-4 flex w-auto flex-nowrap gap-1 overflow-x-auto border-b border-border px-4 pb-2 text-xs after:pointer-events-none after:absolute after:right-0 after:top-0 after:h-full after:w-8 after:bg-gradient-to-l after:from-background after:to-transparent after:content-[''] sm:mx-0 sm:w-full sm:flex-wrap sm:overflow-visible sm:px-0 sm:after:hidden">
+      <nav aria-label={t('guia.navegacion')} className="grid grid-cols-2 gap-1.5 border-b border-border pb-3 text-xs sm:flex sm:flex-wrap sm:gap-x-2 sm:gap-y-0 sm:pb-2">
         {(Object.keys(ANCLAS) as (keyof typeof ANCLAS)[]).map((destino) => (
           <a
             key={destino}
             href={`#${ANCLAS[destino]}`}
-            className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 font-medium text-muted transition-colors hover:bg-primary-tint hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-3 font-medium text-muted transition-colors hover:border-primary/30 hover:bg-primary-tint hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:border-transparent sm:bg-transparent sm:px-2"
           >
             {t(`guia.nav.${destino}`)}
           </a>

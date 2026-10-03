@@ -1067,24 +1067,24 @@ export function DashboardPage() {
             </section>
           )}
 
-          <div role="status" className="mt-4 mb-4 flex flex-col gap-3 border-t border-border px-1 pt-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary">
+          <div role="status" className="mt-4 mb-4 flex items-center justify-between gap-2 border-t border-border px-1 pt-3 sm:flex-nowrap">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary-tint text-primary sm:size-8">
                 <Clock3 className="size-4" aria-hidden />
               </span>
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-xs text-muted">{t('dashboard.ultimaActualizacion')}</span>
-                <time dateTime={ultima.timestamp} className="nums text-sm font-semibold text-foreground">
+              <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0.5">
+                <span className="text-[11px] text-muted sm:text-xs">{t('dashboard.ultimaActualizacion')}</span>
+                <time dateTime={ultima.timestamp} className="nums text-xs font-semibold text-foreground sm:text-sm">
                   {formatearHora(ultima.timestamp)}
                 </time>
               </div>
             </div>
             <Link
               to="/alertas"
-              className="inline-flex min-h-11 items-center justify-center gap-2 self-start rounded-md border border-primary/20 bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary-tint sm:min-h-9 sm:self-auto"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-md border border-primary/20 bg-surface px-2 text-xs font-semibold text-primary transition-colors hover:bg-primary-tint sm:min-h-9 sm:gap-2 sm:px-3"
             >
               {t('dashboard.verAlertas')}
-              <ArrowRight className="size-3.5" aria-hidden />
+              <ArrowRight className="size-3 sm:size-3.5" aria-hidden />
             </Link>
           </div>
         </>
