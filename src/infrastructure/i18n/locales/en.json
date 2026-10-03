@@ -388,7 +388,11 @@
     "errorCuota": "Too many reports in a row. Wait a minute before generating again.",
     "periodoDias_one": "Selected period: {{count}} day.",
     "periodoDias_other": "Selected period: {{count}} days.",
-    "sinReporteDetalle": "Pick a period and generate the report to see the summary and download it as PDF, CSV or JSON."
+    "sinReporteDetalle": "Pick a period and generate the report to see the summary and download it as PDF, CSV or JSON.",
+    "incluyeLecturas": "Readings in period",
+    "incluyeAlertas": "Recorded alerts",
+    "incluyeTrazabilidad": "Traceability records",
+    "formatosDisponibles": "Available formats"
   },
   "auditoria": {
     "titulo": "Audit log",
@@ -396,12 +400,12 @@
     "filtros": "Filters",
     "fecha": "Date",
     "accion": "Action",
-    "accionPlaceholder": "E.g. LOGIN_FALLIDO",
+    "accionPlaceholder": "E.g. LOGIN",
     "ayudaAccion": "Search by the action name or exact action code.",
     "recurso": "Resource",
     "usuario": "User",
     "usuarioId": "User ID",
-    "usuarioPlaceholder": "Enter the user ID",
+    "usuarioPlaceholder": "User ID",
     "resultado": "Result",
     "exportar": "Export CSV",
     "bloqueosTemporales_one": "{{count}} temporary access lock recorded. This does not confirm an attack.",

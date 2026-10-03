@@ -388,7 +388,11 @@
     "errorCuota": "Demasiados reportes seguidos. Espera un minuto antes de volver a generar.",
     "periodoDias_one": "Periodo seleccionado: {{count}} día.",
     "periodoDias_other": "Periodo seleccionado: {{count}} días.",
-    "sinReporteDetalle": "Elige un periodo y genera el reporte para ver el resumen y descargarlo en PDF, CSV o JSON."
+    "sinReporteDetalle": "Elige un periodo y genera el reporte para ver el resumen y descargarlo en PDF, CSV o JSON.",
+    "incluyeLecturas": "Lecturas del periodo",
+    "incluyeAlertas": "Alertas registradas",
+    "incluyeTrazabilidad": "Registros de trazabilidad",
+    "formatosDisponibles": "Formatos disponibles"
   },
   "auditoria": {
     "titulo": "Bitácora de auditoría",
@@ -396,12 +400,12 @@
     "filtros": "Filtros",
     "fecha": "Fecha",
     "accion": "Acción",
-    "accionPlaceholder": "Ej.: LOGIN_FALLIDO",
+    "accionPlaceholder": "Ej.: LOGIN",
     "ayudaAccion": "Puedes filtrar por el nombre o el código exacto de la acción.",
     "recurso": "Recurso",
     "usuario": "Usuario",
     "usuarioId": "ID de usuario",
-    "usuarioPlaceholder": "Pega el ID del usuario",
+    "usuarioPlaceholder": "ID de usuario",
     "resultado": "Resultado",
     "exportar": "Exportar CSV",
     "bloqueosTemporales_one": "{{count}} bloqueo temporal de acceso registrado. Esto no confirma un ataque.",

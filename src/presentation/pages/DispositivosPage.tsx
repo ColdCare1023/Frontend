@@ -13,6 +13,7 @@ import {
 import { fechaCorta, fechaHora } from '@/lib/formato'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { rangoPagina } from '@/lib/paginacion'
+import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { ActionMenu } from '../components/ActionMenu'
 import { PageHeader } from '../components/PageHeader'
@@ -59,8 +60,9 @@ export function DispositivosPage() {
     simularEscenario,
   } = useDispositivos()
   const [pagina, setPagina] = useState(1)
+  const tamanoPagina = useResponsivePageSize()
   // Solo se pinta la página visible: estas listas crecen sin techo.
-  const visibles = useMemo(() => dispositivos.slice(...rangoPagina(pagina)), [dispositivos, pagina])
+  const visibles = useMemo(() => dispositivos.slice(...rangoPagina(pagina, tamanoPagina)), [dispositivos, pagina, tamanoPagina])
 
   const [dispositivoActivo, setDispositivoActivo] = useState<Dispositivo | null>(null)
   const [dialogo, setDialogo] = useState<DialogoActivo>(null)
@@ -455,7 +457,7 @@ export function DispositivosPage() {
             )}
           </TableBody>
         </Table>
-        <Paginacion total={dispositivos.length} pagina={pagina} onCambiar={setPagina} />
+        <Paginacion total={dispositivos.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
       </div>
 
       <Dialog open={dialogo === 'sensores'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>

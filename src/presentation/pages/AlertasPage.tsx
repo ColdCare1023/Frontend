@@ -12,6 +12,7 @@ import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTe
 import { fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { rangoPagina } from '@/lib/paginacion'
+import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { ActionMenu } from '../components/ActionMenu'
 import { Paginacion } from '../components/Paginacion'
 import { EstadoError } from '../components/EstadoPagina'
@@ -60,8 +61,9 @@ export function AlertasPage() {
     obtenerCicloAtencion,
   } = useAlertas()
   const [pagina, setPagina] = useState(1)
+  const tamanoPagina = useResponsivePageSize()
   // Solo se pinta la página visible: estas listas crecen sin techo.
-  const visibles = useMemo(() => alertas.slice(...rangoPagina(pagina)), [alertas, pagina])
+  const visibles = useMemo(() => alertas.slice(...rangoPagina(pagina, tamanoPagina)), [alertas, pagina, tamanoPagina])
 
   const [alertaSeleccionada, setAlertaSeleccionada] = useState<AlertaTermica | null>(null)
   const [descripcionAccion, setDescripcionAccion] = useState('')
@@ -264,7 +266,7 @@ export function AlertasPage() {
             )}
           </TableBody>
         </Table>
-        {!errorCarga && <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} />}
+        {!errorCarga && <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />}
       </div>
 
       {/* ── Diálogo de acción correctiva ────────────────────── */}

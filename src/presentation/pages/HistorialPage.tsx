@@ -12,6 +12,7 @@ import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
 import { temaGrafica } from '@/infrastructure/charts/temaColdCare'
 import { fechaHora, hora as formatearHora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
+import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
@@ -138,11 +139,12 @@ export function HistorialPage() {
   const { t } = useTranslation()
   const { lecturas, cargando, errorCarga, consultar } = useHistorial()
   const [pagina, setPagina] = useState(1)
+  const tamanoPagina = useResponsivePageSize()
   // La lista completa puede tener miles de filas; solo se pinta la página
   // visible. Al cambiar la lista (filtro nuevo) se vuelve a la primera.
   const visibles = useMemo(
-    () => lecturas.slice(...rangoPagina(pagina)),
-    [lecturas, pagina],
+    () => lecturas.slice(...rangoPagina(pagina, tamanoPagina)),
+    [lecturas, pagina, tamanoPagina],
   )
   const [filtros, setFiltros] = useState<FiltrosHistorial>(FILTROS_INICIALES)
   // HU-36 criterio 3: el rango inválido se bloquea en el FRONTEND antes de
@@ -375,7 +377,7 @@ export function HistorialPage() {
             )}
           </TableBody>
         </Table>
-        {!errorCarga && <Paginacion total={lecturas.length} pagina={pagina} onCambiar={setPagina} />}
+        {!errorCarga && <Paginacion total={lecturas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />}
       </div>
 
       <Dialog open={lecturaDetalle !== null} onOpenChange={(abierto) => !abierto && setLecturaDetalle(null)}>

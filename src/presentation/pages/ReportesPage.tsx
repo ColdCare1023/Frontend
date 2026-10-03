@@ -1,7 +1,7 @@
 import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Download, FileDown, FileText, FileSearch } from 'lucide-react'
+import { Bell, ClipboardList, Download, FileDown, FileSearch, FileText, Link2 } from 'lucide-react'
 
 import { useReportesBPA, MAX_DIAS_RANGO_REPORTE, diasDeRango } from '@/application/hooks/useReportesBPA'
 import { fechaCorta, fechaISOlocal } from '@/lib/formato'
@@ -126,12 +126,36 @@ export function ReportesPage() {
 
       {/* ── Resumen ─────────────────────────────────────────── */}
       {reporte === null ? (
-        <Card className="rounded-none border-0 border-b border-border bg-transparent shadow-none">
-          <CardContent className="flex items-start gap-3 px-0 py-4 text-left">
-            <span className="flex size-8 shrink-0 items-center justify-center text-muted"><FileSearch className="size-4" aria-hidden /></span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">{t('reportes.sinReporte')}</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted">{t('reportes.sinReporteDetalle')}</p>
+        <Card className="rounded-xl border-border bg-surface shadow-none">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary">
+                <FileSearch className="size-5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{t('reportes.sinReporte')}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted">{t('reportes.sinReporteDetalle')}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              {([
+                [ClipboardList, 'reportes.incluyeLecturas'],
+                [Bell, 'reportes.incluyeAlertas'],
+                [Link2, 'reportes.incluyeTrazabilidad'],
+              ] as const).map(([Icono, clave]) => (
+                <div key={clave} className="flex min-h-12 items-center gap-2.5 py-2.5 sm:px-3 sm:py-2 first:sm:pl-0 last:sm:pr-0">
+                  <Icono className="size-4 shrink-0 text-primary" aria-hidden />
+                  <span className="text-xs font-medium text-foreground">{t(clave)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <span className="mr-1 text-xs text-muted">{t('reportes.formatosDisponibles')}</span>
+              {['PDF', 'CSV', 'JSON'].map((formato) => (
+                <span key={formato} className="rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold tracking-wide text-ink-700">{formato}</span>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -162,7 +186,7 @@ export function ReportesPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <dl className="grid grid-cols-3 gap-4 text-left">
+            <dl className="grid grid-cols-2 gap-2 text-left sm:grid-cols-3 sm:gap-4">
               {(
                 [
                   ['reportes.lecturas', reporte.lecturas.length],
@@ -170,7 +194,7 @@ export function ReportesPage() {
                   ['reportes.registrosTrazabilidad', reporte.registros_trazabilidad.length],
                 ] as const
               ).map(([clave, cantidad]) => (
-                <div key={clave} className="flex flex-col gap-2 py-2">
+                <div key={clave} className="flex min-w-0 flex-col gap-2 rounded-lg bg-background p-3 sm:rounded-none sm:bg-transparent sm:p-0 sm:py-2 [&:last-child]:col-span-2 sm:[&:last-child]:col-span-1">
                   <dt className="text-xs text-muted">{t(clave)}</dt>
                   <dd className="nums text-2xl font-semibold tracking-tight">{cantidad}</dd>
                 </div>

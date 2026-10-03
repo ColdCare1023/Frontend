@@ -7,6 +7,7 @@ import type { MotivoDesactivacion, Usuario } from '@/domain/entities/Usuario'
 import { MOTIVOS_DESACTIVACION } from '@/domain/entities/Usuario'
 import { ROLES, type Rol } from '@/domain/value-objects/Rol'
 import { rangoPagina } from '@/lib/paginacion'
+import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { ActionMenu } from '../components/ActionMenu'
 import { PageHeader } from '../components/PageHeader'
@@ -37,11 +38,12 @@ export function UsuariosPage() {
   const { t } = useTranslation()
   const { usuarios, cargando, crear, desactivar, cambiarRol } = useUsuarios()
   const [pagina, setPagina] = useState(1)
+  const tamanoPagina = useResponsivePageSize()
   // La lista completa puede tener miles de filas; solo se pinta la página
   // visible. Al cambiar la lista (filtro nuevo) se vuelve a la primera.
   const visibles = useMemo(
-    () => usuarios.slice(...rangoPagina(pagina)),
-    [usuarios, pagina],
+    () => usuarios.slice(...rangoPagina(pagina, tamanoPagina)),
+    [usuarios, pagina, tamanoPagina],
   )
 
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
@@ -205,7 +207,7 @@ export function UsuariosPage() {
             )}
           </TableBody>
         </Table>
-        <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} />
+          <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
       </div>
 
       {/* ── Diálogo de cambio de rol (HU-41) ────────────────── */}

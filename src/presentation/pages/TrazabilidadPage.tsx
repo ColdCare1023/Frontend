@@ -9,6 +9,7 @@ import { apiClient } from '@/infrastructure/api/apiClient'
 import { fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { rangoPagina } from '@/lib/paginacion'
+import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
@@ -73,6 +74,7 @@ export function TrazabilidadPage() {
     verificarPorDispositivo,
   } = useTrazabilidad()
   const [pagina, setPagina] = useState(1)
+  const tamanoPagina = useResponsivePageSize()
   // HU-37: verificación acotada a un dispositivo y periodo.
   const [segmentoDeviceId, setSegmentoDeviceId] = useState('')
   const [segmentoDesde, setSegmentoDesde] = useState('')
@@ -80,8 +82,8 @@ export function TrazabilidadPage() {
   // La lista completa puede tener miles de filas; solo se pinta la página
   // visible. Al cambiar la lista (filtro nuevo) se vuelve a la primera.
   const visibles = useMemo(
-    () => registros.slice(...rangoPagina(pagina)),
-    [registros, pagina],
+    () => registros.slice(...rangoPagina(pagina, tamanoPagina)),
+    [registros, pagina, tamanoPagina],
   )
   const [tipoEvento, setTipoEvento] = useState('')
   const [mostrarSellos, setMostrarSellos] = useState(false)
@@ -438,7 +440,7 @@ export function TrazabilidadPage() {
             )}
           </TableBody>
         </Table>
-        <Paginacion total={registros.length} pagina={pagina} onCambiar={setPagina} />
+        <Paginacion total={registros.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
       </div>
 
       {/* Aislar un registro inconsistente es irreversible y afecta los datos

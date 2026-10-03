@@ -64,14 +64,14 @@ export function Paginacion({ total, pagina, onCambiar, tamano = TAMANO_PAGINA }:
 
   return (
     <nav
-      className="mt-4 flex flex-col items-center justify-between gap-3 border-t border-border pt-3 sm:flex-row"
+      className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3"
       aria-label={t('comunes.paginacion')}
     >
-      <p className="text-xs text-muted">
+      <p className="whitespace-nowrap text-[11px] text-muted sm:text-xs">
         {t('comunes.rangoMostrado', { desde, hasta, total })}
       </p>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1">
         <Button
           variant="ghost"
           size="sm"

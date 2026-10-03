@@ -6,6 +6,7 @@ import { Download, FilterX, ScrollText, SlidersHorizontal } from 'lucide-react'
 import { useAuditoria, type FiltrosAuditoria } from '@/application/hooks/useAuditoria'
 import { fechaHora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
+import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
@@ -28,11 +29,12 @@ export function AuditoriaPage() {
   const { t } = useTranslation()
   const { registros, cargando, consultar } = useAuditoria()
   const [pagina, setPagina] = useState(1)
+  const tamanoPagina = useResponsivePageSize()
   // La lista completa puede tener miles de filas; solo se pinta la página
   // visible. Al cambiar la lista (filtro nuevo) se vuelve a la primera.
   const visibles = useMemo(
-    () => registros.slice(...rangoPagina(pagina)),
-    [registros, pagina],
+    () => registros.slice(...rangoPagina(pagina, tamanoPagina)),
+    [registros, pagina, tamanoPagina],
   )
   const [filtros, setFiltros] = useState<FiltrosAuditoria>(FILTROS_INICIALES)
 
@@ -201,7 +203,7 @@ export function AuditoriaPage() {
             )}
           </TableBody>
         </Table>
-        <Paginacion total={registros.length} pagina={pagina} onCambiar={setPagina} />
+        <Paginacion total={registros.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
       </div>
     </CompactWorkspace>
   )
