@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
+import { consumirMotivoAviso } from '@/infrastructure/auth/avisoSesion'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { AuthShell } from '@/presentation/components/auth/AuthShell'
 import { ColdCareBrandPanel } from '@/presentation/components/auth/ColdCareBrandPanel'
@@ -19,7 +20,9 @@ export function LoginPage() {
   const en = i18n.language.startsWith('en')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const avisoSesion = searchParams.get('sesion')
+  // El motivo llega por `?sesion=` o, al expirar/recargar, por las marcas de
+  // sessionStorage (avisoSesion.ts). Se consume una sola vez al montar.
+  const [avisoSesion] = useState(() => searchParams.get('sesion') ?? consumirMotivoAviso())
   const shouldReduceMotion = useReducedMotion()
 
   const login = useAuthStore((state) => state.login)
