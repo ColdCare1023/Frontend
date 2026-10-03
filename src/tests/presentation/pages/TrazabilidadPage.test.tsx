@@ -62,11 +62,11 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
     montar()
     const boton = screen.getByRole('button', { name: /mostrar detalles técnicos/i })
     expect(boton).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByRole('columnheader', { name: 'Sello anterior' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /sellos/i })).not.toBeInTheDocument()
 
     await userEvent.setup().click(boton)
 
-    expect(screen.getByRole('columnheader', { name: 'Sello anterior' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /sellos/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /ocultar detalles técnicos/i })).toHaveAttribute('aria-expanded', 'true')
   })
 

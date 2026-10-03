@@ -78,18 +78,21 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     )
   })
 
-  it('permite a un farmacéutico marcar una alerta pendiente como revisada', () => {
+  it('permite a un farmacéutico marcar una alerta pendiente como revisada', async () => {
     sesionCon('farmaceutico')
     montar([alerta({ estado: 'pendiente' })])
 
-    expect(screen.getByRole('button', { name: /marcar como revisada/i })).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
+    expect(screen.getByRole('menuitem', { name: /marcar como revisada/i })).toBeInTheDocument()
   })
 
   it('abre detalle de alerta pendiente para consulta, incluso con rol auditor', async () => {
     sesionCon('auditor')
     montar([alerta({ estado: 'pendiente' })])
 
-    await userEvent.setup().click(screen.getByRole('button', { name: /cronología de atención.*FARM-01-CDL/i }))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /opciones/i }))
+    await user.click(screen.getByRole('menuitem', { name: /cronología de atención.*FARM-01-CDL/i }))
 
     const dialogo = await screen.findByRole('dialog')
     expect(dialogo).toHaveTextContent('FARM-01-CDL')
@@ -101,44 +104,50 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     montar([alerta()])
     useAlertas.mock.results[0].value.obtenerCicloAtencion.mockRejectedValue(new Error('red caída'))
 
-    await userEvent.setup().click(screen.getByRole('button', { name: /cronología de atención.*FARM-01-CDL/i }))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /opciones/i }))
+    await user.click(screen.getByRole('menuitem', { name: /cronología de atención.*FARM-01-CDL/i }))
 
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(screen.queryByText(/sin acciones/i)).not.toBeInTheDocument()
   })
 
-  it('no ofrece el botón de reconocer a un técnico (RBAC en la vista)', () => {
+  it('no ofrece el botón de reconocer a un técnico (RBAC en la vista)', async () => {
     // El backend ya rechaza la acción por rol (require_roles(FARMACEUTICO));
     // la vista no debe ofrecer un botón que solo puede terminar en un 403.
     sesionCon('tecnico')
     montar([alerta({ estado: 'pendiente' })])
 
-    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
+    expect(screen.queryByRole('menuitem', { name: /marcar como revisada/i })).not.toBeInTheDocument()
   })
 
-  it('un técnico sí puede registrar la acción correctiva aunque no reconozca', () => {
+  it('un técnico sí puede registrar la acción correctiva aunque no reconozca', async () => {
     // HU-23: registrar la acción marca ATENDIDA directamente desde
     // PENDIENTE, sin exigir el paso de reconocimiento.
     sesionCon('tecnico')
     montar([alerta({ estado: 'pendiente' })])
 
-    expect(screen.getByRole('button', { name: /acción correctiva/i })).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
+    expect(screen.getByRole('menuitem', { name: /acción correctiva/i })).toBeInTheDocument()
   })
 
-  it('no ofrece ninguna acción a un auditor (rol de solo lectura)', () => {
+  it('no ofrece ninguna acción a un auditor (rol de solo lectura)', async () => {
     sesionCon('auditor')
     montar([alerta({ estado: 'pendiente' })])
 
-    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /acción correctiva/i })).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
+    expect(screen.queryByRole('menuitem', { name: /marcar como revisada/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /acción correctiva/i })).not.toBeInTheDocument()
   })
 
-  it('no ofrece ninguna acción sobre una alerta ya atendida', () => {
+  it('no ofrece ninguna acción sobre una alerta ya atendida', async () => {
     sesionCon('farmaceutico')
     montar([alerta({ estado: 'atendida' })])
 
-    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /acción correctiva/i })).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
+    expect(screen.queryByRole('menuitem', { name: /marcar como revisada/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: /acción correctiva/i })).not.toBeInTheDocument()
   })
 
   it('avisa cuando no hay alertas para el filtro activo', () => {
@@ -156,11 +165,12 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
       setFiltro: vi.fn(),
       reconocerAlerta,
       registrarAccionCorrectiva: vi.fn(),
-    obtenerCicloAtencion: vi.fn().mockResolvedValue([]),
+      obtenerCicloAtencion: vi.fn().mockResolvedValue([]),
     })
     render(<MemoryRouter><AlertasPage /></MemoryRouter>)
 
-    await usuario.click(screen.getByRole('button', { name: /marcar como revisada/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /marcar como revisada/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/actualizada por otra persona/i)
   })

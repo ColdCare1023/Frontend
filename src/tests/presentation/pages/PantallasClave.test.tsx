@@ -456,7 +456,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const usuario = userEvent.setup()
     const { registrarAccionCorrectiva } = montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /acción correctiva/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
     await usuario.type(
       within(dialogo).getByLabelText(/descripción/i),
@@ -471,7 +472,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const usuario = userEvent.setup()
     montarAlertas({ registrarAccionCorrectiva: vi.fn().mockResolvedValue('conflicto') })
 
-    await usuario.click(screen.getByRole('button', { name: /acción correctiva/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
     await usuario.type(within(dialogo).getByLabelText(/descripción/i), 'Termostato ajustado')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
@@ -483,7 +485,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const usuario = userEvent.setup()
     const { registrarAccionCorrectiva } = montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /acción correctiva/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
 
     // Un registro de acción correctiva en blanco es peor que no tenerlo:
@@ -496,7 +499,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const usuario = userEvent.setup()
     const { registrarAccionCorrectiva } = montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /acción correctiva/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
     await usuario.type(within(dialogo).getByLabelText(/descripción/i), '   ')
 
@@ -508,7 +512,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const usuario = userEvent.setup()
     montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /acción correctiva/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
     await usuario.type(within(dialogo).getByLabelText(/descripción/i), 'Termostato ajustado')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
@@ -522,14 +527,15 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const usuario = userEvent.setup()
     montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /acción correctiva/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
 
     // El `placeholder` desaparece al escribir: no sirve como etiqueta.
     expect(within(dialogo).getByLabelText(/descripción/i)).toBeInTheDocument()
   })
 
-  it('un técnico no puede marcar una alerta como revisada (RBAC en la vista)', () => {
+  it('un técnico no puede marcar una alerta como revisada (RBAC en la vista)', async () => {
     useAuthStore.setState({
       usuario: {
         id: 'u-3',
@@ -541,15 +547,27 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
 
     })
     montarAlertas()
+    const usuario = userEvent.setup()
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
 
-    expect(screen.queryByRole('button', { name: /marcar como revisada/i })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: /marcar como revisada/i })).toBeNull()
   })
 
   it('el farmacéutico marca la alerta pendiente como revisada', async () => {
+    useAuthStore.setState({
+      usuario: {
+        id: 'u-1',
+        email: 'farma@upc.pe',
+        rol: 'farmaceutico',
+        expiraEn: Date.now() + 3600_000,
+      },
+      autenticado: true,
+    })
     const usuario = userEvent.setup()
     const { reconocerAlerta } = montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /marcar como revisada/i }))
+    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
+    await usuario.click(screen.getByRole('menuitem', { name: /marcar como revisada/i }))
 
     expect(reconocerAlerta).toHaveBeenCalledWith('a-1')
   })

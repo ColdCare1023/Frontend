@@ -199,17 +199,61 @@ function generarEstadoInicial(): EstadoDemo {
     })
   }
 
-  // Alertas: una por transición de riesgo (de menor a mayor severidad).
+  // Telemetría histórica de FARM-02-CDL: cámara fría de vacunas (~3–4 °C)
+  // que pasó a offline hace 2 minutos.
+  const finFarm2 = ahora - 2 * 60 * 1000
+  const puntosFarm2 = 300
+  const inicioFarm2 = finFarm2 - (puntosFarm2 - 1) * PASO_MS
+
+  for (let j = 0; j < puntosFarm2; j++) {
+    const ts = inicioFarm2 + j * PASO_MS
+    const faseDia = ((ts % DIA_MS) / DIA_MS) * Math.PI * 2
+    const interna = 3.5 + 0.35 * Math.sin(faseDia - Math.PI / 2) + (rng() - 0.5) * 0.2
+    const ambiental = 20.8 + 2.8 * Math.sin(faseDia - Math.PI / 2) + (rng() - 0.5) * 1.0
+    const humedad = 58 + 5 * Math.sin(faseDia + Math.PI / 3) + (rng() - 0.5) * 3
+
+    lecturas.push({
+      id: `lec-f2-${String(j).padStart(4, '0')}`,
+      device_id: 'FARM-02-CDL',
+      timestamp: new Date(ts).toISOString(),
+      schema_version: 1,
+      boot_id: 'demo-boot-02',
+      seq_no: 512 - (puntosFarm2 - 1 - j),
+      captured_at: new Date(ts).toISOString(),
+      received_at: new Date(ts + 250).toISOString(),
+      time_quality: 'ntp',
+      temperatura_interna: redondear(interna, 1),
+      temperatura_ambiental: redondear(ambiental, 1),
+      humedad_ambiental: redondear(humedad, 0),
+      apertura_refrigerador: null,
+      duracion_apertura_segundos: null,
+      umbral_puerta_abierta_segundos: 120,
+      estado_conectividad: j === puntosFarm2 - 1 ? 'offline' : 'online',
+      nivel_riesgo: clasificar(interna),
+      excursion_confirmada: false,
+      riesgo_efectivo: clasificar(interna),
+      confianza_ia: 0.9,
+      modelo_version: 'demo-3.0.0',
+      origen_clasificacion: 'random_forest',
+      estado_inferencia: 'completada',
+      motivo_no_inferencia: null,
+    })
+  }
+
+  lecturas.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
+
+  // Alertas: una por transición de riesgo (de menor a mayor severidad) por equipo.
   const alertas: AlertaTermica[] = []
-  let nivelPrevio: NivelRiesgo = 'normal'
+  const nivelPrevioPorEquipo: Record<string, NivelRiesgo> = {}
   const severidad: Record<NivelRiesgo, number> = {
     normal: 0,
     riesgo_preventivo: 1,
     excursion_critica: 2,
   }
   for (const lectura of lecturas) {
+    const prev = nivelPrevioPorEquipo[lectura.device_id] ?? 'normal'
     const nivel = lectura.nivel_riesgo ?? 'normal'
-    if (severidad[nivel] > severidad[nivelPrevio]) {
+    if (severidad[nivel] > severidad[prev]) {
       const temp = lectura.temperatura_interna?.toFixed(1)
       alertas.push({
         id: `al-${String(alertas.length + 1).padStart(3, '0')}`,
@@ -228,7 +272,7 @@ function generarEstadoInicial(): EstadoDemo {
         atendida_en: null,
       })
     }
-    nivelPrevio = nivel
+    nivelPrevioPorEquipo[lectura.device_id] = nivel
   }
   // Las alertas antiguas ya fueron atendidas (HU-23: PENDIENTE -> RECONOCIDA
   // -> ATENDIDA); quedan pendientes las recientes (incluida la excursión
@@ -430,7 +474,7 @@ let secuenciaVivo = 20_000
 
 export function generarLecturaEnVivo(): LecturaTermica {
   secuenciaVivo += 1
-  const previa = estadoDemo.lecturas.at(-1)
+  const previa = estadoDemo.lecturas.filter((l) => l.device_id === DISPOSITIVO_DEMO).at(-1)
   const basePrevia = previa?.temperatura_interna ?? 4.9
 
   const equipo = estadoDemo.dispositivos.find((dispositivo) => dispositivo.id === DISPOSITIVO_DEMO)

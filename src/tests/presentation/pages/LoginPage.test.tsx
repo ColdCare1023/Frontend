@@ -127,7 +127,7 @@ describe('LoginPage', () => {
     const user = userEvent.setup()
     montar()
 
-    const botonAuditor = screen.getByRole('button', { name: /Auditor/i })
+    const botonAuditor = screen.getByRole('button', { name: /Cajero|Auditor/i })
     expect(botonAuditor).toBeInTheDocument()
 
     await user.click(botonAuditor)

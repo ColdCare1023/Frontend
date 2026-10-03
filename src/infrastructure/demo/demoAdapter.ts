@@ -260,11 +260,20 @@ function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: str
 
 function parametros(config: InternalAxiosRequestConfig): Record<string, string> {
   const crudos = (config.params ?? {}) as Record<string, unknown>
-  return Object.fromEntries(
-    Object.entries(crudos)
-      .filter(([, v]) => v !== undefined && v !== null)
-      .map(([k, v]) => [k, String(v)]),
-  )
+  const params: Record<string, string> = {}
+  if (config.url && config.url.includes('?')) {
+    const search = config.url.split('?')[1]
+    const parsed = new URLSearchParams(search)
+    parsed.forEach((v, k) => {
+      params[k] = v
+    })
+  }
+  Object.entries(crudos)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .forEach(([k, v]) => {
+      params[k] = String(v)
+    })
+  return params
 }
 
 function cuerpoJson(config: InternalAxiosRequestConfig): Record<string, unknown> {
@@ -738,15 +747,16 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       incidente.estado === 'activo' || ahora - Date.parse(incidente.detectado_en) < 7 * 24 * 60 * 60 * 1000,
     )
     const equiposConIncidencias = equipos.filter((dispositivo) => {
-        const buffer = dispositivo.buffer_littlefs
-        const tieneIncidente = eventosRecientes.some((evento) => evento.device_id === dispositivo.id)
-        return dispositivo.estado_operativo !== 'OPERATIVO' ||
-          (buffer?.pendientes ?? 0) > 0 ||
-          (buffer?.perdidas ?? 0) > 0 ||
-          (buffer?.brechas?.length ?? 0) > 0 ||
-          tieneIncidente
-      })
-    const respuesta = equiposConIncidencias
+      const buffer = dispositivo.buffer_littlefs
+      const tieneIncidente = eventosRecientes.some((evento) => evento.device_id === dispositivo.id)
+      return dispositivo.estado_operativo !== 'OPERATIVO' ||
+        (buffer?.pendientes ?? 0) > 0 ||
+        (buffer?.perdidas ?? 0) > 0 ||
+        (buffer?.brechas?.length ?? 0) > 0 ||
+        tieneIncidente
+    })
+    const esConsultaTodos = params.todos === 'true' || params.todos === '1'
+    const respuesta = (esConsultaTodos ? equipos : equiposConIncidencias)
       .map((dispositivo) => ({
         ...dispositivo,
         buffer_littlefs: dispositivo.buffer_littlefs

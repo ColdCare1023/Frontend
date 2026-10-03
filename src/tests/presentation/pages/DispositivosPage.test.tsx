@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
@@ -51,10 +52,11 @@ function montar(dispositivos: Dispositivo[]) {
 describe('DispositivosPage (HU-43, RF-18)', () => {
   beforeEach(() => useDispositivos.mockReset())
 
-  it('muestra el device_id y su versión de firmware', () => {
+  it('muestra el device_id y su versión de firmware', async () => {
     montar([dispositivo()])
 
     expect(screen.getByText('FARM-01-CDL')).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /sensores/i }))
     expect(screen.getByText('1.0.0')).toBeInTheDocument()
   })
 

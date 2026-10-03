@@ -15,6 +15,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    env: {
+      VITE_MODO_DEMO: 'false',
+    },
     setupFiles: ['./src/tests/setup.ts'],
     include: ['src/tests/**/*.test.{ts,tsx}'],
     // Cada archivo en su propio entorno: el store de auth y el token del
