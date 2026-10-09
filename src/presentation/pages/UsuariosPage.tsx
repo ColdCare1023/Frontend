@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ShieldCheck, UserPlus, UserX, Users } from 'lucide-react'
 
 import { useUsuarios } from '@/application/hooks/useUsuarios'
+import { useAuthStore } from '@/application/stores/authStore'
 import type { MotivoDesactivacion, Usuario } from '@/domain/entities/Usuario'
 import { MOTIVOS_DESACTIVACION } from '@/domain/entities/Usuario'
 import { ROLES, type Rol } from '@/domain/value-objects/Rol'
@@ -37,6 +38,12 @@ const FORM_INICIAL = { nombre: '', email: '', password: '', rol: 'tecnico' as Ro
 export function UsuariosPage() {
   const { t } = useTranslation()
   const { usuarios, cargando, crear, desactivar, cambiarRol } = useUsuarios()
+  const sesion = useAuthStore((s) => s.usuario)
+  // HU-41: nunca puede quedar el sistema sin un administrador activo.
+  const administradoresActivos = useMemo(
+    () => usuarios.filter((u) => u.rol === 'administrador' && u.is_active).length,
+    [usuarios],
+  )
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   // La lista completa puede tener miles de filas; solo se pinta la página
@@ -77,7 +84,10 @@ export function UsuariosPage() {
       setMensajeCambioRol({ tipo: 'ok', texto: t('usuarios.rolActualizadoOk') })
       setTimeout(() => setUsuarioCambiarRol(null), 1000)
     } else {
-      setMensajeCambioRol({ tipo: 'error', texto: t('comunes.error') })
+      setMensajeCambioRol({
+        tipo: 'error',
+        texto: resultado === 'conflicto' ? t('usuarios.errorRbac') : t('comunes.error'),
+      })
     }
   }
 
@@ -93,7 +103,10 @@ export function UsuariosPage() {
       setMensajeDesactivacion({ tipo: 'ok', texto: t('usuarios.desactivadoOk') })
       setTimeout(() => setUsuarioDesactivar(null), 1000)
     } else {
-      setMensajeDesactivacion({ tipo: 'error', texto: t('comunes.error') })
+      setMensajeDesactivacion({
+        tipo: 'error',
+        texto: resultado === 'conflicto' ? t('usuarios.errorRbac') : t('comunes.error'),
+      })
     }
   }
 
@@ -171,12 +184,18 @@ export function UsuariosPage() {
                     )}
                   </TableCell>
                   <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-center">
-                    {usuario.is_active && (
+                    {usuario.is_active && usuario.id === sesion?.id && (
+                      // HU-41 (P8): un administrador no modifica su propia cuenta.
+                      <span className="text-xs text-muted">{t('usuarios.tuCuenta')}</span>
+                    )}
+                    {usuario.is_active && usuario.id !== sesion?.id && (
                       <ActionMenu label={usuario.nombre}>
                         <Button
                           variant="ghost"
                           size="sm"
                           aria-label={t('usuarios.cambiarRolA', { nombre: usuario.nombre })}
+                          disabled={usuario.rol === 'administrador' && administradoresActivos <= 1}
+                          title={usuario.rol === 'administrador' && administradoresActivos <= 1 ? t('usuarios.ultimoAdmin') : undefined}
                           onClick={() => {
                             setUsuarioCambiarRol(usuario)
                             setRolNuevo(usuario.rol)
@@ -190,6 +209,8 @@ export function UsuariosPage() {
                           variant="secondary"
                           size="sm"
                           aria-label={t('usuarios.desactivarA', { nombre: usuario.nombre })}
+                          disabled={usuario.rol === 'administrador' && administradoresActivos <= 1}
+                          title={usuario.rol === 'administrador' && administradoresActivos <= 1 ? t('usuarios.ultimoAdmin') : undefined}
                           onClick={() => {
                             setUsuarioDesactivar(usuario)
                             setMotivoDesactivacion(MOTIVOS_DESACTIVACION[0])

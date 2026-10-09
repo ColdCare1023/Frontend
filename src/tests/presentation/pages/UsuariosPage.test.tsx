@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useAuthStore } from '@/application/stores/authStore'
 import type { Usuario } from '@/domain/entities/Usuario'
 
 const useUsuarios = vi.hoisted(() => vi.fn())
@@ -63,5 +65,37 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
   it('ofrece dar de alta un usuario nuevo', () => {
     montar([usuario()])
     expect(screen.getAllByText(/nuevo usuario|crear usuario/i).length).toBeGreaterThan(0)
+  })
+})
+
+describe('UsuariosPage — HU-41: el sistema nunca queda sin administración', () => {
+  beforeEach(() => {
+    useUsuarios.mockReset()
+    useAuthStore.setState({
+      usuario: { id: 'admin-yo', email: 'yo@upc.pe', rol: 'administrador', expiraEn: Date.now() + 3600_000 },
+      autenticado: true,
+    })
+  })
+
+  it('no ofrece acciones sobre la propia cuenta del administrador', () => {
+    montar([usuario({ id: 'admin-yo', nombre: 'Yo Admin', rol: 'administrador' }), usuario()])
+
+    expect(screen.getByText('Tu cuenta')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /opciones: yo admin/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /opciones: brenda gamio/i })).toBeInTheDocument()
+  })
+
+  it('deshabilita quitar o desactivar al último administrador activo', async () => {
+    useAuthStore.setState({
+      usuario: { id: 'otro', email: 'otro@upc.pe', rol: 'administrador', expiraEn: Date.now() + 3600_000 },
+      autenticado: true,
+    })
+    montar([usuario({ id: 'admin-unico', nombre: 'Admin Único', rol: 'administrador' })])
+
+    const usuarioEvento = userEvent.setup()
+    await usuarioEvento.click(screen.getByRole('button', { name: /opciones: admin único/i }))
+    const cambiar = await screen.findByRole('menuitem', { name: /cambiar rol.*admin único/i })
+    expect(cambiar).toHaveAttribute('data-disabled')
+    expect(cambiar).toHaveAttribute('title', expect.stringMatching(/último administrador/i))
   })
 })

@@ -435,6 +435,9 @@
     }
   },
   "usuarios": {
+    "tuCuenta": "Tu cuenta",
+    "ultimoAdmin": "Es el último administrador activo: el sistema quedaría sin administración.",
+    "errorRbac": "No se puede: es tu propia cuenta o el sistema quedaría sin un administrador activo.",
     "titulo": "Usuarios y roles",
     "descripcion": "Controla quién accede al sistema y qué puede hacer según su rol",
     "nuevo": "Nuevo usuario",

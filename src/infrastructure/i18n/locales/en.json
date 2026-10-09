@@ -435,6 +435,9 @@
     }
   },
   "usuarios": {
+    "tuCuenta": "Your account",
+    "ultimoAdmin": "This is the last active administrator: the system would be left without administration.",
+    "errorRbac": "Not allowed: it is your own account or no active administrator would remain.",
     "titulo": "Users & roles",
     "descripcion": "Control who can access the system and what each role can do",
     "nuevo": "New user",
