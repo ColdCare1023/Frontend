@@ -6,6 +6,7 @@ import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
 import { apiClient } from '@/infrastructure/api/apiClient'
 
 export type ResultadoAccionAlerta = 'ok' | 'conflicto' | 'error'
+export type ResultadoRectificacion = ResultadoAccionAlerta | 'prohibido'
 
 // HU-23: filtro por la máquina de estados, no por el booleano `revisada`
 // (que el backend conserva solo por compatibilidad hacia atrás).
@@ -89,6 +90,26 @@ export function useAlertas() {
     return data
   }, [])
 
+  // HU-28: rectificar crea una acción nueva que referencia a la anterior; la
+  // original no se toca. 409: ya no es la versión vigente (alguien la
+  // rectificó antes). 403: ni autor ni farmacéutico.
+  const rectificarAccion = useCallback(
+    async (accionId: string, descripcion: string, motivo: string): Promise<ResultadoRectificacion> => {
+      try {
+        await apiClient.post(`/api/alertas/acciones-correctivas/${accionId}/rectificar`, {
+          descripcion,
+          motivo_rectificacion: motivo,
+        })
+        return 'ok'
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 409) return 'conflicto'
+        if (axios.isAxiosError(error) && error.response?.status === 403) return 'prohibido'
+        return 'error'
+      }
+    },
+    [],
+  )
+
   return {
     alertas,
     cargando,
@@ -99,5 +120,6 @@ export function useAlertas() {
     reconocerAlerta,
     registrarAccionCorrectiva,
     obtenerCicloAtencion,
+    rectificarAccion,
   }
 }

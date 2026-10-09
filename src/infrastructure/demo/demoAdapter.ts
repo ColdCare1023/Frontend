@@ -509,7 +509,17 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const propias = estadoDemo.acciones
       .filter((a) => a.alert_id === listarAcciones[1])
       .sort((a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime())
-    return responder(config, propias)
+    // HU-28 / D7: mismo contrato que el backend (vigencia y nombres resueltos).
+    const rectificadaPor = new Map(propias.filter((a) => a.corrige_accion_id).map((a) => [a.corrige_accion_id, a.id]))
+    return responder(
+      config,
+      propias.map((a) => ({
+        ...a,
+        usuario_nombre: estadoDemo.usuarios.find((u) => u.id === a.usuario_id)?.nombre ?? null,
+        rectificada_por_id: rectificadaPor.get(a.id) ?? null,
+        vigente: !rectificadaPor.has(a.id),
+      })),
+    )
   }
 
   // HU-28: corrige una justificación creando un nuevo evento que referencia
@@ -518,13 +528,18 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'post' && rectificar) {
     const anterior = estadoDemo.acciones.find((a) => a.id === rectificar[1])
     if (!anterior) fallar(config, 404, 'Acción correctiva no encontrada')
+    if (estadoDemo.acciones.some((a) => a.corrige_accion_id === anterior.id)) {
+      fallar(config, 409, 'La acción ya fue rectificada: solo se puede rectificar la versión vigente.')
+    }
+    const cuerpo = cuerpoJson(config)
     const rectificacion = {
       id: `ac-vivo-${Date.now()}`,
       alert_id: anterior.alert_id,
       usuario_id: 'u-01',
-      descripcion: String(cuerpoJson(config).descripcion ?? ''),
+      descripcion: String(cuerpo.descripcion ?? ''),
       created_at: new Date().toISOString(),
       corrige_accion_id: anterior.id,
+      motivo_rectificacion: String(cuerpo.motivo_rectificacion ?? ''),
     }
     estadoDemo.acciones.push(rectificacion)
     return responder(config, rectificacion, 201)

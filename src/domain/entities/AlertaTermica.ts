@@ -12,6 +12,9 @@ export interface AlertaTermica {
   // `estado` la fuente de verdad para la UI — no derivar nada de estos dos.
   revisada: boolean
   revisada_por: string | null
+  // D7: nombre de quien reconoció, resuelto por el backend (anonimizado si
+  // el usuario fue desactivado, HU-45).
+  revisada_por_nombre?: string | null
   created_at: string | null
   // HU-23: máquina de estados PENDIENTE -> RECONOCIDA -> ATENDIDA.
   estado: EstadoAlerta
@@ -27,4 +30,11 @@ export interface AccionCorrectiva {
   created_at: string | null
   // HU-28: referencia a la acción que esta rectifica (null si es la original).
   corrige_accion_id: string | null
+  // D7: nombre del responsable ya resuelto por el backend.
+  usuario_nombre?: string | null
+  // HU-28: motivo de la rectificación, quién la rectificó a ella y si es la
+  // versión vigente (la única que se puede volver a rectificar).
+  motivo_rectificacion?: string | null
+  rectificada_por_id?: string | null
+  vigente?: boolean
 }
