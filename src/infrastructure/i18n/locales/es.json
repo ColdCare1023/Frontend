@@ -143,6 +143,7 @@
     "dispositivo": "Dispositivo",
     "dispositivoOnline": "En línea",
     "dispositivoOffline": "Sin conexión",
+    "nodoSinConexionDesde": "Sin conexión desde las {{hora}}",
     "alertasActivas": "Alertas sin revisar",
     "verAlertas": "Ver alertas",
     "resumenMinima": "Mínima",

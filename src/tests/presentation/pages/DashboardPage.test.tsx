@@ -5,8 +5,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 
 const useMonitoreoTermico = vi.hoisted(() => vi.fn())
+// HU-13: estado del nodo según el backend. Por defecto vacío, igual que cuando
+// el endpoint no responde en pruebas.
+const equiposOperativos = vi.hoisted(() => ({ lista: [] as unknown[] }))
 
 vi.mock('@/application/hooks/useMonitoreoTermico', () => ({ useMonitoreoTermico }))
+vi.mock('@/application/hooks/useEstadoOperativo', () => ({
+  useEstadoOperativo: () => ({ equipos: equiposOperativos.lista, consultar: async () => {} }),
+}))
 
 // ECharts monta sobre un canvas real, que jsdom no implementa. La gráfica no es
 // lo que se está afirmando aquí, así que se sustituye por un marcador.
@@ -51,6 +57,24 @@ function renderizar(ultima: LecturaTermica, sseConectado = true) {
 describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
   beforeEach(() => {
     useMonitoreoTermico.mockReset()
+    equiposOperativos.lista = []
+  })
+
+  it('HU-13: muestra el estado del NODO y desde cuándo, no el de la última lectura', () => {
+    // La lectura se envió conectada (siempre lo está al enviarse); el LWT
+    // posterior dejó al nodo offline en el backend.
+    equiposOperativos.lista = [
+      {
+        id: 'FARM-01-CDL',
+        estado_conectividad: 'offline',
+        conectividad_cambiada_en: '2026-07-25T12:40:00Z',
+        estado_operativo: 'OPERATIVO',
+        ultimo_reporte_en: '2026-07-25T12:34:56Z',
+      },
+    ]
+    renderizar(lectura({ estado_conectividad: 'online' }))
+
+    expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent(/Sin conexión desde las/)
   })
 
   it('muestra el dispositivo en línea junto a su identificador', () => {

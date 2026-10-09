@@ -143,6 +143,7 @@
     "dispositivo": "Device",
     "dispositivoOnline": "Online",
     "dispositivoOffline": "Offline",
+    "nodoSinConexionDesde": "Offline since {{hora}}",
     "alertasActivas": "Unreviewed alerts",
     "verAlertas": "View alerts",
     "resumenMinima": "Minimum",

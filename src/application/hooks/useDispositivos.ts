@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 
-import type { Dispositivo, HistorialConfiguracion } from '@/domain/entities/Dispositivo'
+import { aplicarCambioConectividad, type Dispositivo, type HistorialConfiguracion } from '@/domain/entities/Dispositivo'
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 
 export function useDispositivos() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([])
@@ -21,6 +22,15 @@ export function useDispositivos() {
   useEffect(() => {
     void consultar()
   }, [consultar])
+
+  // HU-13: conectividad en vivo también en la gestión de dispositivos.
+  useEffect(
+    () =>
+      suscribirseTiempoReal({
+        onConectividad: (cambio) => setDispositivos((previos) => aplicarCambioConectividad(previos, cambio)),
+      }),
+    [],
+  )
 
   const darDeBaja = useCallback(
     async (

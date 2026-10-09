@@ -3,6 +3,8 @@ export interface Dispositivo {
   nombre: string | null
   ubicacion: string | null
   estado_conectividad: string
+  // HU-13: desde cuándo rige `estado_conectividad` («Desconectado desde…»).
+  conectividad_cambiada_en?: string | null
   activo: boolean
   firmware_version: string
   motivo_baja: string | null
@@ -92,6 +94,21 @@ export interface HistorialConfiguracion {
   valor_nuevo: string | null
   actor_id: string | null
   created_at: string
+}
+
+/**
+ * HU-13: aplica un cambio de conectividad recibido en tiempo real (evento SSE
+ * `conectividad`) sobre una lista ya cargada, sin volver a consultar la API.
+ */
+export function aplicarCambioConectividad<T extends Dispositivo>(
+  dispositivos: T[],
+  cambio: { device_id: string; estado: 'online' | 'offline'; desde: string },
+): T[] {
+  return dispositivos.map((d) =>
+    d.id === cambio.device_id
+      ? { ...d, estado_conectividad: cambio.estado, conectividad_cambiada_en: cambio.desde }
+      : d,
+  )
 }
 
 export const MOTIVOS_BAJA = ['falla_hardware', 'mantenimiento', 'reemplazo', 'fin_de_servicio'] as const

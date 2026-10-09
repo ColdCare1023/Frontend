@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import { aplicarCambioConectividad, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 
 /**
  * Estado operativo separado del riesgo térmico y de la clasificación IA.
@@ -28,6 +29,16 @@ export function useEstadoOperativo(todos = false) {
     const timer = window.setInterval(() => void consultar(), 15_000)
     return () => window.clearInterval(timer)
   }, [consultar])
+
+  // HU-13: el cambio de conectividad llega por SSE en cuanto el backend lo
+  // confirma (LWT, `online` o telemetría), sin esperar al siguiente sondeo.
+  useEffect(
+    () =>
+      suscribirseTiempoReal({
+        onConectividad: (cambio) => setEquipos((previos) => aplicarCambioConectividad(previos, cambio)),
+      }),
+    [],
+  )
 
   return { equipos, consultar }
 }
