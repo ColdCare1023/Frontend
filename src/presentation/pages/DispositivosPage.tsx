@@ -15,6 +15,7 @@ import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { rangoPagina } from '@/lib/paginacion'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
+import { BadgeConectividad } from '../components/BadgeConectividad'
 import { ActionMenu } from '../components/ActionMenu'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
@@ -332,9 +333,10 @@ export function DispositivosPage() {
                   </TableCell>
                   <TableCell data-label={t('dispositivos.conectividad')}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={dispositivo.estado_conectividad === 'online' ? 'ok' : 'neutral'}>
-                        {dispositivo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}
-                      </Badge>
+                      <BadgeConectividad
+                        estado={dispositivo.estado_conectividad}
+                        desde={dispositivo.conectividad_cambiada_en}
+                      />
                       {dispositivo.estado_operativo && dispositivo.estado_operativo !== 'OPERATIVO' && (
                         <Badge variant="critical">{t(`dispositivos.estadoOperativo.${dispositivo.estado_operativo}`)}</Badge>
                       )}

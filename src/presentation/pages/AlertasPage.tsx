@@ -2,7 +2,7 @@ import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import { BellOff, CheckCheck, ClipboardPen, History } from 'lucide-react'
+import { BellOff, CheckCheck, ClipboardPen, History, PencilLine } from 'lucide-react'
 
 import { useAlertas, type FiltroEstado } from '@/application/hooks/useAlertas'
 import { useAuthStore } from '@/application/stores/authStore'
@@ -59,6 +59,7 @@ export function AlertasPage() {
     reconocerAlerta,
     registrarAccionCorrectiva,
     obtenerCicloAtencion,
+    rectificarAccion,
   } = useAlertas()
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
@@ -80,7 +81,15 @@ export function AlertasPage() {
   const [cargandoCiclo, setCargandoCiclo] = useState(false)
   const [errorCiclo, setErrorCiclo] = useState(false)
 
+  // HU-28: rectificación en línea dentro de la cronología.
+  const [accionARectificar, setAccionARectificar] = useState<AccionCorrectiva | null>(null)
+  const [textoRectificacion, setTextoRectificacion] = useState('')
+  const [motivoRectificacion, setMotivoRectificacion] = useState('')
+  const [guardandoRectificacion, setGuardandoRectificacion] = useState(false)
+  const [errorRectificacion, setErrorRectificacion] = useState<'conflicto' | 'prohibido' | 'error' | null>(null)
+
   const verDetalle = async (alerta: AlertaTermica) => {
+    setAccionARectificar(null)
     setAlertaDetalle(alerta)
     setCiclo([])
     setErrorCiclo(false)
@@ -126,6 +135,46 @@ export function AlertasPage() {
       setGuardandoAccion(false)
     }
   }
+
+  // HU-28 (P5): rectifica su autor o un farmacéutico (el administrador por
+  // acceso implícito). El auditor nunca. Solo la versión vigente.
+  const puedeRectificar = (accion: AccionCorrectiva) =>
+    usuario !== null &&
+    accion.vigente !== false &&
+    (tienePermiso(usuario.rol, ['farmaceutico']) ||
+      (accion.usuario_id === usuario.id && tienePermiso(usuario.rol, ['tecnico'])))
+
+  const abrirRectificacion = (accion: AccionCorrectiva) => {
+    setAccionARectificar(accion)
+    setTextoRectificacion(accion.descripcion)
+    setMotivoRectificacion('')
+    setErrorRectificacion(null)
+  }
+
+  const guardarRectificacion = async () => {
+    if (!accionARectificar || !alertaDetalle) return
+    setGuardandoRectificacion(true)
+    setErrorRectificacion(null)
+    try {
+      const resultado = await rectificarAccion(
+        accionARectificar.id,
+        textoRectificacion.trim(),
+        motivoRectificacion.trim(),
+      )
+      if (resultado === 'ok') {
+        await verDetalle(alertaDetalle)
+      } else {
+        setErrorRectificacion(resultado)
+        // Otro usuario la rectificó antes: la cronología cambió.
+        if (resultado === 'conflicto') setCiclo(await obtenerCicloAtencion(alertaDetalle.id))
+      }
+    } finally {
+      setGuardandoRectificacion(false)
+    }
+  }
+
+  const fechaDeAccion = (id: string | null | undefined) =>
+    fechaHora(ciclo.find((a) => a.id === id)?.created_at ?? null)
 
   const reconocer = async (alertaId: string) => {
     setConflictoReconocer(null)
@@ -363,7 +412,9 @@ export function AlertasPage() {
                 <p className="text-[13px] font-medium">{t('alertas.eventoReconocida')}</p>
                 <p className="nums text-xs text-faint">{fechaHora(alertaDetalle.reconocida_en)}</p>
                 {alertaDetalle.revisada_por && (
-                  <p className="nums text-xs text-muted">{t('alertas.responsable')}: {alertaDetalle.revisada_por}</p>
+                  <p className="nums text-xs text-muted">
+                    {t('alertas.responsable')}: {alertaDetalle.revisada_por_nombre ?? alertaDetalle.revisada_por}
+                  </p>
                 )}
               </li>
             )}
@@ -374,12 +425,86 @@ export function AlertasPage() {
             ) : (
               ciclo.map((accion) => (
                 <li key={accion.id}>
-                  <p className="text-[13px] font-medium">
+                  <p className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
                     {accion.corrige_accion_id ? t('alertas.eventoRectificada') : t('alertas.eventoAtendida')}
+                    {accion.vigente === false && <Badge variant="outline">{t('alertas.rectificada')}</Badge>}
                   </p>
                   <p className="nums text-xs text-faint">{fechaHora(accion.created_at)}</p>
-                  <p className="nums text-xs text-muted">{t('alertas.responsable')}: {accion.usuario_id}</p>
-                  <p className="mt-1 text-[13px] text-foreground">{accion.descripcion}</p>
+                  <p className="nums text-xs text-muted">
+                    {t('alertas.responsable')}: {accion.usuario_nombre ?? accion.usuario_id}
+                  </p>
+                  {accion.corrige_accion_id && (
+                    <p className="text-xs text-muted">
+                      {t('alertas.rectificaA', { fecha: fechaDeAccion(accion.corrige_accion_id) })}
+                    </p>
+                  )}
+                  <p className={cn('mt-1 text-[13px]', accion.vigente === false ? 'text-muted' : 'text-foreground')}>
+                    {accion.descripcion}
+                  </p>
+                  {accion.motivo_rectificacion && (
+                    <p className="mt-1 text-xs text-muted">
+                      {t('alertas.motivo')}: {accion.motivo_rectificacion}
+                    </p>
+                  )}
+                  {puedeRectificar(accion) && accionARectificar?.id !== accion.id && (
+                    <Button size="sm" variant="ghost" className="mt-1" onClick={() => abrirRectificacion(accion)}>
+                      <PencilLine />
+                      {t('alertas.rectificar')}
+                    </Button>
+                  )}
+                  {accionARectificar?.id === accion.id && (
+                    <div className="mt-2 space-y-2 rounded-(--radius-field) border border-border p-3">
+                      <p className="text-xs text-muted">{t('alertas.rectificarAyuda')}</p>
+                      <div>
+                        <Label htmlFor="rectificacion-texto">{t('alertas.nuevaDescripcion')}</Label>
+                        <Textarea
+                          id="rectificacion-texto"
+                          value={textoRectificacion}
+                          onChange={(e) => setTextoRectificacion(e.target.value)}
+                          maxLength={2000}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="rectificacion-motivo">{t('alertas.motivoRectificacion')}</Label>
+                        <Textarea
+                          id="rectificacion-motivo"
+                          value={motivoRectificacion}
+                          onChange={(e) => setMotivoRectificacion(e.target.value)}
+                          maxLength={500}
+                          aria-describedby="rectificacion-motivo-ayuda"
+                        />
+                        <p id="rectificacion-motivo-ayuda" className="mt-1 text-xs text-faint">
+                          {t('alertas.motivoRectificacionAyuda')}
+                        </p>
+                      </div>
+                      {errorRectificacion && (
+                        <p role="alert" className="text-xs text-clay-700">
+                          {t(`alertas.errorRectificacion.${errorRectificacion}`)}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setAccionARectificar(null)}
+                          disabled={guardandoRectificacion}
+                        >
+                          {t('comunes.cancelar')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => void guardarRectificacion()}
+                          disabled={
+                            guardandoRectificacion ||
+                            textoRectificacion.trim().length === 0 ||
+                            motivoRectificacion.trim().length < 10
+                          }
+                        >
+                          {guardandoRectificacion ? t('alertas.guardando') : t('alertas.guardarRectificacion')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))
             )}

@@ -17,6 +17,7 @@ import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { duracionBreve, fechaHora, hora as formatearHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
+import { BadgeConectividad } from '../components/BadgeConectividad'
 import { EstadoCarga, EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { RiskBadge } from '../components/RiskBadge'
@@ -159,11 +160,13 @@ function TarjetaMetrica({
 
 function EstadoPrincipal({
   ultima,
+  equipo,
   riesgo,
   segundosDesdeUltima,
   desactualizado,
 }: {
   ultima: LecturaTermica
+  equipo?: Dispositivo
   riesgo: LecturaTermica['riesgo_efectivo']
   segundosDesdeUltima: number | null
   desactualizado: boolean
@@ -288,9 +291,14 @@ function EstadoPrincipal({
           <div className="py-1.5">
             <dt className="flex items-center gap-2 text-xs font-medium text-muted"><RadioTower className="size-4 text-primary" aria-hidden />{t('dashboard.conexionEquipo')}</dt>
             <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
-              <Badge variant={ultima.estado_conectividad === 'online' ? 'ok' : 'neutral'} dot data-testid="conectividad-dispositivo">
-                {ultima.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}
-              </Badge>
+              {/* HU-13: estado del NODO (LWT/online/telemetría), no el campo de la
+                  lectura, que siempre se envió conectada. Sin datos del equipo
+                  (modo demo) se usa el de la lectura. */}
+              <BadgeConectividad
+                estado={equipo?.estado_conectividad ?? ultima.estado_conectividad}
+                desde={equipo?.conectividad_cambiada_en}
+                testId="conectividad-dispositivo"
+              />
             </dd>
             <dd className="nums mt-1 break-all text-xs text-faint">{ultima.device_id}</dd>
           </div>
@@ -901,6 +909,7 @@ export function DashboardPage() {
           <div className="mb-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.7fr)]">
           <EstadoPrincipal
             ultima={ultima}
+            equipo={estadoIoTPrincipal}
             riesgo={ultima.riesgo_efectivo}
             segundosDesdeUltima={segundosDesdeUltima}
             desactualizado={datoDesactualizado}
