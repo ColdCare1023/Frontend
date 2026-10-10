@@ -127,17 +127,17 @@ function ContenidoSidebar({
 
   return (
     <>
-      <nav aria-label={etiquetaNav} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4">
+      <nav aria-label={etiquetaNav} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4 lg:space-y-3 lg:pb-2 [@media(max-height:760px)]:space-y-2">
         {SECCIONES.map((seccion) => {
           const visibles = seccion.items.filter((item) => tienePermiso(usuario.rol, item.roles))
           if (visibles.length === 0) return null
           const idTitulo = `${sufijoId}-${seccion.claveI18n.replace(/\./g, '-')}`
           return (
             <div key={seccion.claveI18n}>
-              <p id={idTitulo} className="mb-2 px-3 text-[11px] font-semibold uppercase leading-5 tracking-[0.12em] text-faint">
+              <p id={idTitulo} className="mb-2 px-3 text-[11px] lg:mb-1 font-semibold uppercase leading-5 tracking-[0.12em] text-faint">
                 {t(seccion.claveI18n)}
               </p>
-              <ul aria-labelledby={idTitulo} className="space-y-1">
+              <ul aria-labelledby={idTitulo} className="space-y-1 lg:space-y-0.5">
                 {visibles.map((item) => (
                   <li key={item.ruta}>
                     <NavLink
@@ -145,7 +145,7 @@ function ContenidoSidebar({
                       onClick={alNavegar}
                       className={({ isActive }) =>
                         cn(
-                          'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                          'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 lg:min-h-9 lg:py-1.5 [@media(max-height:760px)]:min-h-8 [@media(max-height:760px)]:py-1 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                           isActive
                             ? 'bg-primary-tint text-primary'
                             : 'text-muted hover:bg-background hover:text-foreground',
@@ -172,9 +172,9 @@ function ContenidoSidebar({
         })}
       </nav>
 
-      <div className="border-t border-border px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mb-3 flex items-center gap-3 px-3 py-1">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-sm font-semibold text-primary">
+      <div className="border-t border-border px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pt-2 lg:pb-3 [@media(max-height:760px)]:pt-1 [@media(max-height:760px)]:pb-2">
+        <div className="mb-3 flex items-center gap-3 px-3 py-1 lg:mb-1 lg:py-0.5 [@media(max-height:760px)]:mb-0">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full lg:size-8 bg-primary-tint text-sm font-semibold text-primary">
             {usuario.email.charAt(0).toUpperCase()}
           </span>
           <div className="min-w-0 leading-tight">
@@ -185,7 +185,7 @@ function ContenidoSidebar({
         <button
           type="button"
           onClick={cerrarSesion}
-          className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors duration-150 hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="flex min-h-11 lg:min-h-9 [@media(max-height:760px)]:min-h-8 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors duration-150 hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <LogOut className="size-4" />
           {t('nav.cerrarSesion')}
@@ -227,7 +227,7 @@ export function AppLayout() {
 
       {/* ── Sidebar de escritorio ────────────────────────────── */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-white lg:flex">
-        <div className="px-5 pb-7 pt-6">
+        <div className="px-5 pb-7 pt-6 lg:pb-4 lg:pt-5 [@media(max-height:760px)]:pb-2 [@media(max-height:760px)]:pt-3">
           <MarcaApp />
         </div>
         <ContenidoSidebar etiquetaNav={t('nav.principal')} sufijoId="nav-escritorio" />
@@ -242,7 +242,7 @@ export function AppLayout() {
             className="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[90vw] flex-col bg-white shadow-(--shadow-raised) data-[state=open]:animate-(--animate-drawer) lg:hidden"
           >
             <DialogPrimitive.Title className="sr-only">{t('app.nombre')}</DialogPrimitive.Title>
-            <div className="flex items-center justify-between gap-3 px-5 pb-6 pt-5">
+            <div className="flex items-center justify-between gap-3 px-5 pb-6 pt-5 [@media(max-height:760px)]:pb-2 [@media(max-height:760px)]:pt-2">
               <MarcaApp />
               <DialogPrimitive.Close
                 aria-label={t('comunes.cerrar')}
