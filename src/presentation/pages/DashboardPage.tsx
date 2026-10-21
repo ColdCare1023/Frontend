@@ -24,6 +24,7 @@ import { RiskBadge } from '../components/RiskBadge'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
+import { rutaApi } from '@/lib/rutaApi'
 
 // HU-35: el nodo entrega su umbral configurado; 120 s cubre respuestas de
 // backends anteriores que todavía no publican este campo.
@@ -570,7 +571,7 @@ function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<vo
     setEjecutando(escenario)
     setMensaje(null)
     try {
-      await apiClient.post(`/api/demo/dispositivos/${DISPOSITIVO_DEMO}/simulacion`, {
+      await apiClient.post(rutaApi`/api/demo/dispositivos/${DISPOSITIVO_DEMO}/simulacion`, {
         escenario,
         umbral_sin_datos_segundos: umbralSilencio,
         umbral_puerta_abierta_segundos: umbralPuerta,

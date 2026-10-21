@@ -7,6 +7,7 @@ import {
   estadoCalibracion,
   estadoCredencial,
   MOTIVOS_BAJA,
+  PATRON_DEVICE_ID,
   type CredencialRotada,
   type Dispositivo,
   type HistorialConfiguracion,
@@ -99,10 +100,15 @@ export function DispositivosPage() {
 
   const enviarNuevoDispositivo = async (event: React.FormEvent) => {
     event.preventDefault()
+    const deviceId = formNuevo.id.trim().toUpperCase()
+    if (!PATRON_DEVICE_ID.test(deviceId)) {
+      setMensaje({ tipo: 'error', texto: t('dispositivos.codigoInvalido') })
+      return
+    }
     setEnviando(true)
     setMensaje(null)
     const resultado = await registrarDispositivo({
-      device_id: formNuevo.id.trim().toUpperCase(),
+      device_id: deviceId,
       nombre: formNuevo.nombre.trim(),
       ubicacion: formNuevo.ubicacion.trim(),
       sensores: formNuevo.mc38 ? ['DS18B20', 'SHT31', 'MC-38'] : ['DS18B20', 'SHT31'],

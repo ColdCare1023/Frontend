@@ -1,4 +1,5 @@
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { rutaApi } from '@/lib/rutaApi'
 
 export interface EvidenciaInferencia {
   reading_id: string
@@ -15,7 +16,7 @@ export interface EvidenciaInferencia {
 
 export async function obtenerEvidenciaInferencia(readingId: string): Promise<EvidenciaInferencia> {
   const { data } = await apiClient.get<EvidenciaInferencia>(
-    `/api/ia/inferencias/${encodeURIComponent(readingId)}`,
+    rutaApi`/api/ia/inferencias/${readingId}`,
   )
   return data
 }

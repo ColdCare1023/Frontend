@@ -156,3 +156,9 @@ export function estadoCalibracion(dispositivo: Dispositivo, hoy: Date = new Date
   if (diasRestantes <= margenAviso) return 'proxima_a_vencer'
   return 'vigente'
 }
+
+/**
+ * FE-006: mismo patrón que el backend (BE-017) y el firmware. Un identificador
+ * fuera de él podría alterar las rutas de la API que lo interpolan.
+ */
+export const PATRON_DEVICE_ID = /^[A-Za-z0-9_-]{1,50}$/

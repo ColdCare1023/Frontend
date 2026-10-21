@@ -4,6 +4,7 @@ import axios from 'axios'
 import type { PasswordTemporal, Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { rutaApi } from '@/lib/rutaApi'
 
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -40,7 +41,7 @@ export function useUsuarios() {
   const desactivar = useCallback(
     async (usuarioId: string, motivo: string): Promise<'ok' | 'conflicto' | 'error'> => {
       try {
-        await apiClient.patch(`/api/usuarios/${usuarioId}/desactivar`, { motivo })
+        await apiClient.patch(rutaApi`/api/usuarios/${usuarioId}/desactivar`, { motivo })
         await consultar()
         return 'ok'
       } catch (error) {
@@ -57,7 +58,7 @@ export function useUsuarios() {
   const cambiarRol = useCallback(
     async (usuarioId: string, rol: Rol): Promise<'ok' | 'conflicto' | 'error'> => {
       try {
-        await apiClient.patch(`/api/usuarios/${usuarioId}/rol`, { rol })
+        await apiClient.patch(rutaApi`/api/usuarios/${usuarioId}/rol`, { rol })
         await consultar()
         return 'ok'
       } catch (error) {
@@ -74,7 +75,7 @@ export function useUsuarios() {
     async (usuarioId: string, accion: 'restablecer-password' | 'reactivar'): Promise<PasswordTemporal | null> => {
       try {
         const { data } = await apiClient.post<PasswordTemporal>(
-          `/api/usuarios/${encodeURIComponent(usuarioId)}/${accion}`,
+          rutaApi`/api/usuarios/${usuarioId}/${accion}`,
         )
         await consultar()
         return data

@@ -618,7 +618,8 @@
     "credencialRotada": "Credential rotated.",
     "sesionBrokerCerrada": "The broker closed the device's previous session.",
     "sesionBrokerNoCerrada": "The broker did not confirm closing the previous session: check EMQX.",
-    "sesionBrokerSinApi": "Broker API not configured: the previous session will end when the device reconnects."
+    "sesionBrokerSinApi": "Broker API not configured: the previous session will end when the device reconnects.",
+    "codigoInvalido": "Invalid code: use only letters, numbers, hyphen or underscore (max. 50)."
   },
   "comunes": {
     "error": "Something went wrong. Please try again.",

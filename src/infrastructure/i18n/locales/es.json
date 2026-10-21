@@ -618,7 +618,8 @@
     "credencialRotada": "Credencial rotada.",
     "sesionBrokerCerrada": "El broker cerró la sesión anterior del dispositivo.",
     "sesionBrokerNoCerrada": "El broker no confirmó el cierre de la sesión anterior: revísalo en EMQX.",
-    "sesionBrokerSinApi": "API del broker no configurada: la sesión anterior se cerrará cuando el dispositivo reconecte."
+    "sesionBrokerSinApi": "API del broker no configurada: la sesión anterior se cerrará cuando el dispositivo reconecte.",
+    "codigoInvalido": "Código no válido: usa solo letras, números, guion o guion bajo (máx. 50)."
   },
   "comunes": {
     "error": "Ocurrió un error. Intenta de nuevo.",

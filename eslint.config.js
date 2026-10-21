@@ -33,6 +33,18 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' },
       ],
+
+      // FE-006: una ruta de la API con valores interpolados se construye con
+      // `rutaApi` (codifica cada segmento y rechaza `.`/`..`), nunca con una
+      // plantilla literal: un identificador con `../`, `?` o `#` cambiaría el
+      // endpoint al que el navegador envía la petición autenticada.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.object.name='apiClient'] > TemplateLiteral[expressions.length>0]",
+          message: 'Construye la ruta con rutaApi`...` (src/lib/rutaApi.ts).',
+        },
+      ],
     },
   },
 )

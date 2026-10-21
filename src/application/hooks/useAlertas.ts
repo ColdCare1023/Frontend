@@ -4,6 +4,7 @@ import axios from 'axios'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { rutaApi } from '@/lib/rutaApi'
 
 export type ResultadoAccionAlerta = 'ok' | 'conflicto' | 'error'
 export type ResultadoRectificacion = ResultadoAccionAlerta | 'prohibido'
@@ -49,7 +50,7 @@ export function useAlertas() {
   const reconocerAlerta = useCallback(
     async (alertaId: string): Promise<ResultadoAccionAlerta> => {
       try {
-        await apiClient.patch(`/api/alertas/${alertaId}/revisar`)
+        await apiClient.patch(rutaApi`/api/alertas/${alertaId}/revisar`)
         await consultar(filtro)
         return 'ok'
       } catch (error) {
@@ -69,7 +70,7 @@ export function useAlertas() {
   const registrarAccionCorrectiva = useCallback(
     async (alertaId: string, descripcion: string): Promise<ResultadoAccionAlerta> => {
       try {
-        await apiClient.post(`/api/alertas/${alertaId}/acciones-correctivas`, { descripcion })
+        await apiClient.post(rutaApi`/api/alertas/${alertaId}/acciones-correctivas`, { descripcion })
         await consultar(filtro)
         return 'ok'
       } catch (error) {
@@ -85,7 +86,7 @@ export function useAlertas() {
   // acciones correctivas + rectificaciones, HU-28), de solo lectura.
   const obtenerCicloAtencion = useCallback(async (alertaId: string): Promise<AccionCorrectiva[]> => {
     const { data } = await apiClient.get<AccionCorrectiva[]>(
-      `/api/alertas/${alertaId}/acciones-correctivas`,
+      rutaApi`/api/alertas/${alertaId}/acciones-correctivas`,
     )
     return data
   }, [])
@@ -96,7 +97,7 @@ export function useAlertas() {
   const rectificarAccion = useCallback(
     async (accionId: string, descripcion: string, motivo: string): Promise<ResultadoRectificacion> => {
       try {
-        await apiClient.post(`/api/alertas/acciones-correctivas/${accionId}/rectificar`, {
+        await apiClient.post(rutaApi`/api/alertas/acciones-correctivas/${accionId}/rectificar`, {
           descripcion,
           motivo_rectificacion: motivo,
         })

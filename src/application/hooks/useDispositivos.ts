@@ -9,6 +9,7 @@ import {
 } from '@/domain/entities/Dispositivo'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
+import { rutaApi } from '@/lib/rutaApi'
 
 export function useDispositivos() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([])
@@ -45,7 +46,7 @@ export function useDispositivos() {
       deviceIdReemplazo: string | undefined,
     ): Promise<'ok' | 'no_encontrado' | 'error'> => {
       try {
-        await apiClient.post(`/api/dispositivos/${deviceId}/baja`, {
+        await apiClient.post(rutaApi`/api/dispositivos/${deviceId}/baja`, {
           motivo,
           descripcion: descripcion || undefined,
           device_id_reemplazo: deviceIdReemplazo || undefined,
@@ -71,7 +72,7 @@ export function useDispositivos() {
       margenAvisoDias: number,
     ): Promise<'ok' | 'error'> => {
       try {
-        await apiClient.patch(`/api/dispositivos/${deviceId}/calibracion`, {
+        await apiClient.patch(rutaApi`/api/dispositivos/${deviceId}/calibracion`, {
           fecha_calibracion: fechaCalibracion,
           numero_certificado: numeroCertificado,
           observaciones: observaciones || undefined,
@@ -96,7 +97,7 @@ export function useDispositivos() {
       observaciones: string | undefined,
     ): Promise<'ok' | 'error'> => {
       try {
-        await apiClient.patch(`/api/dispositivos/${deviceId}/instalacion`, {
+        await apiClient.patch(rutaApi`/api/dispositivos/${deviceId}/instalacion`, {
           ubicacion: ubicacion || undefined,
           fecha_instalacion: fechaInstalacion || undefined,
           observaciones: observaciones || undefined,
@@ -119,7 +120,7 @@ export function useDispositivos() {
       telefono: string | undefined,
     ): Promise<'ok' | 'error'> => {
       try {
-        await apiClient.patch(`/api/dispositivos/${deviceId}/responsable`, {
+        await apiClient.patch(rutaApi`/api/dispositivos/${deviceId}/responsable`, {
           nombre: nombre || undefined,
           email: email || undefined,
           telefono: telefono || undefined,
@@ -138,7 +139,7 @@ export function useDispositivos() {
   const obtenerHistorialConfiguracion = useCallback(
     async (deviceId: string): Promise<HistorialConfiguracion[]> => {
       const { data } = await apiClient.get<HistorialConfiguracion[]>(
-        `/api/dispositivos/${deviceId}/historial-configuracion`,
+        rutaApi`/api/dispositivos/${deviceId}/historial-configuracion`,
       )
       return data
     },
@@ -168,7 +169,7 @@ export function useDispositivos() {
     async (deviceId: string, motivo: string): Promise<CredencialRotada | null> => {
       try {
         const { data } = await apiClient.post<CredencialRotada>(
-          `/api/dispositivos/${encodeURIComponent(deviceId)}/credenciales/rotar`,
+          rutaApi`/api/dispositivos/${deviceId}/credenciales/rotar`,
           { motivo },
         )
         await consultar()
@@ -183,7 +184,7 @@ export function useDispositivos() {
   const revocarCredencial = useCallback(
     async (deviceId: string, motivo: string): Promise<'revocada' | 'error'> => {
       try {
-        await apiClient.post(`/api/dispositivos/${encodeURIComponent(deviceId)}/credenciales/revocar`, { motivo })
+        await apiClient.post(rutaApi`/api/dispositivos/${deviceId}/credenciales/revocar`, { motivo })
         await consultar()
         return 'revocada'
       } catch {
@@ -198,7 +199,7 @@ export function useDispositivos() {
     escenario: 'sin_datos' | 'buffer_pendiente' | 'buffer_lleno' | 'falla_sensor' | 'puerta_abierta' | 'puerta_cerrada' | 'recuperar',
   ): Promise<boolean> => {
     try {
-      await apiClient.post(`/api/demo/dispositivos/${deviceId}/simulacion`, { escenario })
+      await apiClient.post(rutaApi`/api/demo/dispositivos/${deviceId}/simulacion`, { escenario })
       await consultar()
       return true
     } catch {

@@ -8,6 +8,7 @@ import type {
   VerificacionSegmento,
 } from '@/domain/entities/RegistroTrazabilidad'
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { rutaApi } from '@/lib/rutaApi'
 
 export function useTrazabilidad() {
   const [registros, setRegistros] = useState<RegistroTrazabilidad[]>([])
@@ -87,7 +88,7 @@ export function useTrazabilidad() {
   const aislarCorrupcion = useCallback(
     async (registroId: string): Promise<'ok' | 'error'> => {
       try {
-        await apiClient.post(`/api/trazabilidad/corrupcion/${registroId}/aislar`)
+        await apiClient.post(rutaApi`/api/trazabilidad/corrupcion/${registroId}/aislar`)
         await consultarEstadoCadena()
         return 'ok'
       } catch {
