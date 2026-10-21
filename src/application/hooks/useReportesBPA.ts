@@ -6,6 +6,7 @@ import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import type { RegistroTrazabilidad } from '@/domain/entities/RegistroTrazabilidad'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import i18n from '@/infrastructure/i18n'
+import { numeroCsv, textoCsv } from '@/lib/csv'
 import { fechaHora } from '@/lib/formato'
 
 function descargarBlob(contenido: BlobPart, tipo: string, nombre: string): void {
@@ -16,14 +17,6 @@ function descargarBlob(contenido: BlobPart, tipo: string, nombre: string): void 
   enlace.download = nombre
   enlace.click()
   URL.revokeObjectURL(url)
-}
-
-function campoCsv(valor: string): string {
-  // Excel y LibreOffice evalúan celdas que empiezan por fórmula incluso si
-  // proceden de campos de datos. La comilla simple conserva el valor visible
-  // como texto y se aplica antes del escape CSV convencional.
-  const seguro = /^[=+\-@]/.test(valor.trimStart()) ? `'${valor}` : valor
-  return /[";\n]/.test(seguro) ? `"${seguro.replaceAll('"', '""')}"` : seguro
 }
 
 /**
@@ -144,27 +137,29 @@ export function useReportesBPA() {
       t('historial.puerta'),
       t('historial.riesgo'),
     ]
+    // FE-010: los textos se neutralizan; las temperaturas (posiblemente
+    // negativas) salen como números, sin prefijo que las convierta en texto.
     const filas = reporte.lecturas.map((l) =>
       [
-        fechaHora(l.timestamp),
-        l.device_id,
-        l.temperatura_interna?.toFixed(1) ?? '',
-        l.temperatura_ambiental?.toFixed(1) ?? '',
-        l.humedad_ambiental?.toFixed(0) ?? '',
-        l.apertura_refrigerador === null
-          ? t('dashboard.puertaSinSensor')
-          : l.apertura_refrigerador
-            ? t('dashboard.puertaAbierta')
-            : t('dashboard.puertaCerrada'),
+        textoCsv(fechaHora(l.timestamp)),
+        textoCsv(l.device_id),
+        numeroCsv(l.temperatura_interna, 1),
+        numeroCsv(l.temperatura_ambiental, 1),
+        numeroCsv(l.humedad_ambiental, 0),
+        textoCsv(
+          l.apertura_refrigerador === null
+            ? t('dashboard.puertaSinSensor')
+            : l.apertura_refrigerador
+              ? t('dashboard.puertaAbierta')
+              : t('dashboard.puertaCerrada'),
+        ),
         // HU-34: un reporte de cumplimiento no puede presentar la clase
         // cruda de la IA como si fuera el veredicto — es `riesgo_efectivo`.
-        l.riesgo_efectivo ? t(`riesgo.${l.riesgo_efectivo}`) : '',
-      ]
-        .map(campoCsv)
-        .join(';'),
+        textoCsv(l.riesgo_efectivo ? t(`riesgo.${l.riesgo_efectivo}`) : ''),
+      ].join(';'),
     )
     // BOM UTF-8 + separador ';' para que Excel en español lo abra directo.
-    const csv = '\uFEFF' + [cabecera.map(campoCsv).join(';'), ...filas].join('\r\n')
+    const csv = '\uFEFF' + [cabecera.map(textoCsv).join(';'), ...filas].join('\r\n')
     descargarBlob(
       csv,
       'text/csv;charset=utf-8',
