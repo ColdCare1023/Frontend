@@ -40,12 +40,32 @@ export function setOnSesionExpirada(handler: () => void): void {
   onSesionExpirada = handler
 }
 
+let onPrivacidadRequerida: (() => void) | null = null
+
+/**
+ * FE-005: el backend responde 403 a cualquier recurso mientras falte el
+ * consentimiento de la versión VIGENTE de la política (p. ej. si cambia de
+ * versión durante la sesión). El manejador reabre el modal de consentimiento.
+ */
+export function setOnPrivacidadRequerida(handler: () => void): void {
+  onPrivacidadRequerida = handler
+}
+
+const DETALLE_PRIVACIDAD = /pol[ií]tica de privacidad/i
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401 && accessToken) {
       accessToken = null
       onSesionExpirada?.()
+    }
+    if (
+      axios.isAxiosError(error) &&
+      error.response?.status === 403 &&
+      DETALLE_PRIVACIDAD.test(String((error.response.data as { detail?: unknown } | undefined)?.detail ?? ''))
+    ) {
+      onPrivacidadRequerida?.()
     }
     return Promise.reject(error)
   },

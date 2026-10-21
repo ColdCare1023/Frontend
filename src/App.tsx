@@ -2,10 +2,11 @@ import { Suspense, lazy, useEffect, type ComponentType, type ReactNode } from 'r
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
-import { setOnSesionExpirada } from '@/infrastructure/api/apiClient'
+import { setOnPrivacidadRequerida, setOnSesionExpirada } from '@/infrastructure/api/apiClient'
 import { marcarSesionExpirada } from '@/infrastructure/auth/avisoSesion'
 import { useAuthStore } from '@/application/stores/authStore'
 import { ErrorBoundary } from '@/presentation/components/ErrorBoundary'
+import { PrivacyConsentModal } from '@/presentation/components/PrivacyConsentModal'
 import { RequireAuth, RequirePasswordPropia, RequireRoles } from '@/presentation/components/RouteGuards'
 import { CambiarPasswordPage } from '@/presentation/pages/CambiarPasswordPage'
 import { LoginPage } from '@/presentation/pages/LoginPage'
@@ -115,7 +116,21 @@ function SesionExpiradaListener() {
     })
   }, [logout, navigate])
 
+  // FE-005: un 403 por consentimiento a mitad de sesión reabre el modal.
+  useEffect(() => {
+    setOnPrivacidadRequerida(() => useAuthStore.setState({ requierePrivacidad: true }))
+  }, [])
+
   return null
+}
+
+/** FE-005: tras cambiar una contraseña temporal (FE-004), el consentimiento. */
+function ConsentimientoPrivacidad() {
+  const autenticado = useAuthStore((s) => s.autenticado)
+  const requierePrivacidad = useAuthStore((s) => s.requierePrivacidad)
+  const requiereCambioPassword = useAuthStore((s) => s.requiereCambioPassword)
+  if (!autenticado || !requierePrivacidad || requiereCambioPassword) return null
+  return <PrivacyConsentModal />
 }
 
 export function App() {
@@ -172,6 +187,7 @@ export function App() {
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <ConsentimientoPrivacidad />
       </BrowserRouter>
     </ErrorBoundary>
   )

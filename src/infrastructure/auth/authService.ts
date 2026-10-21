@@ -6,6 +6,8 @@ interface TokenResponse {
   token_type: string
   /** BE-025: contraseña temporal asignada por un administrador. */
   require_password_change?: boolean
+  /** HU-44 / BE-014: falta el consentimiento de la versión vigente. */
+  require_privacy_consent?: boolean
 }
 
 export interface SesionUsuario {
@@ -20,10 +22,16 @@ export interface ResultadoLogin {
   accessToken: string
   /** FE-004: el backend solo admite el cambio de contraseña hasta resolverlo. */
   requiereCambioPassword: boolean
+  /** FE-005: el backend responde 403 hasta que se acepte la política. */
+  requierePrivacidad: boolean
 }
 
 function resultado(data: TokenResponse): ResultadoLogin {
-  return { accessToken: data.access_token, requiereCambioPassword: Boolean(data.require_password_change) }
+  return {
+    accessToken: data.access_token,
+    requiereCambioPassword: Boolean(data.require_password_change),
+    requierePrivacidad: Boolean(data.require_privacy_consent),
+  }
 }
 
 export async function login(email: string, password: string): Promise<ResultadoLogin> {

@@ -19,6 +19,8 @@ interface AuthState {
    * administrador). Hasta cambiarla, el backend responde 403 a todo lo demás.
    */
   requiereCambioPassword: boolean
+  /** FE-005: falta el consentimiento de la política de privacidad vigente. */
+  requierePrivacidad: boolean
   login: (email: string, password: string) => Promise<void>
   /**
    * FE-001: la sesión solo se abre con un token que el backend acaba de
@@ -28,6 +30,9 @@ interface AuthState {
   loginConGoogle: (idToken: string) => Promise<void>
   /** FE-004: cambia la contraseña e instala el token nuevo que emite el backend. */
   cambiarPassword: (actual: string, nueva: string) => Promise<void>
+  aceptarPrivacidad: () => Promise<void>
+  /** El backend revoca el token; la sesión local se cierra igualmente. */
+  rechazarPrivacidad: () => Promise<void>
   /**
    * `revocar: false` para el cierre provocado por una sesión ya expirada:
    * el token no sirve, así que pedir su revocación solo produciría un 401.
@@ -43,11 +48,11 @@ interface AuthState {
 function aplicarSesion(
   set: (estado: Partial<AuthState>) => void,
   accessToken: string,
-  requiereCambioPassword = false,
+  { requiereCambioPassword = false, requierePrivacidad = false } = {},
 ): void {
   setAccessToken(accessToken)
   marcarSesionActiva()
-  set({ usuario: decodificarSesion(accessToken), autenticado: true, requiereCambioPassword })
+  set({ usuario: decodificarSesion(accessToken), autenticado: true, requiereCambioPassword, requierePrivacidad })
 }
 
 /**
@@ -58,23 +63,46 @@ export const useAuthStore = create<AuthState>((set) => ({
   usuario: null,
   autenticado: false,
   requiereCambioPassword: false,
+  requierePrivacidad: false,
 
   login: async (email, password) => {
-    const { accessToken, requiereCambioPassword } = await loginService(email, password)
-    aplicarSesion(set, accessToken, requiereCambioPassword)
+    const { accessToken, ...requisitos } = await loginService(email, password)
+    aplicarSesion(set, accessToken, requisitos)
   },
 
   loginConGoogle: async (idToken) => {
-    const { accessToken, requiereCambioPassword } = await loginConGoogleService(idToken)
-    aplicarSesion(set, accessToken, requiereCambioPassword)
+    const { accessToken, ...requisitos } = await loginConGoogleService(idToken)
+    aplicarSesion(set, accessToken, requisitos)
   },
 
   cambiarPassword: async (actual, nueva) => {
     // El backend invalida todas las sesiones previas, incluida la actual, y
     // devuelve un token nuevo: hay que sustituirlo o la siguiente petición
     // terminaría en 401.
-    const { accessToken } = await cambiarPasswordService(actual, nueva)
-    aplicarSesion(set, accessToken, false)
+    const { accessToken, requierePrivacidad } = await cambiarPasswordService(actual, nueva)
+    aplicarSesion(set, accessToken, { requierePrivacidad })
+  },
+
+  aceptarPrivacidad: async () => {
+    await apiClient.post('/api/auth/privacidad/aceptar')
+    set({ requierePrivacidad: false })
+  },
+
+  rechazarPrivacidad: async () => {
+    // El token se retira ANTES de la llamada: el backend responde 401 a
+    // propósito (revoca la sesión) y, con el token aún instalado, el
+    // interceptor lo trataría como una sesión expirada.
+    const token = getAccessToken()
+    setAccessToken(null)
+    if (token && !MODO_DEMO) {
+      await apiClient
+        .post('/api/auth/privacidad/rechazar', undefined, { headers: { Authorization: `Bearer ${token}` } })
+        .catch(() => {
+          // 401 esperado: el servidor ya revocó el token.
+        })
+    }
+    limpiarSesionActiva()
+    set({ usuario: null, autenticado: false, requiereCambioPassword: false, requierePrivacidad: false })
   },
 
   logout: ({ revocar = true } = {}) => {
@@ -101,6 +129,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     setAccessToken(null)
     limpiarSesionActiva()
-    set({ usuario: null, autenticado: false, requiereCambioPassword: false })
+    set({ usuario: null, autenticado: false, requiereCambioPassword: false, requierePrivacidad: false })
   },
 }))

@@ -461,6 +461,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'post' && url === '/api/auth/sse-ticket') {
     return responder(config, { ticket: 'ticket-demo' })
   }
+  // FE-005: consentimiento (HU-44). La demo lo registra sin persistirlo.
+  if (metodo === 'post' && url === '/api/auth/privacidad/aceptar') {
+    return responder(config, { privacy_accepted: true, privacy_version_accepted: '1.0' })
+  }
+  if (metodo === 'post' && url === '/api/auth/privacidad/rechazar') {
+    fallar(config, 401, 'Consentimiento rechazado: sesión cerrada')
+  }
   // FE-004: mismo contrato que BE-025. La demo no envía correos (503, como un
   // backend sin SMTP) y todas las cuentas demo usan la contraseña común.
   if (metodo === 'post' && url === '/api/auth/recuperar-password') {
