@@ -63,6 +63,8 @@ const csp = [
 
 const configuracion = {
   $schema: 'https://openapi.vercel.sh/vercel.json',
+  // FE-002: `npm run build` compila contra el backend real (--mode backend);
+  // la demo es siempre una elección explícita.
   buildCommand: backend ? 'npm run build' : 'npm run build:demo',
   rewrites: [{ source: '/((?!api/).*)', destination: '/index.html' }],
   headers: [

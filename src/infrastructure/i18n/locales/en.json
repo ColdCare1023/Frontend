@@ -213,7 +213,9 @@
         "titulo": "Cashier",
         "descripcion": "Records access"
       }
-    }
+    },
+    "avisoTitulo": "Simulated data",
+    "avisoDetalle": "Demo mode: no temperature, alert or verification on this screen comes from a real refrigerator."
   },
   "historial": {
     "titulo": "Reading history",
@@ -308,7 +310,11 @@
     "motivoRectificacion": "Reason for the amendment",
     "motivoRectificacionAyuda": "10 to 500 characters. It stays in the history next to the correction.",
     "guardarRectificacion": "Save amendment",
-    "errorRectificacion": {"conflicto": "Someone already amended this action. The timeline was refreshed.", "prohibido": "Only the action's author or a pharmacist can amend it.", "error": "The amendment could not be saved. Please try again."},
+    "errorRectificacion": {
+      "conflicto": "Someone already amended this action. The timeline was refreshed.",
+      "prohibido": "Only the action's author or a pharmacist can amend it.",
+      "error": "The amendment could not be saved. Please try again."
+    },
     "sinAcciones": "No corrective actions logged yet.",
     "fecha": "Date",
     "mensaje": "Message",

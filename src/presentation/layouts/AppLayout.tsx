@@ -97,6 +97,27 @@ function BadgeDemo({ className }: { className?: string }) {
 }
 
 /**
+ * FE-002: aviso persistente en TODAS las pantallas y tamaños (la insignia de
+ * la cabecera se oculta en móvil). En un sistema de cadena de frío, confundir
+ * datos simulados con reales puede ocultar una excursión térmica verdadera.
+ */
+function AvisoDatosSimulados() {
+  const { t } = useTranslation()
+  if (!MODO_DEMO) return null
+  return (
+    <div
+      role="status"
+      className="flex items-center gap-2 border-b border-amber-300 bg-amber-50 px-4 py-1.5 text-xs text-amber-900 sm:px-6 lg:px-7"
+    >
+      <FlaskConical aria-hidden className="size-3.5 shrink-0" />
+      <p>
+        <strong className="font-semibold">{t('demo.avisoTitulo')}.</strong> {t('demo.avisoDetalle')}
+      </p>
+    </div>
+  )
+}
+
+/**
  * Contenido del sidebar, compartido entre escritorio y el drawer móvil.
  *
  * `sufijoId` distingue las dos instancias: con el drawer abierto hay dos `nav`
@@ -263,6 +284,7 @@ export function AppLayout() {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* FS5: por encima de la cabecera, para que se vea en cualquier ruta. */}
           <AvisoExpiracionSesion />
+          <AvisoDatosSimulados />
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-[#E2E8F0] bg-white px-4 sm:px-6 lg:px-7">
             <DialogPrimitive.Trigger
               aria-label={t('nav.abrirMenu')}

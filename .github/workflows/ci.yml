@@ -36,3 +36,11 @@ jobs:
 
       - name: Build (demo)
         run: npm run build:demo
+
+      # FE-002: un build sin modo de datos explícito debe fallar, nunca caer
+      # en demo por omisión.
+      - name: Build sin modo explícito falla
+        run: |
+          if npx vite build --outDir /tmp/build-sin-modo; then
+            echo "El build sin VITE_MODO_DEMO no falló" && exit 1
+          fi

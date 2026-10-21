@@ -5,10 +5,10 @@
   "description": "Dashboard web de monitoreo IoT de cadena de frío farmacéutica — Tesis UPC 2026",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode backend",
     "dev:demo": "vite --mode demo",
     "dev:backend": "cross-env VITE_MODO_DEMO=false vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build --mode backend",
     "build:demo": "tsc -b && vite build --mode demo",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest",
