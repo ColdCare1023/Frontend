@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 
 import { apiClient, getAccessToken, setAccessToken } from '@/infrastructure/api/apiClient'
-import { decodificarSesion, login as loginService } from '@/infrastructure/auth/authService'
+import {
+  decodificarSesion,
+  loginConGoogle as loginConGoogleService,
+  login as loginService,
+} from '@/infrastructure/auth/authService'
 import type { SesionUsuario } from '@/infrastructure/auth/authService'
 import { limpiarSesionActiva, marcarSesionActiva } from '@/infrastructure/auth/avisoSesion'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
@@ -10,7 +14,12 @@ interface AuthState {
   usuario: SesionUsuario | null
   autenticado: boolean
   login: (email: string, password: string) => Promise<void>
-  loginConToken: (accessToken: string) => void
+  /**
+   * FE-001: la sesión solo se abre con un token que el backend acaba de
+   * emitir (contraseña o ID token de Google verificado en el servidor). No
+   * existe una vía para instalar un token arbitrario.
+   */
+  loginConGoogle: (idToken: string) => Promise<void>
   /**
    * `revocar: false` para el cierre provocado por una sesión ya expirada:
    * el token no sirve, así que pedir su revocación solo produciría un 401.
@@ -45,7 +54,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     aplicarSesion(set, accessToken)
   },
 
-  loginConToken: (accessToken: string) => {
+  loginConGoogle: async (idToken) => {
+    const { accessToken } = await loginConGoogleService(idToken)
     aplicarSesion(set, accessToken)
   },
 

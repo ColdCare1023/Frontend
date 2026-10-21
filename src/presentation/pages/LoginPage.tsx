@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { motion, useReducedMotion } from 'motion/react'
@@ -10,7 +10,7 @@ import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { AuthShell } from '@/presentation/components/auth/AuthShell'
 import { ColdCareBrandPanel } from '@/presentation/components/auth/ColdCareBrandPanel'
 import { DemoRoleGrid } from '@/presentation/components/auth/DemoRoleGrid'
-import { SocialAuthSection } from '@/presentation/components/auth/SocialAuthSection'
+import { GoogleAuthSection } from '@/presentation/components/auth/GoogleAuthSection'
 import { submitButtonMotion } from '@/presentation/components/auth/loginMotion'
 import { Input } from '@/presentation/components/ui/input'
 
@@ -26,7 +26,7 @@ export function LoginPage() {
   const shouldReduceMotion = useReducedMotion()
 
   const login = useAuthStore((state) => state.login)
-  const loginConToken = useAuthStore((state) => state.loginConToken)
+  const loginConGoogle = useAuthStore((state) => state.loginConGoogle)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -80,10 +80,9 @@ export function LoginPage() {
 
   const entrarDemo = (correo: string) => autenticar(correo, 'demo-2026')
 
-  const manejarExitoSocial = (token: string) => {
-    loginConToken(token)
+  const irAlPanel = useCallback(() => {
     void navigate('/dashboard', { replace: true })
-  }
+  }, [navigate])
 
   return (
     <AuthShell brandPanel={<ColdCareBrandPanel />}>
@@ -212,12 +211,9 @@ export function LoginPage() {
             )}
           </motion.button>
 
-          {/* Autenticación Social (Google y Facebook con validación RBAC) */}
-          <SocialAuthSection
-            onSuccess={manejarExitoSocial}
-            disabled={cargando}
-            hintEmail={email}
-          />
+          {/* FE-001: Google real (ID token verificado por el backend); sin
+              VITE_GOOGLE_CLIENT_ID no se muestra. */}
+          <GoogleAuthSection onIdToken={loginConGoogle} onExito={irAlPanel} />
 
           {/* Enlace solicitar acceso */}
           <div className="pt-1.5 text-center text-xs text-muted">

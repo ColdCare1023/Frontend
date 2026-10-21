@@ -26,6 +26,19 @@ export async function login(email: string, password: string): Promise<ResultadoL
   return { accessToken: data.access_token }
 }
 
+/**
+ * FE-001: canjea el ID token de Google por el JWT interno del sistema.
+ *
+ * Google solo acredita la identidad; la sesión la decide el backend, que
+ * verifica el token contra el JWKS de Google y exige que el correo esté dado
+ * de alta y activo. El token que vuelve es el mismo JWT que el del acceso con
+ * contraseña.
+ */
+export async function loginConGoogle(idToken: string): Promise<ResultadoLogin> {
+  const { data } = await apiClient.post<TokenResponse>('/api/auth/google', { id_token: idToken })
+  return { accessToken: data.access_token }
+}
+
 /** Decodifica el payload del JWT (sin verificar firma: eso lo hace el backend). */
 export function decodificarSesion(token: string): SesionUsuario {
   const segmento = token.split('.')[1]

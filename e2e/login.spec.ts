@@ -52,24 +52,12 @@ test('login real de demo usa credenciales conocidas y limita intentos sin revela
   }
 })
 
-test('autenticación social con Google muestra aviso contextual y guía a solicitar acceso si la cuenta no tiene rol', async ({ page }) => {
-  await page.goto('/login')
-  const botonGoogle = page.getByRole('button', { name: /Continuar con Google/i })
-  await expect(botonGoogle).toBeVisible()
-
-  await botonGoogle.click()
-  const aviso = page.getByRole('status')
-  await expect(aviso).toContainText(/Tu cuenta se autenticó correctamente, pero aún no tiene acceso al sistema/i)
-
-  const enlaceSolicitar = page.getByRole('link', { name: /Solicitar acceso al administrador/i })
-  await expect(enlaceSolicitar).toBeVisible()
-  await enlaceSolicitar.click()
-  await expect(page).toHaveURL(/\/solicitar-acceso\?email=/)
-})
-
-test('autenticación social con Google inicia sesión directamente si la cuenta federada está autorizada', async ({ page }) => {
+// FE-001: ya no existen botones sociales simulados. Sin VITE_GOOGLE_CLIENT_ID
+// no se ofrece Google, y Facebook se retiró (el backend no lo respalda).
+test('el login no ofrece acceso social simulado', async ({ page }) => {
   await page.goto('/login')
   await page.locator('#login-email').fill('admin@demo.pe')
-  await page.getByRole('button', { name: /Continuar con Google/i }).click()
-  await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(page.getByRole('button', { name: /Google/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Facebook/i })).toHaveCount(0)
+  await expect(page).toHaveURL(/\/login$/)
 })

@@ -36,12 +36,8 @@
     "avisoSeguridadPie": "Acceso protegido con cifrado en tránsito y autenticación basada en tokens volátiles (en memoria).",
     "sesionCerradaRecarga": "Por tu seguridad, la sesión se cierra al recargar la página. Vuelve a ingresar.",
     "continuarCon": "o continúa con",
-    "continuarGoogle": "Continuar con Google",
-    "continuarFacebook": "Continuar con Facebook",
-    "cuentaAutenticadaSinAcceso": "Tu cuenta se autenticó correctamente, pero aún no tiene acceso al sistema.",
-    "detalleCuentaFederada": "La cuenta {{email}} ({{proveedor}}) no está vinculada a ningún rol activo en esta farmacia.",
-    "solicitarAccesoBoton": "Solicitar acceso al administrador",
-    "errorAutenticacionSocial": "No se pudo completar la autenticación con el proveedor. Intenta de nuevo."
+    "googleNoAutorizado": "Tu cuenta de Google no tiene acceso a ColdCare. Pide al administrador que la dé de alta.",
+    "googleNoDisponible": "El acceso con Google no está disponible en este momento."
   },
   "nav": {
     "dashboard": "Monitoreo",

@@ -36,12 +36,8 @@
     "avisoSeguridadPie": "Protected access with in-transit encryption and volatile in-memory token authentication.",
     "sesionCerradaRecarga": "For your security, the session closes when the page reloads. Please sign in again.",
     "continuarCon": "or continue with",
-    "continuarGoogle": "Continue with Google",
-    "continuarFacebook": "Continue with Facebook",
-    "cuentaAutenticadaSinAcceso": "Your account was authenticated, but has not yet been granted access to the system.",
-    "detalleCuentaFederada": "The account {{email}} ({{proveedor}}) is not linked to any active role at this pharmacy.",
-    "solicitarAccesoBoton": "Request access from administrator",
-    "errorAutenticacionSocial": "Could not complete authentication with the provider. Please try again."
+    "googleNoAutorizado": "Your Google account has no access to ColdCare. Ask the administrator to register it.",
+    "googleNoDisponible": "Google sign-in is not available right now."
   },
   "nav": {
     "dashboard": "Monitoring",
