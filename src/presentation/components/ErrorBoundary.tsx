@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component, type ReactNode } from 'react'
 import { AlertTriangle } from 'lucide-react'
 
 import i18n from '@/infrastructure/i18n'
@@ -27,10 +27,10 @@ export class ErrorBoundary extends Component<Props, State> {
     return { error }
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Sin servicio de telemetría en este prototipo: queda en consola para que
-    // el traza del componente sea recuperable durante la sustentación.
-    console.error('[ErrorBoundary]', error, info.componentStack)
+  componentDidCatch(): void {
+    // FE-011: el registro lo hace el `onCaughtError` de la raíz (main.tsx →
+    // registrarErrorDeInterfaz): detalle completo en desarrollo, solo el tipo
+    // de error en producción. Registrar aquí lo duplicaría con el stack.
   }
 
   render(): ReactNode {

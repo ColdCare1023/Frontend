@@ -5,8 +5,13 @@ import '@fontsource-variable/inter'
 import './index.css'
 import './infrastructure/i18n'
 import { App } from './App'
+import { registrarErrorDeInterfaz } from './infrastructure/registroErrores'
 
-createRoot(document.getElementById('root')!).render(
+// FE-011: sin trazas con datos en la consola de producción.
+createRoot(document.getElementById('root')!, {
+  onCaughtError: registrarErrorDeInterfaz,
+  onUncaughtError: registrarErrorDeInterfaz,
+}).render(
   <StrictMode>
     <App />
   </StrictMode>,
