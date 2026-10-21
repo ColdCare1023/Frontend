@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 
-import { aplicarCambioConectividad, type Dispositivo, type HistorialConfiguracion } from '@/domain/entities/Dispositivo'
+import {
+  aplicarCambioConectividad,
+  type CredencialRotada,
+  type Dispositivo,
+  type HistorialConfiguracion,
+} from '@/domain/entities/Dispositivo'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 
@@ -156,25 +161,37 @@ export function useDispositivos() {
     }
   }, [consultar])
 
-  const rotarCredencial = useCallback(async (deviceId: string): Promise<'solicitada' | 'error'> => {
-    try {
-      await apiClient.post(`/api/dispositivos/${deviceId}/credencial/rotar`)
-      await consultar()
-      return 'solicitada'
-    } catch {
-      return 'error'
-    }
-  }, [consultar])
+  // FE-003: contrato del backend (HU-44): rutas `/credenciales/...` y motivo
+  // obligatorio, que queda en la auditoría. La rotación devuelve el token en
+  // claro UNA sola vez; el llamador lo muestra y no lo guarda.
+  const rotarCredencial = useCallback(
+    async (deviceId: string, motivo: string): Promise<CredencialRotada | null> => {
+      try {
+        const { data } = await apiClient.post<CredencialRotada>(
+          `/api/dispositivos/${encodeURIComponent(deviceId)}/credenciales/rotar`,
+          { motivo },
+        )
+        await consultar()
+        return data
+      } catch {
+        return null
+      }
+    },
+    [consultar],
+  )
 
-  const revocarCredencial = useCallback(async (deviceId: string): Promise<'revocada' | 'error'> => {
-    try {
-      await apiClient.post(`/api/dispositivos/${deviceId}/credencial/revocar`)
-      await consultar()
-      return 'revocada'
-    } catch {
-      return 'error'
-    }
-  }, [consultar])
+  const revocarCredencial = useCallback(
+    async (deviceId: string, motivo: string): Promise<'revocada' | 'error'> => {
+      try {
+        await apiClient.post(`/api/dispositivos/${encodeURIComponent(deviceId)}/credenciales/revocar`, { motivo })
+        await consultar()
+        return 'revocada'
+      } catch {
+        return 'error'
+      }
+    },
+    [consultar],
+  )
 
   const simularEscenario = useCallback(async (
     deviceId: string,

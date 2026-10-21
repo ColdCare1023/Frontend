@@ -36,7 +36,34 @@ export interface Dispositivo {
   sensores?: SensorIoT[]
   buffer_littlefs?: BufferLittleFS
   ultimo_evento?: SobreTelemetria | null
-  estado_credencial_broker?: 'activa' | 'pendiente' | 'error' | 'revocada' | 'sin_reportar'
+  estado_credencial_broker?: EstadoCredencial
+  // HU-44 / FE-003: estado de la credencial MQTT según el backend (nunca el token).
+  mqtt_token_activo?: boolean
+  mqtt_credencial_actualizada_en?: string | null
+  // BE-015: dispositivo de demostración (admite lecturas `simulated`).
+  es_demo?: boolean
+}
+
+export type EstadoCredencial = 'activa' | 'pendiente' | 'error' | 'revocada' | 'sin_reportar'
+
+/**
+ * FE-003: el backend informa `mqtt_token_activo`; la demo además modela
+ * estados intermedios. Una credencial inactiva con fecha de actualización fue
+ * revocada; sin fecha, nunca se emitió.
+ */
+export function estadoCredencial(dispositivo: Dispositivo): EstadoCredencial {
+  if (dispositivo.estado_credencial_broker) return dispositivo.estado_credencial_broker
+  if (dispositivo.mqtt_token_activo) return 'activa'
+  return dispositivo.mqtt_credencial_actualizada_en ? 'revocada' : 'sin_reportar'
+}
+
+/** Respuesta de la rotación: el token en claro solo existe en ella. */
+export interface CredencialRotada {
+  device_id: string
+  token: string
+  generado_en: string
+  /** true: el broker cerró la sesión anterior; null: API del broker no configurada. */
+  sesion_broker_cerrada: boolean | null
 }
 
 export interface SensorIoT {

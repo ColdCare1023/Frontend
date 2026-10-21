@@ -5,7 +5,9 @@ import { CalendarClock, Eye, FlaskConical, HardDrive, History, KeyRound, MapPin,
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import {
   estadoCalibracion,
+  estadoCredencial,
   MOTIVOS_BAJA,
+  type CredencialRotada,
   type Dispositivo,
   type HistorialConfiguracion,
   type MotivoBaja,
@@ -42,7 +44,10 @@ const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', validaHasta: '', 
 const FORM_INSTALACION_INICIAL = { ubicacion: '', fecha: '', observaciones: '' }
 const FORM_RESPONSABLE_INICIAL = { nombre: '', email: '', telefono: '' }
 
-type DialogoActivo = 'crear' | 'simulacion' | 'baja' | 'calibracion' | 'instalacion' | 'responsable' | 'historial' | 'sensores' | null
+type DialogoActivo =
+  | 'crear' | 'simulacion' | 'baja' | 'calibracion' | 'instalacion' | 'responsable' | 'historial' | 'sensores'
+  | 'rotar' | 'revocar' | 'token'
+  | null
 type EscenarioIoT = 'sin_datos' | 'buffer_pendiente' | 'buffer_lleno' | 'falla_sensor' | 'recuperar'
 
 export function DispositivosPage() {
@@ -78,11 +83,18 @@ export function DispositivosPage() {
   const [cargandoHistorial, setCargandoHistorial] = useState(false)
   const [mensajeFlota, setMensajeFlota] = useState<string | null>(null)
   const [formNuevo, setFormNuevo] = useState({ id: '', nombre: '', ubicacion: '', mc38: false })
+  const [motivoCredencial, setMotivoCredencial] = useState('')
+  // FE-003: el token rotado vive solo mientras su diálogo está abierto; no se
+  // persiste, no se registra y se descarta al cerrar.
+  const [credencialRotada, setCredencialRotada] = useState<CredencialRotada | null>(null)
+  const [tokenCopiado, setTokenCopiado] = useState(false)
 
   const cerrarDialogo = () => {
     setDialogo(null)
     setDispositivoActivo(null)
     setMensaje(null)
+    setCredencialRotada(null)
+    setTokenCopiado(false)
   }
 
   const enviarNuevoDispositivo = async (event: React.FormEvent) => {
@@ -113,15 +125,47 @@ export function DispositivosPage() {
     setMensaje({ tipo: resultado ? 'ok' : 'error', texto: t(resultado ? 'dispositivos.escenarioAplicado' : 'comunes.error') })
   }
 
-  const solicitarRotacion = async (dispositivo: Dispositivo) => {
-    const resultado = await rotarCredencial(dispositivo.id)
-    setMensajeFlota(t(resultado === 'solicitada' ? 'dispositivos.credencialPendiente' : 'comunes.error'))
+  const abrirCredencial = (dispositivo: Dispositivo, accion: 'rotar' | 'revocar') => {
+    setDispositivoActivo(dispositivo)
+    setMotivoCredencial('')
+    setMensaje(null)
+    setDialogo(accion)
   }
 
-  const solicitarRevocacion = async (dispositivo: Dispositivo) => {
-    if (!window.confirm(t('dispositivos.confirmarRevocacion', { id: dispositivo.id }))) return
-    const resultado = await revocarCredencial(dispositivo.id)
-    setMensajeFlota(t(resultado === 'revocada' ? 'dispositivos.credencialRevocada' : 'comunes.error'))
+  const enviarCredencial = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!dispositivoActivo || !motivoCredencial.trim()) return
+    setEnviando(true)
+    setMensaje(null)
+    if (dialogo === 'rotar') {
+      const credencial = await rotarCredencial(dispositivoActivo.id, motivoCredencial.trim())
+      setEnviando(false)
+      if (credencial) {
+        setCredencialRotada(credencial)
+        setDialogo('token')
+      } else {
+        setMensaje({ tipo: 'error', texto: t('comunes.error') })
+      }
+      return
+    }
+    const resultado = await revocarCredencial(dispositivoActivo.id, motivoCredencial.trim())
+    setEnviando(false)
+    if (resultado === 'revocada') {
+      cerrarDialogo()
+      setMensajeFlota(t('dispositivos.credencialRevocada'))
+    } else {
+      setMensaje({ tipo: 'error', texto: t('comunes.error') })
+    }
+  }
+
+  const copiarToken = async () => {
+    if (!credencialRotada) return
+    try {
+      await navigator.clipboard.writeText(credencialRotada.token)
+      setTokenCopiado(true)
+    } catch {
+      setTokenCopiado(false)
+    }
   }
 
   const abrirBaja = (dispositivo: Dispositivo) => {
@@ -415,17 +459,17 @@ export function DispositivosPage() {
                         size="sm"
                         title={t('dispositivos.rotarCredencial')}
                         disabled={!dispositivo.activo}
-                        onClick={() => void solicitarRotacion(dispositivo)}
+                        onClick={() => abrirCredencial(dispositivo, 'rotar')}
                       >
                         <KeyRound />
                         {t('dispositivos.rotarCredencial')}
                       </Button>
-                      {dispositivo.estado_credencial_broker !== 'revocada' && (
+                      {estadoCredencial(dispositivo) !== 'revocada' && (
                         <Button
                           variant="ghost"
                           size="sm"
                           title={t('dispositivos.revocarCredencial')}
-                          onClick={() => void solicitarRevocacion(dispositivo)}
+                          onClick={() => abrirCredencial(dispositivo, 'revocar')}
                         >
                           <PowerOff />
                           {t('dispositivos.revocarCredencial')}
@@ -488,7 +532,7 @@ export function DispositivosPage() {
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.firmware')}</dt><dd className="font-medium">{dispositivoActivo.firmware_version ?? '—'}</dd></div>
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.intervaloReporte')}</dt><dd className="font-medium">{t('dispositivos.reporteCada', { s: dispositivoActivo.intervalo_reporte_segundos ?? 30 })}</dd></div>
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">Buffer local</dt><dd className="font-medium">{dispositivoActivo.buffer_littlefs?.pendientes ?? 0} / {dispositivoActivo.buffer_littlefs?.limite ?? 128} · {t('dispositivos.perdidas', { n: dispositivoActivo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
-                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="font-medium">{t(`dispositivos.credencial.${dispositivoActivo.estado_credencial_broker ?? 'sin_reportar'}`)}</dd></div>
+                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="font-medium">{t(`dispositivos.credencial.${estadoCredencial(dispositivoActivo)}`)}</dd></div>
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.ultimoReporte')}</dt><dd className="text-right font-medium">{dispositivoActivo.ultimo_reporte_en ? fechaHora(dispositivoActivo.ultimo_reporte_en) : '—'}</dd></div>
                 {dispositivoActivo.buffer_littlefs?.desde && <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">Periodo en cola</dt><dd className="text-right font-medium">{fechaHora(dispositivoActivo.buffer_littlefs.desde)} – {dispositivoActivo.buffer_littlefs.hasta ? fechaHora(dispositivoActivo.buffer_littlefs.hasta) : '—'}</dd></div>}
                 {dispositivoActivo.ultimo_evento && <div className="py-2 sm:col-span-2"><dt className="text-muted">Telemetría</dt><dd className="mt-1 break-all font-mono text-xs">schema {dispositivoActivo.ultimo_evento.schema_version} · boot_id {dispositivoActivo.ultimo_evento.boot_id} · seq_no {dispositivoActivo.ultimo_evento.seq_no} · {dispositivoActivo.ultimo_evento.time_quality}</dd></div>}
@@ -563,6 +607,75 @@ export function DispositivosPage() {
           <MensajeFormulario mensaje={mensaje} />
           <div className="mt-3 flex justify-end">
             <Button variant="ghost" onClick={cerrarDialogo}>{t('comunes.cerrar')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── FE-003: rotar / revocar credencial MQTT (motivo obligatorio) ── */}
+      <Dialog open={dialogo === 'rotar' || dialogo === 'revocar'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
+        <DialogContent destructivo={dialogo === 'revocar'}>
+          <DialogTitle>
+            {t(dialogo === 'revocar' ? 'dispositivos.revocarCredencial' : 'dispositivos.rotarCredencial')}
+          </DialogTitle>
+          <DialogDescription>
+            {t(
+              dialogo === 'revocar' ? 'dispositivos.revocarCredencialDescripcion' : 'dispositivos.rotarCredencialDescripcion',
+              { id: dispositivoActivo?.id ?? '' },
+            )}
+          </DialogDescription>
+          <form onSubmit={(e) => void enviarCredencial(e)} className="mt-4 space-y-3">
+            <div>
+              <Label htmlFor="credencial-motivo">{t('dispositivos.motivoCredencial')}</Label>
+              <Input
+                id="credencial-motivo"
+                value={motivoCredencial}
+                maxLength={200}
+                required
+                aria-describedby="credencial-motivo-ayuda"
+                onChange={(e) => setMotivoCredencial(e.target.value)}
+              />
+              <p id="credencial-motivo-ayuda" className="mt-1 text-xs text-muted">{t('dispositivos.motivoCredencialAyuda')}</p>
+            </div>
+            <MensajeFormulario mensaje={mensaje} />
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={cerrarDialogo} disabled={enviando}>{t('usuarios.cancelar')}</Button>
+              <Button type="submit" variant={dialogo === 'revocar' ? 'danger' : 'primary'} disabled={enviando || !motivoCredencial.trim()}>
+                {enviando
+                  ? t('dispositivos.procesando')
+                  : t(dialogo === 'revocar' ? 'dispositivos.revocarCredencial' : 'dispositivos.rotarCredencial')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* FE-003: el token rotado se muestra UNA vez y se descarta al cerrar. */}
+      <Dialog open={dialogo === 'token' && credencialRotada !== null} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
+        <DialogContent>
+          <DialogTitle>{t('dispositivos.tokenTitulo')}</DialogTitle>
+          <DialogDescription>{t('dispositivos.tokenAdvertencia')}</DialogDescription>
+          <div className="mt-4 space-y-3">
+            <code
+              data-testid="token-rotado"
+              className="block break-all rounded-(--radius-field) border border-border bg-secondary-tint px-3 py-2 font-mono text-sm select-all"
+            >
+              {credencialRotada?.token}
+            </code>
+            <p role="status" className="text-xs text-muted">
+              {t('dispositivos.credencialRotada')}{' '}
+              {credencialRotada?.sesion_broker_cerrada === true
+                ? t('dispositivos.sesionBrokerCerrada')
+                : credencialRotada?.sesion_broker_cerrada === false
+                  ? t('dispositivos.sesionBrokerNoCerrada')
+                  : t('dispositivos.sesionBrokerSinApi')}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => void copiarToken()}>
+                <KeyRound />
+                {t(tokenCopiado ? 'dispositivos.tokenCopiado' : 'dispositivos.copiarToken')}
+              </Button>
+              <Button variant="ghost" onClick={cerrarDialogo}>{t('comunes.cerrar')}</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

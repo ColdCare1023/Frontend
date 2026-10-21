@@ -35,7 +35,7 @@ function dispositivo(over: Partial<Dispositivo> = {}): Dispositivo {
   }
 }
 
-function montar(dispositivos: Dispositivo[]) {
+function montar(dispositivos: Dispositivo[], extra: Record<string, unknown> = {}) {
   useDispositivos.mockReturnValue({
     dispositivos,
     cargando: false,
@@ -45,6 +45,7 @@ function montar(dispositivos: Dispositivo[]) {
     actualizarInstalacion: vi.fn(),
     actualizarResponsable: vi.fn(),
     obtenerHistorialConfiguracion: vi.fn().mockResolvedValue([]),
+    ...extra,
   })
   return render(<DispositivosPage />)
 }
@@ -82,5 +83,62 @@ describe('DispositivosPage (HU-43, RF-18)', () => {
   it('avisa cuando no hay dispositivos registrados', () => {
     montar([])
     expect(screen.getByText(/no hay dispositivos|sin dispositivos/i)).toBeInTheDocument()
+  })
+})
+
+describe('DispositivosPage — credenciales MQTT (FE-003)', () => {
+  beforeEach(() => useDispositivos.mockReset())
+
+  async function abrirAccion(nombre: RegExp) {
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Opciones: FARM-01-CDL/ }))
+    await user.click(await screen.findByRole('menuitem', { name: nombre }))
+    return user
+  }
+
+  it('pide motivo para rotar y muestra el token una sola vez', async () => {
+    const rotarCredencial = vi.fn().mockResolvedValue({
+      device_id: 'FARM-01-CDL',
+      token: 'token-visible-una-vez',
+      generado_en: '2026-10-21T10:00:00Z',
+      sesion_broker_cerrada: true,
+    })
+    montar([dispositivo({ mqtt_token_activo: true })], { rotarCredencial, revocarCredencial: vi.fn() })
+
+    const user = await abrirAccion(/Rotar credencial/)
+    const enviar = screen.getByRole('button', { name: 'Rotar credencial' })
+    expect(enviar).toBeDisabled()
+    await user.type(screen.getByLabelText('Motivo'), 'Rotación periódica')
+    await user.click(enviar)
+
+    expect(rotarCredencial).toHaveBeenCalledWith('FARM-01-CDL', 'Rotación periódica')
+    expect(await screen.findByTestId('token-rotado')).toHaveTextContent('token-visible-una-vez')
+    expect(screen.getByText(/cerró la sesión anterior/)).toBeInTheDocument()
+
+    const cerrar = screen.getAllByRole('button', { name: 'Cerrar' })
+    await user.click(cerrar[cerrar.length - 1])
+    expect(screen.queryByText('token-visible-una-vez')).toBeNull()
+  })
+
+  it('revoca con motivo obligatorio', async () => {
+    const revocarCredencial = vi.fn().mockResolvedValue('revocada')
+    montar([dispositivo({ mqtt_token_activo: true })], { rotarCredencial: vi.fn(), revocarCredencial })
+
+    const user = await abrirAccion(/Revocar credencial/)
+    await user.type(screen.getByLabelText('Motivo'), 'Equipo extraviado')
+    await user.click(screen.getByRole('button', { name: 'Revocar credencial' }))
+
+    expect(revocarCredencial).toHaveBeenCalledWith('FARM-01-CDL', 'Equipo extraviado')
+  })
+
+  it('una credencial revocada en el backend no ofrece revocar de nuevo', async () => {
+    montar([dispositivo({ mqtt_token_activo: false, mqtt_credencial_actualizada_en: '2026-10-20T10:00:00Z' })], {
+      rotarCredencial: vi.fn(),
+      revocarCredencial: vi.fn(),
+    })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Opciones: FARM-01-CDL/ }))
+    await screen.findByRole('menuitem', { name: /Rotar credencial/ })
+    expect(screen.queryByRole('menuitem', { name: /Revocar credencial/ })).toBeNull()
   })
 })

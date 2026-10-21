@@ -791,27 +791,31 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     d.estado_credencial_broker = 'revocada'
     return responder(config, d)
   }
-  const rotarCredencial = /^\/api\/dispositivos\/([^/]+)\/credencial\/rotar$/.exec(url)
+  // FE-003: mismo contrato que el backend (rutas plurales, motivo obligatorio,
+  // token visible una sola vez). La demo no contacta EMQX.
+  const rotarCredencial = /^\/api\/dispositivos\/([^/]+)\/credenciales\/rotar$/.exec(url)
   if (metodo === 'post' && rotarCredencial) {
-    const dispositivo = dispositivoDemo(rotarCredencial[1])
+    const dispositivo = dispositivoDemo(decodeURIComponent(rotarCredencial[1]))
     if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
     if (!dispositivo.activo) fallar(config, 409, 'El equipo está dado de baja')
-    dispositivo.estado_credencial_broker = 'pendiente'
-    return responder(config, {
-      device_id: dispositivo.id,
-      estado: 'pendiente_de_sincronizacion',
-      credencial_expuesta: false,
-      aplicada: false,
-      demo: true,
-    }, 202)
+    if (!String(cuerpoJson(config).motivo ?? '').trim()) fallar(config, 422, 'El motivo es obligatorio')
+    const ahora = new Date().toISOString()
+    dispositivo.estado_credencial_broker = 'activa'
+    dispositivo.mqtt_token_activo = true
+    dispositivo.mqtt_credencial_actualizada_en = ahora
+    const bytes = crypto.getRandomValues(new Uint8Array(24))
+    const token = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+    return responder(config, { device_id: dispositivo.id, token, generado_en: ahora, sesion_broker_cerrada: null })
   }
-  const revocarCredencial = /^\/api\/dispositivos\/([^/]+)\/credencial\/revocar$/.exec(url)
+  const revocarCredencial = /^\/api\/dispositivos\/([^/]+)\/credenciales\/revocar$/.exec(url)
   if (metodo === 'post' && revocarCredencial) {
-    const dispositivo = dispositivoDemo(revocarCredencial[1])
+    const dispositivo = dispositivoDemo(decodeURIComponent(revocarCredencial[1]))
     if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
-    if (!dispositivo.activo) fallar(config, 409, 'El equipo está dado de baja')
+    if (!String(cuerpoJson(config).motivo ?? '').trim()) fallar(config, 422, 'El motivo es obligatorio')
     dispositivo.estado_credencial_broker = 'revocada'
-    return responder(config, { device_id: dispositivo.id, estado: 'revocada', credencial_expuesta: false, demo: true })
+    dispositivo.mqtt_token_activo = false
+    dispositivo.mqtt_credencial_actualizada_en = new Date().toISOString()
+    return responder(config, null, 204)
   }
   const simulacionIoT = /^\/api\/demo\/dispositivos\/([^/]+)\/simulacion$/.exec(url)
   if (metodo === 'post' && simulacionIoT) {
