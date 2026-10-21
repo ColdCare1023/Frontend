@@ -1,6 +1,5 @@
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient, API_BASE_URL, getAccessToken } from '../api/apiClient'
-import { generarLecturaEnVivo, puedeTransmitirLecturaDemo } from '../demo/datosDemo'
 import { MODO_DEMO } from '../demo/modoDemo'
 
 const SSE_URL = import.meta.env.VITE_SSE_URL ?? `${API_BASE_URL}/api/sse/lecturas`
@@ -98,13 +97,19 @@ function avisarEstado(conectado: boolean) {
   oyentes.forEach((o) => o.onEstado?.(conectado))
 }
 
-/** Stream simulado para el modo demo: emite una lectura nueva cada pocos segundos. */
+/**
+ * Stream simulado para el modo demo: emite una lectura nueva cada pocos
+ * segundos. FE-009: los datos demo se cargan bajo demanda (import dinámico)
+ * para que no formen parte del build contra el backend.
+ */
 function simularStream(): () => void {
   const conexion = setTimeout(() => avisarEstado(true), 700)
   const emisor = setInterval(() => {
-    if (!puedeTransmitirLecturaDemo()) return
-    const lectura = generarLecturaEnVivo()
-    oyentes.forEach((o) => o.onLectura?.(lectura))
+    void import('../demo/datosDemo').then(({ generarLecturaEnVivo, puedeTransmitirLecturaDemo }) => {
+      if (!puedeTransmitirLecturaDemo()) return
+      const lectura = generarLecturaEnVivo()
+      oyentes.forEach((o) => o.onLectura?.(lectura))
+    })
   }, INTERVALO_DEMO_MS)
   return () => {
     clearTimeout(conexion)

@@ -13,7 +13,7 @@ import { UsuariosPage } from '@/presentation/pages/UsuariosPage'
 function usuario(over: Partial<Usuario> = {}): Usuario {
   return {
     id: 'u-1',
-    nombre: 'Brenda Gamio',
+    nombre: 'Usuaria Prueba',
     email: 'brenda@upc.pe',
     rol: 'farmaceutico',
     is_active: true,
@@ -40,7 +40,7 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
   it('lista los usuarios con su rol', () => {
     montar([usuario()])
 
-    expect(screen.getByText('Brenda Gamio')).toBeInTheDocument()
+    expect(screen.getByText('Usuaria Prueba')).toBeInTheDocument()
     expect(screen.getByText('brenda@upc.pe')).toBeInTheDocument()
   })
 
@@ -83,7 +83,7 @@ describe('UsuariosPage — HU-41: el sistema nunca queda sin administración', (
 
     expect(screen.getByText('Tu cuenta')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /opciones: yo admin/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /opciones: brenda gamio/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /opciones: usuaria prueba/i })).toBeInTheDocument()
   })
 
   it('deshabilita quitar o desactivar al último administrador activo', async () => {
@@ -118,7 +118,7 @@ describe('UsuariosPage — contraseñas temporales (FE-004)', () => {
     montar([usuario()], { asignarTemporal })
     const user = userEvent.setup()
 
-    await user.click(screen.getByRole('button', { name: /Opciones: Brenda Gamio/ }))
+    await user.click(screen.getByRole('button', { name: /Opciones: Usuaria Prueba/ }))
     await user.click(await screen.findByRole('menuitem', { name: /Restablecer contraseña/ }))
     expect(screen.getByText(/se cerrarán las sesiones abiertas/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Confirmar' }))

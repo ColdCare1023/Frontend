@@ -1,6 +1,5 @@
-import axios from 'axios'
+import axios, { type AxiosAdapter } from 'axios'
 
-import { demoAdapter } from '../demo/demoAdapter'
 import { MODO_DEMO } from '../demo/modoDemo'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -20,11 +19,19 @@ export function getAccessToken(): string | null {
   return accessToken
 }
 
+/**
+ * En modo demo cada request se resuelve en memoria, sin tocar la red.
+ *
+ * FE-009: el adaptador (y con él los datos y cuentas demo) se carga con
+ * import dinámico. `MODO_DEMO` es una constante de compilación, así que en el
+ * build contra el backend esta rama desaparece y el módulo demo no se emite.
+ */
+const adaptadorDemo: AxiosAdapter = async (config) => (await import('../demo/demoAdapter')).demoAdapter(config)
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  // En modo demo cada request se resuelve en memoria, sin tocar la red.
-  ...(MODO_DEMO ? { adapter: demoAdapter } : {}),
+  ...(MODO_DEMO ? { adapter: adaptadorDemo } : {}),
 })
 
 apiClient.interceptors.request.use((config) => {

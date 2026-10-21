@@ -5,7 +5,9 @@ import type { RegistroTrazabilidad } from '@/domain/entities/RegistroTrazabilida
 import type { RegistroAuditoria, Usuario } from '@/domain/entities/Usuario'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 
-export const DISPOSITIVO_DEMO = 'FARM-01-CDL'
+import { DISPOSITIVO_DEMO } from './constantesDemo'
+
+export { DISPOSITIVO_DEMO }
 
 /* ── RNG determinista (mulberry32): mismos datos en cada carga ──── */
 function crearRng(semilla: number): () => number {
@@ -44,14 +46,15 @@ export interface EstadoDemo {
   incidentesOperativos: IncidenteOperativo[]
 }
 
+// FE-009: nombres ficticios. Estos datos solo existen en el build demo.
 export const USUARIOS_DEMO: Usuario[] = [
-  { id: 'u-01', nombre: 'Brenda Gamio Fernández', email: 'farmaceutico@demo.pe', rol: 'farmaceutico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
-  { id: 'u-02', nombre: 'Diego Soto Quispe', email: 'admin@demo.pe', rol: 'administrador', is_active: true, motivo_desactivacion: null, desactivado_en: null },
-  { id: 'u-03', nombre: 'María Ccahuana Ríos', email: 'tecnico@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
-  { id: 'u-04', nombre: 'Jorge Villanueva Paz', email: 'jorge.villanueva@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  { id: 'u-01', nombre: 'Farmacéutica Demo', email: 'farmaceutico@demo.pe', rol: 'farmaceutico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  { id: 'u-02', nombre: 'Administrador Demo', email: 'admin@demo.pe', rol: 'administrador', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  { id: 'u-03', nombre: 'Técnico Demo', email: 'tecnico@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  { id: 'u-04', nombre: 'Técnico Demo 2', email: 'jorge.villanueva@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
   // Quinta cuenta demo de consulta; conserva el identificador RBAC requerido
   // por el backend actual mientras se muestra como Cajero en la interfaz.
-  { id: 'u-05', nombre: 'Renzo Aguilar Prado', email: 'cajero@demo.pe', rol: 'auditor', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  { id: 'u-05', nombre: 'Cajero Demo', email: 'cajero@demo.pe', rol: 'auditor', is_active: true, motivo_desactivacion: null, desactivado_en: null },
 ]
 
 const DIA_MS = 24 * 60 * 60 * 1000
