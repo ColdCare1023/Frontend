@@ -4,9 +4,9 @@
  * despliegue en curso.
  *
  * Por qué existe este script. `vercel.json` es un fichero estático: no admite
- * variables de entorno ni interpolación. La CSP del despliegue actual declara
- * `connect-src 'self' https://accounts.google.com`, lo que basta para la demo
- * —que resuelve todo en memoria con `MODO_DEMO` y no toca la red— pero bloquea
+ * variables de entorno ni interpolación. La CSP de la demo declara
+ * `connect-src 'self'`, lo que basta para la demo —que resuelve todo en
+ * memoria con `MODO_DEMO` y no toca la red— pero bloquea
  * en el navegador **toda** llamada a la API y la conexión `EventSource` del SSE
  * en cuanto el frontend apunte al backend de Railway, que está en otro origen.
  * El síntoma sería un dashboard permanentemente vacío y errores de CSP en
@@ -15,6 +15,10 @@
  * Uso, con el hostname real del backend:
  *
  *   node scripts/generar-vercel-json.mjs https://mi-backend.up.railway.app
+ *   node scripts/generar-vercel-json.mjs https://mi-backend.up.railway.app --google
+ *
+ * `--google` solo si el build define VITE_GOOGLE_CLIENT_ID (acceso con Google).
+ * La política en sí está en scripts/csp.mjs (FE-007).
  *
  * Sin argumento regenera el fichero para modo demo (solo `'self'`), que es el
  * estado por defecto del repositorio.
@@ -28,38 +32,20 @@ import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
+import { politicaCsp, politicaCspReportOnly } from './csp.mjs'
+
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-function origenesDe(url) {
-  if (!url) return []
-  let analizada
-  try {
-    analizada = new URL(url)
-  } catch {
-    throw new Error(`«${url}» no es una URL válida. Ejemplo: https://api.up.railway.app`)
-  }
-  if (analizada.protocol !== 'https:') {
-    throw new Error('El backend debe servirse por HTTPS (RNF-05 y Strict-Transport-Security).')
-  }
-  return [analizada.origin, `wss://${analizada.host}`]
-}
-
-const backend = process.argv[2]
-const connectSrc = ["'self'", 'https://accounts.google.com', ...origenesDe(backend)].join(' ')
-
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' https://accounts.google.com https://apis.google.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https://lh3.googleusercontent.com",
-  `connect-src ${connectSrc}`,
-  'frame-src https://accounts.google.com',
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-].join('; ')
+// Uso: node scripts/generar-vercel-json.mjs [URL del backend] [--google]
+// `--google`: el build define VITE_GOOGLE_CLIENT_ID (FE-001) y la CSP debe
+// permitir Google Identity Services; sin él no se autoriza ningún origen de
+// Google (FE-007).
+const argumentos = process.argv.slice(2)
+const google = argumentos.includes('--google')
+const backend = argumentos.find((argumento) => !argumento.startsWith('--'))
+const csp = politicaCsp({ backend, google })
+const cspObservacion = politicaCspReportOnly({ backend, google })
+const connectSrc = csp.split('; ').find((directiva) => directiva.startsWith('connect-src')).slice('connect-src '.length)
 
 const configuracion = {
   $schema: 'https://openapi.vercel.sh/vercel.json',
@@ -72,6 +58,9 @@ const configuracion = {
       source: '/(.*)',
       headers: [
         { key: 'Content-Security-Policy', value: csp },
+        // FE-007: mide (sin bloquear) la retirada de 'unsafe-inline' en
+        // estilos y Trusted Types antes de aplicarlos.
+        { key: 'Content-Security-Policy-Report-Only', value: cspObservacion },
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'DENY' },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
