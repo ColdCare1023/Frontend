@@ -2,7 +2,6 @@ import { useState, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Eye, EyeOff, KeyRound } from 'lucide-react'
 
-import { problemaPassword } from '@/domain/value-objects/politicaPassword'
 import { Input, Label } from '../ui/input'
 
 /**
@@ -67,16 +66,4 @@ export function CamposPasswordNueva({
       </p>
     </>
   )
-}
-
-/** Mensaje de error de la política, o null si la contraseña es aceptable. */
-export function errorPasswordNueva(
-  t: (clave: string) => string,
-  password: string,
-  confirmacion: string,
-): string | null {
-  const problema = problemaPassword(password)
-  if (problema) return t(`restablecerContrasena.politica.${problema}`)
-  if (password !== confirmacion) return t('restablecerContrasena.errorCoincidencia')
-  return null
 }

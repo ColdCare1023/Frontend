@@ -6,7 +6,8 @@ import { Loader2, ShieldAlert } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
 import { AuthShell } from '../components/auth/AuthShell'
-import { CamposPasswordNueva, errorPasswordNueva } from '../components/auth/CamposPasswordNueva'
+import { CamposPasswordNueva } from '../components/auth/CamposPasswordNueva'
+import { errorPasswordNueva } from '../components/auth/errorPasswordNueva'
 import { ColdCareBrandPanel } from '../components/auth/ColdCareBrandPanel'
 import { Input, Label } from '../components/ui/input'
 
