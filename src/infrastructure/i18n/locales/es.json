@@ -927,6 +927,10 @@
     "conmutacion_respaldo": "{{device}} funciona con la alimentación de respaldo.",
     "suministro_restablecido": "{{device}} recuperó el suministro eléctrico.",
     "respaldo_autonomia_critica": "La batería de respaldo de {{device}} está en nivel crítico.",
-    "credencial_rotada": "{{device}} aplicó su nueva credencial."
+    "credencial_rotada": "{{device}} aplicó su nueva credencial.",
+    "config_modificada": "Se cambió la configuración de {{device}} desde su consola ({{clave}}).",
+    "reinicio_manual": "{{device}} se reinició manualmente desde su consola.",
+    "consola_desbloqueada": "Se desbloqueó la consola de mantenimiento de {{device}}.",
+    "consola_desbloqueo_fallido": "Intentos fallidos repetidos de desbloquear la consola de {{device}}."
   }
 }

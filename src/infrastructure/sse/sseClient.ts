@@ -37,6 +37,8 @@ export const EVENTOS_AVISO_DISPOSITIVO = [
   'conmutacion_respaldo', 'suministro_restablecido',
   'respaldo_autonomia_critica', 'respaldo_bajo',
   'credencial_rotada', 'puerta', 'arranque', 'firmware_actualizado',
+  // IOT-002: auditoría de la consola de aprovisionamiento del nodo.
+  'config_modificada', 'reinicio_manual', 'consola_desbloqueada', 'consola_desbloqueo_fallido',
 ] as const
 
 export type TipoEventoAlerta = (typeof EVENTOS_ALERTA)[number]

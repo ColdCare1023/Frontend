@@ -53,4 +53,16 @@ describe('AvisosTiempoReal', () => {
     expect(screen.queryByRole('alert')).toBeNull()
     expect(screen.queryByRole('status')).toBeNull()
   })
+
+  it('avisa del uso de la consola del nodo (IOT-002)', () => {
+    render(<AvisosTiempoReal />)
+    act(() => {
+      suscriptores[0].onAvisoDispositivo?.({
+        tipo: 'config_modificada', device_id: 'FARM-01', timestamp: 'x', detalle: { clave: 'mqtt_host', accion: 'set' },
+      })
+      suscriptores[0].onAvisoDispositivo?.({ tipo: 'consola_desbloqueo_fallido', device_id: 'FARM-01', timestamp: 'x', detalle: { intentos: 5 } })
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Se cambió la configuración de FARM-01 desde su consola (mqtt_host).')
+    expect(screen.getByRole('alert')).toHaveTextContent('Intentos fallidos repetidos de desbloquear la consola de FARM-01.')
+  })
 })

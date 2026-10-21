@@ -30,6 +30,11 @@ const AVISOS_DISPOSITIVO: Partial<Record<TipoAvisoDispositivo, { clave: string; 
   respaldo_autonomia_critica: { clave: 'respaldo_autonomia_critica', nivel: 'critico' },
   respaldo_bajo: { clave: 'respaldo_autonomia_critica', nivel: 'critico' },
   credencial_rotada: { clave: 'credencial_rotada', nivel: 'ok' },
+  // IOT-002: alguien usó la consola serie del nodo.
+  config_modificada: { clave: 'config_modificada', nivel: 'aviso' },
+  reinicio_manual: { clave: 'reinicio_manual', nivel: 'aviso' },
+  consola_desbloqueada: { clave: 'consola_desbloqueada', nivel: 'aviso' },
+  consola_desbloqueo_fallido: { clave: 'consola_desbloqueo_fallido', nivel: 'critico' },
 }
 
 /**
@@ -65,7 +70,12 @@ export function AvisosTiempoReal() {
       },
       onAvisoDispositivo: (aviso) => {
         const definicion = AVISOS_DISPOSITIVO[aviso.tipo]
-        if (definicion) publicar(definicion.nivel, t(`avisosTiempoReal.${definicion.clave}`, { device: aviso.device_id }))
+        if (definicion) {
+          publicar(
+            definicion.nivel,
+            t(`avisosTiempoReal.${definicion.clave}`, { device: aviso.device_id, clave: String(aviso.detalle?.clave ?? '') }),
+          )
+        }
       },
     })
     return () => {

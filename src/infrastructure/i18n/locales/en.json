@@ -927,6 +927,10 @@
     "conmutacion_respaldo": "{{device}} is running on backup power.",
     "suministro_restablecido": "{{device}} has mains power again.",
     "respaldo_autonomia_critica": "{{device}}'s backup battery is critically low.",
-    "credencial_rotada": "{{device}} applied its new credential."
+    "credencial_rotada": "{{device}} applied its new credential.",
+    "config_modificada": "{{device}}'s configuration was changed from its console ({{clave}}).",
+    "reinicio_manual": "{{device}} was restarted manually from its console.",
+    "consola_desbloqueada": "{{device}}'s maintenance console was unlocked.",
+    "consola_desbloqueo_fallido": "Repeated failed attempts to unlock {{device}}'s console."
   }
 }
