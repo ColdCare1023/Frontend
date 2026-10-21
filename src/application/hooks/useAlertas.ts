@@ -4,6 +4,7 @@ import axios from 'axios'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 import { rutaApi } from '@/lib/rutaApi'
 
 export type ResultadoAccionAlerta = 'ok' | 'conflicto' | 'error'
@@ -37,6 +38,13 @@ export function useAlertas() {
   useEffect(() => {
     void consultar(filtro)
   }, [consultar, filtro])
+
+  // FE-008: una alerta nueva, su actualización o la recuperación llegan por
+  // SSE; la lista se refresca sin esperar a que el usuario recargue.
+  useEffect(
+    () => suscribirseTiempoReal({ onAlerta: () => void consultar(filtro) }),
+    [consultar, filtro],
+  )
 
   const reintentar = useCallback(() => void consultar(filtro), [consultar, filtro])
 

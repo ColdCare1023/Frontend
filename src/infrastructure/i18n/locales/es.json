@@ -913,5 +913,20 @@
     "errorIgual": "La nueva contraseña debe ser distinta de la actual.",
     "salir": "Cerrar sesión",
     "menu": "Cambiar contraseña"
+  },
+  "avisosTiempoReal": {
+    "region": "Avisos en tiempo real",
+    "cerrar": "Cerrar aviso",
+    "alerta": "Nueva alerta térmica en {{device}}.",
+    "recuperacion": "{{device}} volvió al rango seguro.",
+    "desconexion": "{{device}} se desconectó del broker.",
+    "buffer_80": "El buffer local de {{device}} supera el 80 %.",
+    "buffer_saturado": "El buffer local de {{device}} se saturó: puede haber lecturas perdidas.",
+    "registros_en_cuarentena": "{{device}} apartó registros en cuarentena (contenido en conflicto).",
+    "wifi_reconexion_prolongada": "{{device}} lleva tiempo intentando reconectarse a la red.",
+    "conmutacion_respaldo": "{{device}} funciona con la alimentación de respaldo.",
+    "suministro_restablecido": "{{device}} recuperó el suministro eléctrico.",
+    "respaldo_autonomia_critica": "La batería de respaldo de {{device}} está en nivel crítico.",
+    "credencial_rotada": "{{device}} aplicó su nueva credencial."
   }
 }

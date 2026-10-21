@@ -913,5 +913,20 @@
     "errorIgual": "The new password must differ from the current one.",
     "salir": "Sign out",
     "menu": "Change password"
+  },
+  "avisosTiempoReal": {
+    "region": "Real-time notices",
+    "cerrar": "Dismiss notice",
+    "alerta": "New temperature alert on {{device}}.",
+    "recuperacion": "{{device}} is back in the safe range.",
+    "desconexion": "{{device}} disconnected from the broker.",
+    "buffer_80": "{{device}}'s local buffer is above 80%.",
+    "buffer_saturado": "{{device}}'s local buffer is full: readings may have been lost.",
+    "registros_en_cuarentena": "{{device}} quarantined records (conflicting content).",
+    "wifi_reconexion_prolongada": "{{device}} has been trying to reconnect to the network for a while.",
+    "conmutacion_respaldo": "{{device}} is running on backup power.",
+    "suministro_restablecido": "{{device}} has mains power again.",
+    "respaldo_autonomia_critica": "{{device}}'s backup battery is critically low.",
+    "credencial_rotada": "{{device}} applied its new credential."
   }
 }

@@ -23,6 +23,7 @@ import {
 import { useAuthStore } from '@/application/stores/authStore'
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
+import { AvisosTiempoReal } from '@/presentation/components/AvisosTiempoReal'
 import { cn } from '@/lib/utils'
 import { AvisoExpiracionSesion } from '../components/AvisoExpiracionSesion'
 import { ColdCareBrand } from '../components/ColdCareBrand'
@@ -296,6 +297,7 @@ export function AppLayout() {
           {/* FS5: por encima de la cabecera, para que se vea en cualquier ruta. */}
           <AvisoExpiracionSesion />
           <AvisoDatosSimulados />
+          <AvisosTiempoReal />
           <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-[#E2E8F0] bg-white px-4 sm:px-6 lg:px-7">
             <DialogPrimitive.Trigger
               aria-label={t('nav.abrirMenu')}

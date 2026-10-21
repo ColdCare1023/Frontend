@@ -143,6 +143,97 @@ describe('suscribirseTiempoReal: conectividad y conexión compartida (HU-13)', (
   })
 })
 
+describe('suscribirseTiempoReal: catálogo de eventos del backend (FE-008)', () => {
+  class EventSourceConOyentes {
+    static instancias: EventSourceConOyentes[] = []
+    onopen: (() => void) | null = null
+    onerror: (() => void) | null = null
+    cerrado = false
+    oyentes = new Map<string, (e: MessageEvent) => void>()
+    constructor(public url: string) {
+      EventSourceConOyentes.instancias.push(this)
+    }
+    addEventListener(tipo: string, oyente: (e: MessageEvent) => void) {
+      this.oyentes.set(tipo, oyente)
+    }
+    emitir(tipo: string, datos: unknown) {
+      this.oyentes.get(tipo)?.({ data: JSON.stringify(datos) } as MessageEvent)
+    }
+    close() {
+      this.cerrado = true
+    }
+  }
+
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+
+  beforeEach(() => {
+    EventSourceConOyentes.instancias = []
+    vi.stubGlobal('EventSource', EventSourceConOyentes)
+    setAccessToken('token-de-prueba')
+    adaptador = instalarAdaptadorFalso(() => ({ data: { ticket: 't' } }))
+  })
+
+  afterEach(() => {
+    adaptador.restaurar()
+    setAccessToken(null)
+    vi.unstubAllGlobals()
+  })
+
+  async function fuente() {
+    await vi.waitFor(() => expect(EventSourceConOyentes.instancias.length).toBeGreaterThan(0))
+    return EventSourceConOyentes.instancias.at(-1)!
+  }
+
+  it('convierte el LWT (v1.0 y heredado) en un cambio de conectividad', async () => {
+    const cambios: CambioConectividad[] = []
+    const cerrar = suscribirseTiempoReal({ onConectividad: (c) => cambios.push(c) })
+    const sse = await fuente()
+
+    sse.emitir('lwt_offline', { device_id: 'FARM-01', timestamp: '2026-10-21T10:00:00Z', boot_id: null })
+    sse.emitir('reconexion', { device_id: 'FARM-02', timestamp: '2026-10-21T10:05:00Z' })
+
+    expect(cambios).toEqual([
+      { device_id: 'FARM-01', estado: 'offline', desde: '2026-10-21T10:00:00Z', boot_id: null, origen: 'lwt' },
+      { device_id: 'FARM-02', estado: 'online', desde: '2026-10-21T10:05:00Z', boot_id: null, origen: 'online' },
+    ])
+    cerrar()
+  })
+
+  it('reparte alertas y avisos de dispositivo', async () => {
+    const alertas: string[] = []
+    const avisos: string[] = []
+    const cerrar = suscribirseTiempoReal({
+      onAlerta: (e) => alertas.push(`${e.tipo}:${e.device_id}`),
+      onAvisoDispositivo: (a) => avisos.push(`${a.tipo}:${a.device_id}`),
+    })
+    const sse = await fuente()
+
+    sse.emitir('alerta', { device_id: 'FARM-01', temperatura_interna: 11.2 })
+    sse.emitir('recuperacion', { device_id: 'FARM-01' })
+    sse.emitir('buffer_saturado', { device_id: 'FARM-01', timestamp: 'x', detalle: { perdidas: 3 } })
+    sse.emitir('saturacion_buffer', { device_id: 'FARM-02', timestamp: 'x', detalle: null })
+
+    expect(alertas).toEqual(['alerta:FARM-01', 'recuperacion:FARM-01'])
+    expect(avisos).toEqual(['buffer_saturado:FARM-01', 'saturacion_buffer:FARM-02'])
+    cerrar()
+  })
+
+  it('ante `sesion_expirada` cierra el stream y vuelve a pedir ticket', async () => {
+    const estados: boolean[] = []
+    const cerrar = suscribirseTiempoReal({ onEstado: (c) => estados.push(c) })
+    const sse = await fuente()
+
+    sse.emitir('sesion_expirada', {})
+
+    expect(sse.cerrado).toBe(true)
+    expect(estados.at(-1)).toBe(false)
+    await vi.waitFor(() =>
+      expect(adaptador.peticiones.filter((p) => p.url === '/api/auth/sse-ticket')).toHaveLength(2),
+    )
+    cerrar()
+  })
+})
+
 describe('aplicarCambioConectividad (HU-13)', () => {
   it('actualiza solo el dispositivo del evento', () => {
     const base = [

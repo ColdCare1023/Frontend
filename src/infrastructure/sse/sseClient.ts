@@ -10,7 +10,7 @@ export const REINTENTO_BASE_MS = 1000
 export const REINTENTO_MAX_MS = 30_000
 const INTERVALO_DEMO_MS = 8000
 
-/** HU-13: cambio de conectividad normalizado que emite el backend (evento `conectividad`). */
+/** HU-13: cambio de conectividad normalizado (ver `normalizarConectividad`). */
 export interface CambioConectividad {
   device_id: string
   estado: 'online' | 'offline'
@@ -19,10 +19,74 @@ export interface CambioConectividad {
   origen: 'online' | 'lwt' | 'telemetria'
 }
 
+/**
+ * FE-008: catálogo de eventos SSE que emite el backend (main.py /
+ * lecturas_router.py / sse_router.py). Antes el cliente solo escuchaba
+ * lecturas y un `conectividad` que el backend no emite: desconexiones del
+ * nodo, alertas y avisos de buffer no llegaban en tiempo real.
+ */
+export const EVENTOS_LECTURA = ['lectura', 'fallo_sensor', 'inferencia_omitida'] as const
+export const EVENTOS_ALERTA = ['alerta', 'episodio_actualizado', 'recuperacion'] as const
+/** Contrato v1.0 (`event_type`) y eventos heredados (`tipo_sse`). */
+const EVENTOS_OFFLINE = ['lwt_offline', 'desconexion'] as const
+const EVENTOS_ONLINE = ['online', 'reconexion'] as const
+export const EVENTOS_AVISO_DISPOSITIVO = [
+  'buffer_80', 'capacidad_buffer_alta',
+  'buffer_saturado', 'saturacion_buffer',
+  'registros_en_cuarentena',
+  'wifi_reconexion_prolongada', 'reconexion_prolongada',
+  'conmutacion_respaldo', 'suministro_restablecido',
+  'respaldo_autonomia_critica', 'respaldo_bajo',
+  'credencial_rotada', 'puerta', 'arranque', 'firmware_actualizado',
+] as const
+
+export type TipoEventoAlerta = (typeof EVENTOS_ALERTA)[number]
+export type TipoAvisoDispositivo = (typeof EVENTOS_AVISO_DISPOSITIVO)[number]
+
+export interface EventoAlerta {
+  tipo: TipoEventoAlerta
+  device_id: string
+  temperatura_interna?: number | null
+  timestamp?: string
+}
+
+export interface AvisoDispositivo {
+  tipo: TipoAvisoDispositivo
+  device_id: string
+  timestamp: string
+  detalle: Record<string, unknown> | null
+}
+
 export interface OyentesTiempoReal {
   onLectura?: (lectura: LecturaTermica) => void
   onConectividad?: (cambio: CambioConectividad) => void
+  onAlerta?: (evento: EventoAlerta) => void
+  onAvisoDispositivo?: (aviso: AvisoDispositivo) => void
   onEstado?: (conectado: boolean) => void
+}
+
+/** Eventos de dispositivo del backend: `{device_id, timestamp, boot_id?}`. */
+export function normalizarConectividad(
+  datos: { device_id: string; timestamp?: string; boot_id?: number | null },
+  estado: 'online' | 'offline',
+): CambioConectividad {
+  return {
+    device_id: datos.device_id,
+    estado,
+    desde: datos.timestamp ?? new Date().toISOString(),
+    boot_id: datos.boot_id ?? null,
+    origen: estado === 'offline' ? 'lwt' : 'online',
+  }
+}
+
+function datosDe(event: MessageEvent): Record<string, unknown> | null {
+  try {
+    const datos: unknown = JSON.parse(event.data)
+    return datos && typeof datos === 'object' ? (datos as Record<string, unknown>) : null
+  } catch {
+    // Mensaje keep-alive o malformado: se ignora.
+    return null
+  }
 }
 
 const oyentes = new Set<OyentesTiempoReal>()
@@ -87,24 +151,50 @@ function abrirConexion(): () => void {
           source = null
           reintentar()
         }
-        const recibirLectura = (event: MessageEvent) => {
-          try {
-            const lectura = JSON.parse(event.data) as LecturaTermica
-            oyentes.forEach((o) => o.onLectura?.(lectura))
-          } catch {
-            // Mensaje keep-alive o malformado: se ignora.
-          }
+        const fuente = source
+        const escuchar = (tipo: string, manejar: (datos: Record<string, unknown>) => void) =>
+          fuente.addEventListener(tipo, (event: MessageEvent) => {
+            const datos = datosDe(event)
+            if (datos) manejar(datos)
+          })
+        const conectividad = (cambio: CambioConectividad) => oyentes.forEach((o) => o.onConectividad?.(cambio))
+
+        for (const tipo of EVENTOS_LECTURA) {
+          escuchar(tipo, (datos) => oyentes.forEach((o) => o.onLectura?.(datos as unknown as LecturaTermica)))
         }
-        source.addEventListener('lectura', recibirLectura)
-        source.addEventListener('fallo_sensor', recibirLectura)
-        source.addEventListener('inferencia_omitida', recibirLectura)
-        source.addEventListener('conectividad', (event: MessageEvent) => {
-          try {
-            const cambio = JSON.parse(event.data) as CambioConectividad
-            oyentes.forEach((o) => o.onConectividad?.(cambio))
-          } catch {
-            // Mensaje malformado: se ignora.
-          }
+        for (const tipo of EVENTOS_ALERTA) {
+          escuchar(tipo, (datos) =>
+            oyentes.forEach((o) => o.onAlerta?.({ ...(datos as unknown as Omit<EventoAlerta, 'tipo'>), tipo })),
+          )
+        }
+        for (const tipo of EVENTOS_OFFLINE) {
+          escuchar(tipo, (datos) => conectividad(normalizarConectividad(datos as { device_id: string }, 'offline')))
+        }
+        for (const tipo of EVENTOS_ONLINE) {
+          escuchar(tipo, (datos) => conectividad(normalizarConectividad(datos as { device_id: string }, 'online')))
+        }
+        // Forma ya normalizada (HU-13), por si el backend la emite.
+        escuchar('conectividad', (datos) => conectividad(datos as unknown as CambioConectividad))
+        for (const tipo of EVENTOS_AVISO_DISPOSITIVO) {
+          escuchar(tipo, (datos) =>
+            oyentes.forEach((o) =>
+              o.onAvisoDispositivo?.({
+                tipo,
+                device_id: String(datos.device_id ?? ''),
+                timestamp: String(datos.timestamp ?? new Date().toISOString()),
+                detalle: (datos.detalle as Record<string, unknown> | null) ?? null,
+              }),
+            ),
+          )
+        }
+        // BE-010: la sesión que abrió el stream ya no vale. Se cierra y se pide
+        // ticket de inmediato: el 401 activa el cierre de sesión global.
+        fuente.addEventListener('sesion_expirada', () => {
+          avisarEstado(false)
+          fuente.close()
+          source = null
+          espera = REINTENTO_BASE_MS
+          if (!cancelado) conectar()
         })
       })
       .catch(() => {
