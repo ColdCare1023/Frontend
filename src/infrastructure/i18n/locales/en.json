@@ -931,6 +931,10 @@
     "config_modificada": "{{device}}'s configuration was changed from its console ({{clave}}).",
     "reinicio_manual": "{{device}} was restarted manually from its console.",
     "consola_desbloqueada": "{{device}}'s maintenance console was unlocked.",
-    "consola_desbloqueo_fallido": "Repeated failed attempts to unlock {{device}}'s console."
+    "consola_desbloqueo_fallido": "Repeated failed attempts to unlock {{device}}'s console.",
+    "ota_confirmada": "{{device}} confirmed the update to version {{version}}.",
+    "ota_rechazada": "{{device}} rejected the update order.",
+    "ota_fallida": "{{device}} could not install update {{version}}.",
+    "ota_revertida": "{{device}} rolled back to version {{version}}: the update failed its boot check."
   }
 }

@@ -931,6 +931,10 @@
     "config_modificada": "Se cambió la configuración de {{device}} desde su consola ({{clave}}).",
     "reinicio_manual": "{{device}} se reinició manualmente desde su consola.",
     "consola_desbloqueada": "Se desbloqueó la consola de mantenimiento de {{device}}.",
-    "consola_desbloqueo_fallido": "Intentos fallidos repetidos de desbloquear la consola de {{device}}."
+    "consola_desbloqueo_fallido": "Intentos fallidos repetidos de desbloquear la consola de {{device}}.",
+    "ota_confirmada": "{{device}} confirmó la actualización a la versión {{version}}.",
+    "ota_rechazada": "{{device}} rechazó la orden de actualización.",
+    "ota_fallida": "{{device}} no pudo instalar la actualización {{version}}.",
+    "ota_revertida": "{{device}} volvió a la versión {{version}}: la actualización no superó el arranque."
   }
 }

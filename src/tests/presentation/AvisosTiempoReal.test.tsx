@@ -65,4 +65,20 @@ describe('AvisosTiempoReal', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Se cambió la configuración de FARM-01 desde su consola (mqtt_host).')
     expect(screen.getByRole('alert')).toHaveTextContent('Intentos fallidos repetidos de desbloquear la consola de FARM-01.')
   })
+
+  it('informa el resultado de una actualización OTA según el nodo (IOT-004)', () => {
+    render(<AvisosTiempoReal />)
+    act(() => {
+      suscriptores[0].onAvisoDispositivo?.({
+        tipo: 'ota_confirmada', device_id: 'FARM-01', timestamp: 'x', detalle: { firmware_version: '1.3.0', particion: 'app1' },
+      })
+      suscriptores[0].onAvisoDispositivo?.({
+        tipo: 'ota_revertida', device_id: 'FARM-02', timestamp: 'x', detalle: { firmware_version: '1.2.0', particion: 'app0' },
+      })
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('FARM-01 confirmó la actualización a la versión 1.3.0.')
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'FARM-02 volvió a la versión 1.2.0: la actualización no superó el arranque.',
+    )
+  })
 })

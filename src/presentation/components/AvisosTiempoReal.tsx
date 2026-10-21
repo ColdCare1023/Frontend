@@ -35,6 +35,11 @@ const AVISOS_DISPOSITIVO: Partial<Record<TipoAvisoDispositivo, { clave: string; 
   reinicio_manual: { clave: 'reinicio_manual', nivel: 'aviso' },
   consola_desbloqueada: { clave: 'consola_desbloqueada', nivel: 'aviso' },
   consola_desbloqueo_fallido: { clave: 'consola_desbloqueo_fallido', nivel: 'critico' },
+  // IOT-004: solo el nodo da por instalada (o no) una versión enviada por OTA.
+  ota_confirmada: { clave: 'ota_confirmada', nivel: 'ok' },
+  ota_rechazada: { clave: 'ota_rechazada', nivel: 'aviso' },
+  ota_fallida: { clave: 'ota_fallida', nivel: 'critico' },
+  ota_revertida: { clave: 'ota_revertida', nivel: 'critico' },
 }
 
 /**
@@ -73,7 +78,11 @@ export function AvisosTiempoReal() {
         if (definicion) {
           publicar(
             definicion.nivel,
-            t(`avisosTiempoReal.${definicion.clave}`, { device: aviso.device_id, clave: String(aviso.detalle?.clave ?? '') }),
+            t(`avisosTiempoReal.${definicion.clave}`, {
+              device: aviso.device_id,
+              clave: String(aviso.detalle?.clave ?? ''),
+              version: String(aviso.detalle?.firmware_version ?? aviso.detalle?.version ?? ''),
+            }),
           )
         }
       },

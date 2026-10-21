@@ -39,6 +39,8 @@ export const EVENTOS_AVISO_DISPOSITIVO = [
   'credencial_rotada', 'puerta', 'arranque', 'firmware_actualizado',
   // IOT-002: auditoría de la consola de aprovisionamiento del nodo.
   'config_modificada', 'reinicio_manual', 'consola_desbloqueada', 'consola_desbloqueo_fallido',
+  // IOT-004: resultado de una actualización OTA informado por el propio nodo.
+  'ota_confirmada', 'ota_rechazada', 'ota_fallida', 'ota_revertida',
 ] as const
 
 export type TipoEventoAlerta = (typeof EVENTOS_ALERTA)[number]
