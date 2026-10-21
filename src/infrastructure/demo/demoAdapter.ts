@@ -461,6 +461,21 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'post' && url === '/api/auth/sse-ticket') {
     return responder(config, { ticket: 'ticket-demo' })
   }
+  // FE-004: mismo contrato que BE-025. La demo no envía correos (503, como un
+  // backend sin SMTP) y todas las cuentas demo usan la contraseña común.
+  if (metodo === 'post' && url === '/api/auth/recuperar-password') {
+    fallar(config, 503, 'La recuperación por correo no está disponible en la demostración')
+  }
+  if (metodo === 'post' && url === '/api/auth/restablecer-password') {
+    fallar(config, 400, 'El enlace de recuperación no es válido o ya caducó.')
+  }
+  if (metodo === 'post' && url === '/api/auth/cambiar-password') {
+    const email = sesionDemo(config)?.email
+    const cuerpo = cuerpoJson(config)
+    if (typeof email !== 'string') fallar(config, 401, 'Sesión no válida')
+    if (cuerpo.password_actual !== 'demo-2026') fallar(config, 400, 'La contraseña actual no es correcta')
+    return responder(config, { access_token: crearTokenDemo(email), token_type: 'bearer' })
+  }
 
   /* ── Lecturas y alertas ─────────────────────────────────────── */
   if (metodo === 'get' && url === '/api/lecturas') {
@@ -1091,6 +1106,23 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     }
     usuario.rol = rol as Rol
     return responder(config, usuario)
+  }
+  const temporalUsuario = /^\/api\/usuarios\/([^/]+)\/(restablecer-password|reactivar)$/.exec(url)
+  if (metodo === 'post' && temporalUsuario) {
+    const usuario = usuarioDemo(decodeURIComponent(temporalUsuario[1]))
+    if (!usuario) fallar(config, 404, 'Usuario no encontrado')
+    const reactivar = temporalUsuario[2] === 'reactivar'
+    if (reactivar && usuario.is_active) fallar(config, 409, 'El usuario ya está activo')
+    if (!reactivar && !usuario.is_active) fallar(config, 409, 'El usuario está desactivado')
+    if (reactivar) {
+      usuario.is_active = true
+      usuario.motivo_desactivacion = null
+      usuario.desactivado_en = null
+    }
+    usuario.debe_cambiar_password = true
+    const bytes = crypto.getRandomValues(new Uint8Array(12))
+    const temporal = `Tmp${Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('')}7`
+    return responder(config, { usuario: { ...usuario }, password_temporal: temporal })
   }
   if (metodo === 'get' && url === '/api/auditoria') {
     let registros = [...estadoDemo.auditoria]

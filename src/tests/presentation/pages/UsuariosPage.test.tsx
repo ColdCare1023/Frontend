@@ -23,12 +23,13 @@ function usuario(over: Partial<Usuario> = {}): Usuario {
   }
 }
 
-function montar(usuarios: Usuario[]) {
+function montar(usuarios: Usuario[], extra: Record<string, unknown> = {}) {
   useUsuarios.mockReturnValue({
     usuarios,
     cargando: false,
     crear: vi.fn(),
     desactivar: vi.fn(),
+    ...extra,
   })
   render(<UsuariosPage />)
 }
@@ -97,5 +98,48 @@ describe('UsuariosPage — HU-41: el sistema nunca queda sin administración', (
     const cambiar = await screen.findByRole('menuitem', { name: /cambiar rol.*admin único/i })
     expect(cambiar).toHaveAttribute('data-disabled')
     expect(cambiar).toHaveAttribute('title', expect.stringMatching(/último administrador/i))
+  })
+})
+
+describe('UsuariosPage — contraseñas temporales (FE-004)', () => {
+  beforeEach(() => {
+    useUsuarios.mockReset()
+    useAuthStore.setState({
+      usuario: { id: 'admin-1', email: 'admin@upc.pe', rol: 'administrador', expiraEn: Date.now() + 3600_000 },
+      autenticado: true,
+    })
+  })
+
+  it('restablece la contraseña y muestra la temporal una sola vez', async () => {
+    const asignarTemporal = vi.fn().mockResolvedValue({
+      usuario: usuario({ debe_cambiar_password: true }),
+      password_temporal: 'Temporal-xyz-2026',
+    })
+    montar([usuario()], { asignarTemporal })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Opciones: Brenda Gamio/ }))
+    await user.click(await screen.findByRole('menuitem', { name: /Restablecer contraseña/ }))
+    expect(screen.getByText(/se cerrarán las sesiones abiertas/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+    expect(asignarTemporal).toHaveBeenCalledWith('u-1', 'restablecer-password')
+    expect(await screen.findByTestId('password-temporal')).toHaveTextContent('Temporal-xyz-2026')
+    const cerrar = screen.getAllByRole('button', { name: 'Cerrar' })
+    await user.click(cerrar[cerrar.length - 1])
+    expect(screen.queryByText('Temporal-xyz-2026')).toBeNull()
+  })
+
+  it('ofrece reactivar a un usuario desactivado', async () => {
+    const asignarTemporal = vi.fn().mockResolvedValue({ usuario: usuario(), password_temporal: 'Otra-temporal-9' })
+    montar([usuario({ id: 'u-2', nombre: 'Baja Dos', is_active: false })], { asignarTemporal })
+    const user = userEvent.setup()
+
+    await user.click(screen.getByRole('button', { name: /Opciones: Baja Dos/ }))
+    await user.click(await screen.findByRole('menuitem', { name: /Reactivar/ }))
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+    expect(asignarTemporal).toHaveBeenCalledWith('u-2', 'reactivar')
+    expect(await screen.findByTestId('password-temporal')).toHaveTextContent('Otra-temporal-9')
   })
 })

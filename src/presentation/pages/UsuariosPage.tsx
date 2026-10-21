@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, UserPlus, UserX, Users } from 'lucide-react'
+import { KeyRound, RotateCcw, ShieldCheck, UserPlus, UserX, Users } from 'lucide-react'
 
 import { useUsuarios } from '@/application/hooks/useUsuarios'
 import { useAuthStore } from '@/application/stores/authStore'
-import type { MotivoDesactivacion, Usuario } from '@/domain/entities/Usuario'
+import type { MotivoDesactivacion, PasswordTemporal, Usuario } from '@/domain/entities/Usuario'
 import { MOTIVOS_DESACTIVACION } from '@/domain/entities/Usuario'
 import { ROLES, type Rol } from '@/domain/value-objects/Rol'
 import { rangoPagina } from '@/lib/paginacion'
@@ -37,7 +37,7 @@ const FORM_INICIAL = { nombre: '', email: '', password: '', rol: 'tecnico' as Ro
 
 export function UsuariosPage() {
   const { t } = useTranslation()
-  const { usuarios, cargando, crear, desactivar, cambiarRol } = useUsuarios()
+  const { usuarios, cargando, crear, desactivar, cambiarRol, asignarTemporal } = useUsuarios()
   const sesion = useAuthStore((s) => s.usuario)
   // HU-41: nunca puede quedar el sistema sin un administrador activo.
   const administradoresActivos = useMemo(
@@ -71,6 +71,44 @@ export function UsuariosPage() {
   const [rolNuevo, setRolNuevo] = useState<Rol>('tecnico')
   const [cambiandoRol, setCambiandoRol] = useState(false)
   const [mensajeCambioRol, setMensajeCambioRol] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+
+  // FE-004: restablecer contraseña / reactivar. La contraseña temporal solo
+  // vive en este estado mientras su diálogo está abierto.
+  const [temporalPendiente, setTemporalPendiente] = useState<{
+    usuario: Usuario
+    accion: 'restablecer-password' | 'reactivar'
+  } | null>(null)
+  const [temporalEmitida, setTemporalEmitida] = useState<PasswordTemporal | null>(null)
+  const [procesandoTemporal, setProcesandoTemporal] = useState(false)
+  const [errorTemporal, setErrorTemporal] = useState<string | null>(null)
+  const [temporalCopiada, setTemporalCopiada] = useState(false)
+
+  const cerrarTemporal = () => {
+    setTemporalPendiente(null)
+    setTemporalEmitida(null)
+    setErrorTemporal(null)
+    setTemporalCopiada(false)
+  }
+
+  const confirmarTemporal = async () => {
+    if (!temporalPendiente) return
+    setProcesandoTemporal(true)
+    setErrorTemporal(null)
+    const resultado = await asignarTemporal(temporalPendiente.usuario.id, temporalPendiente.accion)
+    setProcesandoTemporal(false)
+    if (resultado) setTemporalEmitida(resultado)
+    else setErrorTemporal(t('comunes.error'))
+  }
+
+  const copiarTemporal = async () => {
+    if (!temporalEmitida) return
+    try {
+      await navigator.clipboard.writeText(temporalEmitida.password_temporal)
+      setTemporalCopiada(true)
+    } catch {
+      setTemporalCopiada(false)
+    }
+  }
 
   const enviarCambioRol = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -220,6 +258,26 @@ export function UsuariosPage() {
                           <UserX />
                           {t('usuarios.desactivar')}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setTemporalPendiente({ usuario, accion: 'restablecer-password' })}
+                        >
+                          <KeyRound />
+                          {t('usuarios.restablecerPassword')}
+                        </Button>
+                      </ActionMenu>
+                    )}
+                    {!usuario.is_active && (
+                      <ActionMenu label={usuario.nombre}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setTemporalPendiente({ usuario, accion: 'reactivar' })}
+                        >
+                          <RotateCcw />
+                          {t('usuarios.reactivar')}
+                        </Button>
                       </ActionMenu>
                     )}
                   </TableCell>
@@ -324,6 +382,58 @@ export function UsuariosPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── FE-004: contraseña temporal (restablecer / reactivar) ── */}
+      <Dialog open={temporalPendiente !== null} onOpenChange={(abierto) => !abierto && cerrarTemporal()}>
+        <DialogContent>
+          <DialogTitle>
+            {temporalEmitida
+              ? t('usuarios.passwordTemporalTitulo')
+              : t(temporalPendiente?.accion === 'reactivar' ? 'usuarios.reactivar' : 'usuarios.restablecerPassword')}
+          </DialogTitle>
+          <DialogDescription>
+            {temporalEmitida
+              ? t('usuarios.passwordTemporalDetalle', { nombre: temporalPendiente?.usuario.nombre ?? '' })
+              : t(
+                  temporalPendiente?.accion === 'reactivar' ? 'usuarios.reactivarConfirmar' : 'usuarios.restablecerConfirmar',
+                  { nombre: temporalPendiente?.usuario.nombre ?? '' },
+                )}
+          </DialogDescription>
+          {temporalEmitida ? (
+            <div className="mt-4 space-y-3">
+              <code
+                data-testid="password-temporal"
+                className="block break-all rounded-(--radius-field) border border-border bg-secondary-tint px-3 py-2 font-mono text-sm select-all"
+              >
+                {temporalEmitida.password_temporal}
+              </code>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => void copiarTemporal()}>
+                  <KeyRound />
+                  {t(temporalCopiada ? 'usuarios.copiado' : 'usuarios.copiar')}
+                </Button>
+                <Button variant="ghost" onClick={cerrarTemporal}>{t('comunes.cerrar')}</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {errorTemporal && (
+                <p role="alert" className="rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700">
+                  {errorTemporal}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+                <Button variant="ghost" onClick={cerrarTemporal} disabled={procesandoTemporal}>
+                  {t('usuarios.cancelar')}
+                </Button>
+                <Button onClick={() => void confirmarTemporal()} disabled={procesandoTemporal}>
+                  {procesandoTemporal ? t('dispositivos.procesando') : t('usuarios.confirmar')}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 
-import type { Usuario } from '@/domain/entities/Usuario'
+import type { PasswordTemporal, Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { apiClient } from '@/infrastructure/api/apiClient'
 
@@ -68,5 +68,22 @@ export function useUsuarios() {
     [consultar],
   )
 
-  return { usuarios, cargando, crear, desactivar, cambiarRol }
+  // FE-004 / BE-025: el administrador asigna una contraseña temporal (al
+  // restablecer o al reactivar). El backend la devuelve una sola vez.
+  const asignarTemporal = useCallback(
+    async (usuarioId: string, accion: 'restablecer-password' | 'reactivar'): Promise<PasswordTemporal | null> => {
+      try {
+        const { data } = await apiClient.post<PasswordTemporal>(
+          `/api/usuarios/${encodeURIComponent(usuarioId)}/${accion}`,
+        )
+        await consultar()
+        return data
+      } catch {
+        return null
+      }
+    },
+    [consultar],
+  )
+
+  return { usuarios, cargando, crear, desactivar, cambiarRol, asignarTemporal }
 }

@@ -4,6 +4,8 @@ import { normalizarRol, type Rol } from '@/domain/value-objects/Rol'
 interface TokenResponse {
   access_token: string
   token_type: string
+  /** BE-025: contraseña temporal asignada por un administrador. */
+  require_password_change?: boolean
 }
 
 export interface SesionUsuario {
@@ -16,6 +18,12 @@ export interface SesionUsuario {
 
 export interface ResultadoLogin {
   accessToken: string
+  /** FE-004: el backend solo admite el cambio de contraseña hasta resolverlo. */
+  requiereCambioPassword: boolean
+}
+
+function resultado(data: TokenResponse): ResultadoLogin {
+  return { accessToken: data.access_token, requiereCambioPassword: Boolean(data.require_password_change) }
 }
 
 export async function login(email: string, password: string): Promise<ResultadoLogin> {
@@ -23,7 +31,7 @@ export async function login(email: string, password: string): Promise<ResultadoL
   const { data } = await apiClient.post<TokenResponse>('/api/auth/login', body, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   })
-  return { accessToken: data.access_token }
+  return resultado(data)
 }
 
 /**
@@ -36,7 +44,7 @@ export async function login(email: string, password: string): Promise<ResultadoL
  */
 export async function loginConGoogle(idToken: string): Promise<ResultadoLogin> {
   const { data } = await apiClient.post<TokenResponse>('/api/auth/google', { id_token: idToken })
-  return { accessToken: data.access_token }
+  return resultado(data)
 }
 
 /** Decodifica el payload del JWT (sin verificar firma: eso lo hace el backend). */

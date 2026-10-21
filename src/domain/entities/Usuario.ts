@@ -8,6 +8,14 @@ export interface Usuario {
   is_active: boolean
   motivo_desactivacion: string | null
   desactivado_en: string | null
+  /** BE-025: tiene una contraseña temporal pendiente de cambio. */
+  debe_cambiar_password?: boolean
+}
+
+/** FE-004: respuesta de restablecimiento/reactivación; se muestra una vez. */
+export interface PasswordTemporal {
+  usuario: Usuario
+  password_temporal: string
 }
 
 export const MOTIVOS_DESACTIVACION = ['renuncia', 'despido', 'jubilacion', 'otros'] as const

@@ -12,6 +12,7 @@ import {
   HardDrive,
   History,
   Link2,
+  KeyRound,
   LogOut,
   Menu,
   ScrollText,
@@ -198,10 +199,20 @@ function ContenidoSidebar({
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full lg:size-8 bg-primary-tint text-sm font-semibold text-primary">
             {usuario.email.charAt(0).toUpperCase()}
           </span>
-          <div className="min-w-0 leading-tight">
+          <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-[13px] font-medium text-foreground">{usuario.email}</p>
             <p className="mt-1 text-xs leading-4 text-faint">{t(`roles.${usuario.rol}`)}</p>
           </div>
+          {/* FE-004: cambio de contraseña voluntario (BE-025). */}
+          <NavLink
+            to="/cambiar-password"
+            onClick={alNavegar}
+            aria-label={t('cambiarPassword.menu')}
+            title={t('cambiarPassword.menu')}
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <KeyRound className="size-4" />
+          </NavLink>
         </div>
         <button
           type="button"

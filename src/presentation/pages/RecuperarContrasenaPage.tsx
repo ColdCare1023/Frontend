@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, CheckCircle2, Loader2, Mail, ShieldAlert } from 'lucide-react'
 
-import { mockPasswordRecoveryService } from '@/infrastructure/auth/MockPasswordRecoveryService'
+import { solicitarRecuperacion } from '@/infrastructure/auth/credencialesService'
 import { AuthShell } from '../components/auth/AuthShell'
 import { ColdCareBrandPanel } from '../components/auth/ColdCareBrandPanel'
 import { Input, Label } from '../components/ui/input'
@@ -33,15 +33,16 @@ export function RecuperarContrasenaPage() {
       return
     }
 
+    // FE-004: solicitud real (BE-025). La respuesta no revela si la cuenta
+    // existe; sin SMTP en el servidor, la recuperación pasa por el
+    // administrador.
     setCargando(true)
-    try {
-      await mockPasswordRecoveryService.solicitarInstrucciones(normalizado)
-      setEnviado(true)
-    } catch {
-      setError(t('login.errorServidor'))
-    } finally {
-      setCargando(false)
-    }
+    const resultado = await solicitarRecuperacion(normalizado)
+    setCargando(false)
+    if (resultado === 'enviado') setEnviado(true)
+    else if (resultado === 'no_disponible') setError(t('recuperarContrasena.noDisponible'))
+    else if (resultado === 'limite') setError(t('login.errorDemasiadosIntentos'))
+    else setError(t('login.errorServidor'))
   }
 
   return (

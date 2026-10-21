@@ -16,8 +16,7 @@ import { Input } from '@/presentation/components/ui/input'
 
 /** Credential and demo access share the light ColdCare account workspace. */
 export function LoginPage() {
-  const { t, i18n } = useTranslation()
-  const en = i18n.language.startsWith('en')
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   // El motivo llega por `?sesion=` o, al expirar/recargar, por las marcas de
@@ -43,7 +42,9 @@ export function LoginPage() {
     setCargando(true)
     try {
       await login(correo, clave)
-      void navigate('/dashboard', { replace: true })
+      // FE-004: con una contraseña temporal solo se puede cambiarla.
+      const destino = useAuthStore.getState().requiereCambioPassword ? '/cambiar-password' : '/dashboard'
+      void navigate(destino, { replace: true })
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { detail?: string } } }
       if (e?.response?.status === 429) {
@@ -81,7 +82,8 @@ export function LoginPage() {
   const entrarDemo = (correo: string) => autenticar(correo, 'demo-2026')
 
   const irAlPanel = useCallback(() => {
-    void navigate('/dashboard', { replace: true })
+    const destino = useAuthStore.getState().requiereCambioPassword ? '/cambiar-password' : '/dashboard'
+    void navigate(destino, { replace: true })
   }, [navigate])
 
   return (
@@ -215,22 +217,9 @@ export function LoginPage() {
               VITE_GOOGLE_CLIENT_ID no se muestra. */}
           <GoogleAuthSection onIdToken={loginConGoogle} onExito={irAlPanel} />
 
-          {/* Enlace solicitar acceso */}
-          <div className="pt-1.5 text-center text-xs text-muted">
-            <span>{t('login.sinAcceso', { defaultValue: '¿Aún no tienes acceso?' })}{' '}</span>
-            <Link
-              to="/solicitar-acceso"
-              className="font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary rounded-sm"
-            >
-              {t('login.solicitarAcceso', { defaultValue: 'Solicitar acceso' })}
-            </Link>
-          </div>
+          {/* FE-004: no hay autorregistro; las cuentas las crea el administrador. */}
+          <p className="pt-1.5 text-center text-xs text-muted">{t('login.cuentasAdministrador')}</p>
         </form>
-
-        <p className="mt-4 flex flex-wrap items-center justify-center gap-x-1 text-sm text-muted">
-          {en ? 'New to ColdCare?' : '¿Primera vez en ColdCare?'}
-          <Link to="/registro" className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline">{en ? 'Create account' : 'Crear cuenta'}</Link>
-        </p>
 
         {/* Demo roles stay in view; users should not have to discover a hidden menu. */}
         {mostrarDemo && (

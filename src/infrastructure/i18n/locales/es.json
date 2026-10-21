@@ -30,14 +30,13 @@
     "marcaDescripcion": "Supervisa tus equipos, recibe alertas oportunas y conserva registros trazables para cada revisión.",
     "telemetriaTiempoReal": "Telemetría en tiempo real",
     "olvidastePassword": "¿Olvidaste tu contraseña?",
-    "sinAcceso": "¿Aún no tienes acceso?",
-    "solicitarAcceso": "Solicitar acceso",
     "notaSeguridad": "Acceso protegido para tu farmacia",
     "avisoSeguridadPie": "Acceso protegido con cifrado en tránsito y autenticación basada en tokens volátiles (en memoria).",
     "sesionCerradaRecarga": "Por tu seguridad, la sesión se cierra al recargar la página. Vuelve a ingresar.",
     "continuarCon": "o continúa con",
     "googleNoAutorizado": "Tu cuenta de Google no tiene acceso a ColdCare. Pide al administrador que la dé de alta.",
-    "googleNoDisponible": "El acceso con Google no está disponible en este momento."
+    "googleNoDisponible": "El acceso con Google no está disponible en este momento.",
+    "cuentasAdministrador": "¿No tienes cuenta? Pídela al administrador de tu farmacia."
   },
   "nav": {
     "dashboard": "Monitoreo",
@@ -472,7 +471,16 @@
     "confirmarCambiarRol": "¿Cambiar el rol de {{nombre}}? El cambio tendrá efecto de inmediato y se aplicarán los permisos del nuevo rol.",
     "rolActualizadoOk": "Rol actualizado correctamente.",
     "nuevoRol": "Rol nuevo",
-    "cambiando": "Guardando…"
+    "cambiando": "Guardando…",
+    "restablecerPassword": "Restablecer contraseña",
+    "reactivar": "Reactivar",
+    "passwordTemporalTitulo": "Contraseña temporal",
+    "passwordTemporalDetalle": "Entrégala a {{nombre}} por un canal seguro. Se muestra una sola vez y deberá cambiarla al ingresar.",
+    "restablecerConfirmar": "Se cerrarán las sesiones abiertas de {{nombre}} y su contraseña actual dejará de valer.",
+    "reactivarConfirmar": "{{nombre}} volverá a tener acceso con una contraseña temporal.",
+    "copiar": "Copiar",
+    "copiado": "Copiado",
+    "confirmar": "Confirmar"
   },
   "privacidad": {
     "titulo": "Aviso de privacidad",
@@ -867,44 +875,42 @@
     "enviando": "Enviando instrucciones…",
     "exitoTitulo": "Instrucciones enviadas",
     "exitoMensaje": "Si la dirección {{email}} corresponde a una cuenta activa, recibirás un enlace seguro para restablecer tu contraseña en los próximos minutos.",
-    "notaSeguridad": "Si tu correo está registrado, recibirás instrucciones para recuperar el acceso. El enlace vence en 15 minutos.",
+    "notaSeguridad": "Si tu correo está registrado, recibirás un enlace de un solo uso que vence en 30 minutos.",
     "volverLogin": "Volver a iniciar sesión",
-    "errorEmail": "Ingresa un correo electrónico válido."
+    "errorEmail": "Ingresa un correo electrónico válido.",
+    "noDisponible": "La recuperación por correo no está disponible. Pide al administrador que restablezca tu contraseña."
   },
   "restablecerContrasena": {
     "titulo": "Restablecer contraseña",
     "subtitulo": "Define una nueva contraseña segura para acceder al monitoreo térmico.",
     "passwordNueva": "Nueva contraseña",
     "passwordConfirmacion": "Confirmar contraseña",
-    "requisitos": "Mínimo 8 caracteres. Debe incluir mayúsculas, minúsculas y números.",
+    "requisitos": "Mínimo 10 caracteres, con letras y números.",
     "boton": "Actualizar contraseña",
     "actualizando": "Actualizando contraseña…",
     "exitoTitulo": "Contraseña actualizada",
     "exitoMensaje": "Tu contraseña ha sido actualizada exitosamente. Puedes ingresar de inmediato con tus nuevas credenciales.",
     "irLogin": "Iniciar sesión",
     "errorCoincidencia": "Las contraseñas no coinciden.",
-    "errorLongitud": "La contraseña debe tener al menos 8 caracteres.",
     "tokenInvalido": "El enlace de recuperación no es válido o ha expirado.",
-    "solicitarNuevo": "Solicitar nuevo enlace"
+    "solicitarNuevo": "Solicitar nuevo enlace",
+    "tokenInvalidoDetalle": "El enlace caducó o ya se usó. Solicita uno nuevo para continuar.",
+    "politica": {
+      "corta": "La contraseña debe tener al menos 10 caracteres.",
+      "sin_letras_y_digitos": "La contraseña debe combinar letras y números.",
+      "demasiado_larga": "La contraseña es demasiado larga (máximo 72 bytes)."
+    }
   },
-  "solicitarAcceso": {
-    "titulo": "Solicitar acceso al sistema",
-    "subtitulo": "Envía tu solicitud para que el administrador de tu establecimiento evalúe tu acceso.",
-    "nombre": "Nombre completo",
-    "nombrePlaceholder": "Ej. Dra. Carmen Mendoza",
-    "email": "Correo electrónico institucional",
-    "emailPlaceholder": "carmen.mendoza@farmacia.pe",
-    "rolSolicitado": "Rol solicitado",
-    "establecimiento": "Establecimiento / Farmacia",
-    "establecimientoPlaceholder": "Botica Central S.A.C. / Sede San Borja",
-    "motivo": "Justificación de acceso",
-    "motivoPlaceholder": "Indica tu cargo, área y motivo por el cual requieres acceso a la plataforma...",
-    "enviar": "Enviar solicitud",
-    "enviando": "Enviando solicitud…",
-    "exitoTitulo": "Solicitud enviada para revisión",
-    "exitoMensaje": "Tu solicitud ha sido remitida al Administrador del establecimiento. Recibirás una notificación por correo una vez evaluada.",
-    "volverLogin": "Volver a iniciar sesión",
-    "errorCampos": "Por favor completa todos los campos requeridos.",
-    "errorEmail": "Ingresa un correo electrónico institucional válido."
+  "cambiarPassword": {
+    "titulo": "Cambiar contraseña",
+    "subtitulo": "Elige una contraseña que solo tú conozcas.",
+    "actual": "Contraseña actual",
+    "temporal": "Tu contraseña es temporal: la asignó un administrador. Cámbiala para continuar.",
+    "boton": "Guardar contraseña",
+    "errorActualVacia": "Ingresa tu contraseña actual.",
+    "errorActual": "La contraseña actual no es correcta.",
+    "errorIgual": "La nueva contraseña debe ser distinta de la actual.",
+    "salir": "Cerrar sesión",
+    "menu": "Cambiar contraseña"
   }
 }

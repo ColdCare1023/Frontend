@@ -30,14 +30,13 @@
     "mostrarPassword": "Show password",
     "ocultarPassword": "Hide password",
     "olvidastePassword": "Forgot your password?",
-    "sinAcceso": "Don't have access yet?",
-    "solicitarAcceso": "Request access",
     "notaSeguridad": "Protected access for your pharmacy",
     "avisoSeguridadPie": "Protected access with in-transit encryption and volatile in-memory token authentication.",
     "sesionCerradaRecarga": "For your security, the session closes when the page reloads. Please sign in again.",
     "continuarCon": "or continue with",
     "googleNoAutorizado": "Your Google account has no access to ColdCare. Ask the administrator to register it.",
-    "googleNoDisponible": "Google sign-in is not available right now."
+    "googleNoDisponible": "Google sign-in is not available right now.",
+    "cuentasAdministrador": "No account? Ask your pharmacy administrator."
   },
   "nav": {
     "dashboard": "Monitoring",
@@ -472,7 +471,16 @@
     "confirmarCambiarRol": "Change {{nombre}}'s role? The change takes effect immediately, and the new role's permissions will apply.",
     "rolActualizadoOk": "Role updated successfully.",
     "nuevoRol": "New role",
-    "cambiando": "Saving…"
+    "cambiando": "Saving…",
+    "restablecerPassword": "Reset password",
+    "reactivar": "Reactivate",
+    "passwordTemporalTitulo": "Temporary password",
+    "passwordTemporalDetalle": "Give it to {{nombre}} through a secure channel. It is shown only once and must be changed at sign-in.",
+    "restablecerConfirmar": "{{nombre}}'s open sessions will end and the current password will stop working.",
+    "reactivarConfirmar": "{{nombre}} will regain access with a temporary password.",
+    "copiar": "Copy",
+    "copiado": "Copied",
+    "confirmar": "Confirm"
   },
   "privacidad": {
     "titulo": "Privacy notice",
@@ -867,44 +875,42 @@
     "enviando": "Sending instructions…",
     "exitoTitulo": "Instructions sent",
     "exitoMensaje": "If {{email}} matches an active account, you will receive a secure link to reset your password in the next few minutes.",
-    "notaSeguridad": "For security and anti-enumeration policies, email existence is not confirmed in the system. The link will expire in 15 minutes.",
+    "notaSeguridad": "If your email is registered you will receive a single-use link that expires in 30 minutes.",
     "volverLogin": "Back to sign in",
-    "errorEmail": "Enter a valid email address."
+    "errorEmail": "Enter a valid email address.",
+    "noDisponible": "Email recovery is not available. Ask the administrator to reset your password."
   },
   "restablecerContrasena": {
     "titulo": "Reset password",
     "subtitulo": "Set a new secure password to access thermal monitoring.",
     "passwordNueva": "New password",
     "passwordConfirmacion": "Confirm password",
-    "requisitos": "Minimum 8 characters. Must include uppercase, lowercase, and numbers.",
+    "requisitos": "At least 10 characters, with letters and numbers.",
     "boton": "Update password",
     "actualizando": "Updating password…",
     "exitoTitulo": "Password updated",
     "exitoMensaje": "Your password has been successfully updated. You can now sign in with your new credentials.",
     "irLogin": "Sign in",
     "errorCoincidencia": "Passwords do not match.",
-    "errorLongitud": "Password must be at least 8 characters long.",
     "tokenInvalido": "The reset link is invalid or has expired.",
-    "solicitarNuevo": "Request new link"
+    "solicitarNuevo": "Request new link",
+    "tokenInvalidoDetalle": "The link expired or was already used. Request a new one to continue.",
+    "politica": {
+      "corta": "The password must be at least 10 characters long.",
+      "sin_letras_y_digitos": "The password must combine letters and numbers.",
+      "demasiado_larga": "The password is too long (72 bytes maximum)."
+    }
   },
-  "solicitarAcceso": {
-    "titulo": "Request system access",
-    "subtitulo": "Submit your request so your facility Administrator can evaluate your account creation according to HU-41.",
-    "nombre": "Full name",
-    "nombrePlaceholder": "E.g. Dr. Carmen Mendoza",
-    "email": "Institutional email address",
-    "emailPlaceholder": "carmen.mendoza@pharmacy.pe",
-    "rolSolicitado": "Requested role (RBAC)",
-    "establecimiento": "Facility / Pharmacy",
-    "establecimientoPlaceholder": "Central Pharmacy Inc. / Main Branch",
-    "motivo": "Access justification",
-    "motivoPlaceholder": "State your role, department and reason for requiring access to the platform...",
-    "enviar": "Submit request",
-    "enviando": "Submitting request…",
-    "exitoTitulo": "Request submitted for review",
-    "exitoMensaje": "Your request has been submitted to the facility Administrator. You will receive an email notification once reviewed.",
-    "volverLogin": "Back to sign in",
-    "errorCampos": "Please fill in all required fields.",
-    "errorEmail": "Enter a valid institutional email address."
+  "cambiarPassword": {
+    "titulo": "Change password",
+    "subtitulo": "Choose a password only you know.",
+    "actual": "Current password",
+    "temporal": "Your password is temporary: an administrator set it. Change it to continue.",
+    "boton": "Save password",
+    "errorActualVacia": "Enter your current password.",
+    "errorActual": "The current password is not correct.",
+    "errorIgual": "The new password must differ from the current one.",
+    "salir": "Sign out",
+    "menu": "Change password"
   }
 }

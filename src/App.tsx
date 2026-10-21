@@ -6,12 +6,11 @@ import { setOnSesionExpirada } from '@/infrastructure/api/apiClient'
 import { marcarSesionExpirada } from '@/infrastructure/auth/avisoSesion'
 import { useAuthStore } from '@/application/stores/authStore'
 import { ErrorBoundary } from '@/presentation/components/ErrorBoundary'
-import { RequireAuth, RequireRoles } from '@/presentation/components/RouteGuards'
+import { RequireAuth, RequirePasswordPropia, RequireRoles } from '@/presentation/components/RouteGuards'
+import { CambiarPasswordPage } from '@/presentation/pages/CambiarPasswordPage'
 import { LoginPage } from '@/presentation/pages/LoginPage'
-import { RegistroPage } from '@/presentation/pages/RegistroPage'
 import { RecuperarContrasenaPage } from '@/presentation/pages/RecuperarContrasenaPage'
 import { RestablecerContrasenaPage } from '@/presentation/pages/RestablecerContrasenaPage'
-import { SolicitarAccesoPage } from '@/presentation/pages/SolicitarAccesoPage'
 
 /**
  * Carga diferida por ruta (F-11). El dashboard arrastra ECharts (~600 KB), que
@@ -128,12 +127,14 @@ export function App() {
         <SesionExpiradaListener />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/registro" element={<RegistroPage />} />
+          {/* FE-004: recuperación real (BE-025). No hay autorregistro ni
+              "solicitud de acceso": las cuentas las crea el administrador. */}
           <Route path="/recuperar-contrasena" element={<RecuperarContrasenaPage />} />
-          <Route path="/restablecer-contrasena" element={<RestablecerContrasenaPage />} />
-          <Route path="/solicitar-acceso" element={<SolicitarAccesoPage />} />
+          <Route path="/restablecer-password" element={<RestablecerContrasenaPage />} />
 
           <Route element={<RequireAuth />}>
+            <Route path="/cambiar-password" element={<CambiarPasswordPage />} />
+            <Route element={<RequirePasswordPropia />}>
             <Route element={<Pagina shell><AppLayout /></Pagina>}>
               <Route path="/guia" element={<Pagina><GuiaPage /></Pagina>} />
               <Route path="/dashboard" element={<Pagina><DashboardPage /></Pagina>} />
@@ -165,6 +166,7 @@ export function App() {
                 <Route path="/usuarios" element={<Pagina><UsuariosPage /></Pagina>} />
                 <Route path="/dispositivos" element={<Pagina><DispositivosPage /></Pagina>} />
               </Route>
+            </Route>
             </Route>
           </Route>
 

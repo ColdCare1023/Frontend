@@ -12,6 +12,16 @@ export function RequireAuth() {
   return <Outlet />
 }
 
+/**
+ * FE-004: con una contraseña temporal pendiente, la única pantalla útil es la
+ * del cambio (el backend responde 403 a todo lo demás).
+ */
+export function RequirePasswordPropia() {
+  const requiereCambio = useAuthStore((s) => s.requiereCambioPassword)
+  if (requiereCambio) return <Navigate to="/cambiar-password" replace />
+  return <Outlet />
+}
+
 /** Bloquea la ruta si el rol del usuario no está permitido (RBAC). */
 export function RequireRoles({ roles }: { roles: Rol[] }) {
   const { t } = useTranslation()

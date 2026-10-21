@@ -110,14 +110,14 @@ describe('LoginPage', () => {
     expect(screen.getByRole('alert')).not.toHaveTextContent('Correo o contraseña incorrectos.')
   })
 
-  it('muestra enlaces a recuperación de contraseña y solicitud de acceso', () => {
+  it('enlaza la recuperación real y no ofrece autorregistro simulado (FE-004)', () => {
     adaptador = instalarAdaptadorFalso()
     montar()
     const enlaceRecuperar = screen.getByRole('link', { name: /¿Olvidaste tu contraseña\?/i })
     expect(enlaceRecuperar).toHaveAttribute('href', '/recuperar-contrasena')
 
-    const enlaceSolicitar = screen.getByRole('link', { name: /Solicitar acceso/i })
-    expect(enlaceSolicitar).toHaveAttribute('href', '/solicitar-acceso')
+    expect(screen.queryByRole('link', { name: /Solicitar acceso|Crear cuenta/i })).toBeNull()
+    expect(screen.getByText(/Pídela al administrador/)).toBeInTheDocument()
   })
 
   it('permite autenticación rápida mediante el grid 2x2 de roles demo', async () => {
