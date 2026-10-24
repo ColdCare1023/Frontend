@@ -201,6 +201,37 @@ describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
     expect(screen.getByTestId('puerta-advertencia')).not.toHaveAttribute('role', 'alert')
   })
 
+  // Con `apertura_continua_segundos` (backend actual), la duración mostrada es
+  // la de la apertura en curso, no la de la ventana de muestreo.
+  it('muestra cuánto lleva abierta la puerta sin cerrarse', () => {
+    renderizar(lectura({
+      apertura_refrigerador: true, duracion_apertura_segundos: 10,
+      apertura_continua_segundos: 95, umbral_puerta_abierta_segundos: 120,
+    }))
+
+    expect(screen.getByText(/desde hace 1:35/)).toBeInTheDocument()
+    expect(screen.getByTestId('puerta-advertencia')).not.toHaveAttribute('role', 'alert')
+  })
+
+  it('avisa la apertura prolongada aunque la ventana de muestreo sea corta', () => {
+    renderizar(lectura({
+      apertura_refrigerador: true, duracion_apertura_segundos: 10,
+      apertura_continua_segundos: 75, umbral_puerta_abierta_segundos: 60,
+    }))
+
+    expect(screen.getByTestId('puerta-advertencia')).toHaveAttribute('role', 'alert')
+  })
+
+  it('una apertura ya cerrada se muestra como cerrada con su duración', () => {
+    renderizar(lectura({
+      apertura_refrigerador: true, duracion_apertura_segundos: 24,
+      apertura_continua_segundos: null, umbral_puerta_abierta_segundos: 60,
+    }))
+
+    expect(screen.queryByTestId('puerta-advertencia')).not.toBeInTheDocument()
+    expect(screen.getByText(/se abrió 24 s desde la lectura anterior/i)).toBeInTheDocument()
+  })
+
   it('no presenta una falsa "puerta cerrada" cuando el dispositivo no tiene MC-38', () => {
     renderizar(lectura({ apertura_refrigerador: null }))
 

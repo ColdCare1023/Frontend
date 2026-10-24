@@ -122,6 +122,8 @@
     "puertaSinSensor": "No disponible",
     "puertaProlongada": "Apertura prolongada: revisar el refrigerador",
     "puertaSinDato": "No disponible",
+    "puertaDesdeHace": "desde hace {{duracion}}",
+    "puertaHuboApertura": "Se abrió {{segundos}} s desde la lectura anterior.",
     "conectado": "En línea",
     "desconectado": "Sin conexión",
     "tiempoReal": "tiempo real",

@@ -192,8 +192,24 @@ function EstadoPrincipal({
   const umbralPuerta = typeof umbralConfigurado === 'number' && Number.isFinite(umbralConfigurado) && umbralConfigurado > 0
     ? umbralConfigurado
     : UMBRAL_PUERTA_ABIERTA_POR_DEFECTO
-  const aperturaProlongada = ultima.apertura_refrigerador === true &&
-    ultima.duracion_apertura_segundos != null && ultima.duracion_apertura_segundos >= umbralPuerta
+  // HU-35: `apertura_refrigerador` dice si HUBO apertura en la ventana de
+  // muestreo y `duracion_apertura_segundos` cuánto duró dentro de ella (nunca
+  // más que el intervalo). Lo que lleva abierta la puerta sin cerrarse viene
+  // en `apertura_continua_segundos`; con backends anteriores se conserva el
+  // criterio previo.
+  const conAperturaContinua = ultima.apertura_continua_segundos !== undefined
+  const abiertaAhora = conAperturaContinua
+    ? (ultima.apertura_continua_segundos ?? 0) > 0
+    : ultima.apertura_refrigerador === true
+  // Mientras el dato es fresco, el contador sigue avanzando entre lecturas.
+  const aperturaEnCurso = abiertaAhora && ultima.apertura_continua_segundos != null
+    ? ultima.apertura_continua_segundos + (desactualizado ? 0 : (segundosDesdeUltima ?? 0))
+    : null
+  const huboAperturaCerrada = conAperturaContinua && !abiertaAhora && ultima.apertura_refrigerador === true
+  const aperturaProlongada = conAperturaContinua
+    ? aperturaEnCurso != null && aperturaEnCurso >= umbralPuerta
+    : ultima.apertura_refrigerador === true &&
+      ultima.duracion_apertura_segundos != null && ultima.duracion_apertura_segundos >= umbralPuerta
 
   return (
     <Card className="overflow-hidden border-border bg-surface shadow-none">
@@ -266,22 +282,33 @@ function EstadoPrincipal({
 
         <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-1 sm:border-t-0 sm:border-l sm:pl-5 sm:pt-0">
           <div className="py-1.5">
-            <dt className="flex items-center gap-2 text-xs font-medium text-muted">{ultima.apertura_refrigerador ? <DoorOpen className="size-4 text-honey-600" aria-hidden /> : <DoorClosed className="size-4 text-primary" aria-hidden />}{t('dashboard.puerta')}</dt>
+            <dt className="flex items-center gap-2 text-xs font-medium text-muted">{abiertaAhora ? <DoorOpen className="size-4 text-honey-600" aria-hidden /> : <DoorClosed className="size-4 text-primary" aria-hidden />}{t('dashboard.puerta')}</dt>
             <dd
-              className={cn('mt-2 text-sm font-semibold', ultima.apertura_refrigerador ? 'text-honey-700' : 'text-foreground')}
+              className={cn('mt-2 text-sm font-semibold', abiertaAhora ? 'text-honey-700' : 'text-foreground')}
               role={aperturaProlongada ? 'alert' : undefined}
-              data-testid={ultima.apertura_refrigerador ? 'puerta-advertencia' : undefined}
+              data-testid={abiertaAhora ? 'puerta-advertencia' : undefined}
             >
               {ultima.apertura_refrigerador === null
                 ? t('dashboard.puertaSinDato')
-                : ultima.apertura_refrigerador
+                : abiertaAhora
                   ? t('dashboard.puertaAbierta')
                   : t('dashboard.puertaCerrada')}
-              {ultima.apertura_refrigerador && ultima.duracion_apertura_segundos != null && (() => {
+              {aperturaEnCurso != null && (
+                <span className={cn('nums ml-1 font-normal', aperturaProlongada ? 'text-clay-700' : 'text-muted')}>
+                  · {t('dashboard.puertaDesdeHace', { duracion: duracionBreve(aperturaEnCurso) })}
+                  {aperturaProlongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}
+                </span>
+              )}
+              {!conAperturaContinua && ultima.apertura_refrigerador && ultima.duracion_apertura_segundos != null && (() => {
                 const duracion = ultima.duracion_apertura_segundos
                 const prolongada = duracion >= umbralPuerta
                 return <span className={cn('nums ml-1 font-normal', prolongada ? 'text-clay-700' : 'text-muted')}>· {duracionBreve(duracion)}{prolongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}</span>
               })()}
+              {huboAperturaCerrada && ultima.duracion_apertura_segundos != null && (
+                <span className="mt-1 block text-xs font-normal text-muted">
+                  {t('dashboard.puertaHuboApertura', { segundos: ultima.duracion_apertura_segundos })}
+                </span>
+              )}
               {aperturaProlongada && (
                 <span className="mt-1 block text-xs font-medium text-clay-700">
                   {t('dashboard.puertaSuperaUmbral', { segundos: umbralPuerta })}

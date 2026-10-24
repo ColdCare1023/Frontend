@@ -22,10 +22,13 @@ export interface LecturaTermica {
   // HU-04: null cuando el dispositivo no tiene MC-38 instalado — no un
   // valor falso que simularía una puerta cerrada que no existe.
   apertura_refrigerador: boolean | null
-  // HU-35: duración acumulada de ESTA apertura, tal como la reporta el nodo.
-  // null si el firmware no lo reportó (dispositivo desactualizado) o si no
-  // hay MC-38 instalado.
+  // HU-35: segundos que la puerta estuvo abierta DENTRO de la ventana de
+  // muestreo (nunca supera el intervalo). null si el firmware no lo reportó o
+  // si no hay MC-38 instalado.
   duracion_apertura_segundos: number | null
+  /** HU-35: cuánto lleva abierta la puerta sin cerrarse al capturar; null si
+   * estaba cerrada. Ausente en backends anteriores. */
+  apertura_continua_segundos?: number | null
   /** Umbral operativo configurado para alertar por apertura prolongada. */
   umbral_puerta_abierta_segundos?: number | null
   estado_conectividad: string
