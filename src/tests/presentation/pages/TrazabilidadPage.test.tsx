@@ -115,4 +115,55 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
 
     expect(screen.getByText(/se detectó una inconsistencia en el historial/i)).toBeInTheDocument()
   })
+
+  // HU-26 escenarios 2-4.
+  it('muestra la ruptura aislada como cadena verificable de nuevo, con su fecha', () => {
+    montar({
+      verificacion: {
+        integra: false,
+        estado: 'ruptura_aislada',
+        total_registros: 50,
+        primer_registro_inconsistente: 3,
+        detalle_inconsistencia: null,
+        registros_posteriores_afectados: 46,
+        total_rupturas: 1,
+        integra_desde: '2026-10-24T13:00:00Z',
+      },
+    })
+    expect(screen.getByText(/ruptura aislada/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 alteración\(es\) histórica\(s\) aislada\(s\)/i)).toBeInTheDocument()
+    expect(screen.queryByTestId('detalle-inconsistencia')).not.toBeInTheDocument()
+  })
+
+  it('informa el tipo de discrepancia y cuánto sigue enlazado después de la ruptura', () => {
+    montar({
+      verificacion: {
+        integra: false,
+        estado: 'ruptura_detectada',
+        total_registros: 10,
+        primer_registro_inconsistente: 2,
+        detalle_inconsistencia: {
+          id: 'r-2', tipo_evento: 'LECTURA_REGISTRADA', timestamp: '2026-10-24T12:00:00Z',
+          hash_esperado: 'a'.repeat(64), hash_almacenado: 'b'.repeat(64), mensaje: 'x',
+          tipo_discrepancia: 'payload_alterado',
+        },
+        registros_posteriores_afectados: 7,
+        registros_posteriores_consistentes: 7,
+        total_rupturas: 1,
+      },
+    })
+    const detalle = screen.getByTestId('detalle-inconsistencia')
+    expect(detalle).toHaveTextContent(/contenido modificado después de registrarse/i)
+    expect(detalle).toHaveTextContent('7 de 7')
+  })
+
+  it('declara que la verificación no es una certificación DIGEMID', () => {
+    montar({
+      verificacion: {
+        integra: true, total_registros: 1, primer_registro_inconsistente: null,
+        detalle_inconsistencia: null, registros_posteriores_afectados: 0,
+      },
+    })
+    expect(screen.getByTestId('alcance-verificacion')).toHaveTextContent(/DIGEMID/)
+  })
 })
