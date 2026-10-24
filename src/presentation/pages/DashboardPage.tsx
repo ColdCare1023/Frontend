@@ -1,17 +1,15 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import type { EChartsCoreOption } from 'echarts/core'
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, ChevronDown, Clock3, DoorClosed, DoorOpen, Droplets, FlaskConical, RadioTower, ShieldQuestion, TableProperties, Thermometer, Wind } from 'lucide-react'
 
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
-import { temaGrafica } from '@/infrastructure/charts/temaColdCare'
+import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { duracionBreve, fechaHora, hora as formatearHora } from '@/lib/formato'
@@ -317,114 +315,6 @@ function EstadoPrincipal({
 function fallaSensor(lectura: LecturaTermica, campo: string): boolean {
   const estado = lectura.estado_sensores?.[campo]
   return estado !== undefined && estado !== null && estado !== 'valido'
-}
-
-function construirOpcionCurva(serie: LecturaTermica[], etiquetas: {
-  interna: string
-  ambiental: string
-  rangoEsperado: string
-}): EChartsCoreOption {
-  const horas = serie.map((l) => l.timestamp)
-  const colores = temaGrafica()
-  return {
-    // Range controls update the dataset in place; keep the curve stable instead
-    // of fading out and animating every point between unrelated time scales.
-    animation: false,
-    textStyle: { fontFamily: 'Inter Variable, sans-serif', color: colores.foreground },
-    grid: { left: 44, right: 40, top: 32, bottom: 28 },
-    tooltip: {
-      confine: true,
-      trigger: 'axis',
-      axisPointer: { label: { formatter: ({ value }: { value: string | number }) => fechaHora(String(value)) } },
-      backgroundColor: colores.surface,
-      borderColor: colores.border,
-      textStyle: { color: colores.foreground, fontSize: 12, fontFamily: 'Inter Variable, sans-serif' },
-      valueFormatter: (v: unknown) => (typeof v === 'number' ? `${v.toFixed(1)} °C` : '—'),
-    },
-    legend: {
-      selected: { [etiquetas.ambiental]: false },
-      top: 0,
-      right: 0,
-      icon: 'roundRect',
-      itemWidth: 14,
-      itemHeight: 3,
-      formatter: etiquetaCortaTemperatura,
-      textStyle: { color: colores.muted, fontSize: 12, fontFamily: 'Inter Variable, sans-serif' },
-    },
-    xAxis: {
-      type: 'category',
-      data: horas,
-      boundaryGap: false,
-      axisLine: { lineStyle: { color: colores.border } },
-      axisTick: { show: false },
-      axisLabel: { formatter: (value: string) => formatearHora(value), fontSize: 11, color: colores.muted, fontFamily: 'Inter Variable, sans-serif' },
-    },
-    yAxis: {
-      type: 'value',
-      min: (value: { min: number }) => Math.floor(Math.min(value.min, 0)),
-      max: (value: { max: number }) => Math.ceil(Math.max(value.max, 10)),
-      splitLine: { lineStyle: { color: colores.grid } },
-      axisLabel: { fontSize: 11, color: colores.muted, fontFamily: 'Inter Variable, sans-serif', formatter: '{value} °C' },
-    },
-    series: [
-      {
-        name: etiquetas.interna,
-        type: 'line',
-        smooth: false,
-        symbol: 'none',
-        // HU-31 criterio 3: con la ventana ampliada a días, miles de puntos
-        // continuos se muestrean automáticamente (LTTB conserva la forma
-        // real de la tendencia, a diferencia de un promedio simple) para que
-        // la interfaz siga fluida sin perder picos ni caídas relevantes.
-        sampling: 'lttb',
-        large: true,
-        data: serie.map((l) => l.temperatura_interna),
-        lineStyle: { width: 2.5, color: colores.primary },
-        itemStyle: { color: colores.primary },
-        areaStyle: { color: colores.primary, opacity: 0.1 },
-        markArea: {
-          silent: true,
-          itemStyle: { color: colores.primary, opacity: 0.06 },
-          label: { show: true, position: 'insideTop', color: colores.primary, fontSize: 10, formatter: etiquetas.rangoEsperado },
-          data: [[{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }]],
-        },
-        markLine: {
-          silent: true,
-          symbol: 'none',
-          // Tono `clay-700` existente: mantiene semántica de excursión crítica.
-          lineStyle: { color: colores.critical, type: 'dashed', width: 1 },
-          label: { color: colores.critical, fontSize: 10, fontFamily: 'Inter Variable, sans-serif', formatter: '{c} °C' },
-          data: [{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }],
-        },
-        markPoint: {
-          symbol: 'circle',
-          symbolSize: 14,
-          itemStyle: { color: colores.critical, borderColor: colores.surface, borderWidth: 2 },
-          label: { show: true, formatter: '!', color: '#FFFFFF', fontWeight: 700, fontSize: 10 },
-          data: serie.flatMap((lectura, indice) => lectura.excursion_confirmada && lectura.temperatura_interna != null
-            ? [{ coord: [horas[indice], lectura.temperatura_interna], name: 'Excursión confirmada' }]
-            : []),
-        },
-      },
-      {
-        name: etiquetas.ambiental,
-        type: 'line',
-        smooth: false,
-        symbol: 'none',
-        sampling: 'lttb',
-        large: true,
-        data: serie.map((l) => l.temperatura_ambiental),
-        lineStyle: { width: 1.5, color: colores.secondary, type: 'dashed' },
-        itemStyle: { color: colores.secondary },
-      },
-    ],
-  }
-}
-
-function etiquetaCortaTemperatura(nombre: string): string {
-  return nombre
-    .replace(/^temperatura\s+/i, '')
-    .replace(/\s+temperature$/i, '')
 }
 
 function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
@@ -813,14 +703,26 @@ export function DashboardPage() {
   ): number | null =>
     actual != null && anterior != null ? actual - anterior : null
 
+  // La ventana termina en «ahora» y avanza sola: se recalcula cada 15 s
+  // (no cada segundo, que repintaría miles de puntos) y con cada lectura.
+  const marcaVentana = Math.floor(ahora / 15_000)
   const opcionCurva = useMemo(
-    () =>
-      construirOpcionCurva(serie, {
-        interna: t('dashboard.tempInterna'),
-        ambiental: t('dashboard.tempAmbiental'),
-        rangoEsperado: t('dashboard.rangoEsperadoCorto'),
-      }),
-    [serie, t],
+    () => {
+      const hasta = Math.max(marcaVentana * 15_000, Date.parse(serie.at(-1)?.timestamp ?? '') || 0)
+      return construirOpcionCurvaTermica(
+        serie,
+        {
+          interna: t('dashboard.tempInterna'),
+          ambiental: t('dashboard.tempAmbiental'),
+          rangoEsperado: t('dashboard.rangoEsperadoCorto'),
+          ahora: t('dashboard.ejeAhora'),
+          excursion: t('dashboard.graficaExcursion'),
+          sinDatos: t('dashboard.graficaSinDatos'),
+        },
+        { desde: hasta - horasVentana * 60 * 60 * 1000, hasta },
+      )
+    },
+    [serie, t, horasVentana, marcaVentana],
   )
 
   const actualizarDemo = async () => {
