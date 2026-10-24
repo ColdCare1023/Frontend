@@ -1,7 +1,7 @@
 import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertOctagon, ChevronDown, Link2, ScanSearch, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { AlertOctagon, ChevronDown, Info, Link2, ScanSearch, ShieldAlert, ShieldCheck, ShieldHalf } from 'lucide-react'
 
 import { useTrazabilidad } from '@/application/hooks/useTrazabilidad'
 import { useAuthStore } from '@/application/stores/authStore'
@@ -93,6 +93,10 @@ export function TrazabilidadPage() {
   const usuario = useAuthStore((s) => s.usuario)
 
   const detalle = verificacion?.detalle_inconsistencia ?? null
+  // HU-26: backends previos (y el modo demo) solo envían `integra`.
+  const estadoVerificacion =
+    verificacion?.estado ?? (verificacion?.integra ? 'integra' : 'ruptura_detectada')
+  const rupturaAislada = estadoVerificacion === 'ruptura_aislada'
 
   const aislar = async () => {
     if (!detalle) return
@@ -146,12 +150,16 @@ export function TrazabilidadPage() {
             'mb-5 animate-rise',
             verificacion.integra
               ? 'border-pine-200 bg-pine-100/60'
-              : 'border-clay-100 bg-clay-100/60',
+              : rupturaAislada
+                ? 'border-honey-600/25 bg-honey-100/60'
+                : 'border-clay-100 bg-clay-100/60',
           )}
         >
           <CardContent role="status" className="flex items-start gap-3 p-4">
             {verificacion.integra ? (
               <ShieldCheck className="mt-0.5 size-5 shrink-0 text-pine-600" aria-hidden />
+            ) : rupturaAislada ? (
+              <ShieldHalf className="mt-0.5 size-5 shrink-0 text-honey-700" aria-hidden />
             ) : (
               <ShieldAlert className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
             )}
@@ -159,17 +167,26 @@ export function TrazabilidadPage() {
               <p
                 className={cn(
                   'text-sm font-semibold',
-                  verificacion.integra ? 'text-success-700' : 'text-clay-700',
+                  verificacion.integra ? 'text-success-700' : rupturaAislada ? 'text-honey-700' : 'text-clay-700',
                 )}
               >
-                {verificacion.integra ? t('trazabilidad.cadenaIntegra') : t('trazabilidad.cadenaRota')}
+                {verificacion.integra
+                  ? t('trazabilidad.cadenaIntegra')
+                  : rupturaAislada
+                    ? t('trazabilidad.rupturaAislada')
+                    : t('trazabilidad.cadenaRota')}
               </p>
               <p className="text-[13px] text-muted">
                 {verificacion.integra
                   ? t('trazabilidad.cadenaIntegraDetalle', { n: verificacion.total_registros })
-                  : t('trazabilidad.cadenaRotaDetalle', {
-                      n: verificacion.primer_registro_inconsistente,
-                    })}
+                  : rupturaAislada
+                    ? t('trazabilidad.rupturaAisladaDetalle', {
+                        n: verificacion.total_rupturas ?? 1,
+                        fecha: fechaHora(verificacion.integra_desde),
+                      })
+                    : t('trazabilidad.cadenaRotaDetalle', {
+                        n: verificacion.primer_registro_inconsistente,
+                      })}
               </p>
 
               {/* RF-15: «la cadena está rota en la posición 42» no permite
@@ -178,7 +195,7 @@ export function TrazabilidadPage() {
                   almacenado. El backend ya lo devolvía en
                   `detalle_inconsistencia`; la pantalla lo descartaba y solo lo
                   usaba para el botón de aislar. */}
-              {!verificacion.integra && detalle && (
+              {!verificacion.integra && !rupturaAislada && detalle && (
                 <dl
                   data-testid="detalle-inconsistencia"
                   className="mt-3 grid gap-x-4 gap-y-1.5 border-t border-clay-100 pt-3 text-[13px] sm:grid-cols-[auto_1fr]"
@@ -191,6 +208,13 @@ export function TrazabilidadPage() {
 
                   <dt className="text-muted">{t('trazabilidad.fecha')}</dt>
                   <dd className="nums font-medium">{fechaHora(detalle.timestamp)}</dd>
+
+                  {detalle.tipo_discrepancia && (
+                    <>
+                      <dt className="text-muted">{t('trazabilidad.tipoDiscrepancia')}</dt>
+                      <dd className="font-medium">{t(`trazabilidad.discrepancia_${detalle.tipo_discrepancia}`)}</dd>
+                    </>
+                  )}
 
                   <dt className="text-muted">{t('trazabilidad.hashEsperado')}</dt>
                   <dd className="nums break-all text-success-700">{detalle.hash_esperado}</dd>
@@ -206,8 +230,32 @@ export function TrazabilidadPage() {
                       </dd>
                     </>
                   )}
+
+                  {/* HU-26 escenario 2: una alteración puntual no invalida lo
+                      posterior; se informa cuánto sigue enlazado. */}
+                  {verificacion.registros_posteriores_afectados > 0 &&
+                    verificacion.registros_posteriores_consistentes != null && (
+                    <>
+                      <dt className="text-muted">{t('trazabilidad.posterioresConsistentes')}</dt>
+                      <dd className="nums font-medium">
+                        {t('trazabilidad.posterioresConsistentesValor', {
+                          c: verificacion.registros_posteriores_consistentes,
+                          n: verificacion.registros_posteriores_afectados,
+                        })}
+                      </dd>
+                    </>
+                  )}
+
+                  {(verificacion.total_rupturas ?? 0) > 1 && (
+                    <>
+                      <dt className="text-muted">{t('trazabilidad.totalRupturas')}</dt>
+                      <dd className="nums font-medium text-clay-700">{verificacion.total_rupturas}</dd>
+                    </>
+                  )}
                 </dl>
               )}
+
+              <AlcanceVerificacion texto={verificacion.alcance} />
             </div>
           </CardContent>
         </Card>
@@ -333,6 +381,7 @@ export function TrazabilidadPage() {
                   ))}
                 </ul>
               )}
+              <AlcanceVerificacion texto={verificacionSegmento.alcance} />
             </div>
           )}
         </CardContent>
@@ -480,5 +529,19 @@ export function TrazabilidadPage() {
         </DialogContent>
       </Dialog>
     </CompactWorkspace>
+  )
+}
+
+/** HU-26 escenario 4: el resultado declara qué certifica y qué no. */
+function AlcanceVerificacion({ texto }: { texto?: string }) {
+  const { t } = useTranslation()
+  return (
+    <p
+      data-testid="alcance-verificacion"
+      className="mt-3 flex items-start gap-1.5 border-t border-border/70 pt-2 text-xs leading-5 text-muted"
+    >
+      <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+      <span>{texto ?? t('trazabilidad.alcanceVerificacion')}</span>
+    </p>
   )
 }
