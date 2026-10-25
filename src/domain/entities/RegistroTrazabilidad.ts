@@ -16,7 +16,17 @@ export interface DetalleInconsistencia {
   hash_esperado: string
   hash_almacenado: string
   mensaje: string
+  // HU-26 escenario 2 (opcionales: el modo demo y backends previos no los envían).
+  chain_id?: string | null
+  indice?: number | null
+  tipo_discrepancia?: TipoDiscrepancia | null
+  aislada?: boolean
 }
+
+export type TipoDiscrepancia = 'payload_alterado' | 'enlace_roto' | 'no_verificable'
+
+/** HU-26: con todas las rupturas aisladas, la cadena vuelve a ser verificable. */
+export type EstadoVerificacion = 'integra' | 'ruptura_aislada' | 'ruptura_detectada'
 
 export interface VerificacionIntegridad {
   integra: boolean
@@ -24,6 +34,13 @@ export interface VerificacionIntegridad {
   primer_registro_inconsistente: number | null
   detalle_inconsistencia: DetalleInconsistencia | null
   registros_posteriores_afectados: number
+  estado?: EstadoVerificacion
+  total_rupturas?: number
+  rupturas?: DetalleInconsistencia[]
+  registros_posteriores_consistentes?: number
+  integra_desde?: string | null
+  /** HU-26 escenario 4: qué certifica el resultado (no es certificación DIGEMID). */
+  alcance?: string
 }
 
 export interface EstadoCadena {
@@ -47,4 +64,5 @@ export interface VerificacionSegmento {
   total_bloques_verificados: number
   registros_del_dispositivo: EstadoRegistroSegmento[]
   primer_registro_inconsistente: string | null
+  alcance?: string
 }
