@@ -17,6 +17,10 @@ export function temaGrafica() {
     grid: colorToken('cream-200', '#EDF2F8'),
     primary: colorToken('primary', '#0B5CFF'),
     secondary: colorToken('glacier-600', '#08738F'),
+    // Rango de referencia 2–8 °C: cian de rango seguro (DESIGN.md) con texto
+    // en el tono «normal» para que la etiqueta sea legible sobre la franja.
+    safe: colorToken('secondary', '#00D1FF'),
+    safeText: colorToken('glacier-700', '#07546A'),
     critical: colorToken('clay-700', '#802445'),
   }
 }
