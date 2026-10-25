@@ -124,6 +124,8 @@
     "puertaCerrada": "Closed",
     "puertaSinSensor": "Unavailable",
     "puertaSinDato": "Unavailable",
+    "puertaDesdeHace": "for {{duracion}}",
+    "puertaHuboApertura": "Opened for {{segundos}} s since the previous reading.",
     "puertaProlongada": "Prolonged opening: check the refrigerator",
     "conectado": "Online",
     "desconectado": "Offline",
