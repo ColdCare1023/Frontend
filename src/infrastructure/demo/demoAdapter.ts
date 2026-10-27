@@ -884,6 +884,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
     if (!dispositivo.activo) fallar(config, 409, 'El equipo está dado de baja')
     if (!String(cuerpoJson(config).motivo ?? '').trim()) fallar(config, 422, 'El motivo es obligatorio')
+    const causa = cuerpoJson(config).causa ?? 'preventiva'
+    if (causa !== 'preventiva' && causa !== 'compromiso') fallar(config, 422, 'Causa no admitida')
     const ahora = new Date().toISOString()
     dispositivo.estado_credencial_broker = 'activa'
     dispositivo.mqtt_token_activo = true
@@ -891,10 +893,12 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     Object.assign(dispositivo, {
       broker_pendiente: 'aprovisionar', broker_pendiente_motivo: 'modo_manual',
       broker_pendiente_desde: ahora, broker_pendiente_por: actorDemo(config),
+      rotacion_por_compromiso: Boolean(dispositivo.rotacion_por_compromiso) || causa === 'compromiso',
     })
     return responder(config, {
       device_id: dispositivo.id, token: tokenDemo(), generado_en: ahora,
       credencial_aprovisionada: null, mensaje_broker: MENSAJE_PENDIENTE_BROKER_DEMO, sesion_broker_cerrada: null,
+      telemetria_retenida: causa === 'compromiso',
     })
   }
   const revocarCredencial = /^\/api\/dispositivos\/([^/]+)\/credenciales\/revocar$/.exec(url)
@@ -920,6 +924,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     Object.assign(dispositivo, {
       broker_pendiente: null, broker_pendiente_motivo: null, broker_pendiente_desde: null, broker_pendiente_por: null,
       broker_confirmado_en: new Date().toISOString(), broker_confirmado_por: actorDemo(config),
+      rotacion_por_compromiso: false,
     })
     return responder(config, { ...dispositivo })
   }

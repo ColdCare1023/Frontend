@@ -873,6 +873,11 @@
             ],
             "title": "Sesion Broker Cerrada"
           },
+          "telemetria_retenida": {
+            "default": false,
+            "title": "Telemetria Retenida",
+            "type": "boolean"
+          },
           "token": {
             "title": "Token",
             "type": "string"
@@ -1342,6 +1347,11 @@
             ],
             "title": "Responsable Telefono"
           },
+          "rotacion_por_compromiso": {
+            "default": false,
+            "title": "Rotacion Por Compromiso",
+            "type": "boolean"
+          },
           "sensores_habilitados": {
             "items": {
               "type": "string"
@@ -1726,6 +1736,11 @@
             ],
             "title": "Responsable Telefono"
           },
+          "rotacion_por_compromiso": {
+            "default": false,
+            "title": "Rotacion Por Compromiso",
+            "type": "boolean"
+          },
           "sensores_habilitados": {
             "items": {
               "type": "string"
@@ -2082,7 +2097,7 @@
           "tamano_bytes": {
             "anyOf": [
               {
-                "maximum": 1245184.0,
+                "maximum": 1310720.0,
                 "minimum": 1.0,
                 "type": "integer"
               },
@@ -3311,6 +3326,15 @@
       "RotarCredencialRequest": {
         "additionalProperties": false,
         "properties": {
+          "causa": {
+            "default": "preventiva",
+            "enum": [
+              "preventiva",
+              "compromiso"
+            ],
+            "title": "Causa",
+            "type": "string"
+          },
           "motivo": {
             "maxLength": 200,
             "minLength": 1,
@@ -5232,7 +5256,7 @@
     },
     "/api/dispositivos/{device_id}/broker/confirmar": {
       "post": {
-        "description": "HU-43/HU-44: el administrador confirma que hizo en la consola del broker\nla operación pendiente (crear/actualizar o retirar el usuario del nodo).",
+        "description": "HU-43/HU-44: el administrador confirma que hizo en la consola del broker\nla operación pendiente (crear/actualizar o retirar el usuario del nodo).\n\nCambiar la contraseña en la consola no cierra las sesiones abiertas: tras\nconfirmar se expulsa la sesión, para que quien siguiera conectado con el\ntoken anterior tenga que reautenticarse (y el broker ya lo rechace).",
         "operationId": "confirmar_operacion_broker_api_dispositivos__device_id__broker_confirmar_post",
         "parameters": [
           {

@@ -3,6 +3,7 @@ import axios from 'axios'
 
 import {
   aplicarCambioConectividad,
+  type CausaRotacion,
   type CredencialRotada,
   type Dispositivo,
   type DispositivoAlta,
@@ -181,11 +182,11 @@ export function useDispositivos() {
   // obligatorio, que queda en la auditoría. La rotación devuelve el token en
   // claro UNA sola vez; el llamador lo muestra y no lo guarda.
   const rotarCredencial = useCallback(
-    async (deviceId: string, motivo: string): Promise<CredencialRotada | null> => {
+    async (deviceId: string, motivo: string, causa: CausaRotacion = 'preventiva'): Promise<CredencialRotada | null> => {
       try {
         const { data } = await apiClient.post<CredencialRotada>(
           rutaApi`/api/dispositivos/${deviceId}/credenciales/rotar`,
-          { motivo },
+          { motivo, causa },
         )
         await consultar()
         return data

@@ -661,7 +661,18 @@
       "retirar": "Confirme que retiró el usuario {{id}} de la consola de EMQX."
     },
     "notaBroker": "Nota (opcional)",
-    "brokerConfirmado": "Operación en el broker confirmada y registrada en la auditoría."
+    "brokerConfirmado": "Operación en el broker confirmada y registrada en la auditoría.",
+    "telemetriaRetenida": "Telemetría retenida",
+    "telemetriaRetenidaAyuda": "Rotación por compromiso: el sistema no acepta lecturas del equipo hasta que confirme la consola. El nodo las guarda y las reenvía al confirmar.",
+    "causaRotacion": "Causa",
+    "causasRotacion": {
+      "preventiva": "Preventiva (programada o por procedimiento)",
+      "compromiso": "Compromiso (el token anterior pudo filtrarse)"
+    },
+    "causaRotacionAyuda": {
+      "preventiva": "El equipo sigue reportando mientras se actualiza la consola del broker.",
+      "compromiso": "Hasta que confirme la consola, el sistema retiene la telemetría del equipo: quien tenga el token anterior no puede aportar lecturas. El nodo las guarda y las reenvía al confirmar."
+    }
   },
   "comunes": {
     "error": "Ocurrió un error. Intenta de nuevo.",

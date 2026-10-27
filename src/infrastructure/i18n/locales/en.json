@@ -661,7 +661,18 @@
       "retirar": "Confirm that you removed user {{id}} from the EMQX console."
     },
     "notaBroker": "Note (optional)",
-    "brokerConfirmado": "Broker operation confirmed and recorded in the audit log."
+    "brokerConfirmado": "Broker operation confirmed and recorded in the audit log.",
+    "telemetriaRetenida": "Telemetry held",
+    "telemetriaRetenidaAyuda": "Compromise rotation: readings from this device are not accepted until you confirm the broker console. The node keeps them and resends them after confirmation.",
+    "causaRotacion": "Reason type",
+    "causasRotacion": {
+      "preventiva": "Preventive (scheduled or by procedure)",
+      "compromiso": "Compromise (the previous token may have leaked)"
+    },
+    "causaRotacionAyuda": {
+      "preventiva": "The device keeps reporting while the broker console is updated.",
+      "compromiso": "Until you confirm the console, the system holds this device's telemetry: whoever has the previous token cannot submit readings. The node keeps them and resends them after confirmation."
+    }
   },
   "comunes": {
     "error": "Something went wrong. Please try again.",

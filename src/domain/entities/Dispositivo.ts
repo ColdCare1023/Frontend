@@ -50,6 +50,9 @@ export interface Dispositivo {
   broker_pendiente_por?: string | null
   broker_confirmado_en?: string | null
   broker_confirmado_por?: string | null
+  // HU-44: rotación por compromiso con la consola pendiente: el backend retiene
+  // la telemetría del nodo (sin acuse; queda en LittleFS) hasta confirmarla.
+  rotacion_por_compromiso?: boolean
   // HU-54: último `estado_nodo` recibido (latido del nodo).
   ultimo_latido_en?: string | null
 }
@@ -96,7 +99,12 @@ export interface CredencialRotada {
   mensaje_broker?: string | null
   /** true: el broker cerró la sesión anterior; null: API del broker no configurada. */
   sesion_broker_cerrada: boolean | null
+  /** HU-44: rotación por compromiso pendiente en la consola: la telemetría se retiene. */
+  telemetria_retenida?: boolean
 }
+
+/** HU-44: «compromiso» = el token anterior se filtró (retiene la telemetría hasta confirmar la consola). */
+export type CausaRotacion = 'preventiva' | 'compromiso'
 
 /** HU-43: el alta devuelve el dispositivo y su credencial inicial. */
 export interface DispositivoAlta extends Dispositivo {

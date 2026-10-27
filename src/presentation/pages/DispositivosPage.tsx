@@ -9,6 +9,7 @@ import {
   estadoCredencial,
   MOTIVOS_BAJA,
   PATRON_DEVICE_ID,
+  type CausaRotacion,
   type CredencialRotada,
   type Dispositivo,
   type HistorialConfiguracion,
@@ -88,6 +89,7 @@ export function DispositivosPage() {
   const [mensajeFlota, setMensajeFlota] = useState<string | null>(null)
   const [formNuevo, setFormNuevo] = useState({ id: '', nombre: '', ubicacion: '', mc38: false })
   const [motivoCredencial, setMotivoCredencial] = useState('')
+  const [causaRotacion, setCausaRotacion] = useState<CausaRotacion>('preventiva')
   const [notaBroker, setNotaBroker] = useState('')
   // FE-003: el token rotado vive solo mientras su diálogo está abierto; no se
   // persiste, no se registra y se descarta al cerrar.
@@ -163,6 +165,7 @@ export function DispositivosPage() {
   const abrirCredencial = (dispositivo: Dispositivo, accion: 'rotar' | 'revocar') => {
     setDispositivoActivo(dispositivo)
     setMotivoCredencial('')
+    setCausaRotacion('preventiva')
     setMensaje(null)
     setDialogo(accion)
   }
@@ -173,7 +176,7 @@ export function DispositivosPage() {
     setEnviando(true)
     setMensaje(null)
     if (dialogo === 'rotar') {
-      const credencial = await rotarCredencial(dispositivoActivo.id, motivoCredencial.trim())
+      const credencial = await rotarCredencial(dispositivoActivo.id, motivoCredencial.trim(), causaRotacion)
       setEnviando(false)
       if (credencial) {
         setCredencialRotada(credencial)
@@ -425,6 +428,11 @@ export function DispositivosPage() {
                             : undefined}
                         >
                           {t(`dispositivos.brokerPendiente.${dispositivo.broker_pendiente}`)}
+                        </Badge>
+                      )}
+                      {dispositivo.rotacion_por_compromiso && dispositivo.broker_pendiente && (
+                        <Badge variant="critical" title={t('dispositivos.telemetriaRetenidaAyuda')}>
+                          {t('dispositivos.telemetriaRetenida')}
                         </Badge>
                       )}
                     </div>
@@ -685,6 +693,23 @@ export function DispositivosPage() {
               />
               <p id="credencial-motivo-ayuda" className="mt-1 text-xs text-muted">{t('dispositivos.motivoCredencialAyuda')}</p>
             </div>
+            {dialogo === 'rotar' && (
+              <div>
+                <Label htmlFor="credencial-causa">{t('dispositivos.causaRotacion')}</Label>
+                <NativeSelect
+                  id="credencial-causa"
+                  value={causaRotacion}
+                  aria-describedby="credencial-causa-ayuda"
+                  onChange={(e) => setCausaRotacion(e.target.value as CausaRotacion)}
+                >
+                  <option value="preventiva">{t('dispositivos.causasRotacion.preventiva')}</option>
+                  <option value="compromiso">{t('dispositivos.causasRotacion.compromiso')}</option>
+                </NativeSelect>
+                <p id="credencial-causa-ayuda" className="mt-1 text-xs text-muted">
+                  {t(`dispositivos.causaRotacionAyuda.${causaRotacion}`)}
+                </p>
+              </div>
+            )}
             <MensajeFormulario mensaje={mensaje} />
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="ghost" onClick={cerrarDialogo} disabled={enviando}>{t('usuarios.cancelar')}</Button>

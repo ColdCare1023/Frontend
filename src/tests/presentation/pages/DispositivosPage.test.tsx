@@ -111,13 +111,33 @@ describe('DispositivosPage — credenciales MQTT (FE-003)', () => {
     await user.type(screen.getByLabelText('Motivo'), 'Rotación periódica')
     await user.click(enviar)
 
-    expect(rotarCredencial).toHaveBeenCalledWith('FARM-01-CDL', 'Rotación periódica')
+    expect(rotarCredencial).toHaveBeenCalledWith('FARM-01-CDL', 'Rotación periódica', 'preventiva')
     expect(await screen.findByTestId('token-rotado')).toHaveTextContent('token-visible-una-vez')
     expect(screen.getByText(/cerró la sesión anterior/)).toBeInTheDocument()
 
     const cerrar = screen.getAllByRole('button', { name: 'Cerrar' })
     await user.click(cerrar[cerrar.length - 1])
     expect(screen.queryByText('token-visible-una-vez')).toBeNull()
+  })
+
+  it('HU-44: la rotación por compromiso se elige en el diálogo y se muestra la retención', async () => {
+    const rotarCredencial = vi.fn().mockResolvedValue({
+      device_id: 'FARM-01-CDL', token: 'token-nuevo', generado_en: '2026-10-27T10:00:00Z',
+      sesion_broker_cerrada: true, telemetria_retenida: true,
+    })
+    montar(
+      [dispositivo({ mqtt_token_activo: true, broker_pendiente: 'aprovisionar', rotacion_por_compromiso: true })],
+      { rotarCredencial, revocarCredencial: vi.fn() },
+    )
+    expect(screen.getAllByText('Telemetría retenida').length).toBeGreaterThan(0)
+
+    const user = await abrirAccion(/Rotar credencial/)
+    await user.type(screen.getByLabelText('Motivo'), 'Token visto en un log')
+    await user.selectOptions(screen.getByLabelText('Causa'), 'compromiso')
+    expect(screen.getByText(/retiene la telemetría del equipo/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Rotar credencial' }))
+
+    expect(rotarCredencial).toHaveBeenCalledWith('FARM-01-CDL', 'Token visto en un log', 'compromiso')
   })
 
   it('revoca con motivo obligatorio', async () => {

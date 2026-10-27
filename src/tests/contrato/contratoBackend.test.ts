@@ -40,13 +40,14 @@ describe('contrato con el backend — Dispositivos', () => {
       await result.current.actualizarInstalacion('FARM-09', 'Estante 2', '2026-10-02', undefined)
       await result.current.actualizarResponsable('FARM-09', 'QF Ana', 'ana@farmacia.pe', '+51999999999')
       await result.current.rotarCredencial('FARM-09', 'Rotación programada')
+      await result.current.rotarCredencial('FARM-09', 'Token visto en un log', 'compromiso')
       await result.current.revocarCredencial('FARM-09', 'Equipo robado')
       await result.current.confirmarBroker('FARM-09', 'Usuario creado en la consola')
       await result.current.darDeBaja('FARM-09', 'reemplazo', 'Falla', undefined)
     })
 
     const escrituras = adaptador.peticiones.filter((p) => p.method !== 'get')
-    expect(escrituras).toHaveLength(8)
+    expect(escrituras).toHaveLength(9)
     for (const peticion of escrituras) {
       const cuerpo = JSON.parse((peticion.data as string | undefined) ?? '{}')
       expect({ ruta: `${peticion.method} ${peticion.url}`, errores: errores(cuerpo, esquemaPeticion(peticion.method!, peticion.url!)) })
