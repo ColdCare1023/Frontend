@@ -6231,6 +6231,7 @@
             }
           },
           {
+            "description": "Clase cruda del modelo (model_class)",
             "in": "query",
             "name": "nivel_riesgo",
             "required": false,
@@ -6243,6 +6244,7 @@
                   "type": "null"
                 }
               ],
+              "description": "Clase cruda del modelo (model_class)",
               "title": "Nivel Riesgo"
             }
           },
@@ -6260,6 +6262,22 @@
                 }
               ],
               "title": "Estado Conectividad"
+            }
+          },
+          {
+            "in": "query",
+            "name": "riesgo_efectivo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/NivelRiesgo"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Riesgo Efectivo"
             }
           },
           {

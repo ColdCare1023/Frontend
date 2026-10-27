@@ -149,8 +149,8 @@ export function HistorialPage() {
               <Label htmlFor="f-riesgo">{t('historial.nivelRiesgo')}</Label>
               <NativeSelect
                 id="f-riesgo"
-                value={filtros.nivel_riesgo ?? ''}
-                onChange={(e) => actualizarFiltro('nivel_riesgo', e.target.value)}
+                value={filtros.riesgo_efectivo ?? ''}
+                onChange={(e) => actualizarFiltro('riesgo_efectivo', e.target.value)}
               >
                 <option value="">{t('historial.todosNiveles')}</option>
                 {NIVELES_RIESGO.map((nivel) => (

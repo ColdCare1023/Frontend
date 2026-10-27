@@ -322,6 +322,8 @@ function lecturasFiltradas(params: Record<string, string>): LecturaTermica[] {
     )
   }
   if (params.nivel_riesgo) resultado = resultado.filter((l) => l.nivel_riesgo === params.nivel_riesgo)
+  // HU-36 / B-14: el historial filtra por riesgo efectivo, como el backend.
+  if (params.riesgo_efectivo) resultado = resultado.filter((l) => l.riesgo_efectivo === params.riesgo_efectivo)
   if (params.desde) resultado = resultado.filter((l) => l.timestamp >= params.desde)
   if (params.hasta) resultado = resultado.filter((l) => l.timestamp <= params.hasta)
   return resultado.slice(0, Number(params.limite ?? 200))
