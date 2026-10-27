@@ -2,9 +2,10 @@ import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import { BellOff, CheckCheck, ClipboardPen, History, PencilLine } from 'lucide-react'
+import { BellOff, CheckCheck, ClipboardPen, History, PencilLine, RadioTower } from 'lucide-react'
 
 import { useAlertas, type FiltroEstado } from '@/application/hooks/useAlertas'
+import { useIncidentesOperativos } from '@/application/hooks/useIncidentesOperativos'
 import { useAuthStore } from '@/application/stores/authStore'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
@@ -318,6 +319,8 @@ export function AlertasPage() {
         {!errorCarga && <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />}
       </div>
 
+      <IncidentesOperativos />
+
       {/* ── Diálogo de acción correctiva ────────────────────── */}
       <Dialog
         open={alertaSeleccionada !== null}
@@ -523,5 +526,56 @@ export function AlertasPage() {
         </DialogContent>
       </Dialog>
     </CompactWorkspace>
+  )
+}
+
+/**
+ * HU-54 / A-3: incidentes SIN_DATOS como alerta OPERATIVA, distinta de las
+ * térmicas: el nodo dejó de reportar, no hay temperatura que clasificar.
+ */
+function IncidentesOperativos() {
+  const { t } = useTranslation()
+  const { incidentes, cargando, errorCarga } = useIncidentesOperativos()
+  // Sección secundaria: sin incidentes (o si el historial no responde) no se
+  // muestra; el estado operativo en vivo sigue en el dashboard.
+  if (cargando || errorCarga || incidentes.length === 0) return null
+
+  return (
+    <section aria-labelledby="incidentes-operativos-titulo" className="mt-8">
+      <h2 id="incidentes-operativos-titulo" className="flex items-center gap-2 text-base font-semibold">
+        <RadioTower className="size-4 text-glacier-600" aria-hidden />
+        {t('alertas.incidentesOperativos')}
+      </h2>
+      <p className="mt-1 text-sm text-muted">{t('alertas.incidentesOperativosDetalle')}</p>
+        <ul className="mt-3 divide-y divide-border rounded-(--radius-card) border border-border bg-surface">
+          {incidentes.map((incidente) => (
+            <li key={incidente.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
+              <div className="min-w-0">
+                <p className="font-semibold">
+                  {incidente.device_id}{' '}
+                  <Badge variant={incidente.estado === 'activo' ? 'critical' : 'ok'}>
+                    {t(`alertas.incidenteEstado.${incidente.estado}`)}
+                  </Badge>
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {t('alertas.incidenteDetectado', {
+                    fecha: fechaHora(incidente.detectado_en),
+                    segundos: incidente.umbral_silencio_segundos,
+                  })}
+                  {incidente.ultimo_reporte_en && <> · {t('alertas.incidenteUltimoReporte', { fecha: fechaHora(incidente.ultimo_reporte_en) })}</>}
+                </p>
+              </div>
+              <div className="text-right text-xs text-muted">
+                {incidente.recuperado_en && <p>{t('alertas.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })}</p>}
+                <p>
+                  {incidente.notificado_en
+                    ? t('alertas.incidenteNotificado', { fecha: fechaHora(incidente.notificado_en) })
+                    : t('alertas.incidenteSinAviso')}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+    </section>
   )
 }

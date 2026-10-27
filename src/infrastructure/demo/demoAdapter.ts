@@ -826,6 +826,15 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     // dejar memos de React apuntando al array mutable interno.
     return responder(config, estadoDemo.dispositivos.map((dispositivo) => ({ ...dispositivo })))
   }
+  // HU-54: historial de incidentes SIN_DATOS (mismo contrato que el backend).
+  if (metodo === 'get' && url === '/api/dispositivos/incidentes') {
+    const limite = Number(params.limite ?? 100)
+    const lista = estadoDemo.incidentesOperativos
+      .filter((incidente) => !params.device_id || incidente.device_id === params.device_id)
+      .sort((a, b) => Date.parse(b.detectado_en) - Date.parse(a.detectado_en))
+      .slice(0, limite)
+    return responder(config, lista.map((incidente) => ({ ...incidente })))
+  }
   if (metodo === 'get' && url === '/api/dispositivos/estado-operativo') {
     const ahora = Date.now()
     const equipos = estadoDemo.dispositivos
