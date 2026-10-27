@@ -7,7 +7,6 @@ test('monitoreo, alertas e historial sin violaciones axe WCAG 2 A/AA', async ({ 
   await page.goto('/login')
   await page.getByRole('button', { name: /Químico Farmacéutico/i }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
 
   for (const route of ['/dashboard', '/alertas', '/historial']) {
     await irA(page, route)
@@ -28,7 +27,6 @@ test('10 rutas disponibles para administración sin violaciones axe WCAG 2 A/AA'
   await page.goto('/login')
   await page.getByRole('button', { name: /Administrador/i }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
 
   for (const route of [
     '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',

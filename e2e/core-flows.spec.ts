@@ -1,29 +1,18 @@
 import { expect, test } from '@playwright/test'
-import { irA } from './helpers'
+import { accionPrimeraFila, irA } from './helpers'
 
-test('sesión demo, recorrido, navegación y reapertura', async ({ page }) => {
+test('sesión demo, navegación y reapertura', async ({ page }) => {
+  // El recorrido guiado se retiró (4e27dbe): tras entrar se llega al monitoreo.
   await page.goto('/login')
-  await page.evaluate(() => localStorage.clear())
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  await expect(tour).toContainText('Te damos la bienvenida a ColdCare')
-  await expect(page.locator('aside [data-tour-route="/dashboard"]')).toBeVisible()
-  await tour.getByRole('button', { name: 'Siguiente' }).click()
-  await expect(tour).toContainText('Alertas')
-  await tour.getByRole('button', { name: 'Atrás' }).click()
-  await expect(tour).toContainText('Monitoreo')
-  await page.keyboard.press('Escape')
-  await expect(tour).toBeHidden()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  // La sesión demo vive en memoria: recargar exige volver a entrar.
   await page.reload()
   await expect(page).toHaveURL(/\/login$/)
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await irA(page, '/guia')
-  await page.getByRole('button', { name: 'Volver a ver el recorrido' }).click()
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
-  await page.locator('aside [data-tour-route="/alertas"]').click()
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
   await expect(page.getByRole('heading', { name: 'Alertas' })).toBeVisible()
 })
 
@@ -32,9 +21,6 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  if (await tour.isVisible()) await tour.getByRole('button', { name: 'Omitir' }).click()
-  await expect(tour).toBeHidden()
 
   const temperatura = page.getByRole('region', { name: 'Temperatura actual' })
   const curva = page.locator('[role="img"][aria-label^="Gráfica de líneas"]')
@@ -56,8 +42,8 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
 test('guardas de autenticación y permisos por rol', async ({ page }) => {
   await page.goto('/usuarios')
   await expect(page).toHaveURL(/\/login$/)
-  await page.getByRole('button', { name: 'Auditor Solo lectura' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
+  await page.getByRole('button', { name: /^Auditor/ }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
   await irA(page, '/auditoria')
   await expect(page.getByRole('heading', { name: 'Bitácora de auditoría' })).toBeVisible()
   await irA(page, '/usuarios')
@@ -74,7 +60,7 @@ test('selector de roles es responsive y mantiene permisos de Técnico de Farmaci
       'Químico Farmacéutico',
       'Técnico de Farmacia',
       'Administrador',
-      'Auditor Solo lectura',
+      'Auditor Consulta de registros',
     ]) {
       await expect(roles.getByRole('button', { name: nombre })).toBeVisible()
     }
@@ -89,9 +75,6 @@ test('selector de roles es responsive y mantiene permisos de Técnico de Farmaci
     .getByRole('button', { name: 'Técnico de Farmacia' })
     .click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
 
   await irA(page, '/alertas')
   await expect(page.getByRole('heading', { name: 'Alertas' })).toBeVisible()
@@ -101,9 +84,6 @@ test('administrador puede abrir herramientas de administración en demo', async 
   await page.goto('/login')
   await page.getByRole('button', { name: 'Administrador' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
 
   for (const [ruta, titulo] of [
     ['/usuarios', 'Usuarios'],
@@ -119,9 +99,6 @@ test('farmacéutico puede consultar reportes e IA en demo', async ({ page }) => 
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
 
   for (const [ruta, titulo] of [
     ['/reportes', 'Reportes de monitoreo'],
@@ -137,15 +114,11 @@ test('alertas permiten abrir detalle contextual', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
-  await expect(tour).toBeHidden()
-  await page.locator('aside [data-tour-route="/alertas"]').click()
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
   await page.getByRole('button', { name: 'Todas' }).click()
   await expect(page.getByText('Excursión crítica').first()).toBeVisible()
   await expect(page.getByText('Riesgo preventivo').first()).toBeVisible()
-  await page.getByRole('button', { name: /ver cronología de atención/i }).first().click()
+  await accionPrimeraFila(page, /ver cronología de atención/i)
   await expect(page.getByRole('dialog')).toContainText(/temperatura|dispositivo/i)
 })
 
@@ -153,7 +126,6 @@ test('logout elimina acceso a ruta protegida', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
   await expect(page).toHaveURL(/\/login$/)
   await irA(page, '/alertas')
@@ -165,7 +137,6 @@ test('navegación móvil abre menú y permite llegar a alertas', async ({ page }
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
   await page.getByRole('button', { name: 'Abrir menú' }).click()
   await page.getByRole('dialog').getByRole('link', { name: 'Alertas' }).click()
   await expect(page.getByRole('heading', { name: 'Alertas' })).toBeVisible()
@@ -208,8 +179,6 @@ test('rutas principales conservan el viewport y tablas se desplazan por teclado'
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  if (await tour.isVisible()) await tour.getByRole('button', { name: 'Omitir' }).click()
 
   const rutas = [
     '/dashboard',
@@ -241,29 +210,25 @@ test('rutas principales conservan el viewport y tablas se desplazan por teclado'
     }
   }
 
+  // A 320 px el historial se apila (mobileLayout="stack"): no hay nada que
+  // desplazar en horizontal y la tabla cabe en el ancho de la pantalla.
   await page.setViewportSize({ width: 320, height: 844 })
   await irA(page, '/historial')
   const tabla = page.locator('[role="region"][aria-label="Historial de lecturas"]')
-  await tabla.evaluate((element) => {
-    element.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-  })
-  expect(await tabla.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
-  await tabla.evaluate((element) => {
-    element.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }))
-  })
-  expect(await tabla.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+  await expect(tabla).toBeVisible()
+  const desborde = await tabla.evaluate((element) => element.scrollWidth - element.clientWidth)
+  expect(desborde).toBeLessThanOrEqual(1)
 })
 
 test('trazabilidad explica cadena, oculta sellos y muestra verificación', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
   await irA(page, '/trazabilidad')
   await expect(page.getByRole('columnheader', { name: 'Evento' })).toBeVisible()
-  await expect(page.getByRole('columnheader', { name: 'Sello anterior' })).toHaveCount(0)
+  await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Mostrar detalles técnicos de los sellos' }).click()
-  await expect(page.getByRole('columnheader', { name: 'Sello anterior' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toBeVisible()
   await page.getByRole('button', { name: 'Revisar integridad' }).click()
   await expect(page.getByText(/no se detectaron cambios|alteración detectada/i).first()).toBeVisible()
 })

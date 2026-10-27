@@ -1,13 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { irA, abrirOpciones } from './helpers'
+import { abrirOpciones, accionPrimeraFila, irA } from './helpers'
 
 async function entrarComo(page: import('@playwright/test').Page, perfil: string) {
   await page.goto('/login')
   await page.getByRole('button', { name: perfil }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
 }
 
 test('admin crea usuario, cambia rol y desactiva cuenta en demo', async ({ page }) => {
@@ -56,12 +53,10 @@ test('admin actualiza dispositivo, consulta historial y registra baja de reempla
   await calibracion.click()
   let dialogo = page.getByRole('dialog')
   const hoy = new Date()
-  const venceCertificado = new Date(hoy)
-  venceCertificado.setFullYear(venceCertificado.getFullYear() + 1)
   await dialogo.getByLabel('Fecha de calibración').fill(hoy.toISOString().slice(0, 10))
   await dialogo.getByLabel('N.° de certificado').fill(`QA-CAL-${Date.now()}`)
-  await dialogo.getByLabel('Certificado válido hasta').fill(venceCertificado.toISOString().slice(0, 10))
-  await dialogo.getByLabel('Avisar antes (días)').fill('30')
+  // B-12: el backend calcula el vencimiento con la vigencia en meses.
+  await dialogo.getByLabel('Vigencia del certificado (meses)').fill('12')
   await dialogo.getByRole('button', { name: 'Guardar' }).click()
   await expect(dialogo).toBeHidden()
 
@@ -116,21 +111,8 @@ test('farmacéutico revisa alerta y genera reporte', async ({ page }) => {
   await irA(page, '/alertas')
   await page.getByRole('button', { name: 'Todas' }).click()
 
-  const pendientes = page.getByRole('row').filter({
-    has: page.getByRole('button', { name: 'Marcar como revisada' }),
-  })
-  if (await pendientes.count()) {
-    const pendiente = pendientes.first()
-    const fechaAlerta = await pendiente.getByRole('cell').first().innerText()
-    await pendiente.getByRole('button', { name: 'Marcar como revisada' }).click()
-    const alertaReconocida = page.getByRole('row').filter({
-      has: page.getByRole('cell', { name: fechaAlerta, exact: true }),
-    })
-    await expect(alertaReconocida).toContainText('Revisada')
-  }
-
-  const filaAccion = page.getByRole('row').filter({ has: page.getByRole('button', { name: 'Acción correctiva' }) }).first()
-  await filaAccion.getByRole('button', { name: 'Acción correctiva' }).click()
+  // Las acciones de cada alerta viven en su menú «Opciones» (ActionMenu).
+  await accionPrimeraFila(page, 'Acción correctiva')
   const dialogoAccion = page.getByRole('dialog')
   await dialogoAccion.getByLabel('Descripción de la acción correctiva')
     .fill('Se verificó cierre de puerta en QA demo.')

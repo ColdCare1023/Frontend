@@ -18,7 +18,6 @@ test('sesión demo vive solo en memoria y recarga exige volver a ingresar', asyn
   await page.goto('/login')
   await page.getByRole('button', { name: /Auditor/i }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
 
   const almacenamiento = await page.evaluate(() => ({
     local: Object.values(localStorage).join('\n'),
@@ -39,7 +38,6 @@ test('login real de demo usa credenciales conocidas y limita intentos sin revela
   await page.locator('#login-password').fill('demo-2026')
   await page.getByRole('button', { name: 'Ingresar' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
   await page.getByRole('button', { name: 'Cerrar sesión' }).click()
 
   const email = `no-existe-${Date.now()}@demo.pe`

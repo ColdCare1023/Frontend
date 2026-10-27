@@ -22,7 +22,7 @@ const roles = [
     ],
   },
   {
-    boton: 'Auditor Solo lectura',
+    boton: 'Auditor Consulta de registros',
     rutas: [
       '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
       '/reportes', '/metricas-ia', '/auditoria',
@@ -40,9 +40,6 @@ async function iniciarSesionDemo(page: import('@playwright/test').Page, boton: s
   await page.goto('/login')
   await page.getByRole('button', { name: boton }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.locator('[role="dialog"]')
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
 }
 
@@ -113,9 +110,6 @@ test('gráficas ECharts cargan al abrir tablero, no durante login', async ({ pag
 
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  const tour = page.getByRole('dialog')
-  await expect(tour).toBeVisible()
-  await tour.getByRole('button', { name: 'Omitir' }).click()
   await expect(page.locator('canvas').first()).toBeVisible()
   await expect.poll(async () => {
     const recursos = await page.evaluate(() => performance.getEntriesByType('resource').map(({ name }) => name))

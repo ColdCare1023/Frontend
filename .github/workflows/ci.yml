@@ -58,3 +58,33 @@ jobs:
           if grep -q '"buildCommand": "npm run build:demo"' vercel.json; then
             echo "::warning file=vercel.json::Vercel sigue sirviendo build:demo. Ejecute: node scripts/generar-vercel-json.mjs https://<backend>.up.railway.app"
           fi
+
+  # Las especificaciones de Playwright se escribieron pero nunca corrían: el
+  # recorrido guiado se retiró y siguieron esperándolo. Corren sobre la demo
+  # (`npm run dev:demo`, playwright.config.ts) en cada push y PR.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Navegador de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas E2E (Playwright)
+        run: npx playwright test
+
+      - name: Informe de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 14

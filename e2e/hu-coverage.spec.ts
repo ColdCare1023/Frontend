@@ -5,7 +5,6 @@ async function entrarComoAdmin(page: import('@playwright/test').Page) {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Administrador' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('dialog').getByRole('button', { name: 'Omitir' }).click()
 }
 
 test('HU-50 registra bloqueos, resultado y exporta la bitácora filtrada', async ({ page }) => {
@@ -31,10 +30,15 @@ test('HU-26 presenta inconsistencia simulada con detalle verificable', async ({ 
 test('HU-44 permite revocar credencial MQTT con confirmación y sin exponer secreto', async ({ page }) => {
   await entrarComoAdmin(page)
   await irA(page, '/dispositivos')
-  page.once('dialog', (dialog) => dialog.accept())
   await abrirOpciones(page, 'FARM-01-CDL')
   await page.getByRole('menuitem', { name: 'Revocar credencial', exact: true }).click()
-  await page.getByRole('row').filter({ hasText: 'FARM-01-CDL' }).locator('summary').click()
-  await expect(page.getByText('Credencial revocada. Demo no contacta EMQX ni expone secretos.')).toBeVisible()
-  await expect(page.getByText('Revocada').first()).toBeVisible()
+  // FE-003: confirmación con motivo obligatorio, que queda en la auditoría.
+  // Acción destructiva: el diálogo es un alertdialog.
+  const dialogo = page.getByRole('alertdialog')
+  await dialogo.getByLabel('Motivo').fill('Equipo extraviado (QA)')
+  await dialogo.getByRole('button', { name: 'Revocar credencial' }).click()
+  await expect(page.getByText(/Credencial revocada: el sistema ya no acepta/)).toBeVisible()
+  // HU-44 Escenario 3: queda pendiente retirar el usuario en la consola del broker.
+  await expect(page.getByText('Pendiente en el broker: retirar usuario').first()).toBeVisible()
+  await expect(page.getByTestId('token-rotado')).toHaveCount(0)
 })
