@@ -5,6 +5,8 @@ vi.mock('@/infrastructure/sse/sseClient', () => ({ suscribirseTiempoReal: () => 
 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import { obtenerEvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
+import { TIME_QUALITY_LECTURA } from '@/domain/entities/LecturaTermica'
+import openapi from './openapi-backend.json'
 import { instalarAdaptadorFalso } from '../ayudas'
 import { errores, esquemaPeticion, existeRuta } from './validarOpenApi'
 
@@ -79,5 +81,13 @@ describe('contrato con el backend — Dispositivos', () => {
     const peticion = adaptador.peticiones[0]
     expect(existeRuta('get', peticion.url!)).toBe(true)
     expect(evidencia).toMatchObject({ reading_id: 'L1', model_class: 'normal', effective_risk: 'normal', datos_simulados: true })
+  })
+
+  it('B-15: time_quality de las lecturas usa los valores que publica la API', () => {
+    const propiedad = (openapi as unknown as {
+      components: { schemas: Record<string, { properties: Record<string, { anyOf: Array<{ enum?: string[] }> }> }> }
+    }).components.schemas.LecturaResponse.properties.time_quality
+    const valores = propiedad.anyOf.find((o) => o.enum)?.enum ?? []
+    expect([...valores].sort()).toEqual([...TIME_QUALITY_LECTURA].sort())
   })
 })

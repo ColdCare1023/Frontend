@@ -66,4 +66,5 @@ export interface LecturaTermica {
 }
 
 /** B-15: `time_quality` de una lectura según la API (ver contrato_v1.TIME_QUALITY_INTERNO). */
-export type TimeQualityLectura = 'synced' | 'backfilled' | 'unsynced'
+export const TIME_QUALITY_LECTURA = ['synced', 'backfilled', 'unsynced'] as const
+export type TimeQualityLectura = (typeof TIME_QUALITY_LECTURA)[number]
