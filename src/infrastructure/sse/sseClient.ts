@@ -43,8 +43,14 @@ export const EVENTOS_AVISO_DISPOSITIVO = [
   'ota_confirmada', 'ota_rechazada', 'ota_fallida', 'ota_revertida',
 ] as const
 
-/** HU-54: apertura y cierre del incidente SIN_DATOS persistente. */
-export const EVENTOS_INCIDENTE = ['sin_datos', 'sin_datos_resuelto'] as const
+/** HU-54: apertura y cierre del incidente SIN_DATOS persistente. HU-44: los
+ * de la retención por compromiso y el resultado de la prueba de posesión. */
+export const EVENTOS_INCIDENTE = [
+  'sin_datos', 'sin_datos_resuelto',
+  'monitoreo_suspendido', 'monitoreo_suspendido_resuelto',
+  'excursion_no_verificada', 'excursion_no_verificada_resuelto',
+  'prueba_posesion',
+] as const
 
 export type TipoEventoAlerta = (typeof EVENTOS_ALERTA)[number]
 export type TipoAvisoDispositivo = (typeof EVENTOS_AVISO_DISPOSITIVO)[number]

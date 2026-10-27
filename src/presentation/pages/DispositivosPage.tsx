@@ -430,9 +430,14 @@ export function DispositivosPage() {
                           {t(`dispositivos.brokerPendiente.${dispositivo.broker_pendiente}`)}
                         </Badge>
                       )}
-                      {dispositivo.rotacion_por_compromiso && dispositivo.broker_pendiente && (
+                      {dispositivo.rotacion_por_compromiso && (
                         <Badge variant="critical" title={t('dispositivos.telemetriaRetenidaAyuda')}>
                           {t('dispositivos.telemetriaRetenida')}
+                        </Badge>
+                      )}
+                      {dispositivo.posesion_pendiente && (
+                        <Badge variant="warn" title={t('dispositivos.posesionPendienteAyuda')}>
+                          {t('dispositivos.posesionPendiente')}
                         </Badge>
                       )}
                     </div>

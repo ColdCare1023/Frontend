@@ -363,7 +363,8 @@ function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
                 const pendientes = buffer?.pendientes ?? 0
                 const perdidas = buffer?.perdidas ?? 0
                 const incidentes = dispositivo.incidencias_operativas ?? []
-                const incidenteActivo = incidentes.find((incidente) => incidente.estado === 'activo')
+                const incidenteActivo = incidentes.find((incidente) => incidente.estado === 'activo' && incidente.tipo === 'sin_datos')
+                const excursionNoVerificada = incidentes.find((incidente) => incidente.estado === 'activo' && incidente.tipo === 'excursion_no_verificada')
                 const incidentesResueltos = incidentes.filter((incidente) => incidente.estado === 'resuelto')
 
                 return (
@@ -379,8 +380,21 @@ function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
                         </Badge>
                       )}
                       {dispositivo.estado_operativo === 'FALLA_SENSOR' && <Badge variant="critical">{t('dispositivos.estadoOperativo.FALLA_SENSOR')}</Badge>}
+                      {dispositivo.estado_operativo === 'MONITOREO_SUSPENDIDO' && (
+                        <Badge variant="critical" title={t('dispositivos.telemetriaRetenidaAyuda')}>
+                          {t('dispositivos.estadoOperativo.MONITOREO_SUSPENDIDO')}
+                        </Badge>
+                      )}
                       {dispositivo.estado_operativo === 'OPERATIVO' && incidentesResueltos.length > 0 && <Badge variant="ok">{t('dispositivos.estadoOperativo.OPERATIVO')}</Badge>}
                     </div>
+                    {excursionNoVerificada && (
+                      <p role="alert" className="mt-1.5 text-xs font-semibold text-clay-700">
+                        {t('dashboard.excursionNoVerificada', {
+                          temperatura: excursionNoVerificada.detalle?.temperatura_interna?.toFixed(2) ?? '—',
+                          fecha: fechaHora(excursionNoVerificada.detalle?.captured_at ?? excursionNoVerificada.detectado_en),
+                        })}
+                      </p>
+                    )}
                     {incidenteActivo && (
                       <p role="status" className="mt-1.5 text-xs font-medium text-clay-700">
                         {t('dashboard.alertaSilencio', {
@@ -982,7 +996,7 @@ export function DashboardPage() {
                     const ultimaLectura = equipo.ultimo_reporte_en ? fechaHora(equipo.ultimo_reporte_en) : '—'
                     const segundosSilencio = umbralSilencioSegundos(equipo)
                     const lecturasPendientes = equipo.buffer_littlefs?.pendientes ?? 0
-                    const incidenteActivo = equipo.incidencias_operativas?.find((incidente) => incidente.estado === 'activo')
+                    const incidenteActivo = equipo.incidencias_operativas?.find((incidente) => incidente.estado === 'activo' && incidente.tipo === 'sin_datos')
                     return (
                       <article key={equipo.id} className="py-4 first:pt-0 last:pb-0">
                       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -995,7 +1009,9 @@ export function DashboardPage() {
                             ? t('dashboard.estadoSinDatos', { segundos: segundosSilencio })
                             : equipo.estado_operativo === 'FALLA_SENSOR'
                               ? t('dispositivos.estadoOperativo.FALLA_SENSOR')
-                              : t('dispositivos.estadoOperativo.OPERATIVO')}
+                              : equipo.estado_operativo === 'MONITOREO_SUSPENDIDO'
+                                ? t('dispositivos.estadoOperativo.MONITOREO_SUSPENDIDO')
+                                : t('dispositivos.estadoOperativo.OPERATIVO')}
                         </Badge>
                       </div>
                       {incidenteActivo && <p role="status" className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium text-clay-700">{t('dashboard.alertaSilencio', { fecha: fechaHora(incidenteActivo.detectado_en), segundos: incidenteActivo.umbral_silencio_segundos })}</p>}

@@ -555,13 +555,19 @@ function IncidentesOperativos() {
                   {incidente.device_id}{' '}
                   <Badge variant={incidente.estado === 'activo' ? 'critical' : 'ok'}>
                     {t(`alertas.incidenteEstado.${incidente.estado}`)}
-                  </Badge>
+                  </Badge>{' '}
+                  <span className="text-xs font-medium text-muted">{t(`alertas.incidenteTipo.${incidente.tipo ?? 'sin_datos'}`)}</span>
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  {t('alertas.incidenteDetectado', {
-                    fecha: fechaHora(incidente.detectado_en),
-                    segundos: incidente.umbral_silencio_segundos,
-                  })}
+                  {(incidente.tipo ?? 'sin_datos') === 'sin_datos'
+                    ? t('alertas.incidenteDetectado', {
+                        fecha: fechaHora(incidente.detectado_en),
+                        segundos: incidente.umbral_silencio_segundos,
+                      })
+                    : t('alertas.incidenteAbierto', { fecha: fechaHora(incidente.detectado_en) })}
+                  {incidente.tipo === 'excursion_no_verificada' && incidente.detalle?.temperatura_interna != null && (
+                    <> · {t('alertas.incidenteTemperatura', { temperatura: incidente.detalle.temperatura_interna.toFixed(2) })}</>
+                  )}
                   {incidente.ultimo_reporte_en && <> · {t('alertas.incidenteUltimoReporte', { fecha: fechaHora(incidente.ultimo_reporte_en) })}</>}
                 </p>
               </div>

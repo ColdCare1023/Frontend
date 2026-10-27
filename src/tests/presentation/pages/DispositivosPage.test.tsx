@@ -140,6 +140,15 @@ describe('DispositivosPage — credenciales MQTT (FE-003)', () => {
     expect(rotarCredencial).toHaveBeenCalledWith('FARM-01-CDL', 'Token visto en un log', 'compromiso')
   })
 
+  it('HU-44: con la consola confirmada la retención sigue hasta la prueba de posesión', () => {
+    montar(
+      [dispositivo({ mqtt_token_activo: true, broker_pendiente: null, rotacion_por_compromiso: true, posesion_pendiente: true })],
+      { rotarCredencial: vi.fn(), revocarCredencial: vi.fn() },
+    )
+    expect(screen.getAllByText('Telemetría retenida').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Esperando prueba de posesión').length).toBeGreaterThan(0)
+  })
+
   it('revoca con motivo obligatorio', async () => {
     const revocarCredencial = vi.fn().mockResolvedValue('revocada')
     montar([dispositivo({ mqtt_token_activo: true })], { rotarCredencial: vi.fn(), revocarCredencial })

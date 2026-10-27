@@ -31,7 +31,8 @@ export interface Dispositivo {
   intervalo_reporte_segundos?: number
   umbral_sin_datos_segundos?: number
   umbral_puerta_abierta_segundos?: number
-  estado_operativo?: 'OPERATIVO' | 'SIN_DATOS' | 'FALLA_SENSOR'
+  // HU-44: MONITOREO_SUSPENDIDO = telemetría retenida por rotación por compromiso.
+  estado_operativo?: 'OPERATIVO' | 'SIN_DATOS' | 'FALLA_SENSOR' | 'MONITOREO_SUSPENDIDO'
   incidencias_operativas?: IncidenteOperativo[]
   sensores?: SensorIoT[]
   buffer_littlefs?: BufferLittleFS
@@ -50,9 +51,12 @@ export interface Dispositivo {
   broker_pendiente_por?: string | null
   broker_confirmado_en?: string | null
   broker_confirmado_por?: string | null
-  // HU-44: rotación por compromiso con la consola pendiente: el backend retiene
-  // la telemetría del nodo (sin acuse; queda en LittleFS) hasta confirmarla.
+  // HU-44: rotación por compromiso en curso: el backend retiene la telemetría
+  // del nodo (sin acuse; queda en LittleFS) hasta que, con la consola
+  // confirmada, el nodo prueba que tiene el token nuevo.
   rotacion_por_compromiso?: boolean
+  // HU-44: consola confirmada; falta la prueba de posesión del nodo.
+  posesion_pendiente?: boolean
   // HU-54: último `estado_nodo` recibido (latido del nodo).
   ultimo_latido_en?: string | null
 }
@@ -131,7 +135,9 @@ export interface BufferLittleFS {
 export interface IncidenteOperativo {
   id: string
   device_id: string
-  tipo: 'sin_datos'
+  // HU-44: durante una rotación por compromiso, monitoreo suspendido o
+  // excursión crítica de origen no verificado.
+  tipo: 'sin_datos' | 'monitoreo_suspendido' | 'excursion_no_verificada'
   estado: 'activo' | 'resuelto'
   detectado_en: string
   ultimo_reporte_en: string | null
@@ -139,6 +145,8 @@ export interface IncidenteOperativo {
   recuperado_en: string | null
   /** HU-54: cuándo salió el aviso por correo del incidente persistente. */
   notificado_en?: string | null
+  /** HU-44: lectura que disparó la excursión no verificada. */
+  detalle?: { temperatura_interna?: number | null; captured_at?: string | null; origen?: string } | null
 }
 
 /** Tramo sin muestras nuevas cuando LittleFS llegó a su capacidad. */

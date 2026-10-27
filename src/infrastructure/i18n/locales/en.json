@@ -190,7 +190,8 @@
     "demoAplicando": "Applying…",
     "demoError": "Could not apply scenario. Try again.",
     "iaExperimental": "Experimental AI",
-    "iaExperimentalDetalle": "Class from the legacy model trained on simulated data: it does not open preventive alerts."
+    "iaExperimentalDetalle": "Class from the legacy model trained on simulated data: it does not open preventive alerts.",
+    "excursionNoVerificada": "Critical excursion of unverified origin: {{temperatura}} °C ({{fecha}}). Check the refrigerator with the backup thermometer."
   },
   "demo": {
     "badge": "Demo",
@@ -327,8 +328,8 @@
     "descripcionAccionPlaceholder": "E.g. vials were relocated and the thermostat set to 5 °C",
     "descripcionAccionAyuda": "Describe what was done in response to the alert. It will appear in the history.",
     "etiquetaAccion": "Corrective action description",
-    "incidentesOperativos": "Operational incidents (no data)",
-    "incidentesOperativosDetalle": "The node stopped reporting for longer than its threshold. These are not temperature excursions: while they last, there is no temperature record.",
+    "incidentesOperativos": "Operational incidents",
+    "incidentesOperativosDetalle": "Missing node data and, during a compromise credential rotation, suspended monitoring or unverified-origin excursions. They are not the recorded thermal alerts.",
     "incidenteEstado": {
       "activo": "Active",
       "resuelto": "Recovered"
@@ -337,7 +338,14 @@
     "incidenteUltimoReporte": "last data {{fecha}}",
     "incidenteRecuperado": "Recovered {{fecha}}",
     "incidenteNotificado": "Notice sent {{fecha}}",
-    "incidenteSinAviso": "No notice sent"
+    "incidenteSinAviso": "No notice sent",
+    "incidenteTipo": {
+      "sin_datos": "No data",
+      "monitoreo_suspendido": "Monitoring suspended by rotation",
+      "excursion_no_verificada": "Critical excursion (unverified origin)"
+    },
+    "incidenteAbierto": "Opened {{fecha}}",
+    "incidenteTemperatura": "{{temperatura}} °C"
   },
   "trazabilidad": {
     "titulo": "Record integrity",
@@ -593,7 +601,8 @@
     "estadoOperativo": {
       "OPERATIVO": "Operational",
       "SIN_DATOS": "No data",
-      "FALLA_SENSOR": "Sensor fault"
+      "FALLA_SENSOR": "Sensor fault",
+      "MONITOREO_SUSPENDIDO": "Monitoring suspended"
     },
     "sensorEstado": {
       "ok": "Active",
@@ -663,7 +672,7 @@
     "notaBroker": "Note (optional)",
     "brokerConfirmado": "Broker operation confirmed and recorded in the audit log.",
     "telemetriaRetenida": "Telemetry held",
-    "telemetriaRetenidaAyuda": "Compromise rotation: readings from this device are not accepted until you confirm the broker console. The node keeps them and resends them after confirmation.",
+    "telemetriaRetenidaAyuda": "Compromise rotation: readings from this device are not recorded until the console is confirmed and the node proves it holds the new credential. The node keeps them and resends them afterwards; meanwhile, a reading outside 2-8 °C raises an unverified-origin alert.",
     "causaRotacion": "Reason type",
     "causasRotacion": {
       "preventiva": "Preventive (scheduled or by procedure)",
@@ -672,7 +681,9 @@
     "causaRotacionAyuda": {
       "preventiva": "The device keeps reporting while the broker console is updated.",
       "compromiso": "Until you confirm the console, the system holds this device's telemetry: whoever has the previous token cannot submit readings. The node keeps them and resends them after confirmation."
-    }
+    },
+    "posesionPendiente": "Awaiting proof of possession",
+    "posesionPendienteAyuda": "Console confirmed. Retention ends when the node signs the challenge with the new credential; if the console was not changed, the node cannot do so and retention continues."
   },
   "comunes": {
     "error": "Something went wrong. Please try again.",

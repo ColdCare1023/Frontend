@@ -1303,6 +1303,11 @@
             ],
             "title": "Observaciones Instalacion"
           },
+          "posesion_pendiente": {
+            "default": false,
+            "title": "Posesion Pendiente",
+            "type": "boolean"
+          },
           "reemplaza_a_device_id": {
             "anyOf": [
               {
@@ -1692,6 +1697,11 @@
             ],
             "title": "Observaciones Instalacion"
           },
+          "posesion_pendiente": {
+            "default": false,
+            "title": "Posesion Pendiente",
+            "type": "boolean"
+          },
           "reemplaza_a_device_id": {
             "anyOf": [
               {
@@ -1823,7 +1833,8 @@
             "enum": [
               "OPERATIVO",
               "SIN_DATOS",
-              "FALLA_SENSOR"
+              "FALLA_SENSOR",
+              "MONITOREO_SUSPENDIDO"
             ],
             "title": "Estado Operativo",
             "type": "string"
@@ -2272,8 +2283,20 @@
         "type": "object"
       },
       "IncidenteOperativoResponse": {
-        "description": "Incidente operativo (sin datos), separado del riesgo térmico y de la IA.",
+        "description": "Incidente operativo, separado del riesgo térmico y de la IA: sin datos\n(HU-54) y, durante una rotación por compromiso (HU-44), monitoreo suspendido\no excursión crítica de origen no verificado.",
         "properties": {
+          "detalle": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detalle"
+          },
           "detectado_en": {
             "format": "date-time",
             "title": "Detectado En",
@@ -2320,7 +2343,11 @@
             "title": "Recuperado En"
           },
           "tipo": {
-            "const": "sin_datos",
+            "enum": [
+              "sin_datos",
+              "monitoreo_suspendido",
+              "excursion_no_verificada"
+            ],
             "title": "Tipo",
             "type": "string"
           },
@@ -5261,7 +5288,7 @@
     },
     "/api/dispositivos/{device_id}/broker/confirmar": {
       "post": {
-        "description": "HU-43/HU-44: el administrador confirma que hizo en la consola del broker\nla operación pendiente (crear/actualizar o retirar el usuario del nodo).\n\nCambiar la contraseña en la consola no cierra las sesiones abiertas: tras\nconfirmar se expulsa la sesión, para que quien siguiera conectado con el\ntoken anterior tenga que reautenticarse (y el broker ya lo rechace).",
+        "description": "HU-43/HU-44: el administrador confirma que hizo en la consola del broker\nla operación pendiente (crear/actualizar o retirar el usuario del nodo).\n\nCambiar la contraseña en la consola no cierra las sesiones abiertas: tras\nconfirmar se expulsa la sesión, para que quien siguiera conectado con el\ntoken anterior tenga que reautenticarse (y el broker ya lo rechace).\n\nRotación por compromiso: confirmar NO termina la retención. Si la consola\nno se cambió (o el cambio no se guardó), el broker seguiría aceptando el\ntoken filtrado. Se envía un desafío y la retención termina cuando el nodo\nlo firma con el token nuevo (`posesion_pendiente` hasta entonces).",
         "operationId": "confirmar_operacion_broker_api_dispositivos__device_id__broker_confirmar_post",
         "parameters": [
           {
