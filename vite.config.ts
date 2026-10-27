@@ -18,6 +18,15 @@ export default defineConfig(({ command, mode }) => {
     )
   }
 
+  // HU-55 / A-1: en Vercel (VERCEL=1) el build contra el backend exige la URL
+  // HTTPS del backend; sin ella el dashboard quedaría vacío y nadie lo notaría.
+  if (command === 'build' && esBackend && process.env.VERCEL === '1') {
+    const api = process.env.VITE_API_BASE_URL ?? ''
+    if (!api.startsWith('https://')) {
+      throw new Error('Build de producción en Vercel sin VITE_API_BASE_URL https:// (URL del backend en Railway).')
+    }
+  }
+
   return {
     // La SPA se publica junto a la landing bajo /app/ en Vercel.
     base: process.env.VITE_APP_BASE ?? '/',

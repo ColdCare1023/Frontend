@@ -49,3 +49,12 @@ jobs:
           if npx vite build --outDir /tmp/build-sin-modo; then
             echo "El build sin VITE_MODO_DEMO no falló" && exit 1
           fi
+
+      # HU-55 / A-1: Vercel debe servir el build contra el backend real. Mientras
+      # vercel.json siga en modo demo, las HU que dependen del despliegue no
+      # cumplen la Definición de Hecho: se avisa en cada ejecución.
+      - name: vercel.json en modo producción
+        run: |
+          if grep -q '"buildCommand": "npm run build:demo"' vercel.json; then
+            echo "::warning file=vercel.json::Vercel sigue sirviendo build:demo. Ejecute: node scripts/generar-vercel-json.mjs https://<backend>.up.railway.app"
+          fi

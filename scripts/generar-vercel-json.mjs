@@ -42,7 +42,8 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 // Google (FE-007).
 const argumentos = process.argv.slice(2)
 const google = argumentos.includes('--google')
-const backend = argumentos.find((argumento) => !argumento.startsWith('--'))
+// Sin argumento se toma VITE_API_BASE_URL (la misma variable que usa el build).
+const backend = argumentos.find((argumento) => !argumento.startsWith('--')) ?? process.env.VITE_API_BASE_URL
 const csp = politicaCsp({ backend, google })
 const cspObservacion = politicaCspReportOnly({ backend, google })
 const connectSrc = csp.split('; ').find((directiva) => directiva.startsWith('connect-src')).slice('connect-src '.length)
@@ -51,7 +52,9 @@ const configuracion = {
   $schema: 'https://openapi.vercel.sh/vercel.json',
   // FE-002: `npm run build` compila contra el backend real (--mode backend);
   // la demo es siempre una elección explícita.
-  buildCommand: backend ? 'npm run build' : 'npm run build:demo',
+  // HU-55 / A-1: el build de producción además falla si el paquete contiene
+  // el modo demostración (adaptador, cuentas, contraseña o JWT sin firma).
+  buildCommand: backend ? 'npm run build && npm run verificar:bundle' : 'npm run build:demo',
   rewrites: [{ source: '/((?!api/).*)', destination: '/index.html' }],
   headers: [
     {
