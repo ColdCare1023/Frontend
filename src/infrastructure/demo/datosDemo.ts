@@ -1,6 +1,6 @@
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import type { IncidenteOperativo } from '@/domain/entities/Dispositivo'
+import { CAPACIDAD_BUFFER_LITTLEFS, type IncidenteOperativo } from '@/domain/entities/Dispositivo'
 import type { RegistroTrazabilidad } from '@/domain/entities/RegistroTrazabilidad'
 import type { RegistroAuditoria, Usuario } from '@/domain/entities/Usuario'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
@@ -82,8 +82,8 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
       { modelo: 'SHT31', estado: 'ok', campo_telemetria: 'temperatura_ambiental, humedad_ambiental' },
       { modelo: 'MC-38', estado: 'ok', campo_telemetria: 'apertura_refrigerador' },
     ],
-    buffer_littlefs: { pendientes: 0, limite: 128, desde: null, hasta: null, perdidas: 0 },
-    ultimo_evento: { schema_version: '1.0', boot_id: 'demo-boot-01', seq_no: 18420, captured_at: new Date().toISOString(), received_at: new Date().toISOString(), time_quality: 'ntp' },
+    buffer_littlefs: { pendientes: 0, limite: CAPACIDAD_BUFFER_LITTLEFS, desde: null, hasta: null, perdidas: 0 },
+    ultimo_evento: { schema_version: '1.0', boot_id: 'demo-boot-01', seq_no: 18420, captured_at: new Date().toISOString(), received_at: new Date().toISOString(), time_quality: 'sntp_synced' },
     estado_credencial_broker: 'activa',
     activo: true,
     firmware_version: '1.0.0',
@@ -112,8 +112,8 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
       { modelo: 'SHT31', estado: 'ok', campo_telemetria: 'temperatura_ambiental, humedad_ambiental' },
       { modelo: 'MC-38', estado: 'no_instalado', campo_telemetria: 'apertura_refrigerador' },
     ],
-    buffer_littlefs: { pendientes: 6, limite: 128, desde: new Date(Date.now() - 180_000).toISOString(), hasta: new Date(Date.now() - 120_000).toISOString(), perdidas: 0 },
-    ultimo_evento: { schema_version: '1.0', boot_id: 'demo-boot-02', seq_no: 512, captured_at: new Date(Date.now() - 120_000).toISOString(), received_at: new Date(Date.now() - 120_000).toISOString(), time_quality: 'ntp' },
+    buffer_littlefs: { pendientes: 6, limite: CAPACIDAD_BUFFER_LITTLEFS, desde: new Date(Date.now() - 180_000).toISOString(), hasta: new Date(Date.now() - 120_000).toISOString(), perdidas: 0 },
+    ultimo_evento: { schema_version: '1.0', boot_id: 'demo-boot-02', seq_no: 512, captured_at: new Date(Date.now() - 120_000).toISOString(), received_at: new Date(Date.now() - 120_000).toISOString(), time_quality: 'sntp_synced' },
     estado_credencial_broker: 'activa',
     activo: true,
     firmware_version: '1.0.0',
@@ -182,7 +182,7 @@ function generarEstadoInicial(): EstadoDemo {
       seq_no: i + 1,
       captured_at: new Date(ts).toISOString(),
       received_at: new Date(ts + 250).toISOString(),
-      time_quality: 'ntp',
+      time_quality: 'synced',
       temperatura_interna: redondear(interna, 1),
       temperatura_ambiental: redondear(ambiental, 1),
       humedad_ambiental: redondear(humedad, 0),
@@ -223,7 +223,7 @@ function generarEstadoInicial(): EstadoDemo {
       seq_no: 512 - (puntosFarm2 - 1 - j),
       captured_at: new Date(ts).toISOString(),
       received_at: new Date(ts + 250).toISOString(),
-      time_quality: 'ntp',
+      time_quality: 'synced',
       temperatura_interna: redondear(interna, 1),
       temperatura_ambiental: redondear(ambiental, 1),
       humedad_ambiental: redondear(humedad, 0),
@@ -443,7 +443,7 @@ export function generarLecturasBuffer(
       seq_no: 30_000 + indice,
       captured_at: timestamp,
       received_at: new Date(Date.now() + indice).toISOString(),
-      time_quality: 'rtc',
+      time_quality: 'backfilled',
       temperatura_interna: temperatura,
       temperatura_ambiental: redondear(21.8 + Math.cos(indice / 4) * 0.4, 1),
       humedad_ambiental: Math.round(62 + Math.sin(indice / 5) * 2),
@@ -501,7 +501,7 @@ export function generarLecturaEnVivo(): LecturaTermica {
     seq_no: secuenciaVivo,
     captured_at: new Date().toISOString(),
     received_at: new Date(Date.now() + 250).toISOString(),
-    time_quality: 'ntp',
+    time_quality: 'synced',
     temperatura_interna: fallaInterna ? null : redondear(interna, 1),
     temperatura_ambiental: redondear(21.8 + (rngVivo() - 0.5) * 1.4, 1),
     humedad_ambiental: redondear(62 + (rngVivo() - 0.5) * 5, 0),

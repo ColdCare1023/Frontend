@@ -6,7 +6,13 @@ import {
 } from 'axios'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
-import type { BufferLittleFS, Dispositivo, HistorialConfiguracion, IncidenteOperativo } from '@/domain/entities/Dispositivo'
+import {
+  CAPACIDAD_BUFFER_LITTLEFS,
+  type BufferLittleFS,
+  type Dispositivo,
+  type HistorialConfiguracion,
+  type IncidenteOperativo,
+} from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { MOTIVOS_DESACTIVACION, type Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
@@ -243,6 +249,27 @@ function pdfDemostracion(params: Record<string, string>): Blob {
 
   const bytes = Uint8Array.from(pdf, (char) => char.charCodeAt(0) & 0xff)
   return new Blob([bytes], { type: 'application/pdf' })
+}
+
+// B-16: capacidad real del buffer LittleFS del nodo (300 archivos × 100 lecturas).
+const CAPACIDAD_BUFFER_NODO = CAPACIDAD_BUFFER_LITTLEFS
+const MENSAJE_PENDIENTE_BROKER_DEMO =
+  'Pendiente en el broker: cree o actualice el usuario con este token en la consola de EMQX y confirme la operación en el sistema.'
+
+function tokenDemo(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24))
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Igual que `_sumar_meses` del backend: un día inexistente se ancla al último del mes. */
+function sumarMesesISO(fecha: string, meses: number): string {
+  const [anio, mes, dia] = fecha.split('-').map(Number)
+  const total = mes - 1 + meses
+  const anioDestino = anio + Math.floor(total / 12)
+  const mesDestino = (total % 12) + 1
+  const ultimoDia = new Date(Date.UTC(anioDestino, mesDestino, 0)).getUTCDate()
+  const dd = String(Math.min(dia, ultimoDia)).padStart(2, '0')
+  return `${anioDestino}-${String(mesDestino).padStart(2, '0')}-${dd}`
 }
 
 function esperar(ms: number): Promise<void> {
@@ -723,7 +750,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const deviceId = String(cuerpo.device_id ?? '').trim()
     const nombre = String(cuerpo.nombre ?? '').trim()
     const ubicacion = String(cuerpo.ubicacion ?? '').trim()
-    const modelos = Array.isArray(cuerpo.sensores) ? cuerpo.sensores.map(String) : []
+    // B-12: mismo contrato que DispositivoAltaRequest del backend.
+    const modelos = Array.isArray(cuerpo.sensores_habilitados) ? cuerpo.sensores_habilitados.map(String) : []
     if (!/^[A-Z0-9][A-Z0-9-]{2,39}$/.test(deviceId) || !nombre || !ubicacion || !modelos.includes('DS18B20') || !modelos.includes('SHT31')) {
       fallar(config, 422, 'Use un código válido y registre nombre, ubicación, DS18B20 y SHT31')
     }
@@ -747,9 +775,19 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       umbral_sin_datos_segundos: 90,
       umbral_puerta_abierta_segundos: 120,
       sensores,
-      buffer_littlefs: { pendientes: 0, limite: 128, desde: null, hasta: null, perdidas: 0 },
+      buffer_littlefs: { pendientes: 0, limite: CAPACIDAD_BUFFER_NODO, desde: null, hasta: null, perdidas: 0 },
       ultimo_evento: null,
       estado_credencial_broker: 'pendiente',
+      // HU-43: el alta emite la credencial; en la demo, como en EMQX Serverless,
+      // el usuario del broker queda pendiente hasta confirmarlo.
+      mqtt_token_activo: true,
+      mqtt_credencial_actualizada_en: new Date().toISOString(),
+      broker_pendiente: 'aprovisionar',
+      broker_pendiente_motivo: 'modo_manual',
+      broker_pendiente_desde: new Date().toISOString(),
+      broker_pendiente_por: actorDemo(config),
+      broker_confirmado_en: null,
+      broker_confirmado_por: null,
       activo: true,
       firmware_version: 'sin_reportar',
       motivo_baja: null,
@@ -769,7 +807,17 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       responsable_telefono: null,
     }
     estadoDemo.dispositivos.push(dispositivo)
-    return responder(config, dispositivo, 201)
+    return responder(config, {
+      ...dispositivo,
+      credencial: {
+        device_id: deviceId,
+        token: tokenDemo(),
+        generado_en: dispositivo.mqtt_credencial_actualizada_en,
+        credencial_aprovisionada: null,
+        mensaje_broker: MENSAJE_PENDIENTE_BROKER_DEMO,
+        sesion_broker_cerrada: null,
+      },
+    }, 201)
   }
   if (metodo === 'get' && url === '/api/dispositivos') {
     // HTTP entrega arrays deserializados con identidad nueva. Snapshot evita
@@ -829,9 +877,14 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     dispositivo.estado_credencial_broker = 'activa'
     dispositivo.mqtt_token_activo = true
     dispositivo.mqtt_credencial_actualizada_en = ahora
-    const bytes = crypto.getRandomValues(new Uint8Array(24))
-    const token = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
-    return responder(config, { device_id: dispositivo.id, token, generado_en: ahora, sesion_broker_cerrada: null })
+    Object.assign(dispositivo, {
+      broker_pendiente: 'aprovisionar', broker_pendiente_motivo: 'modo_manual',
+      broker_pendiente_desde: ahora, broker_pendiente_por: actorDemo(config),
+    })
+    return responder(config, {
+      device_id: dispositivo.id, token: tokenDemo(), generado_en: ahora,
+      credencial_aprovisionada: null, mensaje_broker: MENSAJE_PENDIENTE_BROKER_DEMO, sesion_broker_cerrada: null,
+    })
   }
   const revocarCredencial = /^\/api\/dispositivos\/([^/]+)\/credenciales\/revocar$/.exec(url)
   if (metodo === 'post' && revocarCredencial) {
@@ -841,7 +894,23 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     dispositivo.estado_credencial_broker = 'revocada'
     dispositivo.mqtt_token_activo = false
     dispositivo.mqtt_credencial_actualizada_en = new Date().toISOString()
+    Object.assign(dispositivo, {
+      broker_pendiente: 'retirar', broker_pendiente_motivo: 'modo_manual',
+      broker_pendiente_desde: dispositivo.mqtt_credencial_actualizada_en, broker_pendiente_por: actorDemo(config),
+    })
     return responder(config, null, 204)
+  }
+  // HU-43/HU-44: el administrador confirma lo hecho en la consola del broker.
+  const confirmarBroker = /^\/api\/dispositivos\/([^/]+)\/broker\/confirmar$/.exec(url)
+  if (metodo === 'post' && confirmarBroker) {
+    const dispositivo = dispositivoDemo(decodeURIComponent(confirmarBroker[1]))
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    if (!dispositivo.broker_pendiente) fallar(config, 409, 'El dispositivo no tiene ninguna operación pendiente en el broker')
+    Object.assign(dispositivo, {
+      broker_pendiente: null, broker_pendiente_motivo: null, broker_pendiente_desde: null, broker_pendiente_por: null,
+      broker_confirmado_en: new Date().toISOString(), broker_confirmado_por: actorDemo(config),
+    })
+    return responder(config, { ...dispositivo })
   }
   const simulacionIoT = /^\/api\/demo\/dispositivos\/([^/]+)\/simulacion$/.exec(url)
   if (metodo === 'post' && simulacionIoT) {
@@ -852,7 +921,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const sensores = (dispositivo.sensores ?? []) as Array<{ modelo: string; estado: string }>
     const buffer: BufferLittleFS = dispositivo.buffer_littlefs ?? {
       pendientes: 0,
-      limite: 128,
+      limite: CAPACIDAD_BUFFER_NODO,
       desde: null,
       hasta: null,
       perdidas: 0,
@@ -929,7 +998,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
           seq_no: (previa?.seq_no ?? 0) + 1,
           captured_at: momento(0),
           received_at: momento(0),
-          time_quality: 'ntp',
+          time_quality: 'synced',
           temperatura_interna: null,
           nivel_riesgo: null,
           riesgo_efectivo: null,
@@ -967,7 +1036,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         seq_no: Number(dispositivo.ultimo_evento?.seq_no ?? 0) + 1,
         captured_at: momento(0),
         received_at: momento(0),
-        time_quality: 'ntp',
+        time_quality: 'sntp_synced',
       }
       if (dispositivo.id === 'FARM-01-CDL') generarLecturaEnVivo()
     } else if (escenario === 'puerta_abierta' || escenario === 'puerta_cerrada') {
@@ -991,11 +1060,12 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const cuerpo = cuerpoJson(config)
     const fecha = String(cuerpo.fecha_calibracion ?? '')
     const certificado = String(cuerpo.numero_certificado ?? '')
-    const proxima = String(cuerpo.valid_until ?? '')
-    const margen = Number(cuerpo.margen_aviso_dias ?? 30)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(proxima) || !certificado.trim() || !Number.isInteger(margen) || margen < 0 || margen > 365) {
-      fallar(config, 422, 'La fecha de validez, el certificado y un margen de aviso válido son obligatorios')
+    // B-12: mismo contrato que CalibracionRequest (meses_vigencia 1–60).
+    const meses = Number(cuerpo.meses_vigencia ?? 12)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !certificado.trim() || !Number.isInteger(meses) || meses < 1 || meses > 60) {
+      fallar(config, 422, 'La fecha, el certificado y una vigencia de 1 a 60 meses son obligatorios')
     }
+    const proxima = sumarMesesISO(fecha, meses)
     cambiarCampoDispositivo(dispositivo, deviceId, 'fecha_ultima_calibracion', fecha, config)
     cambiarCampoDispositivo(dispositivo, deviceId, 'numero_certificado_calibracion', certificado, config)
     cambiarCampoDispositivo(
@@ -1005,7 +1075,6 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       proxima,
       config,
     )
-    cambiarCampoDispositivo(dispositivo, deviceId, 'margen_aviso_calibracion_dias', margen, config)
     if (cuerpo.observaciones !== undefined) {
       cambiarCampoDispositivo(
         dispositivo,

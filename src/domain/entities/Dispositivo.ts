@@ -42,6 +42,34 @@ export interface Dispositivo {
   mqtt_credencial_actualizada_en?: string | null
   // BE-015: dispositivo de demostración (admite lecturas `simulated`).
   es_demo?: boolean
+  // HU-43/HU-44: operación en el broker que falta confirmar en la consola
+  // (EMQX Serverless). Mientras no sea null, la consola no refleja la credencial.
+  broker_pendiente?: OperacionBroker | null
+  broker_pendiente_motivo?: string | null
+  broker_pendiente_desde?: string | null
+  broker_pendiente_por?: string | null
+  broker_confirmado_en?: string | null
+  broker_confirmado_por?: string | null
+  // HU-54: último `estado_nodo` recibido (latido del nodo).
+  ultimo_latido_en?: string | null
+}
+
+export type OperacionBroker = 'aprovisionar' | 'retirar'
+
+/** B-16: capacidad real del buffer LittleFS del nodo (300 archivos × 100 lecturas). */
+export const CAPACIDAD_BUFFER_LITTLEFS = 30_000
+/** Intervalo de captura de fábrica del nodo, en segundos. */
+export const INTERVALO_REPORTE_POR_DEFECTO = 30
+/** HU-54: ciclos de captura perdidos antes de declarar SIN_DATOS. */
+export const N_INTERVALOS_SIN_DATOS = 3
+
+/**
+ * B-17 / HU-54: umbral de silencio del nodo. Usa el que calcula el backend
+ * (N × intervalo del dispositivo); si no llegó, N × el intervalo conocido.
+ */
+export function umbralSilencioSegundos(dispositivo: Pick<Dispositivo, 'umbral_sin_datos_segundos' | 'intervalo_reporte_segundos'> | null | undefined): number {
+  if (dispositivo?.umbral_sin_datos_segundos) return dispositivo.umbral_sin_datos_segundos
+  return N_INTERVALOS_SIN_DATOS * (dispositivo?.intervalo_reporte_segundos || INTERVALO_REPORTE_POR_DEFECTO)
 }
 
 export type EstadoCredencial = 'activa' | 'pendiente' | 'error' | 'revocada' | 'sin_reportar'
@@ -57,13 +85,22 @@ export function estadoCredencial(dispositivo: Dispositivo): EstadoCredencial {
   return dispositivo.mqtt_credencial_actualizada_en ? 'revocada' : 'sin_reportar'
 }
 
-/** Respuesta de la rotación: el token en claro solo existe en ella. */
+/** Respuesta de la rotación (y del alta): el token en claro solo existe en ella. */
 export interface CredencialRotada {
   device_id: string
   token: string
   generado_en: string
+  /** true: aprovisionada en el broker; false: el broker la rechazó; null: pendiente en la consola. */
+  credencial_aprovisionada?: boolean | null
+  /** Instrucción cuando el aprovisionamiento no fue automático. */
+  mensaje_broker?: string | null
   /** true: el broker cerró la sesión anterior; null: API del broker no configurada. */
   sesion_broker_cerrada: boolean | null
+}
+
+/** HU-43: el alta devuelve el dispositivo y su credencial inicial. */
+export interface DispositivoAlta extends Dispositivo {
+  credencial: CredencialRotada
 }
 
 export interface SensorIoT {
@@ -92,6 +129,8 @@ export interface IncidenteOperativo {
   ultimo_reporte_en: string | null
   umbral_silencio_segundos: number
   recuperado_en: string | null
+  /** HU-54: cuándo salió el aviso por correo del incidente persistente. */
+  notificado_en?: string | null
 }
 
 /** Tramo sin muestras nuevas cuando LittleFS llegó a su capacidad. */
@@ -109,8 +148,11 @@ export interface SobreTelemetria {
   seq_no: number
   captured_at: string
   received_at: string
-  time_quality: 'ntp' | 'rtc' | 'uptime'
+  time_quality: TimeQualityContrato
 }
+
+/** B-15: valores del contrato de payload v1.0 del firmware (`time_quality`). */
+export type TimeQualityContrato = 'sntp_synced' | 'sntp_backfilled' | 'unsynced'
 
 // HU-49: un cambio de configuración/instalación/calibración/responsable.
 export interface HistorialConfiguracion {

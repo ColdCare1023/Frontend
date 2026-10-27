@@ -51,7 +51,11 @@ export interface LecturaTermica {
   seq_no?: number | null
   captured_at?: string | null
   received_at?: string | null
-  time_quality?: string | null
+  /** B-15: valor que entrega la API del backend (traducido del contrato v1.0:
+   * sntp_synced → synced, sntp_backfilled → backfilled, unsynced → unsynced). */
+  time_quality?: TimeQualityLectura | null
+  /** HU-20: la clase la produjo el modelo legado (datos sintéticos). */
+  ia_experimental?: boolean
   // HU-34: excursión confirmada por la regla directa de rango (2–8 °C),
   // independiente de la IA — nunca se infiere desde `nivel_riesgo`.
   excursion_confirmada: boolean
@@ -60,3 +64,6 @@ export interface LecturaTermica {
   // `nivel_riesgo` directamente.
   riesgo_efectivo: NivelRiesgo | null
 }
+
+/** B-15: `time_quality` de una lectura según la API (ver contrato_v1.TIME_QUALITY_INTERNO). */
+export type TimeQualityLectura = 'synced' | 'backfilled' | 'unsynced'

@@ -568,7 +568,7 @@
     "nombreEquipo": "Device name",
     "registroAyuda": "The code identifies the ESP32 node. It must be unique and remains stable when sensors are replaced.",
     "codigoUnicoAyuda": "Use letters, numbers, and hyphens; this identifier appears on readings as device_id.",
-    "equipoRegistrado": "Device registered. Connection and credential remain pending until the node is configured.",
+    "equipoRegistrado": "Device registered with its credential. Copy it now: it will not be shown again.",
     "codigoDuplicado": "That code is already registered.",
     "sensores": "Installed sensors",
     "opcional": "optional",
@@ -607,7 +607,7 @@
     "rotarCredencialA": "Request credential rotation for device {{id}}",
     "revocarCredencial": "Revoke credential",
     "revocarCredencialA": "Revoke MQTT credential for device {{id}}",
-    "credencialRevocada": "Credential revoked. The device loses broker access.",
+    "credencialRevocada": "Credential revoked: the system no longer accepts readings from this node. With EMQX Serverless, also remove its user in the console.",
     "probarIoT": "Test IoT",
     "probarIoTA": "Open IoT test scenarios for {{id}}",
     "simulacionSoloDemo": "{{id}} · Local sample scenarios. No ESP32, MQTT, or EMQX connection is made.",
@@ -634,7 +634,21 @@
     "sesionBrokerCerrada": "The broker closed the device's previous session.",
     "sesionBrokerNoCerrada": "The broker did not confirm closing the previous session: check EMQX.",
     "sesionBrokerSinApi": "Broker API not configured: the previous session will end when the device reconnects.",
-    "codigoInvalido": "Invalid code: use only letters, numbers, hyphen or underscore (max. 50)."
+    "codigoInvalido": "Invalid code: use only letters, numbers, hyphen or underscore (max. 50).",
+    "mesesVigencia": "Certificate validity (months)",
+    "mesesVigenciaAyuda": "The next calibration date is calculated from the date and the validity (1 to 60 months).",
+    "brokerPendiente": {
+      "aprovisionar": "Pending in broker: create user",
+      "retirar": "Pending in broker: remove user"
+    },
+    "brokerPendienteDesde": "Pending since {{fecha}}",
+    "confirmarBroker": "Confirm in console",
+    "confirmarBrokerDescripcion": {
+      "aprovisionar": "Confirm that you created or updated user {{id}} with the current token in the EMQX console.",
+      "retirar": "Confirm that you removed user {{id}} from the EMQX console."
+    },
+    "notaBroker": "Note (optional)",
+    "brokerConfirmado": "Broker operation confirmed and recorded in the audit log."
   },
   "comunes": {
     "error": "Something went wrong. Please try again.",

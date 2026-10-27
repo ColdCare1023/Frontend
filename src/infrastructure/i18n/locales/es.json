@@ -568,7 +568,7 @@
     "nombreEquipo": "Nombre del equipo",
     "registroAyuda": "El código identifica al nodo ESP32. Debe ser único y no cambia al reemplazar sensores.",
     "codigoUnicoAyuda": "Usa letras, números y guiones; este identificador aparece en cada lectura como device_id.",
-    "equipoRegistrado": "Equipo registrado. La conexión y credencial quedan pendientes hasta que el nodo se configure.",
+    "equipoRegistrado": "Equipo registrado con su credencial. Cópiela ahora: no se volverá a mostrar.",
     "codigoDuplicado": "Ese código ya está registrado.",
     "sensores": "Sensores instalados",
     "opcional": "opcional",
@@ -607,7 +607,7 @@
     "rotarCredencialA": "Solicitar rotación de credencial del equipo {{id}}",
     "revocarCredencial": "Revocar credencial",
     "revocarCredencialA": "Revocar credencial MQTT del equipo {{id}}",
-    "credencialRevocada": "Credencial revocada. El dispositivo pierde el acceso al broker.",
+    "credencialRevocada": "Credencial revocada: el sistema ya no acepta las lecturas del nodo. Si el broker es EMQX Serverless, retire también su usuario en la consola.",
     "probarIoT": "Probar IoT",
     "probarIoTA": "Abrir escenarios de prueba IoT para {{id}}",
     "simulacionSoloDemo": "{{id}} · Escenarios locales de ejemplo. No contactan ESP32, MQTT ni EMQX.",
@@ -634,7 +634,21 @@
     "sesionBrokerCerrada": "El broker cerró la sesión anterior del dispositivo.",
     "sesionBrokerNoCerrada": "El broker no confirmó el cierre de la sesión anterior: revísalo en EMQX.",
     "sesionBrokerSinApi": "API del broker no configurada: la sesión anterior se cerrará cuando el dispositivo reconecte.",
-    "codigoInvalido": "Código no válido: usa solo letras, números, guion o guion bajo (máx. 50)."
+    "codigoInvalido": "Código no válido: usa solo letras, números, guion o guion bajo (máx. 50).",
+    "mesesVigencia": "Vigencia del certificado (meses)",
+    "mesesVigenciaAyuda": "El sistema calcula la próxima calibración a partir de la fecha y la vigencia (1 a 60 meses).",
+    "brokerPendiente": {
+      "aprovisionar": "Pendiente en el broker: crear usuario",
+      "retirar": "Pendiente en el broker: retirar usuario"
+    },
+    "brokerPendienteDesde": "Pendiente desde {{fecha}}",
+    "confirmarBroker": "Confirmar en la consola",
+    "confirmarBrokerDescripcion": {
+      "aprovisionar": "Confirme que creó o actualizó el usuario {{id}} con el token vigente en la consola de EMQX.",
+      "retirar": "Confirme que retiró el usuario {{id}} de la consola de EMQX."
+    },
+    "notaBroker": "Nota (opcional)",
+    "brokerConfirmado": "Operación en el broker confirmada y registrada en la auditoría."
   },
   "comunes": {
     "error": "Ocurrió un error. Intenta de nuevo.",

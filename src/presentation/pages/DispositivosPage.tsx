@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, Eye, FlaskConical, HardDrive, History, KeyRound, MapPin, Plus, PowerOff, UserRound } from 'lucide-react'
+import { CalendarClock, CircleCheck, Eye, FlaskConical, HardDrive, History, KeyRound, MapPin, Plus, PowerOff, UserRound } from 'lucide-react'
 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import {
+  CAPACIDAD_BUFFER_LITTLEFS,
   estadoCalibracion,
   estadoCredencial,
   MOTIVOS_BAJA,
@@ -41,13 +42,14 @@ const FORM_BAJA_INICIAL: { motivo: MotivoBaja; descripcion: string; deviceIdReem
   deviceIdReemplazo: '',
 }
 
-const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', validaHasta: '', margenAvisoDias: '30', observaciones: '' }
+// B-12: el backend calcula la próxima calibración con la vigencia en meses.
+const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', mesesVigencia: '12', observaciones: '' }
 const FORM_INSTALACION_INICIAL = { ubicacion: '', fecha: '', observaciones: '' }
 const FORM_RESPONSABLE_INICIAL = { nombre: '', email: '', telefono: '' }
 
 type DialogoActivo =
   | 'crear' | 'simulacion' | 'baja' | 'calibracion' | 'instalacion' | 'responsable' | 'historial' | 'sensores'
-  | 'rotar' | 'revocar' | 'token'
+  | 'rotar' | 'revocar' | 'token' | 'broker'
   | null
 type EscenarioIoT = 'sin_datos' | 'buffer_pendiente' | 'buffer_lleno' | 'falla_sensor' | 'recuperar'
 
@@ -64,6 +66,7 @@ export function DispositivosPage() {
     registrarDispositivo,
     rotarCredencial,
     revocarCredencial,
+    confirmarBroker,
     simularEscenario,
   } = useDispositivos()
   const [pagina, setPagina] = useState(1)
@@ -85,6 +88,7 @@ export function DispositivosPage() {
   const [mensajeFlota, setMensajeFlota] = useState<string | null>(null)
   const [formNuevo, setFormNuevo] = useState({ id: '', nombre: '', ubicacion: '', mc38: false })
   const [motivoCredencial, setMotivoCredencial] = useState('')
+  const [notaBroker, setNotaBroker] = useState('')
   // FE-003: el token rotado vive solo mientras su diálogo está abierto; no se
   // persiste, no se registra y se descarta al cerrar.
   const [credencialRotada, setCredencialRotada] = useState<CredencialRotada | null>(null)
@@ -114,11 +118,36 @@ export function DispositivosPage() {
       sensores: formNuevo.mc38 ? ['DS18B20', 'SHT31', 'MC-38'] : ['DS18B20', 'SHT31'],
     })
     setEnviando(false)
-    if (resultado === 'ok') {
-      setMensaje({ tipo: 'ok', texto: t('dispositivos.equipoRegistrado') })
+    if (resultado.resultado === 'ok') {
+      // HU-43: el alta emitió la credencial; se muestra UNA vez, como en la rotación.
       setFormNuevo({ id: '', nombre: '', ubicacion: '', mc38: false })
+      setCredencialRotada(resultado.credencial)
+      setMensajeFlota(t('dispositivos.equipoRegistrado'))
+      setDialogo('token')
     } else {
-      setMensaje({ tipo: 'error', texto: t(resultado === 'duplicado' ? 'dispositivos.codigoDuplicado' : 'comunes.error') })
+      setMensaje({ tipo: 'error', texto: t(resultado.resultado === 'duplicado' ? 'dispositivos.codigoDuplicado' : 'comunes.error') })
+    }
+  }
+
+  const abrirConfirmarBroker = (dispositivo: Dispositivo) => {
+    setDispositivoActivo(dispositivo)
+    setNotaBroker('')
+    setMensaje(null)
+    setDialogo('broker')
+  }
+
+  const enviarConfirmarBroker = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!dispositivoActivo) return
+    setEnviando(true)
+    setMensaje(null)
+    const resultado = await confirmarBroker(dispositivoActivo.id, notaBroker.trim())
+    setEnviando(false)
+    if (resultado === 'ok') {
+      cerrarDialogo()
+      setMensajeFlota(t('dispositivos.brokerConfirmado'))
+    } else {
+      setMensaje({ tipo: 'error', texto: t('comunes.error') })
     }
   }
 
@@ -187,8 +216,7 @@ export function DispositivosPage() {
       fecha: '',
       certificado: dispositivo.numero_certificado_calibracion ?? '',
       observaciones: dispositivo.observaciones_calibracion ?? '',
-      validaHasta: dispositivo.fecha_proxima_calibracion ?? '',
-      margenAvisoDias: String(dispositivo.margen_aviso_calibracion_dias ?? 30),
+      mesesVigencia: '12',
     })
     setMensaje(null)
     setDialogo('calibracion')
@@ -257,8 +285,7 @@ export function DispositivosPage() {
       formCalibracion.fecha,
       formCalibracion.certificado,
       formCalibracion.observaciones,
-      formCalibracion.validaHasta,
-      Number(formCalibracion.margenAvisoDias) || 30,
+      Number(formCalibracion.mesesVigencia) || 12,
     )
     setEnviando(false)
     if (resultado === 'ok') {
@@ -390,6 +417,16 @@ export function DispositivosPage() {
                       {dispositivo.estado_operativo && dispositivo.estado_operativo !== 'OPERATIVO' && (
                         <Badge variant="critical">{t(`dispositivos.estadoOperativo.${dispositivo.estado_operativo}`)}</Badge>
                       )}
+                      {dispositivo.broker_pendiente && (
+                        <Badge
+                          variant="warn"
+                          title={dispositivo.broker_pendiente_desde
+                            ? t('dispositivos.brokerPendienteDesde', { fecha: fechaHora(dispositivo.broker_pendiente_desde) })
+                            : undefined}
+                        >
+                          {t(`dispositivos.brokerPendiente.${dispositivo.broker_pendiente}`)}
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell data-label={t('dispositivos.sensores')} className="mobile-full">
@@ -470,6 +507,12 @@ export function DispositivosPage() {
                         <KeyRound />
                         {t('dispositivos.rotarCredencial')}
                       </Button>
+                      {dispositivo.broker_pendiente && (
+                        <Button variant="ghost" size="sm" onClick={() => abrirConfirmarBroker(dispositivo)}>
+                          <CircleCheck />
+                          {t('dispositivos.confirmarBroker')}
+                        </Button>
+                      )}
                       {estadoCredencial(dispositivo) !== 'revocada' && (
                         <Button
                           variant="ghost"
@@ -537,7 +580,7 @@ export function DispositivosPage() {
               <dl className="grid gap-x-5 rounded-lg border border-border p-3 text-[13px] sm:grid-cols-2">
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.firmware')}</dt><dd className="font-medium">{dispositivoActivo.firmware_version ?? '—'}</dd></div>
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.intervaloReporte')}</dt><dd className="font-medium">{t('dispositivos.reporteCada', { s: dispositivoActivo.intervalo_reporte_segundos ?? 30 })}</dd></div>
-                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">Buffer local</dt><dd className="font-medium">{dispositivoActivo.buffer_littlefs?.pendientes ?? 0} / {dispositivoActivo.buffer_littlefs?.limite ?? 128} · {t('dispositivos.perdidas', { n: dispositivoActivo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
+                <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">Buffer local</dt><dd className="font-medium">{dispositivoActivo.buffer_littlefs?.pendientes ?? 0} / {dispositivoActivo.buffer_littlefs?.limite ?? CAPACIDAD_BUFFER_LITTLEFS} · {t('dispositivos.perdidas', { n: dispositivoActivo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="font-medium">{t(`dispositivos.credencial.${estadoCredencial(dispositivoActivo)}`)}</dd></div>
                 <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">{t('dispositivos.ultimoReporte')}</dt><dd className="text-right font-medium">{dispositivoActivo.ultimo_reporte_en ? fechaHora(dispositivoActivo.ultimo_reporte_en) : '—'}</dd></div>
                 {dispositivoActivo.buffer_littlefs?.desde && <div className="flex justify-between gap-3 border-b border-border py-2"><dt className="text-muted">Periodo en cola</dt><dd className="text-right font-medium">{fechaHora(dispositivoActivo.buffer_littlefs.desde)} – {dispositivoActivo.buffer_littlefs.hasta ? fechaHora(dispositivoActivo.buffer_littlefs.hasta) : '—'}</dd></div>}
@@ -667,6 +710,11 @@ export function DispositivosPage() {
             >
               {credencialRotada?.token}
             </code>
+            {credencialRotada?.mensaje_broker && (
+              <p role="alert" className="rounded-(--radius-field) bg-honey-100 px-3 py-2 text-[13px] text-honey-700">
+                {credencialRotada.mensaje_broker}
+              </p>
+            )}
             <p role="status" className="text-xs text-muted">
               {t('dispositivos.credencialRotada')}{' '}
               {credencialRotada?.sesion_broker_cerrada === true
@@ -683,6 +731,36 @@ export function DispositivosPage() {
               <Button variant="ghost" onClick={cerrarDialogo}>{t('comunes.cerrar')}</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── HU-43/HU-44: confirmar la operación hecha en la consola del broker ── */}
+      <Dialog open={dialogo === 'broker'} onOpenChange={(abierto) => !abierto && cerrarDialogo()}>
+        <DialogContent>
+          <DialogTitle>{t('dispositivos.confirmarBroker')}</DialogTitle>
+          <DialogDescription>
+            {dispositivoActivo?.broker_pendiente
+              ? t(`dispositivos.confirmarBrokerDescripcion.${dispositivoActivo.broker_pendiente}`, { id: dispositivoActivo.id })
+              : dispositivoActivo?.id}
+          </DialogDescription>
+          <form onSubmit={(e) => void enviarConfirmarBroker(e)} className="mt-4 space-y-3">
+            {dispositivoActivo?.broker_pendiente_desde && (
+              <p className="text-xs text-muted">
+                {t('dispositivos.brokerPendienteDesde', { fecha: fechaHora(dispositivoActivo.broker_pendiente_desde) })}
+              </p>
+            )}
+            <div>
+              <Label htmlFor="broker-nota">{t('dispositivos.notaBroker')}</Label>
+              <Input id="broker-nota" value={notaBroker} maxLength={500} onChange={(e) => setNotaBroker(e.target.value)} />
+            </div>
+            <MensajeFormulario mensaje={mensaje} />
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={cerrarDialogo} disabled={enviando}>{t('usuarios.cancelar')}</Button>
+              <Button type="submit" disabled={enviando}>
+                {enviando ? t('dispositivos.procesando') : t('dispositivos.confirmarBroker')}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -764,26 +842,18 @@ export function DispositivosPage() {
               />
             </div>
             <div>
-              <Label htmlFor="c-vigencia">{t('dispositivos.validaHasta')}</Label>
+              <Label htmlFor="c-vigencia">{t('dispositivos.mesesVigencia')}</Label>
               <Input
                 id="c-vigencia"
-                type="date"
-                value={formCalibracion.validaHasta}
-                onChange={(e) => setFormCalibracion({ ...formCalibracion, validaHasta: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="c-margen">{t('dispositivos.margenAviso')}</Label>
-              <Input
-                id="c-margen"
                 type="number"
-                min={0}
-                max={365}
-                value={formCalibracion.margenAvisoDias}
-                onChange={(e) => setFormCalibracion({ ...formCalibracion, margenAvisoDias: e.target.value })}
+                min={1}
+                max={60}
+                value={formCalibracion.mesesVigencia}
+                onChange={(e) => setFormCalibracion({ ...formCalibracion, mesesVigencia: e.target.value })}
+                aria-describedby="c-vigencia-ayuda"
                 required
               />
+              <p id="c-vigencia-ayuda" className="mt-1 text-xs text-muted">{t('dispositivos.mesesVigenciaAyuda')}</p>
             </div>
             <div>
               <Label htmlFor="c-observaciones">{t('dispositivos.observaciones')}</Label>
