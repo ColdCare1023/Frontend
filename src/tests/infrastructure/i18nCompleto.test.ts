@@ -4,6 +4,7 @@
  * que no existe (antes una pantalla mostraba el identificador en crudo).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
 import { join } from 'node:path'
 
 import es from '@/infrastructure/i18n/locales/es.json'
