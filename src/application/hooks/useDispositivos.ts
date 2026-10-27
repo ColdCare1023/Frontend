@@ -32,12 +32,16 @@ export function useDispositivos() {
   }, [consultar])
 
   // HU-13: conectividad en vivo también en la gestión de dispositivos.
+  // HU-44: la retención por compromiso cambia con incidentes y con la prueba
+  // de posesión; sin refrescar, «Telemetría retenida» seguiría visible.
   useEffect(
     () =>
       suscribirseTiempoReal({
         onConectividad: (cambio) => setDispositivos((previos) => aplicarCambioConectividad(previos, cambio)),
+        onIncidenteOperativo: () => void consultar(),
+        onPruebaPosesion: () => void consultar(),
       }),
-    [],
+    [consultar],
   )
 
   const darDeBaja = useCallback(
@@ -178,6 +182,21 @@ export function useDispositivos() {
     [consultar],
   )
 
+  // HU-44 (caso E): con la consola ya corregida, expulsa la sesión del nodo y
+  // reenvía el desafío de posesión.
+  const reenviarDesafio = useCallback(
+    async (deviceId: string): Promise<'ok' | 'error'> => {
+      try {
+        await apiClient.post(rutaApi`/api/dispositivos/${deviceId}/credenciales/reenviar-desafio`)
+        await consultar()
+        return 'ok'
+      } catch {
+        return 'error'
+      }
+    },
+    [consultar],
+  )
+
   // FE-003: contrato del backend (HU-44): rutas `/credenciales/...` y motivo
   // obligatorio, que queda en la auditoría. La rotación devuelve el token en
   // claro UNA sola vez; el llamador lo muestra y no lo guarda.
@@ -236,6 +255,7 @@ export function useDispositivos() {
     rotarCredencial,
     revocarCredencial,
     confirmarBroker,
+    reenviarDesafio,
     simularEscenario,
   }
 }

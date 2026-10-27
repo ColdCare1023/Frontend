@@ -928,6 +928,14 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     })
     return responder(config, { ...dispositivo })
   }
+  // HU-44 (caso E): en la demo no hay nodo que firme; se responde sin cambios.
+  const reenviarDesafio = /^\/api\/dispositivos\/([^/]+)\/credenciales\/reenviar-desafio$/.exec(url)
+  if (metodo === 'post' && reenviarDesafio) {
+    const dispositivo = dispositivoDemo(decodeURIComponent(reenviarDesafio[1]))
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    if (!dispositivo.posesion_pendiente) fallar(config, 409, 'El dispositivo no espera una prueba de posesión')
+    return responder(config, { ...dispositivo })
+  }
   const simulacionIoT = /^\/api\/demo\/dispositivos\/([^/]+)\/simulacion$/.exec(url)
   if (metodo === 'post' && simulacionIoT) {
     const dispositivo = dispositivoDemo(simulacionIoT[1])

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, CircleCheck, Eye, FlaskConical, HardDrive, History, KeyRound, MapPin, Plus, PowerOff, UserRound } from 'lucide-react'
+import { CalendarClock, CircleCheck, Eye, FlaskConical, HardDrive, History, KeyRound, MapPin, Plus, PowerOff, RefreshCw, UserRound } from 'lucide-react'
 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import {
@@ -68,6 +68,7 @@ export function DispositivosPage() {
     rotarCredencial,
     revocarCredencial,
     confirmarBroker,
+    reenviarDesafio,
     simularEscenario,
   } = useDispositivos()
   const [pagina, setPagina] = useState(1)
@@ -151,6 +152,11 @@ export function DispositivosPage() {
     } else {
       setMensaje({ tipo: 'error', texto: t('comunes.error') })
     }
+  }
+
+  const enviarReenviarDesafio = async (dispositivo: Dispositivo) => {
+    const resultado = await reenviarDesafio(dispositivo.id)
+    setMensajeFlota(t(resultado === 'ok' ? 'dispositivos.desafioReenviado' : 'comunes.error'))
   }
 
   const ejecutarEscenario = async (escenario: EscenarioIoT) => {
@@ -524,6 +530,17 @@ export function DispositivosPage() {
                         <Button variant="ghost" size="sm" onClick={() => abrirConfirmarBroker(dispositivo)}>
                           <CircleCheck />
                           {t('dispositivos.confirmarBroker')}
+                        </Button>
+                      )}
+                      {dispositivo.posesion_pendiente && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title={t('dispositivos.reenviarDesafioAyuda')}
+                          onClick={() => void enviarReenviarDesafio(dispositivo)}
+                        >
+                          <RefreshCw />
+                          {t('dispositivos.reenviarDesafio')}
                         </Button>
                       )}
                       {estadoCredencial(dispositivo) !== 'revocada' && (

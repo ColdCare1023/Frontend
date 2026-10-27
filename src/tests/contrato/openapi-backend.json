@@ -5404,6 +5404,55 @@
         ]
       }
     },
+    "/api/dispositivos/{device_id}/credenciales/reenviar-desafio": {
+      "post": {
+        "description": "HU-44, caso E: se confirmó la consola pero el nodo sigue sin probar el\ntoken nuevo (la contraseña no se cambió, o el nodo no recibió el desafío).\nTras corregir la consola, el administrador fuerza la reconexión: se expulsa\nla sesión (el nodo vuelve a probar el relevo) y se reenvía el desafío.\nSin esto, la salida dependía del sondeo del relevo del nodo (cada 5 min).",
+        "operationId": "reenviar_desafio_posesion_api_dispositivos__device_id__credenciales_reenviar_desafio_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,50}$",
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispositivoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reenviar Desafio Posesion",
+        "tags": [
+          "dispositivos"
+        ]
+      }
+    },
     "/api/dispositivos/{device_id}/credenciales/revocar": {
       "post": {
         "description": "HU-44 Escenario 1: invalida de inmediato la credencial de un\ndispositivo cuyas credenciales se sospechan comprometidas.",
