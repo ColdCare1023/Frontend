@@ -188,7 +188,9 @@
     "demoRecuperar": "Recuperar y sincronizar",
     "demoAplicado": "Escenario aplicado. El dashboard ya muestra el nuevo estado.",
     "demoAplicando": "Aplicando…",
-    "demoError": "No se pudo aplicar el escenario. Inténtalo de nuevo."
+    "demoError": "No se pudo aplicar el escenario. Inténtalo de nuevo.",
+    "iaExperimental": "IA experimental",
+    "iaExperimentalDetalle": "Clase del modelo legado, entrenado con datos simulados: no abre alertas preventivas."
   },
   "demo": {
     "badge": "Demostración",
@@ -324,7 +326,18 @@
     "filtroEstado": "Filtrar alertas por estado de seguimiento",
     "descripcionAccionPlaceholder": "Ej.: se reubicaron los viales y se ajustó el termostato a 5 °C",
     "descripcionAccionAyuda": "Describe qué se hizo para responder a la alerta. Quedará en el historial.",
-    "etiquetaAccion": "Descripción de la acción correctiva"
+    "etiquetaAccion": "Descripción de la acción correctiva",
+    "incidentesOperativos": "Incidentes operativos (sin datos)",
+    "incidentesOperativosDetalle": "El nodo dejó de reportar más tiempo que su umbral. No son excursiones térmicas: mientras duran, no hay registro de temperatura.",
+    "incidenteEstado": {
+      "activo": "Activo",
+      "resuelto": "Recuperado"
+    },
+    "incidenteDetectado": "Detectado {{fecha}} (umbral {{segundos}} s)",
+    "incidenteUltimoReporte": "último dato {{fecha}}",
+    "incidenteRecuperado": "Recuperado {{fecha}}",
+    "incidenteNotificado": "Aviso enviado {{fecha}}",
+    "incidenteSinAviso": "Sin aviso enviado"
   },
   "trazabilidad": {
     "titulo": "Integridad del historial",

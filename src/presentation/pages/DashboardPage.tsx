@@ -5,7 +5,7 @@ import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, ChevronDown, C
 
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
-import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import { CAPACIDAD_BUFFER_LITTLEFS, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
@@ -28,11 +28,6 @@ import { rutaApi } from '@/lib/rutaApi'
 // backends anteriores que todavía no publican este campo.
 const UMBRAL_PUERTA_ABIERTA_POR_DEFECTO = 120
 
-// HU-33 criterio 2: a partir de este umbral sin una lectura nueva, el dato
-// mostrado se marca como desactualizado — no basta con "hay un valor", tiene
-// que seguir siendo reciente. El doble del intervalo de muestreo (30 s) deja
-// margen a la latencia normal de red sin disparar falsos positivos.
-const UMBRAL_FRESCURA_SEGUNDOS = 90
 
 // HU-31 criterio 4: opciones de rango para la curva térmica del dashboard.
 // 24 h es el valor por defecto exigido por el criterio; las demás son la
@@ -218,6 +213,10 @@ function EstadoPrincipal({
               {desactualizado ? t('dashboard.ultimaTemperatura') : t('dashboard.estadoRefrigerador')}
             </p>
             <RiskBadge nivel={riesgo} />
+            {ultima.ia_experimental && !ultima.excursion_confirmada && (
+              // HU-20 / B-1: la clase la produjo el modelo legado (datos sintéticos).
+              <Badge variant="outline" title={t('dashboard.iaExperimentalDetalle')}>{t('dashboard.iaExperimental')}</Badge>
+            )}
           </div>
           {riesgo
             ? <p className="mt-1.5 text-sm text-muted">
@@ -375,7 +374,7 @@ function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
                       {dispositivo.estado_operativo === 'SIN_DATOS' && (
                         <Badge variant="critical">
                           {t('dashboard.estadoSinDatos', {
-                            segundos: incidenteActivo?.umbral_silencio_segundos ?? dispositivo.umbral_sin_datos_segundos ?? 90,
+                            segundos: incidenteActivo?.umbral_silencio_segundos ?? umbralSilencioSegundos(dispositivo),
                           })}
                         </Badge>
                       )}
@@ -721,8 +720,12 @@ export function DashboardPage() {
   }, [])
 
   const segundosDesdeUltima = ultima ? Math.max(0, Math.floor((ahora - new Date(ultima.timestamp).getTime()) / 1000)) : null
+  // HU-33 criterio 2 / B-17: el dato se marca desactualizado al superar el
+  // umbral SIN_DATOS del propio nodo (N × su intervalo de captura), no un
+  // valor fijo pensado para 30 s: con 10 s de banco o 60 s de piloto cambia.
+  const umbralFrescura = umbralSilencioSegundos(estadoIoTPrincipal)
   const datoDesactualizado = estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' ||
-    (segundosDesdeUltima != null && segundosDesdeUltima >= UMBRAL_FRESCURA_SEGUNDOS)
+    (segundosDesdeUltima != null && segundosDesdeUltima >= umbralFrescura)
 
   const deltaDe = (
     actual: number | null | undefined,
@@ -977,7 +980,7 @@ export function DashboardPage() {
                 <CardContent className="divide-y divide-border">
                   {equiposConIncidencias.map((equipo) => {
                     const ultimaLectura = equipo.ultimo_reporte_en ? fechaHora(equipo.ultimo_reporte_en) : '—'
-                    const segundosSilencio = equipo.umbral_sin_datos_segundos ?? 90
+                    const segundosSilencio = umbralSilencioSegundos(equipo)
                     const lecturasPendientes = equipo.buffer_littlefs?.pendientes ?? 0
                     const incidenteActivo = equipo.incidencias_operativas?.find((incidente) => incidente.estado === 'activo')
                     return (
@@ -1000,7 +1003,7 @@ export function DashboardPage() {
                         <div><dt className="text-muted">{t('dispositivos.ultimoReporte')}</dt><dd className="mt-0.5 font-medium">{ultimaLectura}</dd></div>
                         <div><dt className="text-muted">{t('dispositivos.conectividad')}</dt><dd className="mt-0.5 font-medium">{equipo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}</dd></div>
                         <div><dt className="text-muted">{t('dispositivos.fallasSensor')}</dt><dd className="mt-0.5 font-medium">{(equipo.sensores ?? []).filter((sensor) => sensor.estado === 'error').length}</dd></div>
-                        <div><dt className="text-muted">{t('dispositivos.bufferLittlefs', { n: lecturasPendientes, max: equipo.buffer_littlefs?.limite ?? 128 })}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.perdidas', { n: equipo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.bufferLittlefs', { n: lecturasPendientes, max: equipo.buffer_littlefs?.limite ?? CAPACIDAD_BUFFER_LITTLEFS })}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.perdidas', { n: equipo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
                         <div><dt className="text-muted">{t('dispositivos.intervaloReporte')}</dt><dd className="mt-0.5 font-medium">{equipo.intervalo_reporte_segundos ?? 30} s</dd></div>
                         <div><dt className="text-muted">{t('dispositivos.umbralSinDatos')}</dt><dd className="mt-0.5 font-medium">{segundosSilencio} s</dd></div>
                         <div><dt className="text-muted">{t('dispositivos.firmware')}</dt><dd className="mt-0.5 font-medium">{equipo.firmware_version || '—'}</dd></div>

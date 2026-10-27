@@ -188,7 +188,9 @@
     "demoRecuperar": "Recover and sync",
     "demoAplicado": "Scenario applied. Dashboard now shows the new state.",
     "demoAplicando": "Applying…",
-    "demoError": "Could not apply scenario. Try again."
+    "demoError": "Could not apply scenario. Try again.",
+    "iaExperimental": "Experimental AI",
+    "iaExperimentalDetalle": "Class from the legacy model trained on simulated data: it does not open preventive alerts."
   },
   "demo": {
     "badge": "Demo",
@@ -324,7 +326,18 @@
     "filtroEstado": "Filter alerts by follow-up status",
     "descripcionAccionPlaceholder": "E.g. vials were relocated and the thermostat set to 5 °C",
     "descripcionAccionAyuda": "Describe what was done in response to the alert. It will appear in the history.",
-    "etiquetaAccion": "Corrective action description"
+    "etiquetaAccion": "Corrective action description",
+    "incidentesOperativos": "Operational incidents (no data)",
+    "incidentesOperativosDetalle": "The node stopped reporting for longer than its threshold. These are not temperature excursions: while they last, there is no temperature record.",
+    "incidenteEstado": {
+      "activo": "Active",
+      "resuelto": "Recovered"
+    },
+    "incidenteDetectado": "Detected {{fecha}} (threshold {{segundos}} s)",
+    "incidenteUltimoReporte": "last data {{fecha}}",
+    "incidenteRecuperado": "Recovered {{fecha}}",
+    "incidenteNotificado": "Notice sent {{fecha}}",
+    "incidenteSinAviso": "No notice sent"
   },
   "trazabilidad": {
     "titulo": "Record integrity",
