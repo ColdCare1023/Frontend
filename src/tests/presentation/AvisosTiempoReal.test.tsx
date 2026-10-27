@@ -81,4 +81,27 @@ describe('AvisosTiempoReal', () => {
       'FARM-02 volvió a la versión 1.2.0: la actualización no superó el arranque.',
     )
   })
+
+  it('HU-44: avisa la excursión no verificada y una prueba de posesión con el token anterior', () => {
+    render(<AvisosTiempoReal />)
+    act(() => {
+      suscriptores[0].onIncidenteOperativo?.({
+        tipo: 'excursion_no_verificada', id: 'i1', device_id: 'FARM-01', estado: 'activo', detectado_en: 'x',
+        ultimo_reporte_en: null, umbral_silencio_segundos: 0, recuperado_en: null,
+        detalle: { temperatura_interna: 11.5, captured_at: 'x' },
+      })
+      suscriptores[0].onPruebaPosesion?.({ device_id: 'FARM-01', verificada: false, motivo: 'firma_invalida' })
+    })
+    const criticos = screen.getAllByRole('alert').map((n) => n.textContent)
+    expect(criticos[0]).toContain('Excursión crítica de origen no verificado en FARM-01: 11.50 °C')
+    expect(criticos[1]).toContain('FARM-01 sigue con el token anterior')
+  })
+
+  it('HU-44: la prueba de posesión verificada se anuncia como recuperación', () => {
+    render(<AvisosTiempoReal />)
+    act(() => {
+      suscriptores[0].onPruebaPosesion?.({ device_id: 'FARM-02', verificada: true, motivo: 'verificada' })
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('FARM-02 probó la credencial nueva')
+  })
 })

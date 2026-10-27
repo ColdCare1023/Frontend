@@ -680,10 +680,13 @@
     },
     "causaRotacionAyuda": {
       "preventiva": "El equipo sigue reportando mientras se actualiza la consola del broker.",
-      "compromiso": "Hasta que confirme la consola, el sistema retiene la telemetría del equipo: quien tenga el token anterior no puede aportar lecturas. El nodo las guarda y las reenvía al confirmar."
+      "compromiso": "Desde la rotación, el sistema retiene la telemetría del equipo: quien tenga el token anterior no puede aportar lecturas. La retención termina cuando, con la consola confirmada, el nodo demuestra que tiene la credencial nueva; entonces reenvía lo que guardó."
     },
     "posesionPendiente": "Esperando prueba de posesión",
-    "posesionPendienteAyuda": "Consola confirmada. La retención termina cuando el nodo firma el desafío con la credencial nueva; si la consola no se cambió, el nodo no puede hacerlo y la retención sigue."
+    "posesionPendienteAyuda": "Consola confirmada. La retención termina cuando el nodo firma el desafío con la credencial nueva; si la consola no se cambió, el nodo no puede hacerlo y la retención sigue.",
+    "reenviarDesafio": "Reenviar desafío",
+    "reenviarDesafioAyuda": "Tras corregir la contraseña en la consola: expulsa la sesión del nodo para que entre con la credencial nueva y le reenvía el desafío.",
+    "desafioReenviado": "Desafío reenviado: el nodo se reconectará y deberá probar la credencial nueva."
   },
   "comunes": {
     "error": "Ocurrió un error. Intenta de nuevo.",
@@ -1002,6 +1005,10 @@
     "ota_confirmada": "{{device}} confirmó la actualización a la versión {{version}}.",
     "ota_rechazada": "{{device}} rechazó la orden de actualización.",
     "ota_fallida": "{{device}} no pudo instalar la actualización {{version}}.",
-    "ota_revertida": "{{device}} volvió a la versión {{version}}: la actualización no superó el arranque."
+    "ota_revertida": "{{device}} volvió a la versión {{version}}: la actualización no superó el arranque.",
+    "excursion_no_verificada": "Excursión crítica de origen no verificado en {{device}}: {{temperatura}} °C. Compruebe el refrigerador con el termómetro de respaldo.",
+    "monitoreo_suspendido": "Monitoreo de {{device}} suspendido: rotación de credencial por compromiso.",
+    "posesion_verificada": "{{device}} probó la credencial nueva: se reanuda el registro.",
+    "posesion_firma_invalida": "{{device}} sigue con el token anterior: el broker aún lo acepta. Cambie la contraseña en la consola y use «Reenviar desafío»."
   }
 }

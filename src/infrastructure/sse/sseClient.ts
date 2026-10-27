@@ -44,13 +44,21 @@ export const EVENTOS_AVISO_DISPOSITIVO = [
 ] as const
 
 /** HU-54: apertura y cierre del incidente SIN_DATOS persistente. HU-44: los
- * de la retención por compromiso y el resultado de la prueba de posesión. */
+ * de la retención por compromiso. */
 export const EVENTOS_INCIDENTE = [
   'sin_datos', 'sin_datos_resuelto',
   'monitoreo_suspendido', 'monitoreo_suspendido_resuelto',
   'excursion_no_verificada', 'excursion_no_verificada_resuelto',
-  'prueba_posesion',
 ] as const
+
+/** HU-44: resultado de la prueba de posesión del token nuevo. No es un
+ * incidente: `motivo` es `verificada`, `firma_invalida` (el nodo firmó con el
+ * token anterior: la consola no se cambió), `nonce_desconocido`, etc. */
+export interface ResultadoPruebaPosesion {
+  device_id: string
+  verificada: boolean
+  motivo: string
+}
 
 export type TipoEventoAlerta = (typeof EVENTOS_ALERTA)[number]
 export type TipoAvisoDispositivo = (typeof EVENTOS_AVISO_DISPOSITIVO)[number]
@@ -90,6 +98,8 @@ export interface EventoIncidenteOperativo {
   ultimo_reporte_en: string | null
   umbral_silencio_segundos: number
   recuperado_en: string | null
+  /** HU-44: lectura de la excursión no verificada (temperatura, captura). */
+  detalle?: { temperatura_interna?: number | null; captured_at?: string | null } | null
 }
 
 export interface OyentesTiempoReal {
@@ -99,6 +109,7 @@ export interface OyentesTiempoReal {
   onAvisoDispositivo?: (aviso: AvisoDispositivo) => void
   onEstadoNodo?: (estado: EstadoNodo) => void
   onIncidenteOperativo?: (evento: EventoIncidenteOperativo) => void
+  onPruebaPosesion?: (resultado: ResultadoPruebaPosesion) => void
   onEstado?: (conectado: boolean) => void
 }
 
@@ -248,6 +259,15 @@ function abrirConexion(): () => void {
             ),
           )
         }
+        escuchar('prueba_posesion', (datos) =>
+          oyentes.forEach((o) =>
+            o.onPruebaPosesion?.({
+              device_id: String(datos.device_id ?? ''),
+              verificada: datos.verificada === true,
+              motivo: String(datos.motivo ?? ''),
+            }),
+          ),
+        )
         // BE-010: la sesión que abrió el stream ya no vale. Se cierra y se pide
         // ticket de inmediato: el 401 activa el cierre de sesión global.
         fuente.addEventListener('sesion_expirada', () => {

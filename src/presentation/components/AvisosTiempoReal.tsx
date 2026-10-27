@@ -73,6 +73,26 @@ export function AvisosTiempoReal() {
       onConectividad: (cambio) => {
         if (cambio.estado === 'offline') publicar('critico', t('avisosTiempoReal.desconexion', { device: cambio.device_id }))
       },
+      // HU-44: la retención por compromiso no espera al sondeo del tablero.
+      onIncidenteOperativo: (evento) => {
+        if (evento.tipo === 'excursion_no_verificada') {
+          const temperatura = evento.detalle?.temperatura_interna
+          publicar('critico', t('avisosTiempoReal.excursion_no_verificada', {
+            device: evento.device_id,
+            temperatura: typeof temperatura === 'number' ? temperatura.toFixed(2) : '—',
+          }))
+        }
+        if (evento.tipo === 'monitoreo_suspendido') {
+          publicar('aviso', t('avisosTiempoReal.monitoreo_suspendido', { device: evento.device_id }))
+        }
+      },
+      onPruebaPosesion: (resultado) => {
+        if (resultado.verificada) {
+          publicar('ok', t('avisosTiempoReal.posesion_verificada', { device: resultado.device_id }))
+        } else if (resultado.motivo === 'firma_invalida') {
+          publicar('critico', t('avisosTiempoReal.posesion_firma_invalida', { device: resultado.device_id }))
+        }
+      },
       onAvisoDispositivo: (aviso) => {
         const definicion = AVISOS_DISPOSITIVO[aviso.tipo]
         if (definicion) {

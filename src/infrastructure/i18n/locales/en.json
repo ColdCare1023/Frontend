@@ -680,10 +680,13 @@
     },
     "causaRotacionAyuda": {
       "preventiva": "The device keeps reporting while the broker console is updated.",
-      "compromiso": "Until you confirm the console, the system holds this device's telemetry: whoever has the previous token cannot submit readings. The node keeps them and resends them after confirmation."
+      "compromiso": "From the rotation on, the system holds this device's telemetry: whoever has the previous token cannot submit readings. Retention ends when, with the console confirmed, the node proves it holds the new credential; it then resends what it kept."
     },
     "posesionPendiente": "Awaiting proof of possession",
-    "posesionPendienteAyuda": "Console confirmed. Retention ends when the node signs the challenge with the new credential; if the console was not changed, the node cannot do so and retention continues."
+    "posesionPendienteAyuda": "Console confirmed. Retention ends when the node signs the challenge with the new credential; if the console was not changed, the node cannot do so and retention continues.",
+    "reenviarDesafio": "Resend challenge",
+    "reenviarDesafioAyuda": "After fixing the password in the console: kicks the node session so it reconnects with the new credential and resends the challenge.",
+    "desafioReenviado": "Challenge resent: the node will reconnect and must prove the new credential."
   },
   "comunes": {
     "error": "Something went wrong. Please try again.",
@@ -1002,6 +1005,10 @@
     "ota_confirmada": "{{device}} confirmed the update to version {{version}}.",
     "ota_rechazada": "{{device}} rejected the update order.",
     "ota_fallida": "{{device}} could not install update {{version}}.",
-    "ota_revertida": "{{device}} rolled back to version {{version}}: the update failed its boot check."
+    "ota_revertida": "{{device}} rolled back to version {{version}}: the update failed its boot check.",
+    "excursion_no_verificada": "Critical excursion of unverified origin on {{device}}: {{temperatura}} °C. Check the refrigerator with the backup thermometer.",
+    "monitoreo_suspendido": "Monitoring of {{device}} suspended: compromise credential rotation.",
+    "posesion_verificada": "{{device}} proved the new credential: recording resumes.",
+    "posesion_firma_invalida": "{{device}} is still on the previous token: the broker still accepts it. Change the password in the console and use \"Resend challenge\"."
   }
 }
