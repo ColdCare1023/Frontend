@@ -11,8 +11,13 @@ vi.mock('@/infrastructure/sse/sseClient', () => ({
   },
 }))
 
+import { useAuthStore } from '@/application/stores/authStore'
 import i18n from '@/infrastructure/i18n'
 import { AvisosTiempoReal } from '@/presentation/components/AvisosTiempoReal'
+
+function sesion(rol: 'administrador' | 'farmaceutico') {
+  useAuthStore.setState({ usuario: { id: 'u1', email: 'u@x.pe', rol, expiraEn: Date.now() + 3_600_000 }, autenticado: true })
+}
 
 /** FE-008: lo que no es una lectura también se ve en tiempo real. */
 describe('AvisosTiempoReal', () => {
@@ -83,6 +88,7 @@ describe('AvisosTiempoReal', () => {
   })
 
   it('HU-44: avisa la excursión no verificada y una prueba de posesión con el token anterior', () => {
+    sesion('administrador')
     render(<AvisosTiempoReal />)
     act(() => {
       suscriptores[0].onIncidenteOperativo?.({
@@ -95,6 +101,37 @@ describe('AvisosTiempoReal', () => {
     const criticos = screen.getAllByRole('alert').map((n) => n.textContent)
     expect(criticos[0]).toContain('Excursión crítica de origen no verificado en FARM-01: 11.50 °C')
     expect(criticos[1]).toContain('FARM-01 sigue con el token anterior')
+  })
+
+  it('HU-44: el aviso de la consola solo le sale al administrador', () => {
+    sesion('farmaceutico')
+    render(<AvisosTiempoReal />)
+    act(() => {
+      suscriptores[0].onPruebaPosesion?.({ device_id: 'FARM-01', verificada: false, motivo: 'firma_invalida' })
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('HU-44: la firma inválida del mismo equipo se avisa una vez cada 5 min', () => {
+    vi.useFakeTimers()
+    try {
+      sesion('administrador')
+      render(<AvisosTiempoReal />)
+      const fallo = { device_id: 'FARM-01', verificada: false, motivo: 'firma_invalida' }
+      act(() => {
+        suscriptores[0].onPruebaPosesion?.(fallo)
+        suscriptores[0].onPruebaPosesion?.(fallo)
+      })
+      expect(screen.getAllByRole('alert')).toHaveLength(1)
+
+      act(() => {
+        vi.advanceTimersByTime(5 * 60_000)
+        suscriptores[0].onPruebaPosesion?.(fallo)
+      })
+      expect(screen.getAllByRole('alert')).toHaveLength(1) // el primero ya expiró (15 s)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('HU-44: la prueba de posesión verificada se anuncia como recuperación', () => {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2, WifiOff, X } from 'lucide-react'
 
+import { useAuthStore } from '@/application/stores/authStore'
 import { suscribirseTiempoReal, type TipoAvisoDispositivo } from '@/infrastructure/sse/sseClient'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +16,8 @@ interface Aviso {
 
 const DURACION_MS = 15_000
 const MAXIMO_VISIBLES = 4
+/** HU-44: el nodo reintenta con el token anterior; un aviso por equipo basta. */
+const SILENCIO_FIRMA_INVALIDA_MS = 5 * 60_000
 
 /** Avisos de dispositivo que merecen interrumpir; los nombres heredados se unifican. */
 const AVISOS_DISPOSITIVO: Partial<Record<TipoAvisoDispositivo, { clave: string; nivel: Nivel }>> = {
@@ -52,8 +55,15 @@ export function AvisosTiempoReal() {
   const { t } = useTranslation()
   const [avisos, setAvisos] = useState<Aviso[]>([])
   const siguiente = useRef(1)
+  // Solo el administrador puede cambiar la contraseña en la consola del broker.
+  const esAdministrador = useAuthStore((s) => s.usuario?.rol === 'administrador')
+  const administrador = useRef(esAdministrador)
+  useEffect(() => {
+    administrador.current = esAdministrador
+  }, [esAdministrador])
 
   useEffect(() => {
+    const firmaInvalidaAvisada = new Map<string, number>()
     const temporizadores = new Set<ReturnType<typeof setTimeout>>()
     const publicar = (nivel: Nivel, texto: string) => {
       const id = siguiente.current++
@@ -89,7 +99,11 @@ export function AvisosTiempoReal() {
       onPruebaPosesion: (resultado) => {
         if (resultado.verificada) {
           publicar('ok', t('avisosTiempoReal.posesion_verificada', { device: resultado.device_id }))
-        } else if (resultado.motivo === 'firma_invalida') {
+        } else if (resultado.motivo === 'firma_invalida' && administrador.current) {
+          const ahora = Date.now()
+          const previo = firmaInvalidaAvisada.get(resultado.device_id)
+          if (previo !== undefined && ahora - previo < SILENCIO_FIRMA_INVALIDA_MS) return
+          firmaInvalidaAvisada.set(resultado.device_id, ahora)
           publicar('critico', t('avisosTiempoReal.posesion_firma_invalida', { device: resultado.device_id }))
         }
       },
