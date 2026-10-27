@@ -204,3 +204,43 @@ export function estadoCalibracion(dispositivo: Dispositivo, hoy: Date = new Date
  * fuera de él podría alterar las rutas de la API que lo interpolan.
  */
 export const PATRON_DEVICE_ID = /^[A-Za-z0-9_-]{1,50}$/
+
+/** Número finito no negativo de un `detalle` de estado_nodo, o undefined. */
+function numeroDe(detalle: Record<string, unknown>, clave: string): number | undefined {
+  const valor = detalle[clave]
+  return typeof valor === 'number' && Number.isFinite(valor) && valor >= 0 ? valor : undefined
+}
+
+/**
+ * HU-48 / A-4: aplica el último `estado_nodo` (SSE) sobre la lista de equipos:
+ * registros pendientes en LittleFS y capacidad real, pérdidas por saturación
+ * (brecha), intervalo de captura informado por el nodo y latido.
+ */
+export function aplicarEstadoNodo<T extends Dispositivo>(
+  dispositivos: T[],
+  estado: { device_id: string; timestamp: string; detalle: Record<string, unknown> | null },
+): T[] {
+  const detalle = estado.detalle ?? {}
+  return dispositivos.map((d) => {
+    if (d.id !== estado.device_id) return d
+    const pendientes = numeroDe(detalle, 'pendientes')
+    const capacidad = numeroDe(detalle, 'capacidad')
+    const perdidas = numeroDe(detalle, 'perdidas_total')
+    const intervalo = numeroDe(detalle, 'intervalo_s')
+    const previo = d.buffer_littlefs
+    return {
+      ...d,
+      ultimo_latido_en: estado.timestamp,
+      intervalo_reporte_segundos: intervalo || d.intervalo_reporte_segundos,
+      buffer_littlefs: {
+        pendientes: pendientes ?? previo?.pendientes ?? 0,
+        limite: capacidad || previo?.limite || CAPACIDAD_BUFFER_LITTLEFS,
+        desde: previo?.desde ?? null,
+        hasta: previo?.hasta ?? null,
+        perdidas: perdidas ?? previo?.perdidas ?? 0,
+        brechas: previo?.brechas,
+        ultima_sincronizacion_en: pendientes === 0 ? estado.timestamp : previo?.ultima_sincronizacion_en ?? null,
+      },
+    }
+  })
+}

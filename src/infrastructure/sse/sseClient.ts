@@ -43,6 +43,9 @@ export const EVENTOS_AVISO_DISPOSITIVO = [
   'ota_confirmada', 'ota_rechazada', 'ota_fallida', 'ota_revertida',
 ] as const
 
+/** HU-54: apertura y cierre del incidente SIN_DATOS persistente. */
+export const EVENTOS_INCIDENTE = ['sin_datos', 'sin_datos_resuelto'] as const
+
 export type TipoEventoAlerta = (typeof EVENTOS_ALERTA)[number]
 export type TipoAvisoDispositivo = (typeof EVENTOS_AVISO_DISPOSITIVO)[number]
 
@@ -60,11 +63,36 @@ export interface AvisoDispositivo {
   detalle: Record<string, unknown> | null
 }
 
+/**
+ * HU-48 / A-5: `estado_nodo` que el nodo publica cada 5 min (contrato v1.0):
+ * pendientes en LittleFS, capacidad, pérdidas, RSSI, intervalo de captura…
+ */
+export interface EstadoNodo {
+  device_id: string
+  timestamp: string
+  boot_id: number | null
+  detalle: Record<string, unknown> | null
+}
+
+/** HU-54: incidente SIN_DATOS (forma de CambioIncidente.como_evento_sse del backend). */
+export interface EventoIncidenteOperativo {
+  tipo: (typeof EVENTOS_INCIDENTE)[number]
+  id: string
+  device_id: string
+  estado: 'activo' | 'resuelto'
+  detectado_en: string
+  ultimo_reporte_en: string | null
+  umbral_silencio_segundos: number
+  recuperado_en: string | null
+}
+
 export interface OyentesTiempoReal {
   onLectura?: (lectura: LecturaTermica) => void
   onConectividad?: (cambio: CambioConectividad) => void
   onAlerta?: (evento: EventoAlerta) => void
   onAvisoDispositivo?: (aviso: AvisoDispositivo) => void
+  onEstadoNodo?: (estado: EstadoNodo) => void
+  onIncidenteOperativo?: (evento: EventoIncidenteOperativo) => void
   onEstado?: (conectado: boolean) => void
 }
 
@@ -193,6 +221,24 @@ function abrirConexion(): () => void {
                 timestamp: String(datos.timestamp ?? new Date().toISOString()),
                 detalle: (datos.detalle as Record<string, unknown> | null) ?? null,
               }),
+            ),
+          )
+        }
+        // A-5: antes `estado_nodo` llegaba por SSE y nadie lo escuchaba.
+        escuchar('estado_nodo', (datos) =>
+          oyentes.forEach((o) =>
+            o.onEstadoNodo?.({
+              device_id: String(datos.device_id ?? ''),
+              timestamp: String(datos.timestamp ?? new Date().toISOString()),
+              boot_id: typeof datos.boot_id === 'number' ? datos.boot_id : null,
+              detalle: (datos.detalle as Record<string, unknown> | null) ?? null,
+            }),
+          ),
+        )
+        for (const tipo of EVENTOS_INCIDENTE) {
+          escuchar(tipo, (datos) =>
+            oyentes.forEach((o) =>
+              o.onIncidenteOperativo?.({ ...(datos as unknown as Omit<EventoIncidenteOperativo, 'tipo'>), tipo }),
             ),
           )
         }
