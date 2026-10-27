@@ -63,7 +63,7 @@
     "administrador": "Administrador",
     "farmaceutico": "Químico Farmacéutico",
     "tecnico": "Técnico de Farmacia",
-    "auditor": "Cajero"
+    "auditor": "Auditor"
   },
   "riesgo": {
     "normal": "Normal",
@@ -210,7 +210,7 @@
         "descripcion": "Operación y consulta"
       },
       "auditor": {
-        "titulo": "Cajero",
+        "titulo": "Auditor",
         "descripcion": "Consulta de registros"
       }
     },
@@ -657,7 +657,9 @@
     "totalRegistrosUno": "{{total}} registro",
     "totalRegistrosVarios": "{{total}} registros",
     "verDatosGrafica": "Ver los datos de la gráfica en una tabla",
-    "deslizarTabla": "Desliza para ver todas las columnas."
+    "deslizarTabla": "Desliza para ver todas las columnas.",
+    "si": "Sí",
+    "no": "No"
   },
   "metricasIA": {
     "titulo": "Cómo se comporta el clasificador",
@@ -894,7 +896,8 @@
     "notaSeguridad": "Si tu correo está registrado, recibirás un enlace de un solo uso que vence en 30 minutos.",
     "volverLogin": "Volver a iniciar sesión",
     "errorEmail": "Ingresa un correo electrónico válido.",
-    "noDisponible": "La recuperación por correo no está disponible. Pide al administrador que restablezca tu contraseña."
+    "noDisponible": "La recuperación por correo no está disponible. Pide al administrador que restablezca tu contraseña.",
+    "enviarOtro": "Intentar con otra dirección de correo"
   },
   "restablecerContrasena": {
     "titulo": "Restablecer contraseña",

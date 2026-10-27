@@ -52,9 +52,8 @@ export const USUARIOS_DEMO: Usuario[] = [
   { id: 'u-02', nombre: 'Administrador Demo', email: 'admin@demo.pe', rol: 'administrador', is_active: true, motivo_desactivacion: null, desactivado_en: null },
   { id: 'u-03', nombre: 'Técnico Demo', email: 'tecnico@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
   { id: 'u-04', nombre: 'Técnico Demo 2', email: 'jorge.villanueva@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
-  // Quinta cuenta demo de consulta; conserva el identificador RBAC requerido
-  // por el backend actual mientras se muestra como Cajero en la interfaz.
-  { id: 'u-05', nombre: 'Cajero Demo', email: 'cajero@demo.pe', rol: 'auditor', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  // B-18: el rol de consulta es «Auditor» (RF-17), igual que en el backend.
+  { id: 'u-05', nombre: 'Auditor Demo', email: 'auditor@demo.pe', rol: 'auditor', is_active: true, motivo_desactivacion: null, desactivado_en: null },
 ]
 
 const DIA_MS = 24 * 60 * 60 * 1000

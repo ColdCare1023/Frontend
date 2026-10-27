@@ -106,7 +106,7 @@ export function LoginPage() {
             className="mb-4 rounded-xl border border-primary/20 bg-primary-tint px-3.5 py-2.5 text-xs sm:text-sm text-foreground"
           >
             {avisoSesion === 'expirada'
-              ? t('sesion.sesionExpirada')
+              ? t('comunes.sesionExpirada')
               : t('login.sesionCerradaRecarga')}
           </p>
         )}

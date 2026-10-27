@@ -105,7 +105,7 @@ export function RecuperarContrasenaPage() {
                   }}
                   className="text-xs font-semibold text-primary hover:underline self-center py-1 cursor-pointer"
                 >
-                  {t('recuperarContrasena.enviarOtro', { defaultValue: 'Intentar con otra dirección de correo' })}
+                  {t('recuperarContrasena.enviarOtro')}
                 </button>
               </div>
             </div>

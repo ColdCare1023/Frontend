@@ -657,7 +657,9 @@
     "totalRegistrosUno": "{{total}} record",
     "totalRegistrosVarios": "{{total}} records",
     "verDatosGrafica": "View the chart data as a table",
-    "deslizarTabla": "Scroll to see all columns."
+    "deslizarTabla": "Scroll to see all columns.",
+    "si": "Yes",
+    "no": "No"
   },
   "metricasIA": {
     "titulo": "How the classifier behaves",
@@ -894,7 +896,8 @@
     "notaSeguridad": "If your email is registered you will receive a single-use link that expires in 30 minutes.",
     "volverLogin": "Back to sign in",
     "errorEmail": "Enter a valid email address.",
-    "noDisponible": "Email recovery is not available. Ask the administrator to reset your password."
+    "noDisponible": "Email recovery is not available. Ask the administrator to reset your password.",
+    "enviarOtro": "Try another email address"
   },
   "restablecerContrasena": {
     "titulo": "Reset password",
