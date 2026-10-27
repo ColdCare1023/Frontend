@@ -95,6 +95,8 @@ export function AvisosTiempoReal() {
 
   return (
     <div
+      // aria-label solo vale en un elemento con rol (axe: aria-prohibited-attr).
+      role="region"
       aria-live="polite"
       aria-label={t('avisosTiempoReal.region')}
       className="pointer-events-none fixed right-4 bottom-4 z-40 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2"
