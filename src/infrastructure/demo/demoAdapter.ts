@@ -682,7 +682,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'get' && url === '/api/ia/modelo') {
     return responder(config, METRICAS_IA_DEMO)
   }
-  const detalleInferencia = /^\/api\/ia\/inferencias\/([^/]+)$/.exec(url)
+  const detalleInferencia = /^\/api\/ia\/inferencia\/([^/]+)$/.exec(url)
   if (metodo === 'get' && detalleInferencia) {
     const lectura = estadoDemo.lecturas.find((item) => item.id === detalleInferencia[1])
     if (!lectura) fallar(config, 404, 'Lectura no encontrada')
@@ -694,22 +694,26 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         : clase === 'excursion_critica'
           ? { excursion_critica: 0.88, riesgo_preventivo: 0.09, normal: 0.03 }
           : null
+    // B-13: misma forma que InferenciaLecturaResponse del backend.
     return responder(config, {
-      reading_id: lectura.id,
-      model_version: lectura.modelo_version,
-      inference_at: lectura.timestamp,
-      inference_status: lectura.estado_inferencia,
-      model_class: clase,
-      probabilities: probabilidades,
-      feature_vector: {
+      lectura_id: lectura.id,
+      device_id: lectura.device_id,
+      timestamp_inferencia: lectura.timestamp,
+      modelo_version: lectura.modelo_version,
+      vector_features: {
         temperatura_interna: lectura.temperatura_interna,
         temperatura_ambiental: lectura.temperatura_ambiental,
         humedad_ambiental: lectura.humedad_ambiental,
-        apertura_refrigerador: lectura.apertura_refrigerador,
       },
+      probabilidades_por_clase: probabilidades,
+      clasificacion_final: clase,
+      confianza: null,
+      origen_clasificacion: lectura.origen_clasificacion ?? null,
+      version_era_activa_y_aprobada_en_ese_momento: null,
+      estado_inferencia: lectura.estado_inferencia,
       excursion_confirmada: lectura.excursion_confirmada,
-      effective_risk: lectura.riesgo_efectivo,
-      datos_simulados: true,
+      riesgo_efectivo: lectura.riesgo_efectivo,
+      ia_experimental: true,
     })
   }
 
