@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -152,6 +152,24 @@ describe('DispositivosPage — credenciales MQTT (FE-003)', () => {
     await abrirAccion(/Reenviar desafío/)
 
     expect(reenviarDesafio).toHaveBeenCalledWith('FARM-01-CDL')
+  })
+
+  it('HU-44: «Reenviar desafío» no se repite mientras el anterior está en curso', async () => {
+    let terminar: (valor: string) => void = () => {}
+    const reenviarDesafio = vi.fn(() => new Promise<string>((resolver) => { terminar = resolver }))
+    montar(
+      [dispositivo({ mqtt_token_activo: true, broker_pendiente: null, rotacion_por_compromiso: true, posesion_pendiente: true })],
+      { rotarCredencial: vi.fn(), revocarCredencial: vi.fn(), reenviarDesafio },
+    )
+    const user = await abrirAccion(/Reenviar desafío/)
+    // El menú de Radix bloquea el puntero hasta terminar de cerrarse.
+    await waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'))
+    await user.click(screen.getByRole('button', { name: /Opciones: FARM-01-CDL/ }))
+    const segundo = await screen.findByRole('menuitem', { name: /Reenviar desafío/ })
+
+    expect(segundo).toHaveAttribute('data-disabled')
+    expect(reenviarDesafio).toHaveBeenCalledTimes(1)
+    terminar('ok')
   })
 
   it('revoca con motivo obligatorio', async () => {

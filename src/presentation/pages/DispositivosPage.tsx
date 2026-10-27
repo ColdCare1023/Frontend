@@ -155,7 +155,11 @@ export function DispositivosPage() {
   }
 
   const enviarReenviarDesafio = async (dispositivo: Dispositivo) => {
+    // Un doble clic expulsaría la sesión dos veces seguidas.
+    if (enviando) return
+    setEnviando(true)
     const resultado = await reenviarDesafio(dispositivo.id)
+    setEnviando(false)
     setMensajeFlota(t(resultado === 'ok' ? 'dispositivos.desafioReenviado' : 'comunes.error'))
   }
 
@@ -537,6 +541,7 @@ export function DispositivosPage() {
                           variant="ghost"
                           size="sm"
                           title={t('dispositivos.reenviarDesafioAyuda')}
+                          disabled={enviando}
                           onClick={() => void enviarReenviarDesafio(dispositivo)}
                         >
                           <RefreshCw />
