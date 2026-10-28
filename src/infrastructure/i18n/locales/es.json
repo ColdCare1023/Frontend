@@ -724,7 +724,9 @@
     "limpiar": "Limpiar",
     "hora": "Hora",
     "marcadorFechaHora": "dd/mm/aaaa hh:mm",
-    "marcadorFecha": "dd/mm/aaaa"
+    "marcadorFecha": "dd/mm/aaaa",
+    "verDetalles": "Ver detalles",
+    "ocultarDetalles": "Ocultar detalles"
   },
   "metricasIA": {
     "titulo": "Cómo se comporta el clasificador",

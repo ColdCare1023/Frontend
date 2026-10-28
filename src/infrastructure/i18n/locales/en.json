@@ -724,7 +724,9 @@
     "limpiar": "Clear",
     "hora": "Time",
     "marcadorFechaHora": "mm/dd/yyyy hh:mm",
-    "marcadorFecha": "mm/dd/yyyy"
+    "marcadorFecha": "mm/dd/yyyy",
+    "verDetalles": "Show details",
+    "ocultarDetalles": "Hide details"
   },
   "metricasIA": {
     "titulo": "How the classifier behaves",
