@@ -22,5 +22,8 @@ export function temaGrafica() {
     safe: colorToken('secondary', '#00D1FF'),
     safeText: colorToken('glacier-700', '#07546A'),
     critical: colorToken('clay-700', '#802445'),
+    // Líneas adicionales cuando la curva compara varios equipos.
+    accent: colorToken('accent', '#FF7AA2'),
+    warn: colorToken('honey-600', '#B45F06'),
   }
 }

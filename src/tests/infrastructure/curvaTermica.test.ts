@@ -68,6 +68,17 @@ describe('curva térmica', () => {
     expect(umbralHueco([lectura(0, 5), lectura(30, 5), lectura(60, 5), lectura(400, 5)])).toBe(HUECO_SIN_DATOS_MS)
   })
 
+  it('con varios equipos dibuja una línea por equipo en vez de saltar entre ellos', () => {
+    const intercaladas = Array.from({ length: 8 }, (_, i) => ({
+      ...lectura(i * 120, i % 2 === 0 ? 5.2 : 3.8),
+      device_id: i % 2 === 0 ? 'FARM-01' : 'FARM-02',
+    }))
+    const series = construirOpcionCurvaTermica(intercaladas, ETIQUETAS).series as Array<Serie & { name: string }>
+    expect(series.map((s) => s.name)).toEqual(['FARM-01', 'FARM-02'])
+    expect(series[0].data.map(([, valor]) => valor)).toEqual([5.2, 5.2, 5.2, 5.2])
+    expect(series[1].data.map(([, valor]) => valor)).toEqual([3.8, 3.8, 3.8, 3.8])
+  })
+
   it('con ventana, el eje termina en «ahora» y descarta lo anterior al inicio', () => {
     const hasta = BASE + 3_600_000
     const serie = [lectura(-60, 5), lectura(0, 5), lectura(3_590, 5)]
