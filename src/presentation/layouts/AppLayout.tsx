@@ -439,7 +439,8 @@ export function AppLayout() {
               <div className="mx-auto w-full max-w-[1560px]">
                 <motion.div
                   key={pathname}
-                  initial={reducir ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                  // Con movimiento reducido la página aparece sin transición.
+                  initial={reducir ? false : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={ENTRADA_PAGINA}
                 >
