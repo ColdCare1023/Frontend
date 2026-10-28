@@ -21,7 +21,8 @@ export function AuthShell({ brandPanel, children, className }: AuthShellProps) {
     <main className="min-h-dvh w-full bg-background">
       <div className={cn('grid min-h-dvh w-full grid-cols-1 content-start lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] lg:content-normal', className)}>
         <div className="min-w-0 lg:sticky lg:top-0 lg:h-dvh lg:self-start">{brandPanel}</div>
-        <section className="relative flex min-w-0 flex-col">
+        <section className="relative isolate flex min-w-0 flex-col">
+          <div aria-hidden className="rejilla-puntos pointer-events-none absolute inset-0 -z-10" />
           <div className="flex items-center justify-end gap-1 px-3 pt-3 sm:px-6 lg:absolute lg:inset-x-0 lg:top-0 lg:px-8 lg:pt-5">
             <LanguageSwitcher />
             <ThemeSwitcher />

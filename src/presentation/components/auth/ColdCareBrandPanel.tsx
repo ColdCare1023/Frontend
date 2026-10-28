@@ -19,7 +19,7 @@ export function ColdCareBrandPanel({ className = '' }: ColdCareBrandPanelProps) 
     >
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-cover bg-center opacity-50" style={{ backgroundImage: `url('${import.meta.env.BASE_URL}assets/coldcare-auth-editorial.webp')` }} />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-marca-noche via-marca-noche/80 to-marca-noche/40" />
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(720px_380px_at_0%_0%,rgb(92_214_232/0.14),transparent_62%)]" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(720px_380px_at_0%_0%,rgb(92_214_232/0.07),transparent_62%)]" />
 
       <div className="relative animate-fade">
         <ColdCareBrand tone="light" subtitulo={t('login.marcaSubtitulo')} />

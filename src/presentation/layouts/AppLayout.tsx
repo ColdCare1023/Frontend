@@ -333,7 +333,7 @@ export function AppLayout() {
           animate={{ width: colapsado ? ANCHO_COLAPSADO : ANCHO_EXPANDIDO }}
           transition={reducir ? { duration: 0 } : RESORTE}
           data-state={colapsado ? 'colapsado' : 'expandido'}
-          className="sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-surface lg:flex"
+          className="sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-riel lg:flex"
         >
           <div className="flex h-14 shrink-0 items-center px-4">
             <ColdCareBrand
@@ -437,11 +437,13 @@ export function AppLayout() {
             >
               {/* Tope de ancho: en monitores muy anchos el contenido no se estira sin fin */}
               <div className="mx-auto w-full max-w-[1560px]">
+                {/* La página entra con un fundido; sus secciones suben escalonadas
+                    (index.css). Con movimiento reducido aparece sin transición. */}
                 <motion.div
                   key={pathname}
-                  // Con movimiento reducido la página aparece sin transición.
-                  initial={reducir ? false : { opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  className="escalonado"
+                  initial={reducir ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={ENTRADA_PAGINA}
                 >
                   <Outlet />

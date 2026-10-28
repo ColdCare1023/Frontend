@@ -207,7 +207,9 @@ function EstadoPrincipal({
       ultima.duracion_apertura_segundos != null && ultima.duracion_apertura_segundos >= umbralPuerta
 
   return (
-    <Card className="overflow-hidden border-border bg-surface shadow-none">
+    <Card className="relative overflow-hidden border-border bg-surface shadow-none">
+      {/* Lectura en vivo: un haz recorre el borde mientras los datos están al día. */}
+      {!desactualizado && <span aria-hidden className="haz-borde" />}
       <CardContent className="grid gap-5 p-4 sm:p-5 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] sm:items-center">
         <section aria-labelledby="resumen-termico-titulo" className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

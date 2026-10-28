@@ -14,7 +14,7 @@ export type TemaResuelto = 'dark' | 'light'
 
 export const CLAVE_TEMA = 'coldcare-tema'
 const PREFERENCIAS: PreferenciaTema[] = ['dark', 'light', 'system']
-const COLOR_BARRA: Record<TemaResuelto, string> = { dark: '#0B1220', light: '#F4F7FB' }
+const COLOR_BARRA: Record<TemaResuelto, string> = { dark: '#000000', light: '#F4F7FB' }
 
 type Escucha = () => void
 const escuchas = new Set<Escucha>()

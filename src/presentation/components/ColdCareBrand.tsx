@@ -27,7 +27,7 @@ export function ColdCareBrand({ variant = 'compact', subtitulo, tone = 'dark', c
         <circle cx="24" cy="36.5" r="3.8" fill="#0B5CFF" />
       </svg>
       <div className="min-w-0">
-        <p className={`whitespace-nowrap font-sans font-semibold leading-none tracking-[-0.04em] ${stacked ? 'text-4xl' : 'text-lg'} ${tone === 'light' ? 'text-white' : 'text-foreground'}`}>Cold<span className={tone === 'light' ? 'text-secondary' : 'text-primary'}>Care</span></p>
+        <p className={`whitespace-nowrap font-sans font-semibold leading-none tracking-[-0.04em] ${stacked ? 'text-4xl' : 'text-lg'} ${tone === 'light' ? 'text-white' : 'text-foreground'}`}>Cold<span className={tone === 'light' ? 'text-secondary' : 'text-marca-texto'}>Care</span></p>
         {subtitulo && <p className={`mt-1.5 text-[11px] leading-4 ${tone === 'light' ? 'text-white/80' : 'text-faint'}`}>{subtitulo}</p>}
       </div>
     </div>

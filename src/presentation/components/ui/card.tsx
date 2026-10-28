@@ -4,7 +4,8 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   return (
     <div
       className={cn(
-        'rounded-(--radius-card) border border-border bg-surface shadow-(--shadow-card)',
+        // `spotlight`: luz que sigue al puntero y borde iluminado al pasar.
+        'spotlight rounded-(--radius-card) border border-border bg-surface shadow-(--shadow-card)',
         className,
       )}
       {...props}

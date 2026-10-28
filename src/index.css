@@ -90,8 +90,13 @@
   --color-on-critical: #ffffff;
   --color-overlay: #0b1220;
   --color-ring: #0b5cff;
+  /* Riel lateral, acento de marca en texto y series de las gráficas. */
+  --color-riel: #ffffff;
+  --color-marca-texto: #0b5cff;
+  --color-grafica-1: #0b5cff;
+  --color-grafica-2: #08738f;
   /* Lienzo de marca del acceso: oscuro en ambos temas (no se redefine abajo). */
-  --color-marca-noche: #0b1220;
+  --color-marca-noche: #050505;
   --color-marca-glaciar: #5cd6e8;
 
   /* ── Radios ─────────────────────────────────────────────── */
@@ -246,85 +251,98 @@
 }
 
 /*
- * Tema oscuro: profundidad por capas (fondo → superficie → elevada), bordes
- * discretos y acentos aclarados para conservar ≥4.5:1 en texto pequeño.
- * Mismo nombre de token, otro valor: ninguna pantalla necesita clases `dark:`.
+ * Tema oscuro: negro neutro (sin tinte azul), referencia «Darkmatter» y
+ * «Charcoal Ink» de 21st.dev. Profundidad por capas de gris —fondo #000,
+ * superficie #0A0A0A, elevada #111— con bordes finos; el color queda para
+ * los estados y los datos. Mismo nombre de token, otro valor: ninguna
+ * pantalla necesita clases `dark:`.
  */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-cream-50: #111b2b;
-  --color-cream-100: #0e1727;
-  --color-cream-200: #1a2639;
-  --color-cream-300: #24324a;
-  --color-cream-400: #34445e;
+  --color-cream-50: #0a0a0a;
+  --color-cream-100: #050505;
+  --color-cream-200: #1a1a1a;
+  --color-cream-300: #242424;
+  --color-cream-400: #333333;
 
-  --color-ink-900: #eaf1f8;
-  --color-ink-700: #c3cedd;
-  --color-ink-500: #9aa9be;
-  --color-ink-400: #8090a7;
+  --color-ink-900: #ededed;
+  --color-ink-700: #c7c7c7;
+  --color-ink-500: #a1a1a1;
+  --color-ink-400: #8f8f8f;
 
-  --color-pine-900: #eaf1f8;
-  --color-pine-800: #b7ccff;
-  --color-pine-700: #9dbbff;
-  --color-pine-600: #7fa6ff;
+  --color-pine-900: #ededed;
+  --color-pine-800: #d4d4d4;
+  --color-pine-700: #c2d4ff;
+  --color-pine-600: #8fb0ff;
   --color-pine-500: #6e9bff;
-  --color-pine-300: #2e4a80;
-  --color-pine-200: #243b66;
-  --color-pine-100: #19294a;
+  --color-pine-300: #333333;
+  --color-pine-200: #1e3a5f;
+  --color-pine-100: #1a1a1a;
 
   --color-secondary: #5cd6e8;
   --color-secondary-hover: #84e1ef;
-  --color-secondary-tint: #13303c;
+  --color-secondary-tint: #0d2226;
   --color-accent: #ff8fb1;
   --color-accent-hover: #ffa9c3;
-  --color-accent-tint: #33202d;
+  --color-accent-tint: #2a1520;
 
-  --color-success-700: #6adbc0;
-  --color-success-600: #4cc9aa;
-  --color-success-100: #133133;
-  --color-glacier-700: #6adbc0;
-  --color-glacier-600: #4cc9aa;
-  --color-glacier-200: #22504f;
-  --color-glacier-100: #133133;
+  --color-success-700: #4fd1a5;
+  --color-success-600: #2fb889;
+  --color-success-100: #0d1f1a;
+  --color-glacier-700: #4fd1a5;
+  --color-glacier-600: #2fb889;
+  --color-glacier-200: #1b4034;
+  --color-glacier-100: #0d1f1a;
 
-  --color-honey-700: #f4be5e;
-  --color-honey-600: #e9a93a;
-  --color-honey-100: #33291a;
-  --color-honey-200: #5e4a22;
+  --color-honey-700: #f5b94f;
+  --color-honey-600: #e4a23a;
+  --color-honey-100: #241b0b;
+  --color-honey-200: #4a3712;
 
-  --color-clay-700: #ff8a9b;
-  --color-clay-600: #f26b80;
-  --color-clay-100: #361c26;
-  --color-clay-200: #5c2a39;
-  --color-clay-50: #2a1820;
+  --color-clay-700: #ff7a87;
+  --color-clay-600: #ff6b76;
+  --color-clay-100: #2a0f14;
+  --color-clay-200: #4d1c25;
+  --color-clay-50: #1a0a0e;
 
-  --color-background: #0b1220;
-  --color-surface: #111b2b;
-  --color-surface-raised: #172338;
-  --color-surface-sunken: #0e1727;
-  --color-border: #22304a;
-  --color-border-strong: #33435e;
-  --color-foreground: #eaf1f8;
-  --color-muted: #9aa9be;
-  --color-faint: #8090a7;
-  --color-border-field: #5a6d8a;
-  --color-primary: #7fa6ff;
-  --color-primary-hover: #9dbbff;
-  --color-primary-tint: #1b2b4c;
-  --color-primary-end: #6e9bff;
-  --color-on-primary: #0b1220;
-  --color-critical: #ff7a8e;
-  --color-critical-tint: #361c26;
-  --color-critical-strong: #2b0a14;
-  --color-critical-solid: #f26b80;
-  --color-on-critical: #2b0a14;
-  --color-overlay: #020617;
+  --color-background: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-raised: #111111;
+  --color-surface-sunken: #050505;
+  --color-border: #1f1f1f;
+  --color-border-strong: #2e2e2e;
+  --color-foreground: #ededed;
+  --color-muted: #a1a1a1;
+  --color-faint: #8f8f8f;
+  --color-border-field: #616161;
+  /* Acción principal blanca sobre negro (estilo Vercel/Linear). */
+  --color-primary: #ededed;
+  --color-primary-hover: #ffffff;
+  --color-primary-tint: #1a1a1a;
+  --color-primary-end: #d4d4d4;
+  --color-on-primary: #0a0a0a;
+  --color-critical: #ff7a87;
+  --color-critical-tint: #2a0f14;
+  --color-critical-strong: #1a0306;
+  --color-critical-solid: #ff6b76;
+  --color-on-critical: #1a0306;
+  --color-overlay: #000000;
   --color-ring: #5cd6e8;
+  --color-riel: #000000;
+  --color-marca-texto: #5cd6e8;
+  --color-grafica-1: #6e9bff;
+  --color-grafica-2: #5cd6e8;
 
-  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03), 0 1px 2px rgb(0 0 0 / 0.35);
-  --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.04), 0 18px 40px -14px rgb(0 0 0 / 0.7);
-  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.05), 0 22px 44px -16px rgb(0 0 0 / 0.75);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03);
+  --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.06), 0 18px 44px -12px rgb(0 0 0 / 0.95);
+  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.08), 0 22px 48px -16px rgb(0 0 0 / 0.95);
+
+  /* Spotlight y brillo: luz blanca, nunca tinte de color. */
+  --spot-relleno: rgb(255 255 255 / 0.045);
+  --spot-borde: rgb(255 255 255 / 0.3);
+  --brillo: rgb(255 255 255 / 0.75);
+  --punto: rgb(255 255 255 / 0.09);
 }
 
 @layer base {
@@ -342,12 +360,11 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Luz ambiental muy tenue en el tema oscuro: da profundidad sin efecto neón. */
-  [data-theme='dark'] body {
-    background-image:
-      radial-gradient(1100px 520px at 0% -8%, rgb(92 214 232 / 0.045), transparent 62%),
-      radial-gradient(900px 480px at 100% -12%, rgb(127 166 255 / 0.05), transparent 60%);
-    background-attachment: fixed;
+  :root {
+    --spot-relleno: rgb(11 92 255 / 0.045);
+    --spot-borde: rgb(11 92 255 / 0.35);
+    --brillo: rgb(255 255 255 / 0.35);
+    --punto: rgb(15 23 42 / 0.09);
   }
 
   ::selection {
@@ -432,6 +449,9 @@
 
 @layer utilities {
   .coldcare-primary-action {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     background: var(--color-primary);
     color: var(--color-on-primary);
     border-radius: var(--radius-field);
@@ -442,6 +462,20 @@
       background-color var(--duration-micro) var(--ease-ui),
       box-shadow var(--duration-micro) var(--ease-ui),
       transform var(--duration-micro) var(--ease-ui);
+  }
+  /* Brillo que cruza el botón al pasar el cursor («Shimmer Button», 21st.dev). */
+  .coldcare-primary-action::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(105deg, transparent 30%, var(--brillo) 50%, transparent 70%);
+    transform: translateX(-130%);
+    transition: transform 0.75s var(--ease-out-soft);
+    pointer-events: none;
+  }
+  .coldcare-primary-action:hover::after {
+    transform: translateX(130%);
   }
   .coldcare-primary-action:hover {
     background: var(--color-primary-hover);
@@ -506,9 +540,94 @@
     background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent);
   }
 
+  /* Superficie con luz que sigue al puntero y borde iluminado («Spotlight Card»,
+     21st.dev). Las coordenadas las escribe spotlight.ts; sin puntero fino no hay luz. */
+  @media (hover: hover) and (pointer: fine) {
+    .spotlight {
+      position: relative;
+      isolation: isolate;
+    }
+    .spotlight::before,
+    .spotlight::after {
+      content: '';
+      position: absolute;
+      border-radius: inherit;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s var(--ease-out-soft);
+    }
+    .spotlight::before {
+      inset: 0;
+      z-index: -1;
+      background: radial-gradient(520px circle at var(--mx, 50%) var(--my, 50%), var(--spot-relleno), transparent 42%);
+    }
+    .spotlight::after {
+      inset: -1px;
+      padding: 1px;
+      background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), var(--spot-borde), transparent 40%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    }
+    .spotlight:hover::before,
+    .spotlight:hover::after {
+      opacity: 1;
+    }
+  }
+
+  /* Haz que recorre el borde de la lectura en vivo («Border Beam», 21st.dev). */
+  .haz-borde {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background: conic-gradient(from var(--angulo-haz), transparent 0deg 290deg, var(--color-secondary) 340deg, transparent 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    animation: girar-haz 7s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .haz-borde {
+      display: none;
+    }
+  }
+
+  /* Textura de puntos con desvanecido radial («Dot Grid», 21st.dev). */
+  .rejilla-puntos {
+    background-image: radial-gradient(var(--punto) 1px, transparent 1px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 42%, #000 25%, transparent 78%);
+    mask-image: radial-gradient(ellipse 75% 65% at 50% 42%, #000 25%, transparent 78%);
+  }
+
+  /* Entrada escalonada de las secciones de cada pantalla (solo opacidad y
+     desplazamiento; con movimiento reducido no hay animación). */
+  .escalonado > * > * {
+    animation: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .escalonado > * > :nth-child(2) { animation-delay: 45ms; }
+  .escalonado > * > :nth-child(3) { animation-delay: 90ms; }
+  .escalonado > * > :nth-child(4) { animation-delay: 135ms; }
+  .escalonado > * > :nth-child(5) { animation-delay: 180ms; }
+  .escalonado > * > :nth-child(6) { animation-delay: 225ms; }
+  .escalonado > * > :nth-child(n + 7) { animation-delay: 270ms; }
+
   .isoterma {
     stroke-dasharray: 900;
     animation: trazar-isoterma 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@property --angulo-haz {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes girar-haz {
+  to {
+    --angulo-haz: 360deg;
   }
 }
 
