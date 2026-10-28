@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useReducedMotion } from 'motion/react'
 import {
   ChevronRight,
   ClipboardCheck,
@@ -11,55 +10,19 @@ import {
 } from 'lucide-react'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { cn } from '@/lib/utils'
-import {
-  demoGridVariants,
-  demoCardVariants,
-  demoCardInteractiveMotion,
-  getAccessibleVariants,
-} from './loginMotion'
 
 interface DemoRoleConfig {
   rol: Rol
   email: string
   claveI18n: 'administrador' | 'farmaceutico' | 'tecnico' | 'auditor'
   icono: typeof ShieldCheck
-  colorFondo: string
-  colorTexto: string
 }
 
 const ROLES_DEMO: DemoRoleConfig[] = [
-  {
-    rol: 'administrador',
-    email: 'admin@demo.pe',
-    claveI18n: 'administrador',
-    icono: ShieldCheck,
-    colorFondo: 'bg-primary-tint',
-    colorTexto: 'text-primary',
-  },
-  {
-    rol: 'farmaceutico',
-    email: 'farmaceutico@demo.pe',
-    claveI18n: 'farmaceutico',
-    icono: Thermometer,
-    colorFondo: 'bg-secondary-tint',
-    colorTexto: 'text-glacier-700',
-  },
-  {
-    rol: 'tecnico',
-    email: 'tecnico@demo.pe',
-    claveI18n: 'tecnico',
-    icono: User,
-    colorFondo: 'bg-primary-tint',
-    colorTexto: 'text-primary',
-  },
-  {
-    rol: 'auditor',
-    email: 'auditor@demo.pe',
-    claveI18n: 'auditor',
-    icono: ClipboardCheck,
-    colorFondo: 'bg-primary-tint',
-    colorTexto: 'text-primary',
-  },
+  { rol: 'administrador', email: 'admin@demo.pe', claveI18n: 'administrador', icono: ShieldCheck },
+  { rol: 'farmaceutico', email: 'farmaceutico@demo.pe', claveI18n: 'farmaceutico', icono: Thermometer },
+  { rol: 'tecnico', email: 'tecnico@demo.pe', claveI18n: 'tecnico', icono: User },
+  { rol: 'auditor', email: 'auditor@demo.pe', claveI18n: 'auditor', icono: ClipboardCheck },
 ]
 
 interface DemoRoleGridProps {
@@ -77,7 +40,6 @@ export function DemoRoleGrid({
   className,
 }: DemoRoleGridProps) {
   const { t } = useTranslation()
-  const shouldReduceMotion = useReducedMotion()
   const [rolActivo, setRolActivo] = useState<string | null>(null)
 
   const manejarClick = async (email: string, tituloRol: string) => {
@@ -91,18 +53,13 @@ export function DemoRoleGrid({
   }
 
   return (
-    <div className={cn('space-y-2', !hideHeader && 'pt-4 border-t border-border', className)}>
+    <div className={cn('space-y-3', className)}>
       {!hideHeader && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-primary" aria-hidden />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
-              {t('demo.accesoRapido', { defaultValue: 'ACCESO DE DEMOSTRACIÓN' })}
-            </span>
-          </div>
-          <span className="text-xs text-faint">
-            {t('demo.accesoDetalle', { defaultValue: 'Explora el sistema con datos simulados.' })}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-faint">
+            {t('demo.accesoRapido')}
           </span>
+          <span className="text-xs text-faint">{t('demo.accesoDetalle')}</span>
         </div>
       )}
 
@@ -111,83 +68,59 @@ export function DemoRoleGrid({
         <div
           role="status"
           aria-live="polite"
-          className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary-tint px-3.5 py-2 text-xs font-semibold text-primary animate-fade"
+          className="flex items-center gap-2 rounded-(--radius-field) bg-primary-tint px-3 py-2 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20 animate-fade"
         >
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          <span>{t('demo.entrandoComo', { rol: rolActivo, defaultValue: `Entrando como ${rolActivo}…` })}</span>
+          <span>{t('demo.entrandoComo', { rol: rolActivo })}</span>
         </div>
       )}
 
-      {/* Grid 2x2 interactivo animado */}
-      <motion.div
+      <div
         role="group"
-        aria-label={t('demo.accesoRapido', { defaultValue: 'Acceso de demostración' })}
-        variants={getAccessibleVariants(demoGridVariants, shouldReduceMotion)}
-        initial={false}
-        animate="visible"
-        className="grid grid-cols-1 gap-0 overflow-hidden rounded-(--radius-field) border border-border min-[480px]:grid-cols-2 min-[480px]:gap-px min-[480px]:bg-border"
+        aria-label={t('demo.accesoRapido')}
+        className="grid grid-cols-1 gap-2 min-[440px]:grid-cols-2"
       >
-        {ROLES_DEMO.map(({ rol, email, claveI18n, icono: Icono, colorFondo, colorTexto }) => {
+        {ROLES_DEMO.map(({ rol, email, claveI18n, icono: Icono }) => {
           const titulo = t(`demo.roles.${claveI18n}.titulo`, {
             defaultValue: t(`roles.${rol}`, { defaultValue: rol }),
           })
-          const descripcion = t(`demo.roles.${claveI18n}.descripcion`, {
-            defaultValue: '',
-          })
+          const descripcion = t(`demo.roles.${claveI18n}.descripcion`, { defaultValue: '' })
           const estaCargandoEsteRol = rolActivo === titulo
           const deshabilitado = cargandoGeneral || (rolActivo !== null && !estaCargandoEsteRol)
 
           return (
-            <motion.button
+            <button
               key={rol}
               type="button"
               disabled={deshabilitado}
-              variants={getAccessibleVariants(demoCardVariants, shouldReduceMotion)}
-              whileHover={shouldReduceMotion ? undefined : demoCardInteractiveMotion.whileHover}
-              whileTap={shouldReduceMotion ? undefined : demoCardInteractiveMotion.whileTap}
               onClick={() => void manejarClick(email, titulo)}
               data-demo-role={rol}
               className={cn(
-                'group relative flex min-h-[58px] items-center gap-2.5 border-b border-border bg-surface px-3 py-2.5 text-left transition-colors cursor-pointer last:border-b-0 min-[480px]:border-b-0',
-                'hover:bg-primary-tint focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
+                'group relative flex min-h-[56px] cursor-pointer items-center gap-2.5 rounded-(--radius-field) border border-border bg-surface px-3 py-2.5 text-left shadow-(--shadow-card)',
+                'transition-[border-color,background-color,transform] duration-(--duration-micro) ease-(--ease-ui) hover:border-border-strong hover:bg-cream-200/50 active:scale-[0.985] motion-reduce:active:scale-100',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                estaCargandoEsteRol && 'bg-primary-tint',
+                estaCargandoEsteRol && 'border-primary/40 bg-primary-tint',
               )}
             >
-              <div
-                className={cn(
-                  'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-                  colorFondo,
-                  colorTexto,
-                  estaCargandoEsteRol && 'bg-primary-tint',
-                )}
+              <span
+                aria-hidden
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary ring-1 ring-inset ring-primary/15"
               >
-                {estaCargandoEsteRol ? (
-                  <Loader2 className="size-4 animate-spin text-primary" aria-hidden />
-                ) : (
-                  <Icono className="size-4.5" aria-hidden />
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold text-foreground group-hover:text-primary leading-snug transition-colors">
-                  {titulo}
-                </p>
-                {descripcion && (
-                  <p className="text-xs text-muted leading-tight mt-0.5">
-                    {descripcion}
-                  </p>
-                )}
-              </div>
-
+                {estaCargandoEsteRol ? <Loader2 className="size-4 animate-spin" /> : <Icono className="size-4" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] leading-snug font-semibold text-foreground">{titulo}</span>
+                {descripcion && <span className="mt-0.5 block text-xs leading-tight text-muted">{descripcion}</span>}
+              </span>
               <ChevronRight
-                className="size-4 text-faint group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0"
+                className="size-4 shrink-0 text-faint transition-transform duration-(--duration-micro) group-hover:translate-x-0.5 group-hover:text-foreground min-[440px]:hidden"
                 aria-hidden
               />
-            </motion.button>
+            </button>
           )
         })}
-      </motion.div>
+      </div>
     </div>
   )
 }
