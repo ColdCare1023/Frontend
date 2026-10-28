@@ -155,7 +155,7 @@ export function LoginPage() {
               />
               <button
                 type="button"
-                className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-cream-200/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring pointer-coarse:size-10"
+                className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-cream-200/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:right-1 sm:size-9 sm:pointer-coarse:size-10"
                 aria-label={t(mostrarPassword ? 'login.ocultarPassword' : 'login.mostrarPassword')}
                 aria-pressed={mostrarPassword}
                 onClick={() => setMostrarPassword((visible) => !visible)}

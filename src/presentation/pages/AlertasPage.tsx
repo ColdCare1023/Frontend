@@ -212,10 +212,10 @@ export function AlertasPage() {
         <Table mobileLayout="stack" className="table-fixed min-w-[0]" titulo={t('alertas.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[16%]">{t('alertas.fecha')}</TableHead>
+              <TableHead className="w-[18%]">{t('alertas.fecha')}</TableHead>
               <TableHead className="w-[13%]">{t('historial.dispositivo')}</TableHead>
               <TableHead className="w-[16%]">{t('historial.riesgo')}</TableHead>
-              <TableHead className="w-[29%]">{t('alertas.mensaje')}</TableHead>
+              <TableHead className="w-[27%]">{t('alertas.mensaje')}</TableHead>
               <TableHead className="w-[12%]">{t('alertas.estado')}</TableHead>
               <TableHead className="w-[14%] text-right">{t('alertas.acciones')}</TableHead>
             </TableRow>
@@ -243,7 +243,7 @@ export function AlertasPage() {
             ) : (
               visibles.map((alerta) => (
                 <TableRow key={alerta.id}>
-                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap text-[13px] text-muted">
+                  <TableCell data-label={t('alertas.fecha')} className="nums text-[13px] text-muted">
                     {fechaHora(alerta.created_at)}
                   </TableCell>
                   <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap text-[13px] font-medium">{alerta.device_id}</TableCell>

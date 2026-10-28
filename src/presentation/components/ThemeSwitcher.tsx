@@ -38,7 +38,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
           type="button"
           aria-label={`${t('tema.cambiar')}: ${t(OPCIONES.find((o) => o.valor === preferencia)?.clave ?? 'tema.oscuro')}`}
           className={cn(
-            'relative flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-lg text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:bg-cream-200/70 data-[state=open]:text-foreground pointer-coarse:size-11',
+            'relative flex size-11 cursor-pointer items-center justify-center overflow-hidden rounded-lg text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:bg-cream-200/70 data-[state=open]:text-foreground sm:size-9 sm:pointer-coarse:size-11',
             className,
           )}
         >

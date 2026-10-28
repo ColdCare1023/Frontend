@@ -61,7 +61,7 @@ export function DialogContent({
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute right-3 top-3 flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200 hover:text-foreground pointer-coarse:size-11 sm:right-4 sm:top-4"
+          className="absolute right-3 top-3 flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200 hover:text-foreground max-sm:size-11 pointer-coarse:size-11 sm:right-4 sm:top-4"
           aria-label={t('comunes.cerrar')}
         >
           <X className="size-4" aria-hidden />

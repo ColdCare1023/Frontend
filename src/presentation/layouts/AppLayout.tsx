@@ -185,7 +185,7 @@ function NavegacionPrincipal({
                       onClick={alNavegar}
                       className={({ isActive }) =>
                         cn(
-                          'group relative flex h-9 items-center gap-3 rounded-lg px-[15px] text-[13.5px] font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:h-11 [@media(max-height:700px)]:h-8',
+                          'group relative flex h-11 items-center gap-3 rounded-lg px-[15px] text-[13.5px] font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:h-9 lg:pointer-coarse:h-11 lg:[@media(max-height:700px)]:h-8',
                           isActive ? 'text-foreground' : 'text-muted hover:bg-cream-200/60 hover:text-foreground',
                         )
                       }
@@ -245,13 +245,13 @@ function MenuUsuario() {
         <button
           type="button"
           aria-label={`${t('nav.menuUsuario')}: ${usuario.email}`}
-          className="flex h-9 cursor-pointer items-center gap-2 rounded-lg pl-1 pr-1.5 text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:bg-cream-200/70 pointer-coarse:h-11"
+          className="flex h-11 min-w-11 cursor-pointer items-center justify-center gap-2 rounded-lg pl-1 pr-1.5 text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:bg-cream-200/70 sm:h-9 sm:pointer-coarse:h-11"
         >
           <span className="flex size-7 items-center justify-center rounded-full bg-primary-tint text-xs font-semibold text-primary ring-1 ring-inset ring-primary/20">
             {inicial}
           </span>
           <span className="hidden max-w-40 truncate text-[13px] font-medium text-foreground xl:block">{usuario.email}</span>
-          <ChevronDown className="size-3.5" aria-hidden />
+          <ChevronDown className="size-3.5 max-[399px]:hidden" aria-hidden />
         </button>
       </MenuTrigger>
       <MenuContent className="w-64">
@@ -402,7 +402,7 @@ export function AppLayout() {
                 <MenuIcono className="size-5" aria-hidden />
               </DialogPrimitive.Trigger>
 
-              <ColdCareBrand className="lg:hidden [&_svg]:size-8" />
+              <ColdCareBrand className="lg:hidden [&_svg]:size-8 max-[399px]:[&>div]:hidden" />
 
               <div className="hidden min-w-0 items-center gap-3 lg:flex">
                 <p className="flex min-w-0 items-center gap-1.5 text-sm">

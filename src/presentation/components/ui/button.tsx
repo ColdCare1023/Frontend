@@ -4,8 +4,8 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 /**
- * Botón compartido. Compacto con puntero fino; con puntero táctil cada tamaño
- * crece hasta el área mínima de 44 px (DESIGN.md).
+ * Botón compartido. 44 px en anchos móviles y con puntero táctil (DESIGN.md);
+ * compacto desde 640 px con puntero fino.
  */
 const buttonVariants = cva(
   'inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-field) text-sm font-medium cursor-pointer transition-[color,background-color,border-color,box-shadow,transform] duration-(--duration-micro) ease-(--ease-ui) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] motion-reduce:active:scale-100 [&_svg]:size-4 [&_svg]:shrink-0',
@@ -19,9 +19,9 @@ const buttonVariants = cva(
         danger: 'bg-critical-solid font-semibold text-on-critical shadow-(--shadow-card) hover:brightness-110',
       },
       size: {
-        sm: 'h-9 px-3 text-[13px] pointer-coarse:h-11',
-        md: 'h-10 px-4 pointer-coarse:h-11',
-        lg: 'h-11 px-5 text-[15px] pointer-coarse:h-12',
+        sm: 'h-11 px-3 text-[13px] sm:h-9 sm:pointer-coarse:h-11',
+        md: 'h-11 px-4 sm:h-10 sm:pointer-coarse:h-11',
+        lg: 'h-12 px-5 text-[15px] sm:h-11 sm:pointer-coarse:h-12',
       },
     },
     defaultVariants: { variant: 'primary', size: 'md' },

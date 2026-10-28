@@ -34,7 +34,7 @@ export function MenuContent({
 }
 
 const itemBase =
-  'relative flex min-h-9 cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-(--duration-micro) data-[highlighted]:bg-cream-200/70 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0'
+  'relative flex min-h-11 cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-(--duration-micro) data-[highlighted]:bg-cream-200/70 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 sm:min-h-9 sm:pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0'
 
 export function MenuItem({ className, ...props }: React.ComponentPropsWithoutRef<typeof DropdownMenu.Item>) {
   return <DropdownMenu.Item className={cn(itemBase, className)} {...props} />

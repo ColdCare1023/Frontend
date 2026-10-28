@@ -46,7 +46,7 @@ export function Segmentado<T extends string | number>({
             aria-pressed={activo}
             onClick={() => onCambiar(opcion.valor)}
             className={cn(
-              'relative h-8 min-w-0 cursor-pointer whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring pointer-coarse:h-10',
+              'relative h-11 min-w-0 cursor-pointer whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:h-8 sm:pointer-coarse:h-10',
               activo ? 'text-foreground' : 'text-muted hover:text-foreground',
               botonClassName,
             )}

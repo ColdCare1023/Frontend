@@ -240,7 +240,7 @@ export function HistorialPage() {
             ) : (
               visibles.map((lectura) => (
                 <TableRow key={lectura.id}>
-                  <TableCell data-label={t('historial.fecha')} className="nums whitespace-nowrap text-[13px] text-muted">
+                  <TableCell data-label={t('historial.fecha')} className="nums text-[13px] text-muted">
                     {fechaHora(lectura.timestamp)}
                   </TableCell>
                   <TableCell data-label={t('historial.codigoEquipo')} className="text-[13px] font-medium">{lectura.device_id}</TableCell>

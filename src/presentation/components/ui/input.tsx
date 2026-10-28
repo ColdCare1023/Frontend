@@ -16,7 +16,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
       className={cn(
         // text-base en móvil: iOS hace zoom automático sobre inputs con fuente < 16px
         campoBase,
-        'h-10 px-3 pointer-coarse:h-11',
+        'h-11 px-3 sm:h-10 sm:pointer-coarse:h-11',
         campoEstados,
         'aria-[invalid=true]:text-clay-700 aria-[invalid=true]:placeholder:text-clay-600 user-invalid:text-clay-700',
         'disabled:cursor-not-allowed disabled:opacity-50',
@@ -54,7 +54,7 @@ export const NativeSelect = forwardRef<
     ref={ref}
     className={cn(
       campoBase,
-      'h-10 appearance-none px-3 pr-8 pointer-coarse:h-11',
+      'h-11 appearance-none px-3 pr-8 sm:h-10 sm:pointer-coarse:h-11',
       'bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2364748B%27 stroke-width=%272.5%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E")] bg-[position:right_0.65rem_center] bg-no-repeat',
       campoEstados,
       className,
