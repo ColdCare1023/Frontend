@@ -57,7 +57,15 @@ describe('DispositivosPage (HU-43, RF-18)', () => {
     montar([dispositivo()])
 
     expect(screen.getByText('FARM-01-CDL')).toBeInTheDocument()
-    await userEvent.setup().click(screen.getByRole('button', { name: /sensores/i }))
+    // La ficha técnica se abre desde «Opciones» y el firmware queda plegado
+    // en «Ver detalles»: sigue a un clic, no desaparece.
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Opciones: FARM-01-CDL/ }))
+    await user.click(await screen.findByRole('menuitem', { name: /sensores/i }))
+    const detalles = await screen.findByRole('button', { name: 'Ver detalles' })
+    expect(detalles).toHaveAttribute('aria-expanded', 'false')
+    await user.click(detalles)
+    expect(detalles).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('1.0.0')).toBeInTheDocument()
   })
 
@@ -83,6 +91,27 @@ describe('DispositivosPage (HU-43, RF-18)', () => {
   it('avisa cuando no hay dispositivos registrados', () => {
     montar([])
     expect(screen.getByText(/no hay dispositivos|sin dispositivos/i)).toBeInTheDocument()
+  })
+
+  it('HU-30: la fecha de calibración usa el selector, es obligatoria y viaja como yyyy-MM-dd', async () => {
+    const registrarCalibracion = vi.fn().mockResolvedValue('ok')
+    montar([dispositivo()], { registrarCalibracion })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Opciones: FARM-01-CDL/ }))
+    await user.click(await screen.findByRole('menuitem', { name: /Registrar calibración/ }))
+
+    // Sin fecha no se guarda: el campo se marca y recibe el foco, como el `required` nativo.
+    await user.type(screen.getByLabelText('N.° de certificado'), 'CAL-QA-1')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    const fecha = screen.getByLabelText('Fecha de calibración')
+    expect(registrarCalibracion).not.toHaveBeenCalled()
+    expect(fecha).toHaveAttribute('aria-invalid', 'true')
+    expect(fecha).toHaveFocus()
+
+    await user.type(fecha, '2026-10-27')
+    expect(fecha).not.toHaveAttribute('aria-invalid')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(registrarCalibracion).toHaveBeenCalledWith('FARM-01-CDL', '2026-10-27', 'CAL-QA-1', '', 12)
   })
 })
 
