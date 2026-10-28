@@ -56,7 +56,7 @@ export function Paginacion({ total, pagina, onCambiar, tamano = TAMANO_PAGINA }:
   // Una sola página no necesita controles, pero el recuento sigue orientando.
   if (paginas <= 1) {
     return total > 0 ? (
-      <p className="mt-3 text-xs text-muted">
+      <p className="nums mt-3 px-1 text-xs text-muted">
         {t(total === 1 ? 'comunes.totalRegistrosUno' : 'comunes.totalRegistrosVarios', { total })}
       </p>
     ) : null
@@ -64,10 +64,10 @@ export function Paginacion({ total, pagina, onCambiar, tamano = TAMANO_PAGINA }:
 
   return (
     <nav
-      className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3"
+      className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1"
       aria-label={t('comunes.paginacion')}
     >
-      <p className="whitespace-nowrap text-[11px] text-muted sm:text-xs">
+      <p className="nums whitespace-nowrap text-xs text-muted">
         {t('comunes.rangoMostrado', { desde, hasta, total })}
       </p>
 
@@ -94,7 +94,7 @@ export function Paginacion({ total, pagina, onCambiar, tamano = TAMANO_PAGINA }:
               size="sm"
               onClick={() => onCambiar(n)}
               aria-current={n === pagina ? 'page' : undefined}
-              className="nums min-w-8"
+              className="nums min-w-9"
             >
               {n}
             </Button>

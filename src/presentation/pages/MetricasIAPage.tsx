@@ -132,7 +132,7 @@ export function MetricasIAPage() {
         </h2>
         <div className="overflow-hidden rounded-lg border border-border bg-surface">
           {!evaluacionVerificada && (
-            <div role="status" className="flex items-start gap-3 border-b border-border px-4 py-3 text-[#7B2342]">
+            <div role="status" className="flex items-start gap-3 border-b border-border px-4 py-3 text-clay-700">
               <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
               <p className="text-sm leading-relaxed">{t('metricasIA.avisoDatosNoReportables')}</p>
             </div>

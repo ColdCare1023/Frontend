@@ -76,7 +76,7 @@ export function CambiarPasswordPage() {
         </div>
 
         {obligatorio && (
-          <p role="status" className="mb-4 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900">
+          <p role="status" className="mb-4 flex items-start gap-2 rounded-xl border border-honey-600/25 bg-honey-100 px-3.5 py-2.5 text-sm text-honey-700">
             <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>{t('cambiarPassword.temporal')}</span>
           </p>
@@ -109,7 +109,7 @@ export function CambiarPasswordPage() {
           <button
             type="submit"
             disabled={cargando}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold text-white shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
           >
             {cargando ? (
               <>

@@ -8,6 +8,7 @@ import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
 import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
 import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
+import { useTemaResuelto } from '@/infrastructure/tema/tema'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { fechaHora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
@@ -89,6 +90,7 @@ export function HistorialPage() {
 
   // HU-36 criterio 1: la gráfica necesita orden cronológico ascendente; el
   // backend devuelve el historial en orden descendente (más reciente primero).
+  const tema = useTemaResuelto()
   const serieGrafica = useMemo(() => [...lecturas].reverse(), [lecturas])
   const opcionHistorial = useMemo(
     () =>
@@ -100,8 +102,9 @@ export function HistorialPage() {
         ahora: t('dashboard.ejeAhora'),
         excursion: t('dashboard.graficaExcursion'),
         sinDatos: t('dashboard.graficaSinDatos'),
-      }),
-    [serieGrafica, t],
+      }, undefined, tema),
+    // Con el tema cambian los colores del canvas (tokens CSS): se reconstruye.
+    [serieGrafica, t, tema],
   )
 
   return (
@@ -217,14 +220,14 @@ export function HistorialPage() {
         <Table mobileLayout="stack" className="table-fixed min-w-0" titulo={t('historial.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[17%] text-center">{t('historial.fecha')}</TableHead>
-              <TableHead className="w-[15%] text-center">{t('historial.codigoEquipo')}</TableHead>
-              <TableHead className="w-[13%] text-center">{t('historial.tempInterna')}</TableHead>
-              <TableHead className="w-[14%] text-center">{t('historial.tempAmbiental')}</TableHead>
-              <TableHead className="w-[10%] text-center">{t('historial.humedad')}</TableHead>
+              <TableHead className="w-[19%]">{t('historial.fecha')}</TableHead>
+              <TableHead className="w-[14%]">{t('historial.codigoEquipo')}</TableHead>
+              <TableHead className="w-[12%] text-right">{t('historial.tempInterna')}</TableHead>
+              <TableHead className="w-[13%] text-right">{t('historial.tempAmbiental')}</TableHead>
+              <TableHead className="w-[10%] text-right">{t('historial.humedad')}</TableHead>
               <TableHead className="w-[8%] text-center">{t('historial.puerta')}</TableHead>
-              <TableHead className="w-[11%] text-center">{t('historial.riesgo')}</TableHead>
-              <TableHead className="w-[12%] text-center">{t('historial.evidenciaModelo')}</TableHead>
+              <TableHead className="w-[12%]">{t('historial.riesgo')}</TableHead>
+              <TableHead className="w-[12%] text-right">{t('historial.evidenciaModelo')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -237,17 +240,17 @@ export function HistorialPage() {
             ) : (
               visibles.map((lectura) => (
                 <TableRow key={lectura.id}>
-                  <TableCell data-label={t('historial.fecha')} className="nums text-center text-[13px]">
+                  <TableCell data-label={t('historial.fecha')} className="nums whitespace-nowrap text-[13px] text-muted">
                     {fechaHora(lectura.timestamp)}
                   </TableCell>
-                  <TableCell data-label={t('historial.codigoEquipo')} className="text-center text-[13px]">{lectura.device_id}</TableCell>
-                  <TableCell data-label={t('historial.tempInterna')} className="nums text-center font-medium">
+                  <TableCell data-label={t('historial.codigoEquipo')} className="text-[13px] font-medium">{lectura.device_id}</TableCell>
+                  <TableCell data-label={t('historial.tempInterna')} className="nums text-right font-semibold">
                     {lectura.temperatura_interna?.toFixed(1) ?? '—'} °C
                   </TableCell>
-                  <TableCell data-label={t('historial.tempAmbiental')} className="nums text-center text-muted">
+                  <TableCell data-label={t('historial.tempAmbiental')} className="nums text-right text-muted">
                     {lectura.temperatura_ambiental?.toFixed(1) ?? '—'} °C
                   </TableCell>
-                  <TableCell data-label={t('historial.humedad')} className="nums text-center text-muted">
+                  <TableCell data-label={t('historial.humedad')} className="nums text-right text-muted">
                     {lectura.humedad_ambiental?.toFixed(0) ?? '—'} %
                   </TableCell>
                   <TableCell data-label={t('historial.puerta')} className="text-center">
@@ -263,12 +266,12 @@ export function HistorialPage() {
                     )}
                     </span>
                   </TableCell>
-                  <TableCell data-label={t('historial.riesgo')} className="text-center">
+                  <TableCell data-label={t('historial.riesgo')}>
                     {/* HU-34: el historial también debe mostrar el riesgo
                         EFECTIVO, no la clase cruda de la IA. */}
                     <RiskBadge nivel={lectura.riesgo_efectivo} />
                   </TableCell>
-                  <TableCell data-label={t('historial.evidenciaModelo')} className="mobile-full text-center">
+                  <TableCell data-label={t('historial.evidenciaModelo')} className="mobile-full text-right">
                     <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={() => void abrirEvidencia(lectura)}>
                       {t('historial.verEvidencia')}
                     </Button>
@@ -288,16 +291,16 @@ export function HistorialPage() {
           {cargandoEvidencia ? (
             <p role="status" className="mt-4 text-sm text-muted">{t('app.cargando')}</p>
           ) : errorEvidencia ? (
-            <p role="alert" className="mt-4 rounded-lg bg-[#FFF2F6] px-3 py-2 text-sm text-[#7B2342]">{t('historial.evidenciaNoDisponible')}</p>
+            <p role="alert" className="mt-4 rounded-lg bg-clay-100 px-3 py-2 text-sm text-clay-700">{t('historial.evidenciaNoDisponible')}</p>
           ) : evidencia && (
             <div className="mt-4 space-y-4">
-              {evidencia.datos_simulados && <p className="rounded-lg border border-[#F3BED0] bg-[#FFF2F6] px-3 py-2 text-xs leading-relaxed text-[#70213D]">{t('historial.evidenciaDemo')}</p>}
+              {evidencia.datos_simulados && <p className="rounded-lg border border-clay-200 bg-clay-100 px-3 py-2 text-xs leading-relaxed text-clay-700">{t('historial.evidenciaDemo')}</p>}
               <dl className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg bg-[#F4F7FB] p-3"><dt className="text-xs text-muted">{t('historial.claseModelo')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.model_class ? t(`riesgo.${evidencia.model_class}`) : t('historial.sinInferencia')}</dd></div>
-                <div className="rounded-lg bg-[#F4F7FB] p-3"><dt className="text-xs text-muted">{t('historial.riesgoEfectivo')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.effective_risk ? t(`riesgo.${evidencia.effective_risk}`) : '—'}</dd></div>
-                <div className="rounded-lg bg-[#F4F7FB] p-3"><dt className="text-xs text-muted">{t('historial.versionModelo')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.model_version ?? '—'}</dd></div>
-                <div className="rounded-lg bg-[#F4F7FB] p-3"><dt className="text-xs text-muted">{t('historial.estadoInferencia')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.inference_status ? t(`historial.inferencia.${evidencia.inference_status}`) : '—'}</dd></div>
-                <div className="rounded-lg bg-[#F4F7FB] p-3"><dt className="text-xs text-muted">{t('historial.fechaInferencia')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.inference_at ? fechaHora(evidencia.inference_at) : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.claseModelo')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.model_class ? t(`riesgo.${evidencia.model_class}`) : t('historial.sinInferencia')}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.riesgoEfectivo')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.effective_risk ? t(`riesgo.${evidencia.effective_risk}`) : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.versionModelo')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.model_version ?? '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.estadoInferencia')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.inference_status ? t(`historial.inferencia.${evidencia.inference_status}`) : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.fechaInferencia')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.inference_at ? fechaHora(evidencia.inference_at) : '—'}</dd></div>
               </dl>
               <div>
                 <h3 className="mb-2 text-sm font-semibold">{t('historial.variablesEntrada')}</h3>
@@ -309,7 +312,7 @@ export function HistorialPage() {
                 <div>
                   <h3 className="mb-2 text-sm font-semibold">{t('historial.probabilidadesEjemplo')}</h3>
                   <div className="space-y-2">
-                    {Object.entries(evidencia.probabilities).map(([clase, probabilidad]) => <div key={clase} className="grid grid-cols-[1fr_auto] gap-3 text-xs"><span>{t(`riesgo.${clase}`)}</span><span className="nums font-semibold">{(probabilidad * 100).toFixed(1)}%</span><div className="col-span-2 h-1.5 rounded-full bg-[#E6EDF6]"><div className="h-full rounded-full bg-gradient-to-r from-[#00D1FF] to-[#0B5CFF]" style={{ width: `${Math.min(100, Math.max(0, probabilidad * 100))}%` }} /></div></div>)}
+                    {Object.entries(evidencia.probabilities).map(([clase, probabilidad]) => <div key={clase} className="grid grid-cols-[1fr_auto] gap-3 text-xs"><span>{t(`riesgo.${clase}`)}</span><span className="nums font-semibold">{(probabilidad * 100).toFixed(1)}%</span><div className="col-span-2 h-1.5 rounded-full bg-cream-300"><div className="h-full rounded-full bg-gradient-to-r from-secondary to-primary" style={{ width: `${Math.min(100, Math.max(0, probabilidad * 100))}%` }} /></div></div>)}
                   </div>
                 </div>
               )}

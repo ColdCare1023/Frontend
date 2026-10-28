@@ -9,6 +9,8 @@ import { CAPACIDAD_BUFFER_LITTLEFS, umbralSilencioSegundos, type Dispositivo } f
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
+import { useTemaResuelto } from '@/infrastructure/tema/tema'
+import { Segmentado } from '@/presentation/components/ui/segmentado'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
@@ -254,7 +256,7 @@ function EstadoPrincipal({
           <div className="mt-4 max-w-[340px]" aria-hidden="true">
             <div className="relative h-2 rounded-full bg-cream-200">
               <span className="absolute inset-y-0 left-[20%] w-[60%] bg-secondary/40" />
-              {lecturaFinita && <span className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white" style={{left: `${porcentaje}%`, background: colorIndicador}} />}
+              {lecturaFinita && <span className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface shadow-(--shadow-card)" style={{left: `${porcentaje}%`, background: colorIndicador}} />}
             </div>
             <div className="mt-3 flex justify-between text-xs text-muted"><span>0 °C</span><span>{t('dashboard.rangoConservacion')}</span><span>10 °C</span></div>
           </div>
@@ -523,7 +525,7 @@ function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<vo
         <span className="flex items-center gap-2.5">
           <FlaskConical className="size-4 text-primary" aria-hidden />
           {t('dashboard.demoTitulo')}
-          <span className="rounded-full bg-[#E9F8FF] px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-glacier-600">
+          <span className="rounded-full bg-secondary-tint px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-glacier-700">
             {t('demo.badge')}
           </span>
         </span>
@@ -750,6 +752,7 @@ export function DashboardPage() {
   // La ventana termina en «ahora» y avanza sola: se recalcula cada 15 s
   // (no cada segundo, que repintaría miles de puntos) y con cada lectura.
   const marcaVentana = Math.floor(ahora / 15_000)
+  const tema = useTemaResuelto()
   const opcionCurva = useMemo(
     () => {
       const hasta = Math.max(marcaVentana * 15_000, Date.parse(serie.at(-1)?.timestamp ?? '') || 0)
@@ -764,9 +767,11 @@ export function DashboardPage() {
           sinDatos: t('dashboard.graficaSinDatos'),
         },
         { desde: hasta - horasVentana * 60 * 60 * 1000, hasta },
+        tema,
       )
     },
-    [serie, t, horasVentana, marcaVentana],
+    // Con el tema cambian los colores del canvas (tokens CSS): se reconstruye.
+    [serie, t, horasVentana, marcaVentana, tema],
   )
 
   const actualizarDemo = async () => {
@@ -916,28 +921,15 @@ export function DashboardPage() {
                 {estadoHistorial === 'cargando' && ultima && (
                   <span role="status" className="text-xs text-muted">{t('app.cargando')}</span>
                 )}
-                <div role="group" aria-label={t('dashboard.rangoVentana')} className="flex gap-1">
-                  {OPCIONES_VENTANA_HORAS.map((horas) => (
-                    <button
-                      key={horas}
-                      type="button"
-                      onClick={() => setHorasVentana(horas)}
-                      aria-pressed={horasVentana === horas}
-                      className={cn(
-                        'min-h-11 rounded-(--radius-field) px-3 py-2 text-sm font-medium transition-colors',
-                        horasVentana === horas
-                          ? 'bg-pine-100 text-pine-700'
-                          : 'text-faint hover:bg-cream-200 hover:text-muted',
-                      )}
-                    >
-                      {horas === 1
-                        ? t('dashboard.ventana1h')
-                        : horas === 24
-                          ? t('dashboard.ventana24h')
-                          : t('dashboard.ventana7d')}
-                    </button>
-                  ))}
-                </div>
+                <Segmentado
+                  etiqueta={t('dashboard.rangoVentana')}
+                  valor={horasVentana}
+                  onCambiar={setHorasVentana}
+                  opciones={OPCIONES_VENTANA_HORAS.map((horas) => ({
+                    valor: horas,
+                    etiqueta: horas === 1 ? t('dashboard.ventana1h') : horas === 24 ? t('dashboard.ventana24h') : t('dashboard.ventana7d'),
+                  }))}
+                />
               </div>
             </CardHeader>
             <CardContent>

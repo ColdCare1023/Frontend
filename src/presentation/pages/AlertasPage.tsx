@@ -12,6 +12,7 @@ import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
+import { Segmentado } from '@/presentation/components/ui/segmentado'
 import { rangoPagina } from '@/lib/paginacion'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { ActionMenu } from '../components/ActionMenu'
@@ -187,28 +188,14 @@ export function AlertasPage() {
     <CompactWorkspace>
       <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')} />
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <div
-          role="group"
-          aria-label={t('alertas.filtroEstado')}
-          className="grid w-full grid-cols-4 gap-1 border-b border-border sm:inline-flex sm:w-auto"
-        >
-          {FILTROS.map((opcion) => (
-            <button
-              key={opcion}
-              type="button"
-              onClick={() => setFiltro(opcion)}
-              aria-pressed={filtro === opcion}
-              className={cn(
-                'min-h-11 cursor-pointer whitespace-nowrap border-b-2 px-2 py-2 text-center text-xs sm:px-4 sm:text-sm font-medium transition-colors duration-150',
-                filtro === opcion
-                  ? 'border-foreground text-foreground'
-                  : 'border-transparent text-muted hover:text-foreground',
-              )}
-            >
-              {t(`alertas.filtro.${opcion}`)}
-            </button>
-          ))}
-        </div>
+        <Segmentado
+          etiqueta={t('alertas.filtroEstado')}
+          valor={filtro}
+          onCambiar={setFiltro}
+          opciones={FILTROS.map((opcion) => ({ valor: opcion, etiqueta: t(`alertas.filtro.${opcion}`) }))}
+          className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
+          botonClassName="px-1.5 text-xs sm:px-3.5 sm:text-[13px]"
+        />
       </div>
 
       {errorCarga && (
@@ -225,12 +212,12 @@ export function AlertasPage() {
         <Table mobileLayout="stack" className="table-fixed min-w-[0]" titulo={t('alertas.titulo')} cargando={cargando}>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[16%] px-2 text-center text-xs">{t('alertas.fecha')}</TableHead>
-              <TableHead className="w-[14%] px-2 text-center text-xs">{t('historial.dispositivo')}</TableHead>
-              <TableHead className="w-[17%] px-2 text-center text-xs">{t('historial.riesgo')}</TableHead>
-              <TableHead className="w-[23%] px-2 text-center text-xs">{t('alertas.mensaje')}</TableHead>
-              <TableHead className="w-[12%] px-2 text-center text-xs">{t('alertas.estado')}</TableHead>
-              <TableHead className="w-[18%] px-2 text-center text-xs">{t('alertas.acciones')}</TableHead>
+              <TableHead className="w-[16%]">{t('alertas.fecha')}</TableHead>
+              <TableHead className="w-[13%]">{t('historial.dispositivo')}</TableHead>
+              <TableHead className="w-[16%]">{t('historial.riesgo')}</TableHead>
+              <TableHead className="w-[29%]">{t('alertas.mensaje')}</TableHead>
+              <TableHead className="w-[12%]">{t('alertas.estado')}</TableHead>
+              <TableHead className="w-[14%] text-right">{t('alertas.acciones')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -256,20 +243,20 @@ export function AlertasPage() {
             ) : (
               visibles.map((alerta) => (
                 <TableRow key={alerta.id}>
-                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap px-2 text-center text-[11px]">
+                  <TableCell data-label={t('alertas.fecha')} className="nums whitespace-nowrap text-[13px] text-muted">
                     {fechaHora(alerta.created_at)}
                   </TableCell>
-                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap px-2 text-center text-[11px]">{alerta.device_id}</TableCell>
-                  <TableCell data-label={t('historial.riesgo')} className="text-center">
+                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap text-[13px] font-medium">{alerta.device_id}</TableCell>
+                  <TableCell data-label={t('historial.riesgo')}>
                     <span className="inline-flex justify-center"><RiskBadge nivel={alerta.nivel_riesgo} /></span>
                   </TableCell>
-                  <TableCell data-label={t('alertas.mensaje')} className="px-2 text-center text-xs leading-5 text-muted">{alerta.mensaje}</TableCell>
-                  <TableCell data-label={t('alertas.estado')} className="text-center">
+                  <TableCell data-label={t('alertas.mensaje')} className="text-[13px] leading-5 text-muted">{alerta.mensaje}</TableCell>
+                  <TableCell data-label={t('alertas.estado')}>
                     <Badge variant={VARIANTE_POR_ESTADO[alerta.estado]}>
                       {t(`alertas.estadoAlerta.${alerta.estado}`)}
                     </Badge>
                   </TableCell>
-                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions text-center">
+                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions text-right">
                     <div className="flex flex-col items-center gap-1.5">
                       <ActionMenu label={`${t('alertas.acciones')}: ${alerta.device_id}`}>
                       {alerta.estado === 'pendiente' && puedeReconocer && (

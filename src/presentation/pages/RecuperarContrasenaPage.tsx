@@ -93,7 +93,7 @@ export function RecuperarContrasenaPage() {
               <div className="pt-2 flex flex-col gap-3">
                 <Link
                   to="/login"
-                  className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold text-white shadow-(--shadow-card) hover:shadow-(--shadow-card) transition-all"
+                  className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) hover:shadow-(--shadow-card) transition-all"
                 >
                   {t('recuperarContrasena.volverLogin')}
                 </Link>
@@ -144,7 +144,7 @@ export function RecuperarContrasenaPage() {
               <button
                 type="submit"
                 disabled={cargando}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold text-white shadow-(--shadow-card) transition-all duration-200 hover:shadow-(--shadow-card) active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all duration-200 hover:shadow-(--shadow-card) active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
               >
                 {cargando ? (
                   <>

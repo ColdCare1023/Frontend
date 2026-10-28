@@ -207,24 +207,24 @@ export function GuiaPage() {
 
         <div className="grid divide-y divide-border border-y border-border md:grid-cols-3 md:divide-x md:divide-y-0">
           <div className="flex gap-3 bg-transparent p-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#07546A] text-white"><CircleCheck aria-hidden className="size-5" /></span>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success-100 text-success-700 ring-1 ring-inset ring-success-600/25"><CircleCheck aria-hidden className="size-5" /></span>
             <div>
-              <h3 className="text-sm font-semibold text-[#073B4C]">{t('guia.estados.normal.titulo')}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#245365]">{t('guia.estados.normal.descripcion')}</p>
+              <h3 className="text-sm font-semibold text-foreground">{t('guia.estados.normal.titulo')}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{t('guia.estados.normal.descripcion')}</p>
             </div>
           </div>
           <div className="flex gap-3 bg-transparent p-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#9B3156] text-white"><CircleDot aria-hidden className="size-5" /></span>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-honey-100 text-honey-700 ring-1 ring-inset ring-honey-600/30"><CircleDot aria-hidden className="size-5" /></span>
             <div>
-              <h3 className="text-sm font-semibold text-[#70213D]">{t('guia.estados.preventivo.titulo')}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#7D4056]">{t('guia.estados.preventivo.descripcion')}</p>
+              <h3 className="text-sm font-semibold text-foreground">{t('guia.estados.preventivo.titulo')}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{t('guia.estados.preventivo.descripcion')}</p>
             </div>
           </div>
           <div className="flex gap-3 bg-transparent p-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#7B2342] text-white"><CircleAlert aria-hidden className="size-5" /></span>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-critical-solid text-on-critical"><CircleAlert aria-hidden className="size-5" /></span>
             <div>
-              <h3 className="text-sm font-semibold text-[#641B36]">{t('guia.estados.critico.titulo')}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#74354C]">{t('guia.estados.critico.descripcion')}</p>
+              <h3 className="text-sm font-semibold text-foreground">{t('guia.estados.critico.titulo')}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{t('guia.estados.critico.descripcion')}</p>
             </div>
           </div>
         </div>

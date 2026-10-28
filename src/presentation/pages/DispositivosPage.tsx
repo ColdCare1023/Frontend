@@ -367,7 +367,7 @@ export function DispositivosPage() {
       </PageHeader>
 
       {mensajeFlota && (
-        <p role="status" className="mb-4 rounded-xl border border-[#BCEFFF] bg-[#E6FBFF] px-4 py-3 text-sm text-[#07546A]">
+        <p role="status" className="mb-4 rounded-xl border border-glacier-200 bg-glacier-100 px-4 py-3 text-sm text-glacier-700">
           {mensajeFlota}
         </p>
       )}
