@@ -3,7 +3,7 @@ import type { EChartsCoreOption } from 'echarts/core'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
 import { fechaHora, hora as formatearHora } from '@/lib/formato'
-import { temaGrafica } from './temaColdCare'
+import { temaGrafica, type TemaGrafica } from './temaColdCare'
 
 /**
  * Sin una lectura en este lapso el nodo se considera SIN_DATOS (HU-33): la
@@ -260,8 +260,9 @@ export function construirOpcionCurvaTermica(
   serie: LecturaTermica[],
   etiquetas: EtiquetasCurvaTermica,
   ventana?: { desde: number; hasta: number },
+  tema?: TemaGrafica,
 ): EChartsCoreOption {
-  const colores = temaGrafica()
+  const colores = temaGrafica(tema)
   const equipos = [...new Set(serie.map((l) => l.device_id).filter(Boolean))]
   if (equipos.length > 1) return construirCurvaPorEquipo(serie, equipos, etiquetas, colores, ventana)
   const umbral = umbralHueco(serie)
