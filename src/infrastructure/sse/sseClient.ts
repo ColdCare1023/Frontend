@@ -1,5 +1,6 @@
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient, API_BASE_URL, getAccessToken } from '../api/apiClient'
+import { normalizarFechasUtc } from '../api/fechasUtc'
 import { MODO_DEMO } from '../demo/modoDemo'
 
 const SSE_URL = import.meta.env.VITE_SSE_URL ?? `${API_BASE_URL}/api/sse/lecturas`
@@ -129,7 +130,7 @@ export function normalizarConectividad(
 
 function datosDe(event: MessageEvent): Record<string, unknown> | null {
   try {
-    const datos: unknown = JSON.parse(event.data)
+    const datos: unknown = normalizarFechasUtc(JSON.parse(event.data))
     return datos && typeof datos === 'object' ? (datos as Record<string, unknown>) : null
   } catch {
     // Mensaje keep-alive o malformado: se ignora.

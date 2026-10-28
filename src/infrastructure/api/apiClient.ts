@@ -1,6 +1,7 @@
 import axios, { type AxiosAdapter } from 'axios'
 
 import { MODO_DEMO } from '../demo/modoDemo'
+import { normalizarFechasUtc } from './fechasUtc'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -61,7 +62,10 @@ export function setOnPrivacidadRequerida(handler: () => void): void {
 const DETALLE_PRIVACIDAD = /pol[ií]tica de privacidad/i
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.data = normalizarFechasUtc(response.data)
+    return response
+  },
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401 && accessToken) {
       accessToken = null
