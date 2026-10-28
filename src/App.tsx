@@ -7,7 +7,7 @@ import { marcarSesionExpirada } from '@/infrastructure/auth/avisoSesion'
 import { useAuthStore } from '@/application/stores/authStore'
 import { ErrorBoundary } from '@/presentation/components/ErrorBoundary'
 import { PrivacyConsentModal } from '@/presentation/components/PrivacyConsentModal'
-import { RequireAuth, RequirePasswordPropia, RequireRoles } from '@/presentation/components/RouteGuards'
+import { RequireAuth, RequireConsentimiento, RequirePasswordPropia, RequireRoles } from '@/presentation/components/RouteGuards'
 import { CambiarPasswordPage } from '@/presentation/pages/CambiarPasswordPage'
 import { LoginPage } from '@/presentation/pages/LoginPage'
 import { RecuperarContrasenaPage } from '@/presentation/pages/RecuperarContrasenaPage'
@@ -146,6 +146,7 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route path="/cambiar-password" element={<CambiarPasswordPage />} />
             <Route element={<RequirePasswordPropia />}>
+            <Route element={<RequireConsentimiento />}>
             <Route element={<Pagina shell><AppLayout /></Pagina>}>
               <Route path="/guia" element={<Pagina><GuiaPage /></Pagina>} />
               <Route path="/dashboard" element={<Pagina><DashboardPage /></Pagina>} />
@@ -177,6 +178,7 @@ export function App() {
                 <Route path="/usuarios" element={<Pagina><UsuariosPage /></Pagina>} />
                 <Route path="/dispositivos" element={<Pagina><DispositivosPage /></Pagina>} />
               </Route>
+            </Route>
             </Route>
             </Route>
           </Route>

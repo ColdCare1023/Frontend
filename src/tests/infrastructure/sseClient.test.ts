@@ -218,6 +218,17 @@ describe('suscribirseTiempoReal: catálogo de eventos del backend (FE-008)', () 
     cerrar()
   })
 
+  it('entrega las lecturas en UTC aunque el backend omita la zona', async () => {
+    const instantes: string[] = []
+    const cerrar = suscribirseLecturas((lectura) => instantes.push(lectura.timestamp))
+    const sse = await fuente()
+
+    sse.emitir('lectura', { id: 'l1', device_id: 'ESP32-001', timestamp: '2026-10-28T15:10:26' })
+
+    expect(instantes).toEqual(['2026-10-28T15:10:26Z'])
+    cerrar()
+  })
+
   it('ante `sesion_expirada` cierra el stream y vuelve a pedir ticket', async () => {
     const estados: boolean[] = []
     const cerrar = suscribirseTiempoReal({ onEstado: (c) => estados.push(c) })

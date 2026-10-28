@@ -718,7 +718,15 @@
     "verDatosGrafica": "View the chart data as a table",
     "deslizarTabla": "Scroll to see all columns.",
     "si": "Yes",
-    "no": "No"
+    "no": "No",
+    "abrirCalendario": "Open calendar",
+    "hoy": "Today",
+    "limpiar": "Clear",
+    "hora": "Time",
+    "marcadorFechaHora": "mm/dd/yyyy hh:mm",
+    "marcadorFecha": "mm/dd/yyyy",
+    "verDetalles": "Show details",
+    "ocultarDetalles": "Hide details"
   },
   "metricasIA": {
     "titulo": "How the classifier behaves",
@@ -1016,7 +1024,12 @@
     "excursion_no_verificada": "Critical excursion of unverified origin on {{device}}: {{temperatura}} °C. Check the refrigerator with the backup thermometer.",
     "monitoreo_suspendido": "Monitoring of {{device}} suspended: compromise credential rotation.",
     "posesion_verificada": "{{device}} proved the new credential: recording resumes.",
-    "posesion_firma_invalida": "{{device}} is still on the previous token: the broker still accepts it. Change the password in the console and use \"Resend challenge\"."
+    "posesion_firma_invalida": "{{device}} is still on the previous token: the broker still accepts it. Change the password in the console and use \"Resend challenge\".",
+    "titulo": {
+      "critico": "Critical alert",
+      "aviso": "Notice",
+      "ok": "Confirmed"
+    }
   },
   "tema": {
     "titulo": "Theme",

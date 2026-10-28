@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
@@ -36,7 +36,9 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../components/ui/menu'
 import { Tooltip, TooltipProvider } from '../components/ui/tooltip'
+import { NotchToaster } from '../components/notificaciones/notch'
 import { ANCHO_COLAPSADO, ANCHO_EXPANDIDO, guardarColapsado, leerColapsado } from './preferenciaSidebar'
+import { useCristalLiquido } from '../efectos/cristalLiquido'
 
 interface ItemNav {
   ruta: string
@@ -86,7 +88,7 @@ const SECCIONES: SeccionNav[] = [
 ]
 
 const RESORTE = { type: 'spring', stiffness: 380, damping: 35, mass: 0.75 } as const
-const ENTRADA_PAGINA = { duration: 0.24, ease: [0.16, 1, 0.3, 1] } as const
+const ENTRADA_PAGINA = { duration: 0.6, ease: [0.22, 1, 0.36, 1] } as const
 
 function BadgeDemo({ className }: { className?: string }) {
   const { t } = useTranslation()
@@ -289,6 +291,8 @@ export function AppLayout() {
   const usuario = useAuthStore((s) => s.usuario)
   const [drawerAbierto, setDrawerAbierto] = useState(false)
   const [colapsado, setColapsado] = useState(leerColapsado)
+  const refCabecera = useRef<HTMLElement>(null)
+  useCristalLiquido(refCabecera, { intensidad: 0.7, bisel: 12 })
   const { pathname } = useLocation()
   const seccionActual = SECCIONES.find((seccion) =>
     seccion.items.some((item) => pathname === item.ruta || pathname.startsWith(`${item.ruta}/`)),
@@ -315,7 +319,9 @@ export function AppLayout() {
 
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={150}>
-      <div className="flex min-h-dvh">
+      <div className="relative isolate flex min-h-dvh">
+        {/* Luz ambiental (index.css): da al cristal algo que refractar. */}
+        <div aria-hidden className="ambiente" />
         {/* WCAG 2.4.1 (Evitar bloques): la navegación son doce enlaces repetidos
             en cada página. Sin este atajo, llegar al contenido con el teclado
             exigía atravesarlos uno a uno en todas las rutas. Se mantiene oculto
@@ -333,7 +339,7 @@ export function AppLayout() {
           animate={{ width: colapsado ? ANCHO_COLAPSADO : ANCHO_EXPANDIDO }}
           transition={reducir ? { duration: 0 } : RESORTE}
           data-state={colapsado ? 'colapsado' : 'expandido'}
-          className="sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-riel lg:flex"
+          className="cristal sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r lg:flex"
         >
           <div className="flex h-14 shrink-0 items-center px-4">
             <ColdCareBrand
@@ -366,7 +372,7 @@ export function AppLayout() {
             <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-overlay/55 backdrop-blur-[2px] data-[state=open]:animate-fade data-[state=closed]:animate-fade-out lg:hidden" />
             <DialogPrimitive.Content
               aria-describedby={undefined}
-              className="fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[86vw] flex-col border-r border-border bg-surface shadow-(--shadow-raised) data-[state=open]:animate-(--animate-drawer) data-[state=closed]:animate-(--animate-drawer-out) focus:outline-none lg:hidden"
+              className="cristal fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[86vw] flex-col border-r data-[state=open]:animate-(--animate-drawer) data-[state=closed]:animate-(--animate-drawer-out) focus:outline-none lg:hidden"
             >
               <DialogPrimitive.Title className="sr-only">{t('app.nombre')}</DialogPrimitive.Title>
               <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border pl-4 pr-2">
@@ -394,7 +400,14 @@ export function AppLayout() {
             <AvisoExpiracionSesion />
             <AvisoDatosSimulados />
             <AvisosTiempoReal />
-            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md sm:px-6 lg:px-8">
+            <NotchToaster />
+            <header
+              ref={refCabecera}
+              data-liquid-glass=""
+              // `lg-glass` fija position: relative; la cabecera sigue siendo sticky.
+              style={{ position: 'sticky' }}
+              className="lg-glass lg-glass--host top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--lg-edge)] px-3 sm:px-6 lg:px-8"
+            >
               <DialogPrimitive.Trigger
                 aria-label={t('nav.abrirMenu')}
                 className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground lg:hidden"
@@ -439,11 +452,15 @@ export function AppLayout() {
               <div className="mx-auto w-full max-w-[1560px]">
                 {/* La página entra con un fundido; sus secciones suben escalonadas
                     (index.css). Con movimiento reducido aparece sin transición. */}
+                {/* Despliegue tipo «iPhone Duo»: la pantalla abre desde su borde
+                    izquierdo y pasa de desenfocada a nítida (coreografía del
+                    pliegue de jal-co/iphone-duo, acortada a 0.6 s). */}
                 <motion.div
                   key={pathname}
                   className="escalonado"
-                  initial={reducir ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  style={{ transformOrigin: 'left center' }}
+                  initial={reducir ? false : { opacity: 0, rotateY: -7, filter: 'blur(8px)', transformPerspective: 1800 }}
+                  animate={{ opacity: 1, rotateY: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
                   transition={ENTRADA_PAGINA}
                 >
                   <Outlet />

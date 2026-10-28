@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, CheckCircle2, WifiOff, X } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
 import { suscribirseTiempoReal, type TipoAvisoDispositivo } from '@/infrastructure/sse/sseClient'
-import { cn } from '@/lib/utils'
+import { notificarNotch } from './notificaciones/notificarNotch'
 
 type Nivel = 'critico' | 'aviso' | 'ok'
 
@@ -68,6 +67,8 @@ export function AvisosTiempoReal() {
     const publicar = (nivel: Nivel, texto: string) => {
       const id = siguiente.current++
       setAvisos((previos) => [...previos, { id, nivel, texto }].slice(-MAXIMO_VISIBLES))
+      // Lo visible es el notch (sileo); esta región solo lo anuncia al lector de pantalla.
+      notificarNotch(nivel, { id: `aviso-${id}`, titulo: t(`avisosTiempoReal.titulo.${nivel}`), detalle: texto, duracion: DURACION_MS })
       const temporizador = setTimeout(() => {
         temporizadores.delete(temporizador)
         setAvisos((previos) => previos.filter((aviso) => aviso.id !== id))
@@ -133,41 +134,12 @@ export function AvisosTiempoReal() {
       role="region"
       aria-live="polite"
       aria-label={t('avisosTiempoReal.region')}
-      className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2"
+      className="sr-only"
     >
       {avisos.map((aviso) => (
-        <div
-          key={aviso.id}
-          role={aviso.nivel === 'critico' ? 'alert' : 'status'}
-          className="pointer-events-auto flex items-start gap-3 rounded-xl border border-border bg-surface-raised p-3 pr-2 text-sm text-foreground shadow-(--shadow-raised) animate-(--animate-toast-in)"
-        >
-          <span
-            aria-hidden
-            className={cn(
-              'mt-px flex size-7 shrink-0 items-center justify-center rounded-lg',
-              aviso.nivel === 'critico' && 'bg-critical-tint text-critical',
-              aviso.nivel === 'aviso' && 'bg-honey-100 text-honey-700',
-              aviso.nivel === 'ok' && 'bg-success-100 text-success-700',
-            )}
-          >
-            {aviso.nivel === 'ok' ? (
-              <CheckCircle2 className="size-4" />
-            ) : aviso.nivel === 'critico' ? (
-              <WifiOff className="size-4" />
-            ) : (
-              <AlertTriangle className="size-4" />
-            )}
-          </span>
-          <p className="flex-1 pt-1 leading-5">{aviso.texto}</p>
-          <button
-            type="button"
-            aria-label={t('avisosTiempoReal.cerrar')}
-            onClick={() => setAvisos((previos) => previos.filter((a) => a.id !== aviso.id))}
-            className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-cream-200/70 hover:text-foreground"
-          >
-            <X className="size-3.5" />
-          </button>
-        </div>
+        <p key={aviso.id} role={aviso.nivel === 'critico' ? 'alert' : 'status'}>
+          {aviso.texto}
+        </p>
       ))}
     </div>
   )

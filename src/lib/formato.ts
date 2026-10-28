@@ -20,21 +20,33 @@ export function fechaISOlocal(fecha = new Date()): string {
   return `${anio}-${mes}-${dia}`
 }
 
+/**
+ * La hora y su «a. m.» / «AM» van juntas: en celdas estrechas el navegador
+ * cortaba «9:50:40 a.» en una línea y «m.» en la siguiente.
+ */
+function horaSinCortes(texto: string): string {
+  return texto
+    .replace(/(\d:\d{2}(?::\d{2})?)\s+([ap]\.)\s*(m\.)/gi, '$1\u00a0$2\u00a0$3')
+    .replace(/(\d:\d{2}(?::\d{2})?)\s+([AP]M)\b/g, '$1\u00a0$2')
+}
+
 /** Fecha y hora completas, para celdas de tabla y registros de auditoría. */
 export function fechaHora(iso: string | null | undefined): string {
   if (!iso) return '—'
   const fecha = new Date(iso)
   if (Number.isNaN(fecha.getTime())) return '—'
-  return fecha.toLocaleString(localeActual())
+  return horaSinCortes(fecha.toLocaleString(localeActual()))
 }
 
 /** Solo la hora, con segundos: el eje temporal del monitoreo en vivo. */
 export function hora(iso: string): string {
-  return new Date(iso).toLocaleTimeString(localeActual(), {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  return horaSinCortes(
+    new Date(iso).toLocaleTimeString(localeActual(), {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }),
+  )
 }
 
 /** Solo la fecha, sin hora: encabezados de periodo y resúmenes. */

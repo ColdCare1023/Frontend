@@ -21,7 +21,7 @@ export function MenuContent({
         sideOffset={8}
         collisionPadding={12}
         className={cn(
-          'z-50 min-w-48 origin-(--radix-dropdown-menu-content-transform-origin) rounded-(--radius-card) border border-border bg-surface-raised p-1.5 text-sm text-foreground shadow-(--shadow-raised)',
+          'cristal z-50 min-w-48 origin-(--radix-dropdown-menu-content-transform-origin) rounded-(--radius-card) border p-1.5 text-sm text-foreground',
           'data-[state=open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)',
           className,
         )}

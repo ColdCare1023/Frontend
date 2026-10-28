@@ -53,7 +53,7 @@ export function DialogContent({
         tabIndex={destructivo ? -1 : undefined}
         className={cn(
           'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
-          'max-h-[85dvh] overflow-y-auto rounded-(--radius-modal) border border-border bg-surface-raised p-5 shadow-(--shadow-raised) sm:p-6',
+          'cristal max-h-[85dvh] overflow-y-auto rounded-(--radius-modal) border p-5 sm:p-6',
           'data-[state=open]:animate-(--animate-dialog-in) data-[state=closed]:animate-(--animate-dialog-out) focus:outline-none',
           className,
         )}

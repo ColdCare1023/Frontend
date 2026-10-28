@@ -22,6 +22,18 @@ export function RequirePasswordPropia() {
   return <Outlet />
 }
 
+/**
+ * HU-44 / FE-005: mientras falte el consentimiento, el backend responde 403 a
+ * todo. Las pantallas no se montan hasta aceptarlo: antes pedían sus datos
+ * detrás del aviso, mostraban «No pudimos cargar…» y el flujo SSE quedaba en
+ * reintentos; al aceptar ahora cargan limpias con datos reales.
+ */
+export function RequireConsentimiento() {
+  const requierePrivacidad = useAuthStore((s) => s.requierePrivacidad)
+  if (requierePrivacidad) return null
+  return <Outlet />
+}
+
 /** Bloquea la ruta si el rol del usuario no está permitido (RBAC). */
 export function RequireRoles({ roles }: { roles: Rol[] }) {
   const { t } = useTranslation()

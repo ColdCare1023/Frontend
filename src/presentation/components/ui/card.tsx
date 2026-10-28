@@ -5,7 +5,7 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
     <div
       className={cn(
         // `spotlight`: luz que sigue al puntero y borde iluminado al pasar.
-        'spotlight rounded-(--radius-card) border border-border bg-surface shadow-(--shadow-card)',
+        'spotlight tarjeta-cristal rounded-(--radius-card) border',
         className,
       )}
       {...props}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fechaISOlocal } from '@/lib/formato'
+import { fechaHora, fechaISOlocal, hora } from '@/lib/formato'
 
 describe('fechaISOlocal', () => {
   it('usa el día calendario local y rellena mes y día', () => {
@@ -14,5 +14,14 @@ describe('fechaISOlocal', () => {
     const esperada = [ahora.getFullYear(), String(ahora.getMonth() + 1).padStart(2, '0'), String(ahora.getDate()).padStart(2, '0')].join('-')
 
     expect(fechaISOlocal()).toBe(esperada)
+  })
+})
+
+describe('fechaHora y hora', () => {
+  it('mantienen la hora unida a «a. m.» para que no se parta en celdas estrechas', () => {
+    const texto = fechaHora('2026-10-28T14:50:40Z')
+
+    expect(texto).toMatch(/\d:\d{2}:\d{2}\u00a0[ap]\.\u00a0m\.$/)
+    expect(hora('2026-10-28T14:50:40Z')).not.toMatch(/ [ap]\. ?m\./)
   })
 })

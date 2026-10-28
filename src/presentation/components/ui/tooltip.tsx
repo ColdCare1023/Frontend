@@ -29,7 +29,7 @@ export function Tooltip({
           sideOffset={10}
           collisionPadding={8}
           className={cn(
-            'z-[70] rounded-md border border-border bg-surface-raised px-2.5 py-1.5 text-xs font-medium text-foreground shadow-(--shadow-raised)',
+            'cristal z-[70] rounded-md border px-2.5 py-1.5 text-xs font-medium text-foreground',
             'data-[state=delayed-open]:animate-(--animate-pop-in) data-[state=instant-open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)',
           )}
         >

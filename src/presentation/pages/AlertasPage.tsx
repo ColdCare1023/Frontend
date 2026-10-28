@@ -1,4 +1,3 @@
-import { CompactWorkspace } from '../components/CompactWorkspace'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -7,28 +6,24 @@ import { BellOff, CheckCheck, ClipboardPen, History, PencilLine, RadioTower } fr
 import { useAlertas, type FiltroEstado } from '@/application/hooks/useAlertas'
 import { useIncidentesOperativos } from '@/application/hooks/useIncidentesOperativos'
 import { useAuthStore } from '@/application/stores/authStore'
-import { tienePermiso } from '@/domain/value-objects/Rol'
-import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
-import { fechaHora } from '@/lib/formato'
-import { cn } from '@/lib/utils'
-import { Segmentado } from '@/presentation/components/ui/segmentado'
+import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
+import { tienePermiso } from '@/domain/value-objects/Rol'
+import { fechaCorta, fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
+import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { ActionMenu } from '../components/ActionMenu'
-import { Paginacion } from '../components/Paginacion'
-import { EstadoError } from '../components/EstadoPagina'
+import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
+import { Paginacion } from '../components/Paginacion'
 import { RiskBadge } from '../components/RiskBadge'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '../components/ui/dialog'
+import { Detalles } from '../components/ui/detalles'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog'
 import { Label, Textarea } from '../components/ui/input'
+import { Segmentado } from '../components/ui/segmentado'
 import {
   Table,
   TableBody,
@@ -46,6 +41,29 @@ const VARIANTE_POR_ESTADO: Record<EstadoAlerta, 'outline' | 'warn' | 'ok'> = {
   pendiente: 'outline',
   reconocida: 'warn',
   atendida: 'ok',
+}
+
+const VACIO_POR_FILTRO: Record<FiltroEstado, string> = {
+  pendiente: 'alertas.sinPendientes',
+  reconocida: 'alertas.sinRevisadas',
+  atendida: 'alertas.sinAtendidas',
+  todas: 'alertas.sinAlertas',
+}
+
+// Fecha, equipo, riesgo, estado y opciones tienen ancho propio y el mensaje
+// se queda con el resto. Bajo 1280 px el relleno lateral se ciñe para que las
+// seis columnas quepan sin desplazar la tabla.
+const RELLENO = 'sm:px-2 xl:px-4'
+
+/** Fecha arriba y hora debajo: ninguna de las dos se parte al estrechar la columna. */
+function FechaYHora({ iso }: { iso: string | null }) {
+  if (!iso || Number.isNaN(new Date(iso).getTime())) return <>{fechaHora(iso)}</>
+  return (
+    <>
+      <span className="block whitespace-nowrap">{fechaCorta(iso)}</span>
+      <span className="block whitespace-nowrap text-muted">{hora(iso)}</span>
+    </>
+  )
 }
 
 export function AlertasPage() {
@@ -185,9 +203,11 @@ export function AlertasPage() {
   }
 
   return (
-    <CompactWorkspace>
+    <div className="space-y-4">
       <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')} />
-      <div className="mb-3 flex flex-wrap items-center gap-3">
+
+      {/* ── Estado de seguimiento ───────────────────────────── */}
+      <div>
         <Segmentado
           etiqueta={t('alertas.filtroEstado')}
           valor={filtro}
@@ -198,112 +218,106 @@ export function AlertasPage() {
         />
       </div>
 
-      {errorCarga && (
-        <div className="mb-4">
+      {/* ── Lista de alertas: la tarea principal de la pantalla ── */}
+      <div>
+        {errorCarga ? (
           <EstadoError mensaje={t('alertas.errorCargar')}>
             <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
               {t('comunes.reintentar')}
             </Button>
           </EstadoError>
-        </div>
-      )}
-
-      <div className="animate-rise [&_thead]:bg-cream-100 ">
-        <Table mobileLayout="stack" className="table-fixed min-w-[0]" titulo={t('alertas.titulo')} cargando={cargando}>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[18%]">{t('alertas.fecha')}</TableHead>
-              <TableHead className="w-[13%]">{t('historial.dispositivo')}</TableHead>
-              <TableHead className="w-[16%]">{t('historial.riesgo')}</TableHead>
-              <TableHead className="w-[27%]">{t('alertas.mensaje')}</TableHead>
-              <TableHead className="w-[12%]">{t('alertas.estado')}</TableHead>
-              <TableHead className="w-[14%] text-right">{t('alertas.acciones')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {errorCarga ? (
-              <TableEmpty colSpan={6}>{t('alertas.errorTabla')}</TableEmpty>
-            ) : cargando ? (
-              <TableEmpty colSpan={6}>{t('app.cargando')}</TableEmpty>
-            ) : alertas.length === 0 ? (
-              <TableEmpty colSpan={6}>
-                <span className="inline-flex flex-col items-center gap-2">
-                  <BellOff className="size-5 text-faint" />
-                  {t(
-                    filtro === 'pendiente'
-                      ? 'alertas.sinPendientes'
-                      : filtro === 'reconocida'
-                        ? 'alertas.sinRevisadas'
-                        : filtro === 'atendida'
-                          ? 'alertas.sinAtendidas'
-                          : 'alertas.sinAlertas',
-                  )}
-                </span>
-              </TableEmpty>
-            ) : (
-              visibles.map((alerta) => (
-                <TableRow key={alerta.id}>
-                  <TableCell data-label={t('alertas.fecha')} className="nums text-[13px] text-muted">
-                    {fechaHora(alerta.created_at)}
-                  </TableCell>
-                  <TableCell data-label={t('historial.dispositivo')} className="whitespace-nowrap text-[13px] font-medium">{alerta.device_id}</TableCell>
-                  <TableCell data-label={t('historial.riesgo')}>
-                    <span className="inline-flex justify-center"><RiskBadge nivel={alerta.nivel_riesgo} /></span>
-                  </TableCell>
-                  <TableCell data-label={t('alertas.mensaje')} className="text-[13px] leading-5 text-muted">{alerta.mensaje}</TableCell>
-                  <TableCell data-label={t('alertas.estado')}>
-                    <Badge variant={VARIANTE_POR_ESTADO[alerta.estado]}>
-                      {t(`alertas.estadoAlerta.${alerta.estado}`)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell data-label={t('alertas.acciones')} className="mobile-full mobile-actions text-right">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <ActionMenu label={`${t('alertas.acciones')}: ${alerta.device_id}`}>
-                      {alerta.estado === 'pendiente' && puedeReconocer && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => void reconocer(alerta.id)}
-                          title={t('alertas.marcarRevisada')}
-                        >
-                          <CheckCheck />
-                          {t('alertas.marcarRevisada')}
-                        </Button>
-                      )}
-                      {alerta.estado !== 'atendida' && puedeRegistrarAccion && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setAlertaSeleccionada(alerta)}
-                          title={t('alertas.registrarAccion')}
-                        >
-                          <ClipboardPen />
-                          {t('alertas.accionCorrectiva')}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void verDetalle(alerta)}
-                        aria-label={`${t('alertas.verDetalle')}: ${alerta.device_id}`}
-                      >
-                        <History />
-                        {t('alertas.verDetalle')}
-                      </Button>
-                      </ActionMenu>
-                    {conflictoReconocer === alerta.id && (
-                      <p role="alert" className="text-xs text-clay-700">
-                        {t('alertas.conflictoEstado')}
-                      </p>
-                    )}
-                    </div>
-                  </TableCell>
+        ) : !cargando && alertas.length === 0 ? (
+          <EstadoVacio icono={BellOff} titulo={t(VACIO_POR_FILTRO[filtro])} />
+        ) : (
+          <>
+            <Table mobileLayout="stack" className="min-w-0" titulo={t('alertas.titulo')} cargando={cargando}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className={cn('h-11 w-36', RELLENO)}>{t('alertas.fecha')}</TableHead>
+                  <TableHead className={cn('h-11 w-28', RELLENO)}>{t('historial.dispositivo')}</TableHead>
+                  <TableHead className={cn('h-11 w-44', RELLENO)}>{t('historial.riesgo')}</TableHead>
+                  <TableHead className={cn('h-11', RELLENO)}>{t('alertas.mensaje')}</TableHead>
+                  <TableHead className={cn('h-11 w-28', RELLENO)}>{t('alertas.estado')}</TableHead>
+                  <TableHead className={cn('h-11 w-32 text-right', RELLENO)}>{t('alertas.acciones')}</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        {!errorCarga && <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />}
+              </TableHeader>
+              <TableBody>
+                {cargando ? (
+                  <TableEmpty colSpan={6}>
+                    <EstadoCarga className="py-0" />
+                  </TableEmpty>
+                ) : (
+                  visibles.map((alerta) => (
+                    <TableRow key={alerta.id}>
+                      <TableCell data-label={t('alertas.fecha')} className={cn('nums py-4 text-[13px] leading-5', RELLENO)}>
+                        <FechaYHora iso={alerta.created_at} />
+                      </TableCell>
+                      <TableCell data-label={t('historial.dispositivo')} className={cn('py-4 whitespace-nowrap text-[13px] font-medium', RELLENO)}>
+                        {alerta.device_id}
+                      </TableCell>
+                      {/* En móvil cada alerta es una ficha: el riesgo la encabeza a lo
+                          ancho y el mensaje ocupa su propia fila. */}
+                      <TableCell data-label={t('historial.riesgo')} className={cn('mobile-full py-4 max-sm:order-first', RELLENO)}>
+                        <RiskBadge nivel={alerta.nivel_riesgo} />
+                      </TableCell>
+                      <TableCell data-label={t('alertas.mensaje')} className={cn('mobile-full py-4 text-sm leading-5 text-balance', RELLENO)}>
+                        {alerta.mensaje}
+                        {conflictoReconocer === alerta.id && (
+                          <p role="alert" className="mt-1.5 text-xs leading-4 text-critical">
+                            {t('alertas.conflictoEstado')}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell data-label={t('alertas.estado')} className={cn('py-4', RELLENO)}>
+                        <Badge variant={VARIANTE_POR_ESTADO[alerta.estado]}>
+                          {t(`alertas.estadoAlerta.${alerta.estado}`)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell data-label={t('alertas.acciones')} className={cn('mobile-actions py-4 text-right', RELLENO)}>
+                        <div className="flex justify-end">
+                          <ActionMenu label={`${t('alertas.acciones')}: ${alerta.device_id}`}>
+                            {alerta.estado === 'pendiente' && puedeReconocer && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => void reconocer(alerta.id)}
+                                title={t('alertas.marcarRevisada')}
+                              >
+                                <CheckCheck />
+                                {t('alertas.marcarRevisada')}
+                              </Button>
+                            )}
+                            {alerta.estado !== 'atendida' && puedeRegistrarAccion && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setAlertaSeleccionada(alerta)}
+                                title={t('alertas.registrarAccion')}
+                              >
+                                <ClipboardPen />
+                                {t('alertas.accionCorrectiva')}
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => void verDetalle(alerta)}
+                              aria-label={`${t('alertas.verDetalle')}: ${alerta.device_id}`}
+                            >
+                              <History />
+                              {t('alertas.verDetalle')}
+                            </Button>
+                          </ActionMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+          </>
+        )}
       </div>
 
       <IncidentesOperativos />
@@ -349,7 +363,7 @@ export function AlertasPage() {
             {conflictoAccion && (
               <p
                 role="alert"
-                className="rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700"
+                className="rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] text-critical"
               >
                 {t('alertas.conflictoEstado')}
               </p>
@@ -411,7 +425,7 @@ export function AlertasPage() {
             {cargandoCiclo ? (
               <li className="text-sm text-muted">{t('app.cargando')}</li>
             ) : errorCiclo ? (
-              <li role="alert" className="text-sm text-clay-700">{t('comunes.error')}</li>
+              <li role="alert" className="text-sm text-critical">{t('comunes.error')}</li>
             ) : (
               ciclo.map((accion) => (
                 <li key={accion.id}>
@@ -468,7 +482,7 @@ export function AlertasPage() {
                         </p>
                       </div>
                       {errorRectificacion && (
-                        <p role="alert" className="text-xs text-clay-700">
+                        <p role="alert" className="text-xs text-critical">
                           {t(`alertas.errorRectificacion.${errorRectificacion}`)}
                         </p>
                       )}
@@ -503,7 +517,7 @@ export function AlertasPage() {
             )}
           </ol>
           <div className="mt-4 flex items-center justify-between gap-2">
-            <Link to="/historial" onClick={() => setAlertaDetalle(null)} className="text-sm font-medium text-pine-700 underline-offset-2 hover:underline">
+            <Link to="/historial" onClick={() => setAlertaDetalle(null)} className="text-sm font-medium text-primary underline decoration-primary/40 underline-offset-4 transition-colors duration-(--duration-micro) hover:decoration-primary">
               {t('nav.historial')}
             </Link>
             <Button variant="ghost" onClick={() => setAlertaDetalle(null)}>
@@ -512,63 +526,67 @@ export function AlertasPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </CompactWorkspace>
+    </div>
   )
 }
 
 /**
  * HU-54 / A-3: incidentes SIN_DATOS como alerta OPERATIVA, distinta de las
  * térmicas: el nodo dejó de reportar, no hay temperatura que clasificar.
+ * Sección secundaria y discreta, debajo de la lista principal; la explicación
+ * larga queda plegada.
  */
 function IncidentesOperativos() {
   const { t } = useTranslation()
   const { incidentes, cargando, errorCarga } = useIncidentesOperativos()
-  // Sección secundaria: sin incidentes (o si el historial no responde) no se
-  // muestra; el estado operativo en vivo sigue en el dashboard.
+  // Sin incidentes (o si el historial no responde) no se muestra; el estado
+  // operativo en vivo sigue en el dashboard.
   if (cargando || errorCarga || incidentes.length === 0) return null
 
   return (
-    <section aria-labelledby="incidentes-operativos-titulo" className="mt-8">
-      <h2 id="incidentes-operativos-titulo" className="flex items-center gap-2 text-base font-semibold">
-        <RadioTower className="size-4 text-glacier-600" aria-hidden />
+    <section aria-labelledby="incidentes-operativos-titulo" className="mt-10">
+      <h2 id="incidentes-operativos-titulo" className="flex items-center gap-2 text-[15px] leading-6 font-semibold text-foreground">
+        <RadioTower className="size-4 text-muted" aria-hidden />
         {t('alertas.incidentesOperativos')}
       </h2>
-      <p className="mt-1 text-sm text-muted">{t('alertas.incidentesOperativosDetalle')}</p>
-        <ul className="mt-3 divide-y divide-border rounded-(--radius-card) border border-border bg-surface">
-          {incidentes.map((incidente) => (
-            <li key={incidente.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
-              <div className="min-w-0">
-                <p className="font-semibold">
-                  {incidente.device_id}{' '}
-                  <Badge variant={incidente.estado === 'activo' ? 'critical' : 'ok'}>
-                    {t(`alertas.incidenteEstado.${incidente.estado}`)}
-                  </Badge>{' '}
-                  <span className="text-xs font-medium text-muted">{t(`alertas.incidenteTipo.${incidente.tipo ?? 'sin_datos'}`)}</span>
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  {(incidente.tipo ?? 'sin_datos') === 'sin_datos'
-                    ? t('alertas.incidenteDetectado', {
-                        fecha: fechaHora(incidente.detectado_en),
-                        segundos: incidente.umbral_silencio_segundos,
-                      })
-                    : t('alertas.incidenteAbierto', { fecha: fechaHora(incidente.detectado_en) })}
-                  {incidente.tipo === 'excursion_no_verificada' && incidente.detalle?.temperatura_interna != null && (
-                    <> · {t('alertas.incidenteTemperatura', { temperatura: incidente.detalle.temperatura_interna.toFixed(2) })}</>
-                  )}
-                  {incidente.ultimo_reporte_en && <> · {t('alertas.incidenteUltimoReporte', { fecha: fechaHora(incidente.ultimo_reporte_en) })}</>}
-                </p>
-              </div>
-              <div className="text-right text-xs text-muted">
-                {incidente.recuperado_en && <p>{t('alertas.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })}</p>}
-                <p>
-                  {incidente.notificado_en
-                    ? t('alertas.incidenteNotificado', { fecha: fechaHora(incidente.notificado_en) })
-                    : t('alertas.incidenteSinAviso')}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+      <ul className="mt-3 divide-y divide-border border-y border-border">
+        {incidentes.map((incidente) => (
+          <li key={incidente.id} className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1.5 py-3 text-sm">
+            <div className="min-w-0">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-medium text-foreground">{incidente.device_id}</span>
+                <Badge variant={incidente.estado === 'activo' ? 'critical' : 'ok'}>
+                  {t(`alertas.incidenteEstado.${incidente.estado}`)}
+                </Badge>
+                <span className="text-xs text-muted">{t(`alertas.incidenteTipo.${incidente.tipo ?? 'sin_datos'}`)}</span>
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted">
+                {(incidente.tipo ?? 'sin_datos') === 'sin_datos'
+                  ? t('alertas.incidenteDetectado', {
+                      fecha: fechaHora(incidente.detectado_en),
+                      segundos: incidente.umbral_silencio_segundos,
+                    })
+                  : t('alertas.incidenteAbierto', { fecha: fechaHora(incidente.detectado_en) })}
+                {incidente.tipo === 'excursion_no_verificada' && incidente.detalle?.temperatura_interna != null && (
+                  <> · {t('alertas.incidenteTemperatura', { temperatura: incidente.detalle.temperatura_interna.toFixed(2) })}</>
+                )}
+                {incidente.ultimo_reporte_en && <> · {t('alertas.incidenteUltimoReporte', { fecha: fechaHora(incidente.ultimo_reporte_en) })}</>}
+              </p>
+            </div>
+            <div className="text-xs leading-5 text-muted sm:text-right">
+              {incidente.recuperado_en && <p>{t('alertas.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })}</p>}
+              <p>
+                {incidente.notificado_en
+                  ? t('alertas.incidenteNotificado', { fecha: fechaHora(incidente.notificado_en) })
+                  : t('alertas.incidenteSinAviso')}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <Detalles className="mt-1">
+        <p className="max-w-[72ch] pb-2 text-[13px] leading-5 text-muted">{t('alertas.incidentesOperativosDetalle')}</p>
+      </Detalles>
     </section>
   )
 }

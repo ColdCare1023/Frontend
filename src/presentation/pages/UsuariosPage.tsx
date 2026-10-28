@@ -11,6 +11,7 @@ import { rangoPagina } from '@/lib/paginacion'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { ActionMenu } from '../components/ActionMenu'
+import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -20,18 +21,12 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableEmpty,
   TableHead,
   TableHeader,
   TableRow,
 } from '../components/ui/table'
 
-const VARIANTE_POR_ROL = {
-  administrador: 'neutral',
-  farmaceutico: 'neutral',
-  tecnico: 'neutral',
-  auditor: 'neutral',
-} as const
+type MensajeDialogo = { tipo: 'ok' | 'error'; texto: string } | null
 
 const FORM_INICIAL = { nombre: '', email: '', password: '', rol: 'tecnico' as Rol }
 
@@ -56,21 +51,19 @@ export function UsuariosPage() {
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [form, setForm] = useState(FORM_INICIAL)
   const [creando, setCreando] = useState(false)
-  const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+  const [mensaje, setMensaje] = useState<MensajeDialogo>(null)
 
   const [usuarioDesactivar, setUsuarioDesactivar] = useState<Usuario | null>(null)
   const [motivoDesactivacion, setMotivoDesactivacion] = useState<MotivoDesactivacion>(MOTIVOS_DESACTIVACION[0])
   const [desactivando, setDesactivando] = useState(false)
-  const [mensajeDesactivacion, setMensajeDesactivacion] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(
-    null,
-  )
+  const [mensajeDesactivacion, setMensajeDesactivacion] = useState<MensajeDialogo>(null)
 
   // HU-41 criterio 1: cambiar el rol de un usuario YA existente, no solo
   // fijarlo al crearlo.
   const [usuarioCambiarRol, setUsuarioCambiarRol] = useState<Usuario | null>(null)
   const [rolNuevo, setRolNuevo] = useState<Rol>('tecnico')
   const [cambiandoRol, setCambiandoRol] = useState(false)
-  const [mensajeCambioRol, setMensajeCambioRol] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+  const [mensajeCambioRol, setMensajeCambioRol] = useState<MensajeDialogo>(null)
 
   // FE-004: restablecer contraseña / reactivar. La contraseña temporal solo
   // vive en este estado mientras su diálogo está abierto.
@@ -178,116 +171,112 @@ export function UsuariosPage() {
         </Button>
       </PageHeader>
 
-      <div className="animate-rise border-t border-border pt-5 [&_thead]:bg-primary-tint/60 sm:[&_tbody_tr]:h-20">
-        <Table mobileLayout="stack" className="table-fixed min-w-[900px]" titulo={t('usuarios.titulo')} cargando={cargando}>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[27%]">{t('usuarios.nombre')}</TableHead>
-              <TableHead className="w-[28%]">{t('usuarios.email')}</TableHead>
-              <TableHead className="w-[20%] text-center">{t('usuarios.rol')}</TableHead>
-              <TableHead className="w-[13%] text-center">{t('usuarios.estado')}</TableHead>
-              <TableHead className="w-[12%] text-center">{t('comunes.acciones')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {cargando ? (
-              <TableEmpty colSpan={5}>{t('app.cargando')}</TableEmpty>
-            ) : usuarios.length === 0 ? (
-              <TableEmpty colSpan={5}>
-                <span className="inline-flex flex-col items-center gap-2">
-                  <Users className="size-5 text-faint" />
-                  {t('usuarios.sinUsuarios')}
-                </span>
-              </TableEmpty>
-            ) : (
-              visibles.map((usuario) => (
-                <TableRow key={usuario.id}>
-                  <TableCell data-label={t('usuarios.nombre')} className="mobile-full font-semibold">{usuario.nombre}</TableCell>
-                  <TableCell data-label={t('usuarios.email')} className="mobile-full break-all text-muted">{usuario.email}</TableCell>
-                  <TableCell data-label={t('usuarios.rol')} className="text-center">
-                    <Badge variant={VARIANTE_POR_ROL[usuario.rol]}>
-                      {t(`roles.${usuario.rol}`)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell data-label={t('usuarios.estado')} className="text-center">
-                    {usuario.is_active ? (
-                      <Badge variant="ok">{t('usuarios.activo')}</Badge>
-                    ) : (
-                      <Badge variant="critical">
-                        {t('usuarios.inactivo')}
-                        {usuario.motivo_desactivacion && (
-                          <span className="sr-only"> — {usuario.motivo_desactivacion}</span>
-                        )}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-center">
-                    {usuario.is_active && usuario.id === sesion?.id && (
-                      // HU-41 (P8): un administrador no modifica su propia cuenta.
-                      <span className="text-xs text-muted">{t('usuarios.tuCuenta')}</span>
-                    )}
-                    {usuario.is_active && usuario.id !== sesion?.id && (
-                      <ActionMenu label={usuario.nombre}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          aria-label={t('usuarios.cambiarRolA', { nombre: usuario.nombre })}
-                          disabled={usuario.rol === 'administrador' && administradoresActivos <= 1}
-                          title={usuario.rol === 'administrador' && administradoresActivos <= 1 ? t('usuarios.ultimoAdmin') : undefined}
-                          onClick={() => {
-                            setUsuarioCambiarRol(usuario)
-                            setRolNuevo(usuario.rol)
-                            setMensajeCambioRol(null)
-                          }}
-                        >
-                          <ShieldCheck />
-                          {t('usuarios.cambiarRol')}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          aria-label={t('usuarios.desactivarA', { nombre: usuario.nombre })}
-                          disabled={usuario.rol === 'administrador' && administradoresActivos <= 1}
-                          title={usuario.rol === 'administrador' && administradoresActivos <= 1 ? t('usuarios.ultimoAdmin') : undefined}
-                          onClick={() => {
-                            setUsuarioDesactivar(usuario)
-                            setMotivoDesactivacion(MOTIVOS_DESACTIVACION[0])
-                            setMensajeDesactivacion(null)
-                          }}
-                        >
-                          <UserX />
-                          {t('usuarios.desactivar')}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setTemporalPendiente({ usuario, accion: 'restablecer-password' })}
-                        >
-                          <KeyRound />
-                          {t('usuarios.restablecerPassword')}
-                        </Button>
-                      </ActionMenu>
-                    )}
-                    {!usuario.is_active && (
-                      <ActionMenu label={usuario.nombre}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setTemporalPendiente({ usuario, accion: 'reactivar' })}
-                        >
-                          <RotateCcw />
-                          {t('usuarios.reactivar')}
-                        </Button>
-                      </ActionMenu>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      {cargando ? (
+        <EstadoCarga />
+      ) : usuarios.length === 0 ? (
+        <EstadoVacio icono={Users} titulo={t('usuarios.sinUsuarios')} />
+      ) : (
+        <div>
+          <Table mobileLayout="stack" titulo={t('usuarios.titulo')}>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[26%]">{t('usuarios.nombre')}</TableHead>
+                <TableHead className="w-[30%]">{t('usuarios.email')}</TableHead>
+                <TableHead className="w-[18%]">{t('usuarios.rol')}</TableHead>
+                <TableHead className="w-[12%]">{t('usuarios.estado')}</TableHead>
+                <TableHead className="w-[14%] text-right">{t('comunes.acciones')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibles.map((usuario) => {
+                // HU-41: con un solo administrador activo no se le quita el rol ni se le desactiva.
+                const ultimoAdmin = usuario.rol === 'administrador' && administradoresActivos <= 1
+                return (
+                  <TableRow key={usuario.id}>
+                    <TableCell data-label={t('usuarios.nombre')} className="mobile-full font-semibold">{usuario.nombre}</TableCell>
+                    <TableCell data-label={t('usuarios.email')} className="mobile-full break-all text-muted">{usuario.email}</TableCell>
+                    <TableCell data-label={t('usuarios.rol')} className="sm:whitespace-nowrap">{t(`roles.${usuario.rol}`)}</TableCell>
+                    <TableCell data-label={t('usuarios.estado')}>
+                      {usuario.is_active ? (
+                        <Badge variant="ok" dot>{t('usuarios.activo')}</Badge>
+                      ) : (
+                        <Badge variant="neutral" dot>
+                          {t('usuarios.inactivo')}
+                          {usuario.motivo_desactivacion && (
+                            <span className="sr-only"> — {usuario.motivo_desactivacion}</span>
+                          )}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-right">
+                      {usuario.is_active && usuario.id === sesion?.id && (
+                        // HU-41 (P8): un administrador no modifica su propia cuenta.
+                        // Misma altura que el botón «Opciones»: todas las filas miden igual.
+                        <span className="inline-flex h-11 items-center text-xs text-muted sm:h-9 sm:pointer-coarse:h-11">{t('usuarios.tuCuenta')}</span>
+                      )}
+                      {usuario.is_active && usuario.id !== sesion?.id && (
+                        <ActionMenu label={usuario.nombre}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('usuarios.cambiarRolA', { nombre: usuario.nombre })}
+                            disabled={ultimoAdmin}
+                            title={ultimoAdmin ? t('usuarios.ultimoAdmin') : undefined}
+                            onClick={() => {
+                              setUsuarioCambiarRol(usuario)
+                              setRolNuevo(usuario.rol)
+                              setMensajeCambioRol(null)
+                            }}
+                          >
+                            <ShieldCheck />
+                            {t('usuarios.cambiarRol')}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            aria-label={t('usuarios.desactivarA', { nombre: usuario.nombre })}
+                            disabled={ultimoAdmin}
+                            title={ultimoAdmin ? t('usuarios.ultimoAdmin') : undefined}
+                            onClick={() => {
+                              setUsuarioDesactivar(usuario)
+                              setMotivoDesactivacion(MOTIVOS_DESACTIVACION[0])
+                              setMensajeDesactivacion(null)
+                            }}
+                          >
+                            <UserX />
+                            {t('usuarios.desactivar')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTemporalPendiente({ usuario, accion: 'restablecer-password' })}
+                          >
+                            <KeyRound />
+                            {t('usuarios.restablecerPassword')}
+                          </Button>
+                        </ActionMenu>
+                      )}
+                      {!usuario.is_active && (
+                        <ActionMenu label={usuario.nombre}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTemporalPendiente({ usuario, accion: 'reactivar' })}
+                          >
+                            <RotateCcw />
+                            {t('usuarios.reactivar')}
+                          </Button>
+                        </ActionMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
           <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
-      </div>
+        </div>
+      )}
 
       {/* ── Diálogo de cambio de rol (HU-41) ────────────────── */}
       <Dialog open={usuarioCambiarRol !== null} onOpenChange={(abierto) => !abierto && setUsuarioCambiarRol(null)}>
@@ -312,18 +301,7 @@ export function UsuariosPage() {
               </NativeSelect>
             </div>
 
-            {mensajeCambioRol && (
-              <p
-                role={mensajeCambioRol.tipo === 'error' ? 'alert' : 'status'}
-                className={
-                  mensajeCambioRol.tipo === 'ok'
-                    ? 'rounded-(--radius-field) bg-success-100 px-3 py-2 text-[13px] text-success-700'
-                    : 'rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700'
-                }
-              >
-                {mensajeCambioRol.texto}
-              </p>
-            )}
+            <MensajeFormulario mensaje={mensajeCambioRol} />
 
             <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button variant="ghost" onClick={() => setUsuarioCambiarRol(null)} disabled={cambiandoRol}>
@@ -360,18 +338,7 @@ export function UsuariosPage() {
               </NativeSelect>
             </div>
 
-            {mensajeDesactivacion && (
-              <p
-                role={mensajeDesactivacion.tipo === 'error' ? 'alert' : 'status'}
-                className={
-                  mensajeDesactivacion.tipo === 'ok'
-                    ? 'rounded-(--radius-field) bg-success-100 px-3 py-2 text-[13px] text-success-700'
-                    : 'rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700'
-                }
-              >
-                {mensajeDesactivacion.texto}
-              </p>
-            )}
+            <MensajeFormulario mensaje={mensajeDesactivacion} />
 
             <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button variant="ghost" onClick={() => setUsuarioDesactivar(null)} disabled={desactivando}>
@@ -419,11 +386,7 @@ export function UsuariosPage() {
             </div>
           ) : (
             <div className="mt-4 space-y-3">
-              {errorTemporal && (
-                <p role="alert" className="rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700">
-                  {errorTemporal}
-                </p>
-              )}
+              <MensajeFormulario mensaje={errorTemporal ? { tipo: 'error', texto: errorTemporal } : null} />
               <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
                 <Button variant="ghost" onClick={cerrarTemporal} disabled={procesandoTemporal}>
                   {t('usuarios.cancelar')}
@@ -489,18 +452,7 @@ export function UsuariosPage() {
               </NativeSelect>
             </div>
 
-            {mensaje && (
-              <p
-                role={mensaje.tipo === 'error' ? 'alert' : 'status'}
-                className={
-                  mensaje.tipo === 'ok'
-                    ? 'rounded-(--radius-field) bg-success-100 px-3 py-2 text-[13px] text-success-700'
-                    : 'rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700'
-                }
-              >
-                {mensaje.texto}
-              </p>
-            )}
+            <MensajeFormulario mensaje={mensaje} />
 
             <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
               <Button variant="ghost" onClick={() => setDialogoAbierto(false)} disabled={creando}>
@@ -514,5 +466,22 @@ export function UsuariosPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+/** Resultado de un diálogo: `status` si salió bien, `alert` si falló. */
+function MensajeFormulario({ mensaje }: { mensaje: MensajeDialogo }) {
+  if (!mensaje) return null
+  return (
+    <p
+      role={mensaje.tipo === 'error' ? 'alert' : 'status'}
+      className={
+        mensaje.tipo === 'ok'
+          ? 'rounded-(--radius-field) bg-success-100 px-3 py-2 text-[13px] text-success-700'
+          : 'rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] text-critical'
+      }
+    >
+      {mensaje.texto}
+    </p>
   )
 }

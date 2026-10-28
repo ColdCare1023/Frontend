@@ -28,6 +28,7 @@ export function AuthShell({ brandPanel, children, className }: AuthShellProps) {
             <ThemeSwitcher />
           </div>
           <div className="flex flex-1 items-center px-5 pb-10 pt-3 sm:px-9 lg:px-12 lg:py-16 xl:px-16">
+            {/* El formulario va directo sobre la página, sin tarjeta. */}
             <div className="mx-auto w-full max-w-[424px] animate-(--animate-rise-lg) [animation-delay:90ms]">{children}</div>
           </div>
         </section>

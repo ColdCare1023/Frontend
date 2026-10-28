@@ -55,6 +55,30 @@ describe('Consentimiento de privacidad', () => {
     expect(useAuthStore.getState().requierePrivacidad).toBe(false)
   })
 
+  it('las pantallas no piden datos hasta aceptar; luego cargan sin errores', async () => {
+    // Antes el monitoreo pedía lecturas detrás del aviso: el backend las
+    // rechaza (403) y al aceptar quedaba «No pudimos cargar…» hasta reintentar.
+    adaptador = instalarAdaptadorFalso((config) =>
+      config.url === '/api/auth/privacidad/aceptar' ? { data: { privacy_accepted: true } } : { data: [] },
+    )
+    setAccessToken(tokenDe('tecnico'))
+    useAuthStore.setState({ usuario: SESION, autenticado: true, requierePrivacidad: true })
+    window.history.replaceState(null, '', '/alertas')
+    // Con los módulos ya cargados, una pantalla montada detrás del aviso
+    // alcanzaría a pedir sus datos antes de la comprobación.
+    await Promise.all([import('@/presentation/layouts/AppLayout'), import('@/presentation/pages/AlertasPage')])
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('button', { name: 'Acepto' })
+    await new Promise((resolver) => setTimeout(resolver, 500))
+    expect(adaptador.peticiones).toHaveLength(0)
+
+    await user.click(screen.getByRole('button', { name: 'Acepto' }))
+    await waitFor(() => expect(adaptador.peticiones.some((p) => p.url === '/api/alertas')).toBe(true), { timeout: 15_000 })
+    expect(adaptador.peticiones[0].url).toBe('/api/auth/privacidad/aceptar')
+  }, 30_000)
+
   it('rechazar revoca la sesión en el servidor y la cierra en el cliente', async () => {
     adaptador = instalarAdaptadorFalso((config) =>
       config.url === '/api/auth/privacidad/rechazar' ? { status: 401, data: {} } : { data: [] },
