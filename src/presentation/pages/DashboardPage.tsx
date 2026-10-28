@@ -24,6 +24,7 @@ import { RiskBadge } from '../components/RiskBadge'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
+import { Detalles } from '../components/ui/detalles'
 import { rutaApi } from '@/lib/rutaApi'
 
 // HU-35: el nodo entrega su umbral configurado; 120 s cubre respuestas de
@@ -248,7 +249,7 @@ function EstadoPrincipal({
                 <span className="mb-1 flex size-8 items-center justify-center text-muted" aria-hidden="true">
                   <Thermometer className="size-6" />
                 </span>
-                <p className="nums text-[48px] font-semibold leading-none tracking-[-0.03em] text-foreground sm:text-[56px]">
+                <p className="nums text-[56px] font-semibold leading-none tracking-[-0.04em] text-foreground sm:text-[68px]">
                   {lectura?.toFixed(1) ?? '—'}
                 </p>
                 <span className="pb-1 text-xl font-medium text-muted">°C</span>
@@ -1009,9 +1010,13 @@ export function DashboardPage() {
                         </Badge>
                       </div>
                       {incidenteActivo && <p role="status" className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium text-clay-700">{t('dashboard.alertaSilencio', { fecha: fechaHora(incidenteActivo.detectado_en), segundos: incidenteActivo.umbral_silencio_segundos })}</p>}
+                      {/* Lo que el farmacéutico necesita ver; la ficha técnica queda plegada. */}
                       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3 text-xs">
-                        <div><dt className="text-muted">{t('dispositivos.ultimoReporte')}</dt><dd className="mt-0.5 font-medium">{ultimaLectura}</dd></div>
-                        <div><dt className="text-muted">{t('dispositivos.conectividad')}</dt><dd className="mt-0.5 font-medium">{equipo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.ultimoReporte')}</dt><dd className="mt-0.5 text-[13px] font-medium">{ultimaLectura}</dd></div>
+                        <div><dt className="text-muted">{t('dispositivos.conectividad')}</dt><dd className="mt-0.5 text-[13px] font-medium">{equipo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}</dd></div>
+                      </dl>
+                      <Detalles className="mt-1">
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                         <div><dt className="text-muted">{t('dispositivos.fallasSensor')}</dt><dd className="mt-0.5 font-medium">{(equipo.sensores ?? []).filter((sensor) => sensor.estado === 'error').length}</dd></div>
                         <div><dt className="text-muted">{t('dispositivos.bufferLittlefs', { n: lecturasPendientes, max: equipo.buffer_littlefs?.limite ?? CAPACIDAD_BUFFER_LITTLEFS })}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.perdidas', { n: equipo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
                         <div><dt className="text-muted">{t('dispositivos.intervaloReporte')}</dt><dd className="mt-0.5 font-medium">{equipo.intervalo_reporte_segundos ?? 30} s</dd></div>
@@ -1020,6 +1025,7 @@ export function DashboardPage() {
                         <div><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="mt-0.5 font-medium">{t(`dispositivos.credencial.${equipo.estado_credencial_broker ?? 'sin_reportar'}`)}</dd></div>
                         {equipo.buffer_littlefs?.desde && <div><dt className="text-muted">{t('dispositivos.ventanaCola')}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.rangoBuffer', { desde: fechaHora(equipo.buffer_littlefs.desde), hasta: equipo.buffer_littlefs.hasta ? fechaHora(equipo.buffer_littlefs.hasta) : '—' })}</dd></div>}
                       </dl>
+                      </Detalles>
                       </article>
                     )
                   })}
