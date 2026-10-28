@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { motion, useReducedMotion } from 'motion/react'
 import {
   BookOpen,
   Activity,
   Bell,
   Brain,
+  ChevronDown,
+  ChevronRight,
   FileText,
   FlaskConical,
   HardDrive,
@@ -14,7 +17,9 @@ import {
   Link2,
   KeyRound,
   LogOut,
-  Menu,
+  Menu as MenuIcono,
+  PanelLeftClose,
+  PanelLeftOpen,
   ScrollText,
   Users,
   X,
@@ -28,6 +33,10 @@ import { cn } from '@/lib/utils'
 import { AvisoExpiracionSesion } from '../components/AvisoExpiracionSesion'
 import { ColdCareBrand } from '../components/ColdCareBrand'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { ThemeSwitcher } from '../components/ThemeSwitcher'
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../components/ui/menu'
+import { Tooltip, TooltipProvider } from '../components/ui/tooltip'
+import { ANCHO_COLAPSADO, ANCHO_EXPANDIDO, guardarColapsado, leerColapsado } from './preferenciaSidebar'
 
 interface ItemNav {
   ruta: string
@@ -76,10 +85,8 @@ const SECCIONES: SeccionNav[] = [
   },
 ]
 
-function MarcaApp() {
-  const { t } = useTranslation()
-  return <ColdCareBrand tone="dark" subtitulo={t('app.subtitulo')} />
-}
+const RESORTE = { type: 'spring', stiffness: 380, damping: 35, mass: 0.75 } as const
+const ENTRADA_PAGINA = { duration: 0.24, ease: [0.16, 1, 0.3, 1] } as const
 
 function BadgeDemo({ className }: { className?: string }) {
   const { t } = useTranslation()
@@ -88,11 +95,11 @@ function BadgeDemo({ className }: { className?: string }) {
     <span
       title={t('demo.descripcionBadge')}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border border-glacier-200 bg-secondary-tint px-2.5 py-1 text-xs font-semibold text-glacier-700',
+        'inline-flex items-center gap-1.5 rounded-full bg-secondary-tint px-2.5 py-1 text-xs font-semibold text-glacier-700 ring-1 ring-inset ring-glacier-200',
         className,
       )}
     >
-      <FlaskConical className="size-3" />
+      <FlaskConical className="size-3" aria-hidden />
       {t('demo.badge')}
     </span>
   )
@@ -109,7 +116,7 @@ function AvisoDatosSimulados() {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 border-b border-amber-300 bg-amber-50 px-4 py-1.5 text-xs text-amber-900 sm:px-6 lg:px-7"
+      className="flex items-center gap-2 border-b border-honey-600/20 bg-honey-100 px-4 py-1.5 text-xs leading-5 text-honey-700 sm:px-6 lg:px-8"
     >
       <FlaskConical aria-hidden className="size-3.5 shrink-0" />
       <p>
@@ -120,222 +127,329 @@ function AvisoDatosSimulados() {
 }
 
 /**
- * Contenido del sidebar, compartido entre escritorio y el drawer móvil.
+ * Navegación compartida entre el riel de escritorio y el drawer móvil.
  *
  * `sufijoId` distingue las dos instancias: con el drawer abierto hay dos `nav`
  * en el documento y dos juegos de encabezados de sección. Sin nombres
  * distintos, la lista de regiones del lector de pantalla mostraba dos entradas
  * idénticas y los `id` de `aria-labelledby` quedaban duplicados.
  */
-function ContenidoSidebar({
+function NavegacionPrincipal({
   alNavegar,
   etiquetaNav,
   sufijoId,
+  colapsado = false,
 }: {
   alNavegar?: () => void
   etiquetaNav: string
   sufijoId: string
+  colapsado?: boolean
 }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const reducir = useReducedMotion()
   const usuario = useAuthStore((s) => s.usuario)
-  const logout = useAuthStore((s) => s.logout)
-
   if (!usuario) return null
 
-  const cerrarSesion = () => {
-    logout()
-    void navigate('/login', { replace: true })
-  }
-
   return (
-    <>
-      <nav aria-label={etiquetaNav} className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pb-4 lg:space-y-3 lg:pb-2 [@media(max-height:760px)]:space-y-2">
-        {SECCIONES.map((seccion) => {
-          const visibles = seccion.items.filter((item) => tienePermiso(usuario.rol, item.roles))
-          if (visibles.length === 0) return null
-          const idTitulo = `${sufijoId}-${seccion.claveI18n.replace(/\./g, '-')}`
-          return (
-            <div key={seccion.claveI18n}>
-              <p id={idTitulo} className="mb-2 px-3 text-[11px] lg:mb-1 font-semibold uppercase leading-5 tracking-[0.12em] text-faint">
+    <nav aria-label={etiquetaNav} className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-2 [@media(max-height:760px)]:space-y-3">
+      {SECCIONES.map((seccion) => {
+        const visibles = seccion.items.filter((item) => tienePermiso(usuario.rol, item.roles))
+        if (visibles.length === 0) return null
+        const idTitulo = `${sufijoId}-${seccion.claveI18n.replace(/\./g, '-')}`
+        return (
+          <div key={seccion.claveI18n}>
+            <div className="relative mb-1.5 h-5">
+              <p
+                id={idTitulo}
+                className={cn(
+                  'truncate px-[15px] text-[11px] leading-5 font-semibold uppercase tracking-[0.12em] text-faint transition-opacity duration-(--duration-ui)',
+                  colapsado && 'opacity-0',
+                )}
+              >
                 {t(seccion.claveI18n)}
               </p>
-              <ul aria-labelledby={idTitulo} className="space-y-1 lg:space-y-0.5">
-                {visibles.map((item) => (
-                  <li key={item.ruta}>
+              <span
+                aria-hidden
+                className={cn(
+                  'absolute left-1/2 top-1/2 h-px w-6 -translate-x-1/2 bg-border-strong transition-opacity duration-(--duration-ui)',
+                  colapsado ? 'opacity-100' : 'opacity-0',
+                )}
+              />
+            </div>
+            <ul aria-labelledby={idTitulo} className="space-y-0.5">
+              {visibles.map((item) => (
+                <li key={item.ruta}>
+                  <Tooltip contenido={t(item.claveI18n)} desactivado={!colapsado}>
                     <NavLink
                       to={item.ruta}
                       onClick={alNavegar}
                       className={({ isActive }) =>
                         cn(
-                          'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 lg:min-h-9 lg:py-1.5 [@media(max-height:760px)]:min-h-8 [@media(max-height:760px)]:py-1 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
-                          isActive
-                            ? 'bg-primary-tint text-primary'
-                            : 'text-muted hover:bg-background hover:text-foreground',
+                          'group relative flex h-9 items-center gap-3 rounded-lg px-[15px] text-[13.5px] font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:h-11 [@media(max-height:700px)]:h-8',
+                          isActive ? 'text-foreground' : 'text-muted hover:bg-cream-200/60 hover:text-foreground',
                         )
                       }
                     >
                       {({ isActive }) => (
                         <>
+                          {isActive && (
+                            <motion.span
+                              layoutId={`nav-activo-${sufijoId}`}
+                              transition={reducir ? { duration: 0 } : RESORTE}
+                              aria-hidden
+                              className="absolute inset-0 rounded-lg bg-primary-tint ring-1 ring-inset ring-primary/15"
+                            >
+                              <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+                            </motion.span>
+                          )}
                           <item.icono
                             className={cn(
-                              'size-4 transition-colors',
+                              'relative size-[18px] shrink-0 transition-colors duration-(--duration-micro)',
                               isActive ? 'text-primary' : 'text-faint group-hover:text-foreground',
                             )}
                           />
-                          {t(item.claveI18n)}
+                          <span
+                            className={cn(
+                              'relative truncate transition-opacity duration-(--duration-ui)',
+                              colapsado && 'opacity-0',
+                            )}
+                          >
+                            {t(item.claveI18n)}
+                          </span>
                         </>
                       )}
                     </NavLink>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )
-        })}
-      </nav>
-
-      <div className="border-t border-border px-3 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pt-2 lg:pb-3 [@media(max-height:760px)]:pt-1 [@media(max-height:760px)]:pb-2">
-        <div className="mb-3 flex items-center gap-3 px-3 py-1 lg:mb-1 lg:py-0.5 [@media(max-height:760px)]:mb-0">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full lg:size-8 bg-primary-tint text-sm font-semibold text-primary">
-            {usuario.email.charAt(0).toUpperCase()}
-          </span>
-          <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-[13px] font-medium text-foreground">{usuario.email}</p>
-            <p className="mt-1 text-xs leading-4 text-faint">{t(`roles.${usuario.rol}`)}</p>
+                  </Tooltip>
+                </li>
+              ))}
+            </ul>
           </div>
-          {/* FE-004: cambio de contraseña voluntario (BE-025). */}
-          <NavLink
-            to="/cambiar-password"
-            onClick={alNavegar}
-            aria-label={t('cambiarPassword.menu')}
-            title={t('cambiarPassword.menu')}
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <KeyRound className="size-4" />
-          </NavLink>
-        </div>
+        )
+      })}
+    </nav>
+  )
+}
+
+/** Cuenta del usuario: datos, cambio de contraseña (FE-004) y cierre de sesión. */
+function MenuUsuario() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const usuario = useAuthStore((s) => s.usuario)
+  const logout = useAuthStore((s) => s.logout)
+  if (!usuario) return null
+  const inicial = usuario.email.charAt(0).toUpperCase()
+
+  return (
+    <Menu>
+      <MenuTrigger asChild>
         <button
           type="button"
-          onClick={cerrarSesion}
-          className="flex min-h-11 lg:min-h-9 [@media(max-height:760px)]:min-h-8 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors duration-150 hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label={`${t('nav.menuUsuario')}: ${usuario.email}`}
+          className="flex h-9 cursor-pointer items-center gap-2 rounded-lg pl-1 pr-1.5 text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:bg-cream-200/70 pointer-coarse:h-11"
         >
-          <LogOut className="size-4" />
-          {t('nav.cerrarSesion')}
+          <span className="flex size-7 items-center justify-center rounded-full bg-primary-tint text-xs font-semibold text-primary ring-1 ring-inset ring-primary/20">
+            {inicial}
+          </span>
+          <span className="hidden max-w-40 truncate text-[13px] font-medium text-foreground xl:block">{usuario.email}</span>
+          <ChevronDown className="size-3.5" aria-hidden />
         </button>
-      </div>
-    </>
+      </MenuTrigger>
+      <MenuContent className="w-64">
+        <div className="flex items-center gap-3 px-2.5 py-2">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-sm font-semibold text-primary ring-1 ring-inset ring-primary/20">
+            {inicial}
+          </span>
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-[13px] font-medium text-foreground">{usuario.email}</p>
+            <p className="mt-1 text-xs text-faint">{t(`roles.${usuario.rol}`)}</p>
+          </div>
+        </div>
+        <MenuSeparator />
+        <MenuItem onSelect={() => void navigate('/cambiar-password')}>
+          <KeyRound className="text-faint" aria-hidden />
+          {t('cambiarPassword.menu')}
+        </MenuItem>
+        <MenuItem
+          onSelect={() => {
+            logout()
+            void navigate('/login', { replace: true })
+          }}
+        >
+          <LogOut className="text-faint" aria-hidden />
+          {t('nav.cerrarSesion')}
+        </MenuItem>
+      </MenuContent>
+    </Menu>
   )
 }
 
 export function AppLayout() {
   const { t, i18n } = useTranslation()
+  const reducir = useReducedMotion()
   const usuario = useAuthStore((s) => s.usuario)
   const [drawerAbierto, setDrawerAbierto] = useState(false)
+  const [colapsado, setColapsado] = useState(leerColapsado)
   const { pathname } = useLocation()
-  const rutaActual = SECCIONES.flatMap((seccion) => seccion.items).find((item) =>
+  const seccionActual = SECCIONES.find((seccion) =>
+    seccion.items.some((item) => pathname === item.ruta || pathname.startsWith(`${item.ruta}/`)),
+  )
+  const rutaActual = seccionActual?.items.find((item) =>
     pathname === item.ruta || pathname.startsWith(`${item.ruta}/`),
   )
 
   if (!usuario) return null
+
+  const alternarColapso = () => {
+    setColapsado((previo) => {
+      guardarColapsado(!previo)
+      return !previo
+    })
+  }
 
   const fechaHoy = new Date().toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'es-PE', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   })
+  const etiquetaColapso = colapsado ? t('nav.expandirMenu') : t('nav.colapsarMenu')
 
   return (
-    <div className="flex min-h-dvh bg-[#F4F7FB]">
-      {/* WCAG 2.4.1 (Evitar bloques): la navegación son doce enlaces repetidos
-          en cada página. Sin este atajo, llegar al contenido con el teclado
-          exigía atravesarlos uno a uno en todas las rutas. Se mantiene oculto
-          hasta recibir el foco. */}
-      <a
-        href="#contenido-principal"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-(--radius-field) focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-cream-50 focus:shadow-(--shadow-raised)"
-      >
-        {t('nav.saltarAlContenido')}
-      </a>
+    <TooltipProvider delayDuration={250} skipDelayDuration={150}>
+      <div className="flex min-h-dvh">
+        {/* WCAG 2.4.1 (Evitar bloques): la navegación son doce enlaces repetidos
+            en cada página. Sin este atajo, llegar al contenido con el teclado
+            exigía atravesarlos uno a uno en todas las rutas. Se mantiene oculto
+            hasta recibir el foco. */}
+        <a
+          href="#contenido-principal"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-(--radius-field) focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-on-primary focus:shadow-(--shadow-raised)"
+        >
+          {t('nav.saltarAlContenido')}
+        </a>
 
-      {/* ── Sidebar de escritorio ────────────────────────────── */}
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-white lg:flex">
-        <div className="px-5 pb-7 pt-6 lg:pb-4 lg:pt-5 [@media(max-height:760px)]:pb-2 [@media(max-height:760px)]:pt-3">
-          <MarcaApp />
-        </div>
-        <ContenidoSidebar etiquetaNav={t('nav.principal')} sufijoId="nav-escritorio" />
-      </aside>
-
-      {/* ── Drawer móvil ─────────────────────────────────────── */}
-      <DialogPrimitive.Root open={drawerAbierto} onOpenChange={setDrawerAbierto}>
-        <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-[2px] data-[state=open]:animate-fade lg:hidden" />
-          <DialogPrimitive.Content
-            aria-describedby={undefined}
-            className="fixed inset-y-0 left-0 z-50 flex w-80 max-w-[90vw] flex-col bg-white shadow-(--shadow-raised) data-[state=open]:animate-(--animate-drawer) lg:hidden"
-          >
-            <DialogPrimitive.Title className="sr-only">{t('app.nombre')}</DialogPrimitive.Title>
-            <div className="flex items-center justify-between gap-3 px-5 pb-6 pt-5 [@media(max-height:760px)]:pb-2 [@media(max-height:760px)]:pt-2">
-              <MarcaApp />
-              <DialogPrimitive.Close
-                aria-label={t('comunes.cerrar')}
-                className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                <X className="size-4.5" />
-              </DialogPrimitive.Close>
-            </div>
-            <ContenidoSidebar
-              alNavegar={() => setDrawerAbierto(false)}
-              etiquetaNav={t('nav.principalMovil')}
-              sufijoId="nav-movil"
+        {/* ── Riel de escritorio: colapsable, con preferencia recordada ── */}
+        <motion.aside
+          initial={false}
+          animate={{ width: colapsado ? ANCHO_COLAPSADO : ANCHO_EXPANDIDO }}
+          transition={reducir ? { duration: 0 } : RESORTE}
+          data-state={colapsado ? 'colapsado' : 'expandido'}
+          className="sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-surface lg:flex"
+        >
+          <div className="flex h-14 shrink-0 items-center px-4">
+            <ColdCareBrand
+              subtitulo={t('app.subtitulo')}
+              className={cn('[&_p]:transition-opacity [&_p]:duration-(--duration-ui) [&_svg]:size-9', colapsado && '[&_p]:opacity-0')}
             />
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Portal>
+          </div>
+          <NavegacionPrincipal etiquetaNav={t('nav.principal')} sufijoId="nav-escritorio" colapsado={colapsado} />
+          <div className="shrink-0 border-t border-border p-3">
+            <Tooltip contenido={etiquetaColapso} desactivado={!colapsado}>
+              <button
+                type="button"
+                onClick={alternarColapso}
+                aria-expanded={!colapsado}
+                aria-label={etiquetaColapso}
+                className="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg px-[15px] text-[13px] font-medium whitespace-nowrap text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/60 hover:text-foreground"
+              >
+                {colapsado ? <PanelLeftOpen className="size-[18px] shrink-0" aria-hidden /> : <PanelLeftClose className="size-[18px] shrink-0" aria-hidden />}
+                <span className={cn('transition-opacity duration-(--duration-ui)', colapsado && 'opacity-0')} aria-hidden>
+                  {t('nav.colapsarMenu')}
+                </span>
+              </button>
+            </Tooltip>
+          </div>
+        </motion.aside>
 
-        {/* ── Contenido ──────────────────────────────────────── */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* FS5: por encima de la cabecera, para que se vea en cualquier ruta. */}
-          <AvisoExpiracionSesion />
-          <AvisoDatosSimulados />
-          <AvisosTiempoReal />
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-[#E2E8F0] bg-white px-4 sm:px-6 lg:px-7">
-            <DialogPrimitive.Trigger
-              aria-label={t('nav.abrirMenu')}
-              className="-ml-1 flex size-11 shrink-0 items-center justify-center rounded-lg text-[#475569] transition-colors hover:bg-[#F4F7FB] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B5CFF] lg:hidden"
+        {/* ── Drawer móvil ─────────────────────────────────────── */}
+        <DialogPrimitive.Root open={drawerAbierto} onOpenChange={setDrawerAbierto}>
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-overlay/55 backdrop-blur-[2px] data-[state=open]:animate-fade data-[state=closed]:animate-fade-out lg:hidden" />
+            <DialogPrimitive.Content
+              aria-describedby={undefined}
+              className="fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[86vw] flex-col border-r border-border bg-surface shadow-(--shadow-raised) data-[state=open]:animate-(--animate-drawer) data-[state=closed]:animate-(--animate-drawer-out) focus:outline-none lg:hidden"
             >
-              <Menu className="size-5" />
-            </DialogPrimitive.Trigger>
+              <DialogPrimitive.Title className="sr-only">{t('app.nombre')}</DialogPrimitive.Title>
+              <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border pl-4 pr-2">
+                <ColdCareBrand subtitulo={t('app.subtitulo')} className="[&_svg]:size-9" />
+                <DialogPrimitive.Close
+                  aria-label={t('comunes.cerrar')}
+                  className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground"
+                >
+                  <X className="size-4.5" aria-hidden />
+                </DialogPrimitive.Close>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                <NavegacionPrincipal
+                  alNavegar={() => setDrawerAbierto(false)}
+                  etiquetaNav={t('nav.principalMovil')}
+                  sufijoId="nav-movil"
+                />
+              </div>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
 
-            <ColdCareBrand className="lg:hidden" />
+          {/* ── Contenido ──────────────────────────────────────── */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            {/* FS5: por encima de la cabecera, para que se vea en cualquier ruta. */}
+            <AvisoExpiracionSesion />
+            <AvisoDatosSimulados />
+            <AvisosTiempoReal />
+            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md sm:px-6 lg:px-8">
+              <DialogPrimitive.Trigger
+                aria-label={t('nav.abrirMenu')}
+                className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground lg:hidden"
+              >
+                <MenuIcono className="size-5" aria-hidden />
+              </DialogPrimitive.Trigger>
 
-            <div className="hidden min-w-0 items-center gap-5 lg:flex">
-              <p className="truncate text-sm font-semibold text-[#0F172A]">
-                {rutaActual ? t(rutaActual.claveI18n) : t('app.nombre')}
-              </p>
-              <p className="text-xs text-[#64748B] first-letter:uppercase">
-                {fechaHoy}
-              </p>
-            </div>
+              <ColdCareBrand className="lg:hidden [&_svg]:size-8" />
 
-            <div className="ml-auto flex items-center gap-2.5">
-              <BadgeDemo className="hidden sm:inline-flex" />
-              <LanguageSwitcher />
-            </div>
-          </header>
+              <div className="hidden min-w-0 items-center gap-3 lg:flex">
+                <p className="flex min-w-0 items-center gap-1.5 text-sm">
+                  {seccionActual && (
+                    <>
+                      <span className="truncate text-faint">{t(seccionActual.claveI18n)}</span>
+                      <ChevronRight className="size-3.5 shrink-0 text-faint" aria-hidden />
+                    </>
+                  )}
+                  <span className="truncate font-semibold text-foreground">
+                    {rutaActual ? t(rutaActual.claveI18n) : t('app.nombre')}
+                  </span>
+                </p>
+                <span aria-hidden className="h-4 w-px bg-border" />
+                <p className="text-xs text-faint first-letter:uppercase">{fechaHoy}</p>
+              </div>
 
-          <main
-            id="contenido-principal"
-            tabIndex={-1}
-            aria-label={t('nav.contenidoPrincipal')}
-            className="min-w-0 flex-1 overflow-x-clip bg-[#F4F7FB] px-4 py-5 focus:outline-none sm:px-6 sm:py-6 lg:px-7"
-          >
-            {/* Tope de ancho: en monitores muy anchos el contenido no se estira sin fin */}
-            <div className="mx-auto w-full max-w-[1600px]">
-              <Outlet />
-            </div>
-          </main>
-        </div>
-      </DialogPrimitive.Root>
-    </div>
+              <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+                <BadgeDemo className="mr-1.5 hidden sm:inline-flex" />
+                <LanguageSwitcher />
+                <ThemeSwitcher />
+                <span aria-hidden className="mx-1 hidden h-5 w-px bg-border sm:block" />
+                <MenuUsuario />
+              </div>
+            </header>
+
+            <main
+              id="contenido-principal"
+              tabIndex={-1}
+              aria-label={t('nav.contenidoPrincipal')}
+              className="min-w-0 flex-1 overflow-x-clip px-4 py-5 focus:outline-none sm:px-6 sm:py-6 lg:px-8 lg:py-7"
+            >
+              {/* Tope de ancho: en monitores muy anchos el contenido no se estira sin fin */}
+              <div className="mx-auto w-full max-w-[1560px]">
+                <motion.div
+                  key={pathname}
+                  initial={reducir ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={ENTRADA_PAGINA}
+                >
+                  <Outlet />
+                </motion.div>
+              </div>
+            </main>
+          </div>
+        </DialogPrimitive.Root>
+      </div>
+    </TooltipProvider>
   )
 }

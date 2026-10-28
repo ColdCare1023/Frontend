@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { accionPrimeraFila, irA } from './helpers'
+import { accionPrimeraFila, irA, cerrarSesion } from './helpers'
 
 test('sesión demo, navegación y reapertura', async ({ page }) => {
   // El recorrido guiado se retiró (4e27dbe): tras entrar se llega al monitoreo.
@@ -126,7 +126,7 @@ test('logout elimina acceso a ruta protegida', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+  await cerrarSesion(page)
   await expect(page).toHaveURL(/\/login$/)
   await irA(page, '/alertas')
   await expect(page).toHaveURL(/\/login$/)

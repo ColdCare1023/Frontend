@@ -36,7 +36,11 @@
     "continuarCon": "or continue with",
     "googleNoAutorizado": "Your Google account has no access to ColdCare. Ask the administrator to register it.",
     "googleNoDisponible": "Google sign-in is not available right now.",
-    "cuentasAdministrador": "No account? Ask your pharmacy administrator."
+    "cuentasAdministrador": "No account? Ask your pharmacy administrator.",
+    "esloganLinea1": "Protect every dose.",
+    "esloganLinea2": "At every degree.",
+    "rangoReferencia": "Reference temperature range",
+    "emailPlaceholder": "pharmacy@example.com"
   },
   "nav": {
     "dashboard": "Monitoring",
@@ -57,7 +61,10 @@
     "saltarAlContenido": "Skip to main content",
     "principal": "Main navigation",
     "principalMovil": "Main navigation (mobile menu)",
-    "contenidoPrincipal": "Main content"
+    "contenidoPrincipal": "Main content",
+    "colapsarMenu": "Collapse menu",
+    "expandirMenu": "Expand menu",
+    "menuUsuario": "User menu"
   },
   "roles": {
     "administrador": "Administrator",
@@ -1010,5 +1017,17 @@
     "monitoreo_suspendido": "Monitoring of {{device}} suspended: compromise credential rotation.",
     "posesion_verificada": "{{device}} proved the new credential: recording resumes.",
     "posesion_firma_invalida": "{{device}} is still on the previous token: the broker still accepts it. Change the password in the console and use \"Resend challenge\"."
+  },
+  "tema": {
+    "titulo": "Theme",
+    "cambiar": "Change theme",
+    "oscuro": "Dark",
+    "claro": "Light",
+    "sistema": "System"
+  },
+  "idiomas": {
+    "cambiar": "Change language",
+    "es": "Español",
+    "en": "English"
   }
 }

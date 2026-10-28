@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { cerrarSesion } from './helpers'
+
 test('login móvil mantiene formulario legible y controles operables', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/login')
@@ -38,7 +40,7 @@ test('login real de demo usa credenciales conocidas y limita intentos sin revela
   await page.locator('#login-password').fill('demo-2026')
   await page.getByRole('button', { name: 'Ingresar' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+  await cerrarSesion(page)
 
   const email = `no-existe-${Date.now()}@demo.pe`
   for (let intento = 1; intento <= 5; intento++) {
