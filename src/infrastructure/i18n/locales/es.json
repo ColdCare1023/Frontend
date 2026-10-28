@@ -718,7 +718,13 @@
     "verDatosGrafica": "Ver los datos de la gráfica en una tabla",
     "deslizarTabla": "Desliza para ver todas las columnas.",
     "si": "Sí",
-    "no": "No"
+    "no": "No",
+    "abrirCalendario": "Abrir calendario",
+    "hoy": "Hoy",
+    "limpiar": "Limpiar",
+    "hora": "Hora",
+    "marcadorFechaHora": "dd/mm/aaaa hh:mm",
+    "marcadorFecha": "dd/mm/aaaa"
   },
   "metricasIA": {
     "titulo": "Cómo se comporta el clasificador",

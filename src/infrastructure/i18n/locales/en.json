@@ -718,7 +718,13 @@
     "verDatosGrafica": "View the chart data as a table",
     "deslizarTabla": "Scroll to see all columns.",
     "si": "Yes",
-    "no": "No"
+    "no": "No",
+    "abrirCalendario": "Open calendar",
+    "hoy": "Today",
+    "limpiar": "Clear",
+    "hora": "Time",
+    "marcadorFechaHora": "mm/dd/yyyy hh:mm",
+    "marcadorFecha": "mm/dd/yyyy"
   },
   "metricasIA": {
     "titulo": "How the classifier behaves",

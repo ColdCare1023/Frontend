@@ -9,6 +9,7 @@ import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/applicat
 import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
 import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
+import { SelectorFecha } from '@/presentation/components/ui/selector-fecha'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { fechaHora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
@@ -165,20 +166,20 @@ export function HistorialPage() {
             </div>
             <div>
               <Label htmlFor="f-desde">{t('historial.desde')}</Label>
-              <Input
+              <SelectorFecha
                 id="f-desde"
-                type="datetime-local"
-                value={filtros.desde ?? ''}
-                onChange={(e) => actualizarFiltro('desde', e.target.value)}
+                conHora
+                valor={filtros.desde ?? ''}
+                onCambiar={(valor) => actualizarFiltro('desde', valor)}
               />
             </div>
             <div>
               <Label htmlFor="f-hasta">{t('historial.hasta')}</Label>
-              <Input
+              <SelectorFecha
                 id="f-hasta"
-                type="datetime-local"
-                value={filtros.hasta ?? ''}
-                onChange={(e) => actualizarFiltro('hasta', e.target.value)}
+                conHora
+                valor={filtros.hasta ?? ''}
+                onCambiar={(valor) => actualizarFiltro('hasta', valor)}
               />
             </div>
             <div className="flex gap-2 col-span-2 xl:col-span-1">
