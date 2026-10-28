@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
@@ -27,6 +27,12 @@ export default defineConfig(({ command, mode }) => {
     }
   }
 
+  // Local contra el backend real: el navegador habla solo con Vite y Vite
+  // reenvía /api —incluido el flujo SSE de los sensores— al backend, sin CORS
+  // que configurar. COLDCARE_BACKEND_URL (en `.env.local`) apunta a otro
+  // backend, p. ej. el de Railway; sin prefijo VITE_, no llega al navegador.
+  const backend = loadEnv(mode, __dirname, '').COLDCARE_BACKEND_URL || 'http://localhost:8000'
+
   return {
     // La SPA se publica junto a la landing bajo /app/ en Vercel.
     base: process.env.VITE_APP_BASE ?? '/',
@@ -46,7 +52,7 @@ export default defineConfig(({ command, mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://localhost:8000',
+          target: backend,
           changeOrigin: true,
         },
       },
