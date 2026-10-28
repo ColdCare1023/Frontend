@@ -88,7 +88,7 @@ const SECCIONES: SeccionNav[] = [
 ]
 
 const RESORTE = { type: 'spring', stiffness: 380, damping: 35, mass: 0.75 } as const
-const ENTRADA_PAGINA = { duration: 0.24, ease: [0.16, 1, 0.3, 1] } as const
+const ENTRADA_PAGINA = { duration: 0.6, ease: [0.22, 1, 0.36, 1] } as const
 
 function BadgeDemo({ className }: { className?: string }) {
   const { t } = useTranslation()
@@ -452,11 +452,15 @@ export function AppLayout() {
               <div className="mx-auto w-full max-w-[1560px]">
                 {/* La página entra con un fundido; sus secciones suben escalonadas
                     (index.css). Con movimiento reducido aparece sin transición. */}
+                {/* Despliegue tipo «iPhone Duo»: la pantalla abre desde su borde
+                    izquierdo y pasa de desenfocada a nítida (coreografía del
+                    pliegue de jal-co/iphone-duo, acortada a 0.6 s). */}
                 <motion.div
                   key={pathname}
                   className="escalonado"
-                  initial={reducir ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  style={{ transformOrigin: 'left center' }}
+                  initial={reducir ? false : { opacity: 0, rotateY: -7, filter: 'blur(8px)', transformPerspective: 1800 }}
+                  animate={{ opacity: 1, rotateY: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
                   transition={ENTRADA_PAGINA}
                 >
                   <Outlet />
