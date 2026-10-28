@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
@@ -38,6 +38,7 @@ import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../comp
 import { Tooltip, TooltipProvider } from '../components/ui/tooltip'
 import { NotchToaster } from '../components/notificaciones/notch'
 import { ANCHO_COLAPSADO, ANCHO_EXPANDIDO, guardarColapsado, leerColapsado } from './preferenciaSidebar'
+import { useCristalLiquido } from '../efectos/cristalLiquido'
 
 interface ItemNav {
   ruta: string
@@ -290,6 +291,8 @@ export function AppLayout() {
   const usuario = useAuthStore((s) => s.usuario)
   const [drawerAbierto, setDrawerAbierto] = useState(false)
   const [colapsado, setColapsado] = useState(leerColapsado)
+  const refCabecera = useRef<HTMLElement>(null)
+  useCristalLiquido(refCabecera, { intensidad: 0.7, bisel: 12 })
   const { pathname } = useLocation()
   const seccionActual = SECCIONES.find((seccion) =>
     seccion.items.some((item) => pathname === item.ruta || pathname.startsWith(`${item.ruta}/`)),
@@ -317,15 +320,8 @@ export function AppLayout() {
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={150}>
       <div className="relative isolate flex min-h-dvh">
-        {/* Luz ambiental (index.css) y lente de refracción del cristal (#liquido). */}
+        {/* Luz ambiental (index.css): da al cristal algo que refractar. */}
         <div aria-hidden className="ambiente" />
-        <svg aria-hidden width="0" height="0" className="absolute">
-          <filter id="liquido" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-            <feTurbulence type="fractalNoise" baseFrequency="0.011 0.017" numOctaves="2" seed="11" result="ruido" />
-            <feGaussianBlur in="ruido" stdDeviation="1.6" result="ruidoSuave" />
-            <feDisplacementMap in="SourceGraphic" in2="ruidoSuave" scale="16" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </svg>
         {/* WCAG 2.4.1 (Evitar bloques): la navegación son doce enlaces repetidos
             en cada página. Sin este atajo, llegar al contenido con el teclado
             exigía atravesarlos uno a uno en todas las rutas. Se mantiene oculto
@@ -405,7 +401,13 @@ export function AppLayout() {
             <AvisoDatosSimulados />
             <AvisosTiempoReal />
             <NotchToaster />
-            <header className="cristal cristal-liquido sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-6 lg:px-8">
+            <header
+              ref={refCabecera}
+              data-liquid-glass=""
+              // `lg-glass` fija position: relative; la cabecera sigue siendo sticky.
+              style={{ position: 'sticky' }}
+              className="lg-glass lg-glass--host top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--lg-edge)] px-3 sm:px-6 lg:px-8"
+            >
               <DialogPrimitive.Trigger
                 aria-label={t('nav.abrirMenu')}
                 className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground lg:hidden"

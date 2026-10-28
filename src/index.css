@@ -338,6 +338,15 @@
   --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.06), 0 18px 44px -12px rgb(0 0 0 / 0.95);
   --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.08), 0 22px 48px -16px rgb(0 0 0 / 0.95);
 
+  /* Motor de cristal líquido (@zakisheriff/liquid-glass) afinado al negro. */
+  --lg-fill: rgb(18 18 20 / 0.5);
+  --lg-blur: 16px;
+  --lg-saturate: 1.7;
+  --lg-brightness: 1;
+  --lg-edge: rgb(255 255 255 / 0.1);
+  --lg-shadow: 0 16px 40px -16px rgb(0 0 0 / 0.8), 0 1px 2px rgb(0 0 0 / 0.4);
+  --lg-rim-opacity: 0.7;
+
   /* Liquid glass sobre negro: base grafito translúcida, filo especular frío. */
   --cristal-base: rgb(18 18 20 / 0.58);
   --cristal-borde: rgb(255 255 255 / 0.09);
@@ -372,6 +381,8 @@
   }
 
   :root {
+    --lg-fill: rgb(255 255 255 / 0.6);
+    --lg-blur: 16px;
     --cristal-base: rgb(255 255 255 / 0.62);
     --cristal-borde: rgb(15 23 42 / 0.08);
     --cristal-filo: rgb(255 255 255 / 0.95);

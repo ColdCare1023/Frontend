@@ -1,7 +1,8 @@
-import { useId } from 'react'
+import { useId, useRef } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 
 import { cn } from '@/lib/utils'
+import { useCristalLiquido } from '@/presentation/efectos/cristalLiquido'
 
 interface OpcionSegmento<T> {
   valor: T
@@ -30,12 +31,16 @@ export function Segmentado<T extends string | number>({
 }) {
   const id = useId()
   const reducir = useReducedMotion()
+  const refGrupo = useRef<HTMLDivElement>(null)
+  useCristalLiquido(refGrupo, { intensidad: 0.6, bisel: 8 })
 
   return (
     <div
+      ref={refGrupo}
       role="group"
       aria-label={etiqueta}
-      className={cn('relative inline-flex items-center gap-0.5 rounded-[10px] border border-border bg-surface-sunken p-0.5', className)}
+      data-liquid-glass=""
+      className={cn('lg-glass relative inline-flex items-center gap-0.5 rounded-xl p-0.5', className)}
     >
       {opciones.map((opcion) => {
         const activo = opcion.valor === valor

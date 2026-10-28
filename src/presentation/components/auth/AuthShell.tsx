@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '../LanguageSwitcher'
 import { ThemeSwitcher } from '../ThemeSwitcher'
+import { useCristalLiquido } from '../../efectos/cristalLiquido'
 
 interface AuthShellProps {
   brandPanel: ReactNode
@@ -17,6 +18,8 @@ interface AuthShellProps {
  * primer fotograma: la animación nunca bloquea el acceso.
  */
 export function AuthShell({ brandPanel, children, className }: AuthShellProps) {
+  const refPanel = useRef<HTMLDivElement>(null)
+  useCristalLiquido(refPanel, { intensidad: 0.9, bisel: 18 })
   return (
     <main className="min-h-dvh w-full bg-background">
       <div className={cn('grid min-h-dvh w-full grid-cols-1 content-start lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] lg:content-normal', className)}>
@@ -28,7 +31,14 @@ export function AuthShell({ brandPanel, children, className }: AuthShellProps) {
             <ThemeSwitcher />
           </div>
           <div className="flex flex-1 items-center px-5 pb-10 pt-3 sm:px-9 lg:px-12 lg:py-16 xl:px-16">
-            <div className="mx-auto w-full max-w-[424px] animate-(--animate-rise-lg) [animation-delay:90ms]">{children}</div>
+            {/* El formulario flota en cristal líquido sobre la grilla de puntos, que se dobla en su borde. */}
+            <div
+              ref={refPanel}
+              data-liquid-glass=""
+              className="lg-glass mx-auto w-full max-w-[468px] animate-(--animate-rise-lg) rounded-[28px] p-5 [animation-delay:90ms] sm:p-8"
+            >
+              {children}
+            </div>
           </div>
         </section>
       </div>
