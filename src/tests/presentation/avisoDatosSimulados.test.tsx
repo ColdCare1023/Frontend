@@ -26,13 +26,17 @@ async function montarLayout(modoDemo: boolean) {
   )
 }
 
+// Cada prueba reimporta el layout completo (vi.resetModules) para cambiar
+// MODO_DEMO; con toda la suite en paralelo eso supera los 5 s por defecto.
+const REIMPORTA_LAYOUT = { timeout: 20_000 }
+
 describe('Aviso de datos simulados', () => {
-  it('se muestra en modo demo', async () => {
+  it('se muestra en modo demo', REIMPORTA_LAYOUT, async () => {
     await montarLayout(true)
     expect(screen.getByText(/Datos simulados/).closest('[role="status"]')).not.toBeNull()
   })
 
-  it('no aparece con datos reales', async () => {
+  it('no aparece con datos reales', REIMPORTA_LAYOUT, async () => {
     await montarLayout(false)
     expect(screen.queryByText(/Datos simulados/)).toBeNull()
   })

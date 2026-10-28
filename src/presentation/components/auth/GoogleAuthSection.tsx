@@ -64,7 +64,7 @@ export function GoogleAuthSection({ onIdToken, onExito, className }: GoogleAuthS
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border" />
         </div>
-        <span className="relative bg-white/95 px-3 text-[11px] font-medium uppercase tracking-wider text-muted backdrop-blur-xs">
+        <span className="relative bg-surface px-3 text-[11px] font-medium uppercase tracking-wider text-muted backdrop-blur-xs">
           {t('login.continuarCon')}
         </span>
       </div>

@@ -133,32 +133,37 @@ export function AvisosTiempoReal() {
       role="region"
       aria-live="polite"
       aria-label={t('avisosTiempoReal.region')}
-      className="pointer-events-none fixed right-4 bottom-4 z-40 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2"
+      className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2"
     >
       {avisos.map((aviso) => (
         <div
           key={aviso.id}
           role={aviso.nivel === 'critico' ? 'alert' : 'status'}
-          className={cn(
-            'pointer-events-auto flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm shadow-(--shadow-raised)',
-            aviso.nivel === 'critico' && 'border-clay-200 bg-clay-100 text-clay-700',
-            aviso.nivel === 'aviso' && 'border-amber-300 bg-amber-50 text-amber-900',
-            aviso.nivel === 'ok' && 'border-success-600/30 bg-success-100 text-success-700',
-          )}
+          className="pointer-events-auto flex items-start gap-3 rounded-xl border border-border bg-surface-raised p-3 pr-2 text-sm text-foreground shadow-(--shadow-raised) animate-(--animate-toast-in)"
         >
-          {aviso.nivel === 'ok' ? (
-            <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0" />
-          ) : aviso.nivel === 'critico' ? (
-            <WifiOff aria-hidden className="mt-0.5 size-4 shrink-0" />
-          ) : (
-            <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0" />
-          )}
-          <p className="flex-1">{aviso.texto}</p>
+          <span
+            aria-hidden
+            className={cn(
+              'mt-px flex size-7 shrink-0 items-center justify-center rounded-lg',
+              aviso.nivel === 'critico' && 'bg-critical-tint text-critical',
+              aviso.nivel === 'aviso' && 'bg-honey-100 text-honey-700',
+              aviso.nivel === 'ok' && 'bg-success-100 text-success-700',
+            )}
+          >
+            {aviso.nivel === 'ok' ? (
+              <CheckCircle2 className="size-4" />
+            ) : aviso.nivel === 'critico' ? (
+              <WifiOff className="size-4" />
+            ) : (
+              <AlertTriangle className="size-4" />
+            )}
+          </span>
+          <p className="flex-1 pt-1 leading-5">{aviso.texto}</p>
           <button
             type="button"
             aria-label={t('avisosTiempoReal.cerrar')}
             onClick={() => setAvisos((previos) => previos.filter((a) => a.id !== aviso.id))}
-            className="rounded-sm p-0.5 opacity-70 hover:opacity-100 focus-visible:outline-2 focus-visible:outline-current cursor-pointer"
+            className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-cream-200/70 hover:text-foreground"
           >
             <X className="size-3.5" />
           </button>

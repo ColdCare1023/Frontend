@@ -4,7 +4,8 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   return (
     <div
       className={cn(
-        'rounded-(--radius-card) border border-border bg-surface',
+        // `spotlight`: luz que sigue al puntero y borde iluminado al pasar.
+        'spotlight rounded-(--radius-card) border border-border bg-surface shadow-(--shadow-card)',
         className,
       )}
       {...props}
@@ -36,14 +37,14 @@ export function CardTitle({ level = 2, className, ...props }: CardTitleProps) {
   const Tag = cardTitleTags[level]
   return (
     <Tag
-      className={cn('font-display font-semibold tracking-tight text-foreground', level === 2 ? 'text-lg leading-6' : 'text-base leading-6', className)}
+      className={cn('font-display font-semibold tracking-tight text-foreground', level === 2 ? 'text-[17px] leading-6' : 'text-[15px] leading-6', className)}
       {...props}
     />
   )
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-sm text-muted', className)} {...props} />
+  return <p className={cn('text-sm leading-5 text-muted', className)} {...props} />
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

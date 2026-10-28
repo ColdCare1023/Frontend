@@ -35,7 +35,8 @@ export function DialogContent({
 
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink-900/35 backdrop-blur-[2px] data-[state=open]:animate-fade" />
+      {/* Radix espera a que terminen las animaciones de salida (data-state=closed). */}
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/55 backdrop-blur-[2px] data-[state=open]:animate-fade data-[state=closed]:animate-fade-out" />
       <DialogPrimitive.Content
         ref={contenedor}
         // Ojo: `role={undefined}` no es «no tocar el rol», es sobrescribir con
@@ -53,14 +54,14 @@ export function DialogContent({
         className={cn(
           'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
           'max-h-[85dvh] overflow-y-auto rounded-(--radius-modal) border border-border bg-surface-raised p-5 shadow-(--shadow-raised) sm:p-6',
-          'data-[state=open]:animate-rise',
+          'data-[state=open]:animate-(--animate-dialog-in) data-[state=closed]:animate-(--animate-dialog-out) focus:outline-none',
           className,
         )}
         {...props}
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute right-3 top-3 flex size-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-cream-200 hover:text-foreground sm:right-4 sm:top-4"
+          className="absolute right-3 top-3 flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200 hover:text-foreground max-sm:size-11 pointer-coarse:size-11 sm:right-4 sm:top-4"
           aria-label={t('comunes.cerrar')}
         >
           <X className="size-4" aria-hidden />
@@ -76,7 +77,7 @@ export function DialogTitle({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('pr-10 font-display text-xl leading-7 font-semibold tracking-tight text-foreground', className)}
+      className={cn('pr-10 font-display text-lg leading-7 font-semibold tracking-tight text-foreground', className)}
       {...props}
     />
   )
@@ -88,7 +89,7 @@ export function DialogDescription({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
-      className={cn('mt-1 text-sm text-muted', className)}
+      className={cn('mt-1 text-sm leading-5 text-muted', className)}
       {...props}
     />
   )

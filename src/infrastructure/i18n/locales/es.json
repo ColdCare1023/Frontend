@@ -36,7 +36,11 @@
     "continuarCon": "o continúa con",
     "googleNoAutorizado": "Tu cuenta de Google no tiene acceso a ColdCare. Pide al administrador que la dé de alta.",
     "googleNoDisponible": "El acceso con Google no está disponible en este momento.",
-    "cuentasAdministrador": "¿No tienes cuenta? Pídela al administrador de tu farmacia."
+    "cuentasAdministrador": "¿No tienes cuenta? Pídela al administrador de tu farmacia.",
+    "esloganLinea1": "Protege cada dosis.",
+    "esloganLinea2": "En cada grado.",
+    "rangoReferencia": "Rango térmico de referencia",
+    "emailPlaceholder": "farmacia@ejemplo.com"
   },
   "nav": {
     "dashboard": "Monitoreo",
@@ -57,7 +61,10 @@
     "saltarAlContenido": "Saltar al contenido principal",
     "principal": "Navegación principal",
     "principalMovil": "Navegación principal (menú móvil)",
-    "contenidoPrincipal": "Contenido principal"
+    "contenidoPrincipal": "Contenido principal",
+    "colapsarMenu": "Contraer menú",
+    "expandirMenu": "Expandir menú",
+    "menuUsuario": "Menú de usuario"
   },
   "roles": {
     "administrador": "Administrador",
@@ -1010,5 +1017,17 @@
     "monitoreo_suspendido": "Monitoreo de {{device}} suspendido: rotación de credencial por compromiso.",
     "posesion_verificada": "{{device}} probó la credencial nueva: se reanuda el registro.",
     "posesion_firma_invalida": "{{device}} sigue con el token anterior: el broker aún lo acepta. Cambie la contraseña en la consola y use «Reenviar desafío»."
+  },
+  "tema": {
+    "titulo": "Tema",
+    "cambiar": "Cambiar tema",
+    "oscuro": "Oscuro",
+    "claro": "Claro",
+    "sistema": "Sistema"
+  },
+  "idiomas": {
+    "cambiar": "Cambiar idioma",
+    "es": "Español",
+    "en": "English"
   }
 }

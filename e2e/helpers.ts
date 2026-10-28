@@ -18,3 +18,9 @@ export async function accionPrimeraFila(page: Page, accion: string | RegExp) {
   await page.getByRole('row').getByRole('button', { name: /^Opciones:/ }).first().click()
   await page.getByRole('menuitem', { name: accion }).first().click()
 }
+
+/** El cierre de sesión vive en el menú de usuario de la barra superior. */
+export async function cerrarSesion(page: Page) {
+  await page.getByRole('button', { name: /^Menú de usuario/ }).click()
+  await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click()
+}

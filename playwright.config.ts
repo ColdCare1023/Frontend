@@ -10,7 +10,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // PW_CHANNEL=chrome usa el Chrome instalado en vez de descargar Chromium.
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: process.env.PW_CHANNEL || undefined } }],
   webServer: {
     // FE-002: la demo es explícita (`npm run dev` conecta al backend real).
     command: 'npm run dev:demo -- --host 127.0.0.1',

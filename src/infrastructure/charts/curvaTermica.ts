@@ -3,7 +3,7 @@ import type { EChartsCoreOption } from 'echarts/core'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
 import { fechaHora, hora as formatearHora } from '@/lib/formato'
-import { temaGrafica } from './temaColdCare'
+import { temaGrafica, type TemaGrafica } from './temaColdCare'
 
 /**
  * Sin una lectura en este lapso el nodo se considera SIN_DATOS (HU-33): la
@@ -15,6 +15,32 @@ export const HUECO_SIN_DATOS_MS = 90_000
 // Más episodios que esto en pantalla ya no se distinguen entre sí; se marcan
 // las franjas igual, pero el marcador de inicio solo en los más recientes.
 const MAX_MARCADORES_EPISODIO = 12
+
+// Un hueco es un intervalo bastante mayor que la cadencia habitual de la serie.
+const FACTOR_CADENCIA_HUECO = 2.5
+
+// Por debajo de esta fracción del eje la etiqueta «Sin datos» no cabe y solo
+// se superpone a las vecinas; la franja sombreada se mantiene igual.
+const FRACCION_MINIMA_ETIQUETA_HUECO = 0.04
+
+/**
+ * Umbral efectivo de hueco: el de SIN_DATOS (HU-33) mientras la serie llegue
+ * con la cadencia del nodo (30 s). Si llega remuestreada a un paso mayor —la
+ * demo genera una lectura cada 10 min— cada intervalo superaba los 90 s y la
+ * curva entera se cortaba en puntos sueltos que no se dibujaban. Se usa el
+ * percentil 25 de los intervalos para que los propios huecos no lo inflen.
+ */
+export function umbralHueco(serie: LecturaTermica[]): number {
+  const pasos: number[] = []
+  for (let i = 1; i < serie.length; i++) {
+    const paso = Date.parse(serie[i].timestamp) - Date.parse(serie[i - 1].timestamp)
+    if (paso > 0) pasos.push(paso)
+  }
+  if (pasos.length === 0) return HUECO_SIN_DATOS_MS
+  pasos.sort((a, b) => a - b)
+  const cadencia = pasos[Math.floor((pasos.length - 1) * 0.25)]
+  return Math.max(HUECO_SIN_DATOS_MS, cadencia * FACTOR_CADENCIA_HUECO)
+}
 
 export interface EtiquetasCurvaTermica {
   interna: string
@@ -36,13 +62,13 @@ interface Episodio {
 type Punto = [number, number | null]
 
 /** Agrupa lecturas consecutivas con excursión confirmada en episodios. */
-export function episodiosDeExcursion(serie: LecturaTermica[]): Episodio[] {
+export function episodiosDeExcursion(serie: LecturaTermica[], umbralMs = umbralHueco(serie)): Episodio[] {
   const episodios: Episodio[] = []
   let actual: Episodio | null = null
   let previoMs: number | null = null
   for (const lectura of serie) {
     const ms = Date.parse(lectura.timestamp)
-    const continua = previoMs !== null && ms - previoMs < HUECO_SIN_DATOS_MS
+    const continua = previoMs !== null && ms - previoMs < umbralMs
     if (lectura.excursion_confirmada && lectura.temperatura_interna != null) {
       if (actual && continua) {
         actual.fin = ms
@@ -61,59 +87,40 @@ export function episodiosDeExcursion(serie: LecturaTermica[]): Episodio[] {
 }
 
 /** Tramos sin lecturas más largos que el umbral de SIN_DATOS. */
-export function huecosSinDatos(serie: LecturaTermica[]): Array<[number, number]> {
+export function huecosSinDatos(serie: LecturaTermica[], umbralMs = umbralHueco(serie)): Array<[number, number]> {
   const huecos: Array<[number, number]> = []
   for (let i = 1; i < serie.length; i++) {
     const anterior = Date.parse(serie[i - 1].timestamp)
     const siguiente = Date.parse(serie[i].timestamp)
-    if (siguiente - anterior >= HUECO_SIN_DATOS_MS) huecos.push([anterior, siguiente])
+    if (siguiente - anterior >= umbralMs) huecos.push([anterior, siguiente])
   }
   return huecos
 }
 
 /** Puntos [tiempo, valor] con un `null` en cada hueco para cortar la línea. */
-function puntos(serie: LecturaTermica[], valor: (l: LecturaTermica) => number | null | undefined): Punto[] {
+function puntos(
+  serie: LecturaTermica[],
+  valor: (l: LecturaTermica) => number | null | undefined,
+  umbralMs: number,
+): Punto[] {
   const resultado: Punto[] = []
   let previoMs: number | null = null
   for (const lectura of serie) {
     const ms = Date.parse(lectura.timestamp)
-    if (previoMs !== null && ms - previoMs >= HUECO_SIN_DATOS_MS) resultado.push([previoMs + 1, null])
+    if (previoMs !== null && ms - previoMs >= umbralMs) resultado.push([previoMs + 1, null])
     resultado.push([ms, valor(lectura) ?? null])
     previoMs = ms
   }
   return resultado
 }
 
-/**
- * Curva térmica compartida por el dashboard (ventana en vivo que termina en
- * «ahora») y el historial (rango de la consulta).
- *
- * - Eje temporal real: el espaciado refleja el tiempo, no el número de
- *   lecturas, y con `ventana` el borde derecho es el momento actual.
- * - Segmentos rectos entre muestras reales (DESIGN.md) y cortes en los huecos.
- * - Una excursión confirmada se muestra como franja por episodio con un único
- *   marcador al inicio, en lugar de un círculo por lectura.
- */
-export function construirOpcionCurvaTermica(
-  serie: LecturaTermica[],
-  etiquetas: EtiquetasCurvaTermica,
-  ventana?: { desde: number; hasta: number },
-): EChartsCoreOption {
-  const colores = temaGrafica()
-  const visible = ventana ? serie.filter((l) => Date.parse(l.timestamp) >= ventana.desde) : serie
-  // Los episodios se buscan en toda la serie: uno que empezó antes de la
-  // ventana sigue siendo el mismo episodio, no uno nuevo en el borde izquierdo.
-  const episodios = episodiosDeExcursion(serie)
-    .filter((e) => !ventana || e.fin >= ventana.desde)
-    .map((e) => (ventana && e.inicio < ventana.desde ? { ...e, inicio: ventana.desde, recortado: true } : e))
-  const huecos = huecosSinDatos(visible)
-  // Un episodio que sigue abierto llega hasta la última lectura; con
-  // `ventana` se extiende a «ahora» solo si esa lectura es reciente.
-  const ultimaMs = visible.length > 0 ? Date.parse(visible[visible.length - 1].timestamp) : null
-  const finEpisodio = (e: Episodio) =>
-    ventana && e.fin === ultimaMs && ventana.hasta - e.fin < HUECO_SIN_DATOS_MS ? ventana.hasta : e.fin
-  const fuente = 'Inter Variable, sans-serif'
+const FUENTE_GRAFICA = 'Inter Variable, sans-serif'
 
+type ColoresGrafica = ReturnType<typeof temaGrafica>
+
+/** Ejes, rejilla y tooltip comunes a la curva de un equipo y a la de varios. */
+function baseCurva(colores: ColoresGrafica, ventana?: { desde: number; hasta: number }) {
+  const fuente = FUENTE_GRAFICA
   return {
     animation: false,
     textStyle: { fontFamily: fuente, color: colores.foreground },
@@ -130,17 +137,6 @@ export function construirOpcionCurvaTermica(
       borderColor: colores.border,
       textStyle: { color: colores.foreground, fontSize: 12, fontFamily: fuente },
       valueFormatter: (v: unknown) => (typeof v === 'number' ? `${v.toFixed(1)} °C` : '—'),
-    },
-    legend: {
-      data: [etiquetas.interna, etiquetas.ambiental],
-      selected: { [etiquetas.ambiental]: false },
-      top: 0,
-      right: 0,
-      icon: 'roundRect',
-      itemWidth: 14,
-      itemHeight: 3,
-      formatter: etiquetaCortaTemperatura,
-      textStyle: { color: colores.muted, fontSize: 12, fontFamily: fuente },
     },
     xAxis: {
       type: 'time',
@@ -164,6 +160,137 @@ export function construirOpcionCurvaTermica(
       splitLine: { lineStyle: { color: colores.grid } },
       axisLabel: { fontSize: 11, color: colores.muted, fontFamily: fuente, formatter: '{value} °C' },
     },
+  }
+}
+
+/** Franja y líneas del rango de referencia 2–8 °C. */
+function marcasRango(colores: ColoresGrafica, etiquetas: EtiquetasCurvaTermica) {
+  const fuente = FUENTE_GRAFICA
+  return {
+    markArea: {
+      silent: true,
+      itemStyle: { color: colores.safe, opacity: 0.1 },
+      label: { show: true, position: 'insideTop', color: colores.safeText, fontSize: 10, fontFamily: fuente, formatter: etiquetas.rangoEsperado },
+      data: [[{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }]],
+    },
+    markLine: {
+      silent: true,
+      symbol: 'none',
+      lineStyle: { color: colores.safeText, type: 'dashed', width: 1, opacity: 0.6 },
+      label: { color: colores.safeText, fontSize: 10, fontFamily: fuente, formatter: '{c} °C' },
+      data: [{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }],
+    },
+  }
+}
+
+function leyenda(colores: ColoresGrafica, extra: Record<string, unknown>) {
+  return {
+    top: 0,
+    right: 0,
+    icon: 'roundRect',
+    itemWidth: 14,
+    itemHeight: 3,
+    inactiveColor: colores.border,
+    textStyle: { color: colores.muted, fontSize: 12, fontFamily: FUENTE_GRAFICA },
+    ...extra,
+  }
+}
+
+/**
+ * Historial sin filtro de equipo: con dos o más refrigeradores en la consulta,
+ * una sola línea saltaba de un equipo a otro en cada lectura y dibujaba un
+ * zigzag que nadie midió. Cada equipo lleva su propia línea, con sus propios
+ * cortes por hueco y su marcador de inicio de excursión.
+ */
+function construirCurvaPorEquipo(
+  serie: LecturaTermica[],
+  equipos: string[],
+  etiquetas: EtiquetasCurvaTermica,
+  colores: ColoresGrafica,
+  ventana?: { desde: number; hasta: number },
+): EChartsCoreOption {
+  const paleta = [colores.primary, colores.safe, colores.accent, colores.warn]
+  const visible = ventana ? serie.filter((l) => Date.parse(l.timestamp) >= ventana.desde) : serie
+  return {
+    ...baseCurva(colores, ventana),
+    legend: leyenda(colores, { data: equipos }),
+    series: equipos.map((equipo, indice) => {
+      const propias = visible.filter((l) => l.device_id === equipo)
+      const umbral = umbralHueco(propias)
+      const color = paleta[indice % paleta.length]
+      return {
+        name: equipo,
+        type: 'line',
+        smooth: false,
+        symbol: 'none',
+        showSymbol: false,
+        connectNulls: false,
+        sampling: 'lttb',
+        data: puntos(propias, (l) => l.temperatura_interna, umbral),
+        lineStyle: { width: 1.75, color },
+        itemStyle: { color },
+        ...(indice === 0 ? marcasRango(colores, etiquetas) : {}),
+        markPoint: {
+          symbol: 'circle',
+          symbolSize: 9,
+          itemStyle: { color: colores.critical, borderColor: colores.surface, borderWidth: 2 },
+          label: { show: false },
+          tooltip: { show: false },
+          data: episodiosDeExcursion(propias, umbral)
+            .filter((e) => !e.recortado)
+            .slice(-MAX_MARCADORES_EPISODIO)
+            .map((e) => ({ name: etiquetas.excursion, coord: [e.inicio, e.temperaturaInicio] })),
+        },
+      }
+    }),
+  }
+}
+
+/**
+ * Curva térmica compartida por el dashboard (ventana en vivo que termina en
+ * «ahora») y el historial (rango de la consulta).
+ *
+ * - Eje temporal real: el espaciado refleja el tiempo, no el número de
+ *   lecturas, y con `ventana` el borde derecho es el momento actual.
+ * - Segmentos rectos entre muestras reales (DESIGN.md) y cortes en los huecos.
+ * - Una excursión confirmada se muestra como franja por episodio con un único
+ *   marcador al inicio, en lugar de un círculo por lectura.
+ */
+export function construirOpcionCurvaTermica(
+  serie: LecturaTermica[],
+  etiquetas: EtiquetasCurvaTermica,
+  ventana?: { desde: number; hasta: number },
+  tema?: TemaGrafica,
+): EChartsCoreOption {
+  const colores = temaGrafica(tema)
+  const equipos = [...new Set(serie.map((l) => l.device_id).filter(Boolean))]
+  if (equipos.length > 1) return construirCurvaPorEquipo(serie, equipos, etiquetas, colores, ventana)
+  const umbral = umbralHueco(serie)
+  const visible = ventana ? serie.filter((l) => Date.parse(l.timestamp) >= ventana.desde) : serie
+  // Los episodios se buscan en toda la serie: uno que empezó antes de la
+  // ventana sigue siendo el mismo episodio, no uno nuevo en el borde izquierdo.
+  const episodios = episodiosDeExcursion(serie, umbral)
+    .filter((e) => !ventana || e.fin >= ventana.desde)
+    .map((e) => (ventana && e.inicio < ventana.desde ? { ...e, inicio: ventana.desde, recortado: true } : e))
+  const huecos = huecosSinDatos(visible, umbral)
+  // Un episodio que sigue abierto llega hasta la última lectura; con
+  // `ventana` se extiende a «ahora» solo si esa lectura es reciente.
+  const ultimaMs = visible.length > 0 ? Date.parse(visible[visible.length - 1].timestamp) : null
+  const finEpisodio = (e: Episodio) =>
+    ventana && e.fin === ultimaMs && ventana.hasta - e.fin < umbral ? ventana.hasta : e.fin
+  const primeraMs = visible.length > 0 ? Date.parse(visible[0].timestamp) : 0
+  const lapsoVisible = ventana ? ventana.hasta - ventana.desde : (ultimaMs ?? 0) - primeraMs
+  const huecoConEtiqueta = ([inicio, fin]: [number, number]) =>
+    lapsoVisible > 0 && (fin - inicio) / lapsoVisible >= FRACCION_MINIMA_ETIQUETA_HUECO
+  const fuente = FUENTE_GRAFICA
+
+  return {
+    ...baseCurva(colores, ventana),
+    legend: leyenda(colores, {
+      data: [etiquetas.interna, etiquetas.ambiental],
+      selected: { [etiquetas.ambiental]: false },
+      formatter: etiquetaCortaTemperatura,
+    }),
     series: [
       {
         name: etiquetas.interna,
@@ -174,22 +301,10 @@ export function construirOpcionCurvaTermica(
         connectNulls: false,
         // HU-31 criterio 3: LTTB conserva picos y caídas al muestrear ventanas largas.
         sampling: 'lttb',
-        data: puntos(visible, (l) => l.temperatura_interna),
+        data: puntos(visible, (l) => l.temperatura_interna, umbral),
         lineStyle: { width: 2, color: colores.primary },
         itemStyle: { color: colores.primary },
-        markArea: {
-          silent: true,
-          itemStyle: { color: colores.safe, opacity: 0.1 },
-          label: { show: true, position: 'insideTop', color: colores.safeText, fontSize: 10, fontFamily: fuente, formatter: etiquetas.rangoEsperado },
-          data: [[{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }]],
-        },
-        markLine: {
-          silent: true,
-          symbol: 'none',
-          lineStyle: { color: colores.safeText, type: 'dashed', width: 1, opacity: 0.6 },
-          label: { color: colores.safeText, fontSize: 10, fontFamily: fuente, formatter: '{c} °C' },
-          data: [{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }],
-        },
+        ...marcasRango(colores, etiquetas),
         markPoint: {
           symbol: 'circle',
           symbolSize: 9,
@@ -210,7 +325,7 @@ export function construirOpcionCurvaTermica(
         showSymbol: false,
         connectNulls: false,
         sampling: 'lttb',
-        data: puntos(visible, (l) => l.temperatura_ambiental),
+        data: puntos(visible, (l) => l.temperatura_ambiental, umbral),
         lineStyle: { width: 1.5, color: colores.secondary, type: 'dashed' },
         itemStyle: { color: colores.secondary },
       },
@@ -238,7 +353,7 @@ export function construirOpcionCurvaTermica(
                 xAxis: inicio,
                 itemStyle: { color: colores.muted, opacity: 0.08 },
                 label: {
-                  show: true,
+                  show: huecoConEtiqueta([inicio, fin]),
                   position: 'insideBottom',
                   color: colores.muted,
                   fontSize: 10,

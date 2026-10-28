@@ -66,7 +66,7 @@ export function RestablecerContrasenaPage() {
           <div className="space-y-6 animate-fade">
             <div role="alert" className="rounded-2xl border border-clay-700/20 bg-clay-100/50 p-6">
               <div className="flex items-start gap-3.5">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-clay-700 text-white shadow-sm">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-critical-solid text-on-critical shadow-sm">
                   <XCircle className="size-5" aria-hidden />
                 </div>
                 <div className="space-y-1.5">
@@ -77,7 +77,7 @@ export function RestablecerContrasenaPage() {
             </div>
             <Link
               to="/recuperar-contrasena"
-              className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold text-white shadow-(--shadow-card) transition-all"
+              className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all"
             >
               {t('restablecerContrasena.solicitarNuevo')}
             </Link>
@@ -97,7 +97,7 @@ export function RestablecerContrasenaPage() {
             </div>
             <Link
               to="/login"
-              className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold text-white shadow-(--shadow-card) transition-all"
+              className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all"
             >
               {t('restablecerContrasena.irLogin')}
             </Link>
@@ -119,7 +119,7 @@ export function RestablecerContrasenaPage() {
             <button
               type="submit"
               disabled={cargando}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold text-white shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
             >
               {cargando ? (
                 <>
