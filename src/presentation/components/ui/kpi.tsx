@@ -51,7 +51,7 @@ export function Kpi({
   return (
     <div
       className={cn(
-        'spotlight flex min-w-0 flex-col rounded-(--radius-card) border border-border bg-surface p-4 shadow-(--shadow-card)',
+        'spotlight tarjeta-cristal flex min-w-0 flex-col rounded-(--radius-card) border p-4',
         destacado && 'sm:p-5',
         className,
       )}

@@ -338,6 +338,17 @@
   --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.06), 0 18px 44px -12px rgb(0 0 0 / 0.95);
   --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.08), 0 22px 48px -16px rgb(0 0 0 / 0.95);
 
+  /* Liquid glass sobre negro: base grafito translúcida, filo especular frío. */
+  --cristal-base: rgb(18 18 20 / 0.58);
+  --cristal-borde: rgb(255 255 255 / 0.09);
+  --cristal-filo: rgb(255 255 255 / 0.14);
+  --cristal-sombra: 0 18px 40px -16px rgb(0 0 0 / 0.75);
+  --tarjeta-cristal: linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.015));
+  --tarjeta-borde: rgb(255 255 255 / 0.075);
+  --ambiente-1: rgb(92 214 232 / 0.11);
+  --ambiente-2: rgb(110 155 255 / 0.10);
+  --ambiente-3: rgb(79 209 165 / 0.06);
+
   /* Spotlight y brillo: luz blanca, nunca tinte de color. */
   --spot-relleno: rgb(255 255 255 / 0.045);
   --spot-borde: rgb(255 255 255 / 0.3);
@@ -361,6 +372,15 @@
   }
 
   :root {
+    --cristal-base: rgb(255 255 255 / 0.62);
+    --cristal-borde: rgb(15 23 42 / 0.08);
+    --cristal-filo: rgb(255 255 255 / 0.95);
+    --cristal-sombra: 0 16px 36px -18px rgb(15 23 42 / 0.28);
+    --tarjeta-cristal: linear-gradient(180deg, rgb(255 255 255 / 0.92), rgb(255 255 255 / 0.78));
+    --tarjeta-borde: rgb(15 23 42 / 0.07);
+    --ambiente-1: rgb(0 209 255 / 0.13);
+    --ambiente-2: rgb(11 92 255 / 0.10);
+    --ambiente-3: rgb(255 122 162 / 0.08);
     --spot-relleno: rgb(11 92 255 / 0.045);
     --spot-borde: rgb(11 92 255 / 0.35);
     --brillo: rgb(255 255 255 / 0.35);
@@ -540,6 +560,82 @@
     background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent);
   }
 
+  /* ── Liquid glass ─────────────────────────────────────────
+     Cristal esmerilado: desenfoque + saturación del fondo, filo especular
+     arriba, sombra corta. `cristal-liquido` añade refracción real (filtro SVG
+     #liquido, solo Chromium) en una capa propia; en Safari/Firefox esa capa se
+     ignora y queda el esmerilado. Patrón «Liquid Glass» de 21st.dev. */
+  .cristal {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0)), var(--cristal-base);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+    border-color: var(--cristal-borde);
+    box-shadow:
+      inset 0 1px 0 var(--cristal-filo),
+      inset 0 0 0 1px rgb(255 255 255 / 0.015),
+      var(--cristal-sombra);
+  }
+  .cristal-liquido {
+    isolation: isolate;
+  }
+  .cristal-liquido::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    -webkit-backdrop-filter: url(#liquido);
+    backdrop-filter: url(#liquido);
+  }
+  /* Tarjeta de vidrio: translúcida sin desenfoque (rinde con muchas en pantalla). */
+  .tarjeta-cristal {
+    background: var(--tarjeta-cristal);
+    border-color: var(--tarjeta-borde);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.12);
+  }
+  [data-theme='light'] .tarjeta-cristal {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -16px rgb(15 23 42 / 0.18);
+  }
+
+  /* Luz ambiental detrás del contenido: tres focos muy tenues que derivan
+     lento; el negro sigue siendo negro, pero el cristal tiene qué refractar. */
+  .ambiente {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .ambiente::before,
+  .ambiente::after {
+    content: '';
+    position: absolute;
+    width: 62vmax;
+    height: 62vmax;
+    border-radius: 9999px;
+    filter: blur(70px);
+    will-change: transform;
+  }
+  .ambiente::before {
+    top: -26vmax;
+    left: -12vmax;
+    background: radial-gradient(circle, var(--ambiente-1), transparent 65%);
+    animation: derivar-a 46s ease-in-out infinite alternate;
+  }
+  .ambiente::after {
+    top: -18vmax;
+    right: -20vmax;
+    background: radial-gradient(circle, var(--ambiente-2), transparent 65%), radial-gradient(circle at 30% 80%, var(--ambiente-3), transparent 55%);
+    animation: derivar-b 58s ease-in-out infinite alternate;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ambiente::before,
+    .ambiente::after {
+      animation: none;
+    }
+  }
+
   /* Superficie con luz que sigue al puntero y borde iluminado («Spotlight Card»,
      21st.dev). Las coordenadas las escribe spotlight.ts; sin puntero fino no hay luz. */
   @media (hover: hover) and (pointer: fine) {
@@ -617,6 +713,17 @@
   .isoterma {
     stroke-dasharray: 900;
     animation: trazar-isoterma 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes derivar-a {
+  to {
+    transform: translate3d(14vmax, 10vmax, 0) scale(1.08);
+  }
+}
+@keyframes derivar-b {
+  to {
+    transform: translate3d(-12vmax, 14vmax, 0) scale(0.94);
   }
 }
 

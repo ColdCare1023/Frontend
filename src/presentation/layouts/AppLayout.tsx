@@ -316,7 +316,16 @@ export function AppLayout() {
 
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={150}>
-      <div className="flex min-h-dvh">
+      <div className="relative isolate flex min-h-dvh">
+        {/* Luz ambiental (index.css) y lente de refracción del cristal (#liquido). */}
+        <div aria-hidden className="ambiente" />
+        <svg aria-hidden width="0" height="0" className="absolute">
+          <filter id="liquido" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.011 0.017" numOctaves="2" seed="11" result="ruido" />
+            <feGaussianBlur in="ruido" stdDeviation="1.6" result="ruidoSuave" />
+            <feDisplacementMap in="SourceGraphic" in2="ruidoSuave" scale="16" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </svg>
         {/* WCAG 2.4.1 (Evitar bloques): la navegación son doce enlaces repetidos
             en cada página. Sin este atajo, llegar al contenido con el teclado
             exigía atravesarlos uno a uno en todas las rutas. Se mantiene oculto
@@ -334,7 +343,7 @@ export function AppLayout() {
           animate={{ width: colapsado ? ANCHO_COLAPSADO : ANCHO_EXPANDIDO }}
           transition={reducir ? { duration: 0 } : RESORTE}
           data-state={colapsado ? 'colapsado' : 'expandido'}
-          className="sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-riel lg:flex"
+          className="cristal sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r lg:flex"
         >
           <div className="flex h-14 shrink-0 items-center px-4">
             <ColdCareBrand
@@ -367,7 +376,7 @@ export function AppLayout() {
             <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-overlay/55 backdrop-blur-[2px] data-[state=open]:animate-fade data-[state=closed]:animate-fade-out lg:hidden" />
             <DialogPrimitive.Content
               aria-describedby={undefined}
-              className="fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[86vw] flex-col border-r border-border bg-surface shadow-(--shadow-raised) data-[state=open]:animate-(--animate-drawer) data-[state=closed]:animate-(--animate-drawer-out) focus:outline-none lg:hidden"
+              className="cristal fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[86vw] flex-col border-r data-[state=open]:animate-(--animate-drawer) data-[state=closed]:animate-(--animate-drawer-out) focus:outline-none lg:hidden"
             >
               <DialogPrimitive.Title className="sr-only">{t('app.nombre')}</DialogPrimitive.Title>
               <div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border pl-4 pr-2">
@@ -396,7 +405,7 @@ export function AppLayout() {
             <AvisoDatosSimulados />
             <AvisosTiempoReal />
             <NotchToaster />
-            <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md sm:px-6 lg:px-8">
+            <header className="cristal cristal-liquido sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-6 lg:px-8">
               <DialogPrimitive.Trigger
                 aria-label={t('nav.abrirMenu')}
                 className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground lg:hidden"

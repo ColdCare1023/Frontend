@@ -67,7 +67,7 @@ export function Table({ className, titulo, cargando, mobileLayout = 'scroll', ch
         event.preventDefault()
         region.scrollTo({ left: Math.max(0, Math.min(maxScroll, destino)), behavior: 'auto' })
       }}
-      className="coldcare-table-region w-full overflow-x-auto rounded-(--radius-card) border border-border bg-surface shadow-(--shadow-card) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="coldcare-table-region tarjeta-cristal w-full overflow-x-auto rounded-(--radius-card) border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <table role="table" className={cn('w-full min-w-[640px] caption-bottom text-sm', className)} {...props}>
         {titulo && <caption className="sr-only">{titulo}</caption>}
