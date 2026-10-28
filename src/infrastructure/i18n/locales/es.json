@@ -1016,7 +1016,12 @@
     "excursion_no_verificada": "Excursión crítica de origen no verificado en {{device}}: {{temperatura}} °C. Compruebe el refrigerador con el termómetro de respaldo.",
     "monitoreo_suspendido": "Monitoreo de {{device}} suspendido: rotación de credencial por compromiso.",
     "posesion_verificada": "{{device}} probó la credencial nueva: se reanuda el registro.",
-    "posesion_firma_invalida": "{{device}} sigue con el token anterior: el broker aún lo acepta. Cambie la contraseña en la consola y use «Reenviar desafío»."
+    "posesion_firma_invalida": "{{device}} sigue con el token anterior: el broker aún lo acepta. Cambie la contraseña en la consola y use «Reenviar desafío».",
+    "titulo": {
+      "critico": "Alerta crítica",
+      "aviso": "Aviso",
+      "ok": "Confirmado"
+    }
   },
   "tema": {
     "titulo": "Tema",

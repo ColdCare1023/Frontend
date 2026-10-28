@@ -36,6 +36,7 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../components/ui/menu'
 import { Tooltip, TooltipProvider } from '../components/ui/tooltip'
+import { NotchToaster } from '../components/notificaciones/notch'
 import { ANCHO_COLAPSADO, ANCHO_EXPANDIDO, guardarColapsado, leerColapsado } from './preferenciaSidebar'
 
 interface ItemNav {
@@ -394,6 +395,7 @@ export function AppLayout() {
             <AvisoExpiracionSesion />
             <AvisoDatosSimulados />
             <AvisosTiempoReal />
+            <NotchToaster />
             <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md sm:px-6 lg:px-8">
               <DialogPrimitive.Trigger
                 aria-label={t('nav.abrirMenu')}
