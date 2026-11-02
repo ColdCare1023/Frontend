@@ -198,6 +198,8 @@
     "demoError": "No se pudo aplicar el escenario. Inténtalo de nuevo.",
     "iaExperimental": "IA experimental",
     "iaExperimentalDetalle": "Clase del modelo legado, entrenado con datos simulados: no abre alertas preventivas.",
+    "sinClasificacionIa": "Sin clasificación IA",
+    "sinClasificacionIaDetalle": "El estado Normal lo determina solo la regla de rango 2-8 °C; el modelo no clasificó esta lectura.",
     "excursionNoVerificada": "Excursión crítica de origen no verificado: {{temperatura}} °C ({{fecha}}). Compruebe el refrigerador con el termómetro de respaldo."
   },
   "demo": {

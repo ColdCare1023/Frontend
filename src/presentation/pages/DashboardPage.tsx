@@ -218,6 +218,11 @@ function EstadoPrincipal({
               {desactualizado ? t('dashboard.ultimaTemperatura') : t('dashboard.estadoRefrigerador')}
             </p>
             <RiskBadge nivel={riesgo} />
+            {riesgo === 'normal' && !ultima.ia_experimental && !ultima.excursion_confirmada && ultima.nivel_riesgo === null && (
+              // Sin clase del modelo (omitida, fallida o sin modelo): «Normal» lo dice solo la regla
+              // 2-8 °C; que no parezca una lectura evaluada por la IA.
+              <Badge variant="outline" title={t('dashboard.sinClasificacionIaDetalle')}>{t('dashboard.sinClasificacionIa')}</Badge>
+            )}
             {ultima.ia_experimental && !ultima.excursion_confirmada && (
               // HU-20 / B-1: la clase la produjo el modelo legado (datos sintéticos).
               <Badge variant="outline" title={t('dashboard.iaExperimentalDetalle')}>{t('dashboard.iaExperimental')}</Badge>

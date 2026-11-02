@@ -107,6 +107,30 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
   })
 })
 
+describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
+  beforeEach(() => {
+    useMonitoreoTermico.mockReset()
+  })
+
+  it('rotula «Sin clasificación IA» junto a Normal cuando el modelo no clasificó', () => {
+    renderizar(lectura({ nivel_riesgo: null, riesgo_efectivo: 'normal', estado_inferencia: 'omitida', confianza_ia: null }))
+
+    expect(screen.getByText('Sin clasificación IA')).toBeInTheDocument()
+  })
+
+  it('no lo rotula si el modelo sí clasificó', () => {
+    renderizar(lectura())
+
+    expect(screen.queryByText('Sin clasificación IA')).not.toBeInTheDocument()
+  })
+
+  it('no lo rotula durante una excursión', () => {
+    renderizar(lectura({ nivel_riesgo: null, riesgo_efectivo: 'excursion_critica', excursion_confirmada: true }))
+
+    expect(screen.queryByText('Sin clasificación IA')).not.toBeInTheDocument()
+  })
+})
+
 describe('DashboardPage — HU-34: riesgo efectivo vs. clasificación IA', () => {
   beforeEach(() => {
     useMonitoreoTermico.mockReset()

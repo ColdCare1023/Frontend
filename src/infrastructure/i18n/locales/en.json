@@ -198,6 +198,8 @@
     "demoError": "Could not apply scenario. Try again.",
     "iaExperimental": "Experimental AI",
     "iaExperimentalDetalle": "Class from the legacy model trained on simulated data: it does not open preventive alerts.",
+    "sinClasificacionIa": "No AI classification",
+    "sinClasificacionIaDetalle": "Normal here comes only from the 2-8 °C range rule; the model did not classify this reading.",
     "excursionNoVerificada": "Critical excursion of unverified origin: {{temperatura}} °C ({{fecha}}). Check the refrigerator with the backup thermometer."
   },
   "demo": {
