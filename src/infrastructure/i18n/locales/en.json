@@ -349,10 +349,27 @@
     "incidenteTipo": {
       "sin_datos": "No data",
       "monitoreo_suspendido": "Monitoring suspended by rotation",
-      "excursion_no_verificada": "Critical excursion (unverified origin)"
+      "excursion_no_verificada": "Critical excursion (unverified origin)",
+      "sensor_fault": "Temperature sensor failure",
+      "colision_clave": "Reading identity collision"
     },
     "incidenteAbierto": "Opened {{fecha}}",
-    "incidenteTemperatura": "{{temperatura}} °C"
+    "incidenteTemperatura": "{{temperatura}} °C",
+    "historica": "Historical",
+    "historicaAyuda": "Detected from deferred readings in the node's buffer: the excursion happened before they arrived.",
+    "pico": "Peak",
+    "duracion": "Duration",
+    "inicioExcursion": "Excursion start",
+    "notificacion": {
+      "notificada": "Email sent",
+      "reintentando": "Retrying email",
+      "no_entregada": "Email not delivered",
+      "pendiente": "Email pending",
+      "notificadaAyuda": "The email notice was sent on {{fecha}}.",
+      "reintentandoAyuda": "The mail provider failed; the system is retrying ({{intentos}} attempt(s)).",
+      "no_entregadaAyuda": "Attempts exhausted: notify by another channel.",
+      "pendienteAyuda": "No send attempt yet."
+    }
   },
   "trazabilidad": {
     "titulo": "Record integrity",
@@ -1023,6 +1040,8 @@
     "ota_revertida": "{{device}} rolled back to version {{version}}: the update failed its boot check.",
     "excursion_no_verificada": "Critical excursion of unverified origin on {{device}}: {{temperatura}} °C. Check the refrigerator with the backup thermometer.",
     "monitoreo_suspendido": "Monitoring of {{device}} suspended: compromise credential rotation.",
+    "sensor_fault": "{{device}}'s temperature sensor is failing: the inside temperature is unknown.",
+    "colision_clave": "{{device}} sent a reading with an identity already used and different values.",
     "posesion_verificada": "{{device}} proved the new credential: recording resumes.",
     "posesion_firma_invalida": "{{device}} is still on the previous token: the broker still accepts it. Change the password in the console and use \"Resend challenge\".",
     "titulo": {

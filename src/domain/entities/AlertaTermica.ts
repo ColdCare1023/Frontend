@@ -20,6 +20,32 @@ export interface AlertaTermica {
   estado: EstadoAlerta
   reconocida_en: string | null
   atendida_en: string | null
+  // Evidencia de la excursión: inicio por hora de CAPTURA, temperatura más
+  // alejada de 2-8 °C, duración y si se detectó con lecturas diferidas del
+  // buffer del nodo. Ausentes en alertas anteriores a la migración 0035.
+  iniciada_en?: string | null
+  temperatura_pico?: number | null
+  duracion_s?: number | null
+  historica?: boolean
+  // Aviso por correo: `notificada_en` solo se llena con un envío exitoso;
+  // `notificacion_intentos` cuenta los intentos, fallidos incluidos.
+  notificada_en?: string | null
+  notificacion_intentos?: number
+}
+
+/** Intentos tras los cuales el backend deja de reintentar el correo
+ * (NOTIFICACION_MAX_INTENTOS, 3 por defecto). */
+export const MAX_INTENTOS_NOTIFICACION = 3
+
+export type EstadoNotificacion = 'notificada' | 'reintentando' | 'no_entregada' | 'pendiente'
+
+/** Estado visible del correo de una alerta crítica. `null` para las que no se avisan. */
+export function estadoNotificacion(alerta: AlertaTermica): EstadoNotificacion | null {
+  if (alerta.nivel_riesgo !== 'excursion_critica') return null
+  if (alerta.notificada_en) return 'notificada'
+  const intentos = alerta.notificacion_intentos ?? 0
+  if (intentos >= MAX_INTENTOS_NOTIFICACION) return 'no_entregada'
+  return intentos > 0 ? 'reintentando' : 'pendiente'
 }
 
 export interface AccionCorrectiva {

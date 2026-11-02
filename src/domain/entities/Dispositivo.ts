@@ -137,7 +137,7 @@ export interface IncidenteOperativo {
   device_id: string
   // HU-44: durante una rotación por compromiso, monitoreo suspendido o
   // excursión crítica de origen no verificado.
-  tipo: 'sin_datos' | 'monitoreo_suspendido' | 'excursion_no_verificada'
+  tipo: 'sin_datos' | 'monitoreo_suspendido' | 'excursion_no_verificada' | 'sensor_fault' | 'colision_clave'
   estado: 'activo' | 'resuelto'
   detectado_en: string
   ultimo_reporte_en: string | null

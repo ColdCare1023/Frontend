@@ -6,10 +6,15 @@ import { BellOff, CheckCheck, ClipboardPen, History, PencilLine, RadioTower } fr
 import { useAlertas, type FiltroEstado } from '@/application/hooks/useAlertas'
 import { useIncidentesOperativos } from '@/application/hooks/useIncidentesOperativos'
 import { useAuthStore } from '@/application/stores/authStore'
-import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
+import {
+  estadoNotificacion,
+  type AccionCorrectiva,
+  type AlertaTermica,
+  type EstadoNotificacion,
+} from '@/domain/entities/AlertaTermica'
 import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
 import { tienePermiso } from '@/domain/value-objects/Rol'
-import { fechaCorta, fechaHora, hora } from '@/lib/formato'
+import { duracionBreve, fechaCorta, fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
 import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
@@ -36,6 +41,51 @@ import {
 
 // HU-23: los tabs de filtro siguen la máquina de estados, no un booleano.
 const FILTROS: FiltroEstado[] = ['pendiente', 'reconocida', 'atendida', 'todas']
+
+const VARIANTE_NOTIFICACION: Record<EstadoNotificacion, 'ok' | 'warn' | 'critical' | 'outline'> = {
+  notificada: 'ok',
+  reintentando: 'warn',
+  no_entregada: 'critical',
+  pendiente: 'outline',
+}
+
+/** Evidencia de la excursión y estado del correo de una alerta, en dos líneas discretas. */
+function EvidenciaAlerta({ alerta }: { alerta: AlertaTermica }) {
+  const { t } = useTranslation()
+  const notificacion = estadoNotificacion(alerta)
+  const hayEvidencia = alerta.temperatura_pico != null || alerta.duracion_s != null || alerta.historica
+  if (!hayEvidencia && notificacion === null) return null
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+      {alerta.historica && (
+        <Badge variant="warn" title={t('alertas.historicaAyuda')}>
+          {t('alertas.historica')}
+        </Badge>
+      )}
+      {alerta.temperatura_pico != null && (
+        <span className="nums">
+          {t('alertas.pico')} {alerta.temperatura_pico.toFixed(2)} °C
+        </span>
+      )}
+      {alerta.duracion_s != null && (
+        <span className="nums">
+          {t('alertas.duracion')} {duracionBreve(alerta.duracion_s)}
+        </span>
+      )}
+      {notificacion !== null && (
+        <Badge
+          variant={VARIANTE_NOTIFICACION[notificacion]}
+          title={t(`alertas.notificacion.${notificacion}Ayuda`, {
+            fecha: fechaHora(alerta.notificada_en),
+            intentos: alerta.notificacion_intentos ?? 0,
+          })}
+        >
+          {t(`alertas.notificacion.${notificacion}`)}
+        </Badge>
+      )}
+    </div>
+  )
+}
 
 const VARIANTE_POR_ESTADO: Record<EstadoAlerta, 'outline' | 'warn' | 'ok'> = {
   pendiente: 'outline',
@@ -262,6 +312,7 @@ export function AlertasPage() {
                       </TableCell>
                       <TableCell data-label={t('alertas.mensaje')} className={cn('mobile-full py-4 text-sm leading-5 text-balance', RELLENO)}>
                         {alerta.mensaje}
+                        <EvidenciaAlerta alerta={alerta} />
                         {conflictoReconocer === alerta.id && (
                           <p role="alert" className="mt-1.5 text-xs leading-4 text-critical">
                             {t('alertas.conflictoEstado')}
@@ -393,6 +444,7 @@ export function AlertasPage() {
           <DialogTitle>{t('alertas.cicloAtencion')}</DialogTitle>
           <DialogDescription>{alertaDetalle?.mensaje}</DialogDescription>
           {alertaDetalle && (
+            <>
             <dl className="mt-5 grid grid-cols-1 gap-4 border-y border-border py-4 text-sm min-[420px]:grid-cols-2">
               <div>
                 <dt className="text-xs text-muted">{t('historial.dispositivo')}</dt>
@@ -402,7 +454,15 @@ export function AlertasPage() {
                 <dt className="text-xs text-muted">{t('historial.riesgo')}</dt>
                 <dd className="mt-1"><RiskBadge nivel={alertaDetalle.nivel_riesgo} /></dd>
               </div>
+              {alertaDetalle.iniciada_en && (
+                <div>
+                  <dt className="text-xs text-muted">{t('alertas.inicioExcursion')}</dt>
+                  <dd className="nums mt-1">{fechaHora(alertaDetalle.iniciada_en)}</dd>
+                </div>
+              )}
             </dl>
+            <EvidenciaAlerta alerta={alertaDetalle} />
+            </>
           )}
           <ol className="mt-3 max-h-96 space-y-5 overflow-y-auto border-l border-border pl-4 [&>li]:relative [&>li]:before:absolute [&>li]:before:-left-[21px] [&>li]:before:top-1 [&>li]:before:size-2 [&>li]:before:rounded-full [&>li]:before:bg-primary">
             {alertaDetalle?.created_at && (

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
+import { estadoNotificacion, type AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { useAuthStore } from '@/application/stores/authStore'
 import type { Rol } from '@/domain/value-objects/Rol'
 
@@ -173,5 +173,42 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     await usuario.click(screen.getByRole('menuitem', { name: /marcar como revisada/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/actualizada por otra persona/i)
+  })
+})
+
+describe('Evidencia de la excursión y estado del correo (outcomes 2 y 6)', () => {
+  beforeEach(() => {
+    useAlertas.mockReset()
+    sesionCon('farmaceutico')
+  })
+
+  it('muestra pico, duración e insignia «Histórica»', () => {
+    montar([alerta({ temperatura_pico: 11.5, duracion_s: 185, historica: true })])
+
+    expect(screen.getByText('Histórica')).toBeInTheDocument()
+    expect(screen.getByText(/Pico 11\.50 °C/)).toBeInTheDocument()
+    expect(screen.getByText(/Duración 3:05/)).toBeInTheDocument()
+  })
+
+  it('no inventa evidencia en alertas anteriores a la migración', () => {
+    montar([alerta()])
+
+    expect(screen.queryByText('Histórica')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Pico/)).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [{ notificada_en: '2026-07-25T12:00:30Z', notificacion_intentos: 1 }, 'notificada', 'Correo enviado'],
+    [{ notificada_en: null, notificacion_intentos: 1 }, 'reintentando', 'Reintentando correo'],
+    [{ notificada_en: null, notificacion_intentos: 3 }, 'no_entregada', 'Correo no entregado'],
+    [{ notificada_en: null, notificacion_intentos: 0 }, 'pendiente', 'Correo pendiente'],
+  ])('estado del correo %#', (campos, estado, texto) => {
+    expect(estadoNotificacion(alerta(campos))).toBe(estado)
+    montar([alerta(campos)])
+    expect(screen.getByText(texto)).toBeInTheDocument()
+  })
+
+  it('una alerta preventiva no muestra estado de correo', () => {
+    expect(estadoNotificacion(alerta({ nivel_riesgo: 'riesgo_preventivo' }))).toBeNull()
   })
 })

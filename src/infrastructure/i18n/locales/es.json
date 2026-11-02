@@ -349,10 +349,27 @@
     "incidenteTipo": {
       "sin_datos": "Sin datos",
       "monitoreo_suspendido": "Monitoreo suspendido por rotación",
-      "excursion_no_verificada": "Excursión crítica (origen no verificado)"
+      "excursion_no_verificada": "Excursión crítica (origen no verificado)",
+      "sensor_fault": "Falla del sensor de temperatura",
+      "colision_clave": "Colisión de identidad de lecturas"
     },
     "incidenteAbierto": "Abierto {{fecha}}",
-    "incidenteTemperatura": "{{temperatura}} °C"
+    "incidenteTemperatura": "{{temperatura}} °C",
+    "historica": "Histórica",
+    "historicaAyuda": "Se detectó con lecturas diferidas del buffer del nodo: la excursión ocurrió antes de que llegaran.",
+    "pico": "Pico",
+    "duracion": "Duración",
+    "inicioExcursion": "Inicio de la excursión",
+    "notificacion": {
+      "notificada": "Correo enviado",
+      "reintentando": "Reintentando correo",
+      "no_entregada": "Correo no entregado",
+      "pendiente": "Correo pendiente",
+      "notificadaAyuda": "El aviso por correo salió el {{fecha}}.",
+      "reintentandoAyuda": "El proveedor de correo falló; el sistema reintenta ({{intentos}} intento(s)).",
+      "no_entregadaAyuda": "Se agotaron los intentos: avise por otro medio.",
+      "pendienteAyuda": "Aún no se intentó el envío."
+    }
   },
   "trazabilidad": {
     "titulo": "Integridad del historial",
@@ -1023,6 +1040,8 @@
     "ota_revertida": "{{device}} volvió a la versión {{version}}: la actualización no superó el arranque.",
     "excursion_no_verificada": "Excursión crítica de origen no verificado en {{device}}: {{temperatura}} °C. Compruebe el refrigerador con el termómetro de respaldo.",
     "monitoreo_suspendido": "Monitoreo de {{device}} suspendido: rotación de credencial por compromiso.",
+    "sensor_fault": "El sensor de temperatura de {{device}} falla: no se conoce la temperatura interior.",
+    "colision_clave": "{{device}} envió una lectura con una identidad ya usada y valores distintos.",
     "posesion_verificada": "{{device}} probó la credencial nueva: se reanuda el registro.",
     "posesion_firma_invalida": "{{device}} sigue con el token anterior: el broker aún lo acepta. Cambie la contraseña en la consola y use «Reenviar desafío».",
     "titulo": {

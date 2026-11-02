@@ -50,6 +50,8 @@ export const EVENTOS_INCIDENTE = [
   'sin_datos', 'sin_datos_resuelto',
   'monitoreo_suspendido', 'monitoreo_suspendido_resuelto',
   'excursion_no_verificada', 'excursion_no_verificada_resuelto',
+  'sensor_fault', 'sensor_fault_resuelto',
+  'colision_clave', 'colision_clave_resuelto',
 ] as const
 
 /** HU-44: resultado de la prueba de posesión del token nuevo. No es un

@@ -96,6 +96,12 @@ export function AvisosTiempoReal() {
         if (evento.tipo === 'monitoreo_suspendido') {
           publicar('aviso', t('avisosTiempoReal.monitoreo_suspendido', { device: evento.device_id }))
         }
+        if (evento.tipo === 'sensor_fault') {
+          publicar('critico', t('avisosTiempoReal.sensor_fault', { device: evento.device_id }))
+        }
+        if (evento.tipo === 'colision_clave') {
+          publicar('aviso', t('avisosTiempoReal.colision_clave', { device: evento.device_id }))
+        }
       },
       onPruebaPosesion: (resultado) => {
         if (resultado.verificada) {
