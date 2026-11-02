@@ -28,7 +28,7 @@ import {
 
 type MensajeDialogo = { tipo: 'ok' | 'error'; texto: string } | null
 
-const FORM_INICIAL = { nombre: '', email: '', password: '', rol: 'tecnico' as Rol }
+const FORM_INICIAL = { nombre: '', email: '', telefono: '', password: '', rol: 'tecnico' as Rol }
 
 export function UsuariosPage() {
   const { t } = useTranslation()
@@ -145,7 +145,7 @@ export function UsuariosPage() {
     event.preventDefault()
     setCreando(true)
     setMensaje(null)
-    const resultado = await crear(form.nombre, form.email, form.password, form.rol)
+    const resultado = await crear(form.nombre, form.email, form.password, form.rol, form.telefono.trim() || undefined)
     setCreando(false)
 
     if (resultado === 'ok') {
@@ -424,6 +424,21 @@ export function UsuariosPage() {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
+            </div>
+            <div>
+              <Label htmlFor="u-telefono">{t('usuarios.telefono')}</Label>
+              <Input
+                id="u-telefono"
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="+51999888777"
+                pattern="^\+[1-9][0-9]{7,14}$"
+                title={t('usuarios.telefonoAyuda')}
+                value={form.telefono}
+                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted">{t('usuarios.telefonoAyuda')}</p>
             </div>
             <div>
               <Label htmlFor="u-password">{t('usuarios.password')}</Label>

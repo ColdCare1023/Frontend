@@ -506,6 +506,8 @@
     "nuevo": "Nuevo usuario",
     "nombre": "Nombre completo",
     "email": "Correo electrónico",
+    "telefono": "Celular (opcional)",
+    "telefonoAyuda": "Formato internacional, p. ej. +51999888777. Recibirá un SMS de bienvenida.",
     "password": "Contraseña",
     "rol": "Rol",
     "crear": "Crear usuario",

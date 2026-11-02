@@ -67,6 +67,24 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
     montar([usuario()])
     expect(screen.getAllByText(/nuevo usuario|crear usuario/i).length).toBeGreaterThan(0)
   })
+
+  it('envía el celular al crear la cuenta y lo omite si se deja vacío', async () => {
+    const crear = vi.fn().mockResolvedValue('ok')
+    montar([usuario()], { crear })
+    const u = userEvent.setup()
+
+    await u.click(screen.getAllByRole('button', { name: /nuevo usuario/i })[0])
+    await u.type(screen.getByLabelText('Nombre completo'), 'Ana Prueba')
+    await u.type(screen.getByLabelText('Correo electrónico'), 'ana@prueba.pe')
+    await u.type(screen.getByLabelText('Celular (opcional)'), '+51999888777')
+    await u.type(screen.getByLabelText('Contraseña'), 'Clave-Segura-2026!x')
+    await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
+    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026!x', 'tecnico', '+51999888777')
+
+    await u.clear(screen.getByLabelText('Celular (opcional)'))
+    await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
+    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026!x', 'tecnico', undefined)
+  })
 })
 
 describe('UsuariosPage — HU-41: el sistema nunca queda sin administración', () => {

@@ -25,9 +25,16 @@ export function useUsuarios() {
   }, [consultar])
 
   const crear = useCallback(
-    async (nombre: string, email: string, password: string, rol: Rol): Promise<'ok' | 'duplicado' | 'error'> => {
+    async (
+      nombre: string,
+      email: string,
+      password: string,
+      rol: Rol,
+      telefono?: string,
+    ): Promise<'ok' | 'duplicado' | 'error'> => {
       try {
-        await apiClient.post('/api/usuarios', { nombre, email, password, rol })
+        // El celular (E.164) es opcional: con él el usuario recibe también un SMS de bienvenida.
+        await apiClient.post('/api/usuarios', { nombre, email, password, rol, ...(telefono ? { telefono } : {}) })
         await consultar()
         return 'ok'
       } catch (error) {

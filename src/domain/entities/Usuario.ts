@@ -10,6 +10,8 @@ export interface Usuario {
   desactivado_en: string | null
   /** BE-025: tiene una contraseña temporal pendiente de cambio. */
   debe_cambiar_password?: boolean
+  /** Celular enmascarado (+51••••••777); el número completo no sale de la API. */
+  telefono?: string | null
 }
 
 /** FE-004: respuesta de restablecimiento/reactivación; se muestra una vez. */

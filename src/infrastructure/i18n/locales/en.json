@@ -506,6 +506,8 @@
     "nuevo": "New user",
     "nombre": "Full name",
     "email": "Email address",
+    "telefono": "Mobile (optional)",
+    "telefonoAyuda": "International format, e.g. +51999888777. They will get a welcome SMS.",
     "password": "Password",
     "rol": "Role",
     "crear": "Create user",
