@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { accionPrimeraFila, irA, cerrarSesion } from './helpers'
+import { irA, cerrarSesion } from './helpers'
 
 test('sesión demo, navegación y reapertura', async ({ page }) => {
   // El recorrido guiado se retiró (4e27dbe): tras entrar se llega al monitoreo.
@@ -22,10 +22,9 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
 
-  const temperatura = page.getByRole('region', { name: 'Temperatura actual' })
+  const temperatura = page.locator('.panel-equipo').first()
   const curva = page.locator('[role="img"][aria-label^="Gráfica de líneas"]')
-  const lecturaActual = await temperatura.locator('p.nums').textContent()
-  expect(lecturaActual).toMatch(/^\d+\.\d+$/)
+  await expect(temperatura.locator('.num-raiz .sr-only').first()).toHaveText(/^\d+\.\d+$/)
   await expect(curva).toBeVisible()
 
   const rangos = page.getByRole('group', { name: 'Rango de la curva térmica' })
@@ -33,7 +32,7 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
     const opcion = rangos.getByRole('button', { name: nombre, exact: true })
     await opcion.click()
     await expect(opcion).toHaveAttribute('aria-pressed', 'true')
-    await expect(temperatura).toContainText(lecturaActual!)
+    await expect(temperatura.locator('.num-raiz .sr-only').first()).toHaveText(/^\d+\.\d+$/)
     await expect(curva).toBeVisible()
     await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0)
   }
@@ -45,7 +44,7 @@ test('guardas de autenticación y permisos por rol', async ({ page }) => {
   await page.getByRole('button', { name: /^Auditor/ }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await irA(page, '/auditoria')
-  await expect(page.getByRole('heading', { name: 'Bitácora de auditoría' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Quién hizo qué y cuándo' })).toBeVisible()
   await irA(page, '/usuarios')
   await expect(page.getByText(/permiso/i)).toBeVisible()
 })
@@ -87,11 +86,11 @@ test('administrador puede abrir herramientas de administración en demo', async 
 
   for (const [ruta, titulo] of [
     ['/usuarios', 'Usuarios'],
-    ['/dispositivos', 'Equipos de medición'],
+    ['/dispositivos', 'Tus equipos'],
   ]) {
     await irA(page, ruta)
     await expect(page.getByRole('heading', { level: 1 })).toContainText(titulo)
-    await expect(page.getByText(/permiso/i)).toHaveCount(0)
+    await expect(page.getByText(/no tienes permiso/i)).toHaveCount(0)
   }
 })
 
@@ -101,12 +100,12 @@ test('farmacéutico puede consultar reportes e IA en demo', async ({ page }) => 
   await expect(page).toHaveURL(/\/dashboard$/)
 
   for (const [ruta, titulo] of [
-    ['/reportes', 'Reportes de monitoreo'],
-    ['/metricas-ia', 'Cómo se comporta el clasificador'],
+    ['/reportes', 'Reportes'],
+    ['/metricas-ia', 'Clasificador de riesgo'],
   ]) {
     await irA(page, ruta)
     await expect(page.getByRole('heading', { level: 1 })).toContainText(titulo)
-    await expect(page.getByText(/permiso/i)).toHaveCount(0)
+    await expect(page.getByText(/no tienes permiso/i)).toHaveCount(0)
   }
 })
 
@@ -118,8 +117,14 @@ test('alertas permiten abrir detalle contextual', async ({ page }) => {
   await page.getByRole('button', { name: 'Todas' }).click()
   await expect(page.getByText('Excursión crítica').first()).toBeVisible()
   await expect(page.getByText('Riesgo preventivo').first()).toBeVisible()
-  await accionPrimeraFila(page, /ver cronología de atención/i)
-  await expect(page.getByRole('dialog')).toContainText(/temperatura|dispositivo/i)
+  // Bandeja de dos paneles: elegir un aviso muestra su detalle y su cronología al lado.
+  await page.getByRole('button', { name: /abrir alerta/i }).first().click()
+  const detalle = page.getByRole('complementary', { name: /^Aviso de/ })
+  // Primero «Qué hacer»; la evidencia y la cronología, tras «Ver más».
+  await expect(detalle.getByRole('heading', { name: 'Qué hacer' })).toBeVisible()
+  await detalle.getByRole('button', { name: 'Ver más' }).click()
+  await expect(detalle).toContainText(/temperatura|dispositivo/i)
+  await expect(detalle.getByRole('heading', { name: 'Cronología de atención' })).toBeVisible()
 })
 
 test('logout elimina acceso a ruta protegida', async ({ page }) => {
@@ -137,10 +142,16 @@ test('navegación móvil abre menú y permite llegar a alertas', async ({ page }
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
+  // «Más», abajo al alcance del pulgar, trae el resto: cada pantalla con su línea de ayuda.
   await page.getByRole('button', { name: 'Abrir menú' }).click()
-  await page.getByRole('dialog').getByRole('link', { name: 'Alertas' }).click()
-  await expect(page.getByRole('heading', { name: 'Alertas' })).toBeVisible()
+  const mas = page.getByRole('dialog', { name: 'Más' })
+  await expect(mas.getByRole('link')).toHaveText([/^Comprobar registros/, /^Clasificador/, /^Ayuda/])
+  await mas.getByRole('link', { name: 'Ayuda' }).click()
+  await expect(page).toHaveURL(/\/guia$/)
   await expect(page.getByRole('dialog')).toBeHidden()
+  // Alertas va directa en la cápsula de abajo.
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
+  await expect(page.getByRole('heading', { name: 'Alertas' })).toBeVisible()
 
   const filtros = page.getByRole('group', { name: 'Filtrar alertas por estado de seguimiento' })
   const opciones = ['Pendientes', 'Revisadas', 'Atendidas', 'Todas']
@@ -214,21 +225,29 @@ test('rutas principales conservan el viewport y tablas se desplazan por teclado'
   // desplazar en horizontal y la tabla cabe en el ancho de la pantalla.
   await page.setViewportSize({ width: 320, height: 844 })
   await irA(page, '/historial')
-  const tabla = page.locator('[role="region"][aria-label="Historial de lecturas"]')
+  // Las lecturas completas van plegadas: se abren como lo haría quien las busca.
+  await page.getByRole('button', { name: /Ver todas las lecturas/ }).click()
+  const tabla = page.locator('[role="region"][aria-label="Historial"]')
   await expect(tabla).toBeVisible()
   const desborde = await tabla.evaluate((element) => element.scrollWidth - element.clientWidth)
   expect(desborde).toBeLessThanOrEqual(1)
 })
 
-test('trazabilidad explica cadena, oculta sellos y muestra verificación', async ({ page }) => {
+test('comprobar registros pregunta, deja lo técnico plegado y responde en palabras', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await irA(page, '/trazabilidad')
+  await expect(page.getByRole('heading', { name: '¿Alguien cambió una lectura?' })).toBeVisible()
+  // Los sellos y la lista completa van tras «Ver detalles técnicos».
+  const tecnicos = page.getByRole('button', { name: 'Ver detalles técnicos' })
+  await expect(tecnicos).toHaveAttribute('aria-expanded', 'false')
+  await tecnicos.click()
   await expect(page.getByRole('columnheader', { name: 'Evento' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Mostrar detalles técnicos de los sellos' }).click()
+  await page.getByRole('button', { name: 'Mostrar sellos digitales' }).click()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toBeVisible()
-  await page.getByRole('button', { name: 'Revisar integridad' }).click()
-  await expect(page.getByText(/no se detectaron cambios|alteración detectada/i).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Comprobar ahora' }).click()
+  await expect(page.getByText(/nadie cambió tus registros|no coincide/i).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Comprobar otra vez' })).toBeFocused()
 })

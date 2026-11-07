@@ -40,6 +40,14 @@ export type ErrorReporte = 'rango_invertido' | 'periodo_excesivo' | 'cuota' | 'g
  * ahora que las respeta, un reporte «del 15 de enero» arrastraría cinco horas
  * del día 14 y las atribuiría al periodo declarado.
  */
+/** La fecha del nombre del archivo, en hora local como el PDF: un instante en UTC puede caer al día siguiente. */
+function fechaLocal(iso: string) {
+  if (iso.length <= 10) return iso
+  const d = new Date(iso)
+  const dos = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`
+}
+
 function inicioDelDiaLocal(fecha: string): string {
   const [anio, mes, dia] = fecha.split('-').map(Number)
   return new Date(anio, mes - 1, dia, 0, 0, 0, 0).toISOString()
@@ -121,7 +129,7 @@ export function useReportesBPA() {
     descargarBlob(
       JSON.stringify(reporte, null, 2),
       'application/json',
-      `reporte-bpa-${reporte.fecha_desde.slice(0, 10)}-${reporte.fecha_hasta.slice(0, 10)}.json`,
+      `reporte-bpa-${fechaLocal(reporte.fecha_desde)}-${fechaLocal(reporte.fecha_hasta)}.json`,
     )
   }, [reporte])
 
@@ -163,7 +171,7 @@ export function useReportesBPA() {
     descargarBlob(
       csv,
       'text/csv;charset=utf-8',
-      `reporte-bpa-${reporte.fecha_desde.slice(0, 10)}-${reporte.fecha_hasta.slice(0, 10)}.csv`,
+      `reporte-bpa-${fechaLocal(reporte.fecha_desde)}-${fechaLocal(reporte.fecha_hasta)}.csv`,
     )
   }, [reporte])
 

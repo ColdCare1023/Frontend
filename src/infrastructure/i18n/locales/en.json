@@ -11,7 +11,7 @@
     "eslogan": "Protect every dose. At every degree.",
     "descripcion": "Monitor your equipment, receive timely alerts and keep reliable records for every review.",
     "titulo": "Sign in",
-    "subtitulo": "Sign in with your authorised account.",
+    "subtitulo": "Sign in with your email and password.",
     "email": "Email address",
     "password": "Password",
     "entrar": "Sign in",
@@ -36,17 +36,17 @@
     "continuarCon": "or continue with",
     "googleNoAutorizado": "Your Google account has no access to ColdCare. Ask the administrator to register it.",
     "googleNoDisponible": "Google sign-in is not available right now.",
-    "cuentasAdministrador": "No account? Ask your pharmacy administrator.",
+    "cuentasAdministrador": "Your pharmacy administrator creates your account.",
     "esloganLinea1": "Protect every dose.",
     "esloganLinea2": "At every degree.",
-    "rangoReferencia": "Reference temperature range",
+    "rangoReferencia": "Reference range",
     "emailPlaceholder": "pharmacy@example.com"
   },
   "nav": {
-    "dashboard": "Monitoring",
+    "dashboard": "Home",
     "historial": "History",
     "alertas": "Alerts",
-    "trazabilidad": "Record integrity",
+    "trazabilidad": "Check records",
     "reportes": "Reports",
     "auditoria": "Audit log",
     "usuarios": "Users",
@@ -54,23 +54,30 @@
     "cerrarSesion": "Sign out",
     "abrirMenu": "Open menu",
     "seccionOperacion": "Operations",
-    "seccionCumplimiento": "Records & review",
+    "seccionCumplimiento": "Review",
     "seccionAdministracion": "Administration",
-    "metricasIA": "Risk classifier",
-    "guia": "User guide",
+    "metricasIA": "Classifier",
+    "guia": "Help",
     "saltarAlContenido": "Skip to main content",
     "principal": "Main navigation",
-    "principalMovil": "Main navigation (mobile menu)",
     "contenidoPrincipal": "Main content",
-    "colapsarMenu": "Collapse menu",
-    "expandirMenu": "Expand menu",
-    "menuUsuario": "User menu"
+    "menuUsuario": "User menu",
+    "mas": "More",
+    "masPantallas": "More screens",
+    "detalle": {
+      "trazabilidad": "Confirm that nobody changed the saved readings.",
+      "metricasIA": "How the model anticipates risk, and its limits.",
+      "guia": "What each screen does and what to do about an alert.",
+      "auditoria": "Who did what, and when, in the system.",
+      "usuarios": "People's accounts and what each one can open.",
+      "dispositivos": "The connected refrigerators and their sensors."
+    }
   },
   "roles": {
     "administrador": "Administrator",
     "farmaceutico": "Pharmacist",
     "tecnico": "Pharmacy Technician",
-    "auditor": "Cashier"
+    "auditor": "Auditor"
   },
   "riesgo": {
     "normal": "Normal",
@@ -100,28 +107,28 @@
     "sinInferencia": "No AI inference for this reading"
   },
   "dashboard": {
-    "titulo": "Refrigerator status",
+    "titulo": "Home",
     "descripcion": "Temperature, conditions and alerts that need attention.",
     "tempInterna": "Refrigerator temperature",
     "tempAmbiental": "Ambient temperature",
-    "humedad": "Relative humidity",
+    "humedad": "Humidity",
     "estadoActual": "Thermal status",
-    "estadoRefrigerador": "Current temperature",
-    "ultimaTemperatura": "Last reported temperature",
-    "conexionEquipo": "Device connection",
+    "estadoRefrigerador": "Internal temperature",
+    "ultimaTemperatura": "Last reading",
+    "conexionEquipo": "Connection",
     "rangoEsperadoCorto": "Expected range · 2–8 °C",
     "ejeAhora": "Now",
     "graficaExcursion": "Confirmed excursion",
     "graficaSinDatos": "No data",
     "eventoGrafica": "Event",
     "excursionEvento": "Temperature outside range",
-    "lecturaReciente": "Recent reading · {{s}}s ago",
+    "lecturaReciente": "{{s}} s ago",
     "ultimaLecturaHora": "Last reading",
     "actualizacionActiva": "Live",
     "equipo": "Device",
-    "actualizacionReconectando": "Reconnecting to reading stream…",
+    "actualizacionReconectando": "Reconnecting…",
     "fallaSensor": "No temperature reading. Check the sensor.",
-    "sinLecturaDisponible": "No reading is available for this metric.",
+    "sinLecturaDisponible": "No reading",
     "sinClasificacion": "No temperature reading is available to calculate risk.",
     "riesgoUltimaLectura": "Risk from the last reading. Wait for new data to confirm the current state.",
     "excursionConfirmada": "Temperature is outside the expected 2–8 °C range.",
@@ -139,10 +146,10 @@
     "tiempoReal": "live",
     "esperandoDatos": "Waiting for sensor readings…",
     "esperandoDetalle": "The dashboard updates automatically when a new device reading arrives.",
-    "curvaTermica": "How temperature changed",
-    "lecturasRecientesTitulo": "Recent readings",
+    "curvaTermica": "How the temperature changed",
+    "lecturasRecientesTitulo": "Latest readings",
     "lecturasRecientesAyuda": "Latest records in the selected period.",
-    "ultimasLecturas": "last {{n}} readings",
+    "ultimasLecturas": "{{n}} readings",
     "rangoConservacion": "Range 2–8 °C",
     "lecturaSobreEscala": "Reading exceeds the indicator scale (0–10 °C). Actual value: {{temperatura}} °C.",
     "lecturaBajoEscala": "Reading is below the indicator scale (0 °C). Actual value: {{temperatura}} °C.",
@@ -156,7 +163,7 @@
     "resumenMinima": "Minimum",
     "resumenMaxima": "Maximum",
     "resumenPromedio": "Average",
-    "resumenFueraRango": "Readings outside 2–8 °C range",
+    "resumenFueraRango": "Out of range",
     "graficaEtiqueta": "Line chart: internal and ambient temperature for the last {{n}} readings, with the 2–8 °C storage range marked",
     "anuncioRiesgo": "{{nivel}}. Internal temperature {{temperatura}} °C.",
     "anuncioRiesgoSinTemp": "{{nivel}}. No internal temperature reading.",
@@ -169,7 +176,7 @@
     "ventana7d": "7 d",
     "variacionVsAnterior": "Compared with previous reading",
     "errorHistorial": "We couldn't load recent readings.",
-    "estadoIoTTitulo": "Device operational status",
+    "estadoIoTTitulo": "Device incidents",
     "estadoIoTDetalle": "Connection, sensor faults, and local sync. This status is separate from thermal risk.",
     "estadoSinDatos": "No data ({{segundos}}s)",
     "alertaSilencio": "No reports since {{fecha}}. The {{segundos}}s threshold was exceeded.",
@@ -184,7 +191,7 @@
     "puertaSuperaUmbral": "Open for more than {{segundos}}s. Check the door.",
     "umbralSilencio": "Alert when reports stop",
     "umbralPuerta": "Alert when door stays open",
-    "demoTitulo": "Try dashboard states",
+    "demoTitulo": "Test states",
     "demoAyuda": "Local scenarios for checking alerts and recovery. No data is sent to IoT devices.",
     "demoSinDatos": "Simulate device silence",
     "demoBufferPendiente": "Simulate queued readings",
@@ -200,13 +207,55 @@
     "iaExperimentalDetalle": "Class from the legacy model trained on simulated data: it does not open preventive alerts.",
     "sinClasificacionIa": "No AI classification",
     "sinClasificacionIaDetalle": "Normal here comes only from the 2-8 °C range rule; the model did not classify this reading.",
-    "excursionNoVerificada": "Critical excursion of unverified origin: {{temperatura}} °C ({{fecha}}). Check the refrigerator with the backup thermometer."
+    "excursionNoVerificada": "Critical excursion of unverified origin: {{temperatura}} °C ({{fecha}}). Check the refrigerator with the backup thermometer.",
+    "enRangoVentana": "In range",
+    "ambienteCorto": "Ambient",
+    "anotacionMaxima": "High {{valor}}° · {{hora}}",
+    "anotacionMinima": "Low {{valor}}° · {{hora}}",
+    "anotacionPuerta": "Door open {{duracion}} · {{hora}}",
+    "veredictoOk": "All good",
+    "veredictoOkUno": "{{equipo}} is within the 2–8 °C range.",
+    "veredictoOkVarios": "All {{n}} units are within the 2–8 °C range.",
+    "veredictoRevisa": "Check {{equipo}}",
+    "veredictoOtros_one": "1 more unit needs a look.",
+    "veredictoOtros_other": "{{count}} more units need a look.",
+    "veredictoComprobando": "Checking your units…",
+    "veredictoSinLecturas": "No readings yet",
+    "veredictoError": "We couldn't check your units",
+    "veredictoErrorDetalle": "Try again in a moment.",
+    "causaCritico": "It's at {{temperatura}} °C, outside 2–8 °C. Make sure the door closes and follow your pharmacy's procedure.",
+    "causaPreventivo": "It's at {{temperatura}} °C, close to the 2–8 °C limit. Make sure the door closes and check again in a few minutes.",
+    "sinLecturaHace": "No reading for {{tiempo}}",
+    "sinLecturaNueva": "No new reading",
+    "causaConexion": "Check that it has power and a connection.",
+    "causaSinReporte": "It hasn't sent any readings yet.",
+    "causaSensor": "The sensor isn't sending the temperature. Check that it's connected properly.",
+    "causaSuspendido": "Monitoring is paused for a security change. Tell the administrator.",
+    "causaSinRiesgo": "Its status couldn't be worked out. Check it with the backup thermometer.",
+    "causaPuerta": "The door is still open. Make sure it closes properly.",
+    "ultimaLecturaFue": "Last reading: {{nivel}}",
+    "codigoEquipo": "Code",
+    "verLecturasIncidentes": "Latest readings and unit status",
+    "verCifrasPeriodo": "See minimum, maximum and average",
+    "lecturasPeriodo": "Readings",
+    "ventanaNombre1h": "last hour",
+    "ventanaNombre24h": "last 24 h",
+    "ventanaNombre7d": "last 7 days",
+    "periodoSinLecturas": "No readings in this period",
+    "periodoSalio_one": "It left the range once",
+    "periodoSalio_other": "It left the range {{count}} times",
+    "periodoSinConfirmar": "Some readings were outside 2–8 °C without being confirmed",
+    "periodoHastaUltima": "Within range up to the last reading",
+    "periodoConHuecos": "Within range, with stretches without readings",
+    "periodoHoraBien": "Within range for the last hour",
+    "periodoHoyBien": "Within range all day today",
+    "periodoSemanaBien": "Within range for these 7 days"
   },
   "demo": {
     "badge": "Demo",
     "descripcionBadge": "Simulated data: the application runs without a server connection",
     "accesoRapido": "Demo access",
-    "accesoDetalle": "Explore the system with simulated data.",
+    "accesoDetalle": "Simulated data",
     "entrandoComo": "Entering as {{rol}}…",
     "roles": {
       "administrador": {
@@ -222,31 +271,31 @@
         "descripcion": "Operations and query"
       },
       "auditor": {
-        "titulo": "Cashier",
+        "titulo": "Auditor",
         "descripcion": "Records access"
       }
     },
     "avisoTitulo": "Simulated data",
-    "avisoDetalle": "Demo mode: no temperature, alert or verification on this screen comes from a real refrigerator."
+    "avisoDetalle": "Nothing on this screen comes from a real refrigerator."
   },
   "historial": {
-    "titulo": "Reading history",
+    "titulo": "History",
     "descripcion": "Find temperatures by device, risk level, and date range.",
     "filtros": "Filters",
     "dispositivo": "Device",
-    "codigoEquipo": "Refrigerator code",
+    "codigoEquipo": "Device",
     "codigoEquipoEjemplo": "E.g. FARM-01-CDL",
     "todosDispositivos": "All",
-    "nivelRiesgo": "Risk level",
+    "nivelRiesgo": "Risk",
     "todosNiveles": "All",
     "desde": "From",
     "hasta": "To",
-    "aplicar": "Apply filters",
+    "aplicar": "Apply",
     "limpiar": "Clear",
     "fecha": "Date & time",
-    "tempInterna": "Internal temp. (°C)",
-    "tempAmbiental": "Room temp. (°C)",
-    "humedad": "Humidity (%)",
+    "tempInterna": "Internal",
+    "tempAmbiental": "Ambient",
+    "humedad": "Humidity",
     "puerta": "Door",
     "riesgo": "Risk",
     "sinResultados": "No readings match the selected filters.",
@@ -275,7 +324,72 @@
       "omitida": "Skipped",
       "fallida": "Failed",
       "modelo_no_disponible": "Model unavailable"
-    }
+    },
+    "ayer": "Yesterday",
+    "maxima": "Highest",
+    "minima": "Lowest",
+    "fueraDeRango": "Out of range",
+    "lecturas": "Readings",
+    "lecturasDia_one": "{{count}} reading",
+    "lecturasDia_other": "{{count}} readings",
+    "fueraDeRangoDia_one": "{{count}} out of range",
+    "fueraDeRangoDia_other": "{{count}} out of range",
+    "periodo": "Period",
+    "atajos": {
+      "24h": "24 hours",
+      "hoy": "Today",
+      "ayer": "Yesterday",
+      "7d": "7 days"
+    },
+    "periodos": {
+      "24h": "Last 24 hours",
+      "hoy": "Today",
+      "ayer": "Yesterday",
+      "7d": "Last 7 days",
+      "personalizado": "In this period"
+    },
+    "frase": {
+      "dentro": "{{periodo}}: always within range",
+      "dentroConHuecos": "{{periodo}}: within range in everything recorded",
+      "fuera_one": "Left the range <n></n> time, {{cuando}}",
+      "fuera_other": "Left the range <n></n> times, most recently {{cuando}}",
+      "enCurso": "Out of range {{desde}}",
+      "sinLecturas": "{{periodo}}: no readings",
+      "sinTemperatura": "{{periodo}}: readings, but none with a temperature",
+      "filtrado_one": "{{periodo}}: {{count}} reading at {{nivel}}",
+      "filtrado_other": "{{periodo}}: {{count}} readings at {{nivel}}"
+    },
+    "nota": {
+      "parcial": "Only readings {{desde}} were loaded.",
+      "anteriores": "No earlier readings were loaded.",
+      "hueco": "There were {{duracion}} without readings.",
+      "ultima": "The last one arrived {{cuando}}.",
+      "salidasAntes_one": "Before that it left the range {{count}} more time.",
+      "salidasAntes_other": "Before that it left the range {{count}} more times."
+    },
+    "cuando": {
+      "hoy": "at {{hora}}",
+      "ayer": "yesterday at {{hora}}",
+      "otro": "on {{fecha}} at {{hora}}"
+    },
+    "desdeCuando": {
+      "hoy": "Since {{hora}}",
+      "ayer": "Since yesterday at {{hora}}",
+      "otro": "Since {{fecha}} at {{hora}}"
+    },
+    "porDia": "Day by day",
+    "diaDentro": "Always within range",
+    "diaFuera_one": "Left the range {{count}} time",
+    "diaFuera_other": "Left the range {{count}} times",
+    "diaEntre": "between {{minima}} and {{maxima}} °C",
+    "diaSinTemperatura": "No temperature recorded",
+    "salidasDelDia": "Times out of range · {{dia}}",
+    "salidaNombre": "Out of range",
+    "salidaPuerta": "door open",
+    "salidaTabla": "Readings from the excursion at {{hora}}",
+    "salidasMas_one": "And {{count}} more: it's under “View all readings”.",
+    "salidasMas_other": "And {{count}} more: they're under “View all readings”.",
+    "verTodas": "View all readings"
   },
   "alertas": {
     "titulo": "Alerts",
@@ -371,17 +485,48 @@
       "reintentandoAyuda": "The mail provider failed; the system is retrying ({{intentos}} attempt(s)).",
       "no_entregadaAyuda": "Attempts exhausted: notify by another channel.",
       "pendienteAyuda": "No send attempt yet."
-    }
+    },
+    "queHacer": "What to do",
+    "detalleDe": "Notice from {{equipo}}",
+    "porRevisar_one": "You have <n>{{count}}</n> alert to review",
+    "porRevisar_other": "You have <n>{{count}}</n> alerts to review",
+    "porAtender_one": "You have <n>{{count}}</n> alert to handle",
+    "porAtender_other": "You have <n>{{count}}</n> alerts to handle",
+    "pendientesConsulta_one": "There is <n>{{count}}</n> pending alert",
+    "pendientesConsulta_other": "There are <n>{{count}}</n> pending alerts",
+    "todoRevisado": "All reviewed",
+    "todoRevisadoDetalle": "If anything leaves 2–8 °C, it will show up here.",
+    "abrirAlerta": "Open alert",
+    "hace": "{{tiempo}} ago",
+    "pasoMirarTitulo": "See how it is now",
+    "pasoMirarDetalle": "Home shows its temperature right now.",
+    "pasoProtegerTitulo": "Protect the medicines",
+    "pasoRevisarEquipoTitulo": "Check the unit",
+    "pasoProtegerDetalle": "Make sure the door closes and follow your pharmacy's procedure.",
+    "pasoConstanciaTitulo": "Record it",
+    "pasoConstanciaRevisar": "Mark it as reviewed and note what you did.",
+    "pasoConstanciaAnotar": "Note what you did in the corrective action.",
+    "yaRevisada": "It was reviewed. What was done still needs to be noted.",
+    "yaAtendida": "It was handled. “See more” shows who did it and what they did.",
+    "soloConsulta": "View only: pharmacy staff handle this alert.",
+    "marcadaRevisada": "Alert marked as reviewed."
   },
   "trazabilidad": {
-    "titulo": "Record integrity",
-    "descripcion": "Check readings and actions for possible later changes.",
-    "verificar": "Review integrity",
-    "verificando": "Verifying…",
-    "cadenaIntegra": "No changes detected",
-    "cadenaIntegraDetalle": "The check found no later changes in the {{n}} records reviewed.",
-    "cadenaRota": "Tampering detected",
+    "errorCargar": "We could not load the records.",
+    "titulo": "Check records",
+    "descripcion": "Check whether anyone changed a reading after it was saved.",
+    "verificar": "Check now",
+    "comprobarOtraVez": "Check again",
+    "comprobado": "Checked",
+    "comprobadoALas": "Checked at {{hora}}",
+    "verificando": "Checking…",
+    "cadenaIntegra": "Nobody changed your records",
+    "cadenaIntegraDetalle_one": "We checked <n></n> record and it hasn't changed since it was saved.",
+    "cadenaIntegraDetalle_other": "We checked <n></n> records and none has changed since it was saved.",
+    "cadenaRota_one": "One record doesn't match: review it",
+    "cadenaRota_other": "{{count}} records don't match: review them",
     "cadenaRotaDetalle": "A difference was detected in record #{{n}}. Notify the administrator and keep the information for review.",
+    "cadenaRotaRegistro": "It is the “{{evento}}” record from {{fecha}} at {{hora}}. Notify the administrator and keep the information for review.",
     "evento": "Event",
     "fecha": "Date",
     "hash": "Digital seal",
@@ -390,9 +535,9 @@
     "registroN": "Record N",
     "selloCompartido": "Digital seal → previous seal",
     "registroSiguiente": "Record N+1",
-    "cadenaExplicacion": "ColdCare checks related readings and actions. If it finds a later change, it identifies the record for review.",
-    "mostrarSellos": "Show technical seal details",
-    "ocultarSellos": "Hide technical seal details",
+    "cadenaExplicacion": "We compare each reading with what was saved the first time: if anything changed later, we tell you.",
+    "mostrarSellos": "Show digital seals",
+    "ocultarSellos": "Hide digital seals",
     "selloAyuda": "Technical detail about the record's cryptographic verification",
     "sinRegistros": "No traceability records yet.",
     "tipoEvento": "Event type",
@@ -405,8 +550,9 @@
     "hashEsperado": "Recomputed seal",
     "hashAlmacenado": "Stored seal",
     "posterioresAfectados": "Subsequent records affected",
-    "rupturaAislada": "Isolated break: the chain is verifiable again",
-    "rupturaAisladaDetalle": "{{n}} historical alteration(s) isolated by an administrator. The chain is intact since {{fecha}}",
+    "rupturaAislada": "An altered record was set aside",
+    "rupturaAisladaDetalle_one": "An administrator set aside {{count}} altered record. Everything matches since {{fecha}}.",
+    "rupturaAisladaDetalle_other": "An administrator set aside {{count}} altered records. Everything matches since {{fecha}}.",
     "tipoDiscrepancia": "Discrepancy type",
     "discrepancia_payload_alterado": "Content modified after it was recorded",
     "discrepancia_enlace_roto": "Link to the previous record is broken",
@@ -416,8 +562,8 @@
     "posterioresConsistentesValor": "{{c}} of {{n}}",
     "alcanceVerificacion": "This check only certifies that stored records were not altered after creation and, if a break exists, where it occurred. It is not a sanitary, regulatory or DIGEMID compliance certification of how the medicines were stored.",
     "confirmarAislar": "This record will be marked as isolated and excluded from the verifiable chain. The action is audited and cannot be undone.",
-    "verificarSegmento": "Verify by device and period",
-    "verificarSegmentoBoton": "Verify segment",
+    "verificarSegmento": "By device and period",
+    "verificarSegmentoBoton": "Verify",
     "desdeAyuda": "Required. Includes the full day.",
     "hastaOpcional": "Optional. Leave blank to check through now.",
     "rangoInvalido": "The selected range is invalid: \"from\" cannot be later than \"to\".",
@@ -434,26 +580,55 @@
       "REPORTE_BPA": "Report generated",
       "AUDITORIA": "User action",
       "CONECTIVIDAD": "Connection change"
+    },
+    "sinRevisar": "Did anyone change a reading?",
+    "advertenciaSimple": "It detects later changes, but it does not prove the original reading was correct, and anyone with the key could recalculate the records.",
+    "verDetallesTecnicos": "View technical details",
+    "listaRegistros": "All records",
+    "advertenciaSello": "It detects later changes. It does not prove the physical reading was true, and anyone with the key and write access could recalculate the chain: the seal is evidence, not absolute immutability.",
+    "simular": "Simulate inconsistency (demo)",
+    "cadenaEtiqueta": "Latest records, oldest to newest",
+    "registrosSaltados_one": "{{count}} more record",
+    "registrosSaltados_other": "{{count}} more records",
+    "timbre": {
+      "coincide": "Matches",
+      "no_coincide": "Doesn't match",
+      "afectado": "Affected"
     }
   },
   "reportes": {
-    "titulo": "Monitoring reports",
+    "comoCambio": "How the temperature changed",
+    "ultimasAlertas": "Latest alerts",
+    "sinAlertas": "No alerts in this period.",
+    "sinLecturas": "No readings in this period.",
+    "titulo": "Reports",
     "descripcion": "Review and download readings, alerts and actions for internal review.",
+    "periodoYEquipo": "Period and equipment",
+    "descargar": "Download",
+    "queTraeFormato": "What each format includes",
+    "periodoCambiado": "You changed the period or device: the sheet still shows the previous one. Downloading updates it.",
+    "constancia": "Your cold chain record",
+    "otrosFormatos": "Other formats",
+    "verEnPantalla": "View the sheet without downloading",
+    "actualizarHoja": "Update the sheet",
+    "generandoConstancia": "Preparing your record…",
+    "descargada": "Record downloaded",
+    "descargarOtraVez": "Download again",
     "rango": "Report period",
     "desde": "From",
     "hasta": "To",
-    "dispositivo": "Refrigerator code (optional)",
+    "dispositivo": "Device (optional)",
     "codigoEquipoEjemplo": "E.g. FARM-01-CDL",
-    "generar": "Generate report",
+    "generar": "Generate",
     "generando": "Generating…",
-    "descargarCsv": "Download spreadsheet (CSV)",
-    "descargarJson": "Download data for technical review (JSON)",
+    "descargarCsv": "Download CSV",
+    "descargarJson": "Download JSON",
     "notaFormatos": "CSV is easy to review and print. JSON retains technical data, including verification seals.",
     "resumen": "Period summary",
     "lecturas": "Readings",
     "alertas": "Alerts",
-    "registrosTrazabilidad": "Traceability records",
-    "sinReporte": "Set the period and generate a report to see the summary.",
+    "registrosTrazabilidad": "Records",
+    "sinReporte": "This sheet fills in with your data when you download.",
     "errorGenerar": "The report could not be generated.",
     "descargarPdf": "Download PDF",
     "generandoPdf": "Generating PDF…",
@@ -461,16 +636,29 @@
     "errorRangoInvertido": "The start date is after the end date. Fix the period.",
     "errorPeriodoExcesivo": "The period cannot exceed {{max}} days. Split the report into shorter ranges.",
     "errorCuota": "Too many reports in a row. Wait a minute before generating again.",
-    "periodoDias_one": "Selected period: {{count}} day.",
-    "periodoDias_other": "Selected period: {{count}} days.",
+    "periodoDias_one": "{{desde}} to {{hasta}} · {{count}} day",
+    "periodoDias_other": "{{desde}} to {{hasta}} · {{count}} days",
     "sinReporteDetalle": "Pick a period and generate the report to see the summary and download it as PDF, CSV or JSON.",
     "incluyeLecturas": "Readings in period",
     "incluyeAlertas": "Recorded alerts",
     "incluyeTrazabilidad": "Traceability records",
-    "formatosDisponibles": "Available formats"
+    "formatosDisponibles": "Available formats",
+    "vista": {
+      "titulo": "Cold chain report",
+      "periodo": "{{desde}} to {{hasta}}",
+      "todosEquipos": "All devices",
+      "lecturas": "Readings",
+      "alertas": "Alerts",
+      "acciones": "Corrective actions",
+      "seccionExcursiones": "Excursions and how they were handled",
+      "seccionAcciones": "Recorded corrective actions",
+      "seccionCadena": "Record chain verification",
+      "pendiente": "Filled in when you download",
+      "pie": "Support for internal reviews. It does not replace official records or documents."
+    }
   },
   "auditoria": {
-    "titulo": "Audit log",
+    "titulo": "Who did what and when",
     "descripcion": "Critical actions recorded in the system",
     "filtros": "Filters",
     "fecha": "Date",
@@ -487,21 +675,59 @@
     "bloqueosTemporales_other": "{{count}} temporary access locks recorded. This does not confirm an attack.",
     "ip": "Source IP",
     "sinRegistros": "There are no recorded actions yet.",
+    "sinCoincidencias": "No actions match these filters.",
+    "errorCarga": "We could not query the log. Please try again.",
+    "ayer": "Yesterday",
+    "accionesDia_one": "{{count}} action",
+    "accionesDia_other": "{{count}} actions",
+    "noExitosasDia_one": "{{count}} unsuccessful",
+    "noExitosasDia_other": "{{count}} unsuccessful",
+    "filtroAccion": "Action: {{valor}}",
+    "filtroUsuario": "User: {{valor}}",
+    "filtroDesde": "From: {{valor}}",
+    "filtroHasta": "To: {{valor}}",
+    "resultados": {
+      "exitoso": "successful",
+      "fallido": "failed",
+      "bloqueado": "locked",
+      "denegado": "denied"
+    },
     "eventos": {
-      "ALERTA_REVISADA": "Alert reviewed",
-      "REPORTE_BPA_GENERADO": "Report generated",
-      "LOGIN_FALLIDO": "Sign-in failed",
-      "LOGIN_EXITOSO": "Sign-in succeeded",
-      "BLOQUEO_TEMPORAL": "Temporary lock",
-      "RBAC_DENEGADO": "Role-based access denied",
-      "USUARIO_CREADO": "User created"
-    }
+      "ALERTA_REVISADA": "Reviewed an alert",
+      "REPORTE_BPA_GENERADO": "Generated a report",
+      "LOGIN_FALLIDO": "Tried to sign in and could not",
+      "LOGIN_EXITOSO": "Signed in",
+      "BLOQUEO_TEMPORAL": "Access was locked for a while",
+      "RBAC_DENEGADO": "Tried to open something without permission",
+      "USUARIO_CREADO": "Created an account",
+      "ACCION_CORRECTIVA_REGISTRADA": "Recorded a corrective action",
+      "REPORTE_GENERADO": "Generated a report"
+    },
+    "bitacora": "Audit log",
+    "resumenAcciones_one": "<n>{{count}}</n> recorded action",
+    "resumenAcciones_other": "<n>{{count}}</n> recorded actions",
+    "resumenBien_one": "it went well",
+    "resumenBien_other": "all went well",
+    "resumenMal_one": "{{count}} did not go well",
+    "resumenMal_other": "{{count}} did not go well",
+    "ultimaAccion": "The latest was {{cuando}}.",
+    "cuandoHoy": "today at {{hora}}",
+    "cuandoAyer": "yesterday at {{hora}}",
+    "cuandoFecha": "on {{fecha}} at {{hora}}",
+    "verDetalle": "See details",
+    "ocultarDetalle": "Hide details",
+    "detalle": "Details",
+    "codigo": "Action code",
+    "fechaExacta": "Exact date and time",
+    "quienSinUsuario": "No identified user",
+    "quienTu": "You",
+    "quienCodigo": "User {{id}}"
   },
   "usuarios": {
     "tuCuenta": "Your account",
     "ultimoAdmin": "This is the last active administrator: the system would be left without administration.",
     "errorRbac": "Not allowed: it is your own account or no active administrator would remain.",
-    "titulo": "Users & roles",
+    "titulo": "Users",
     "descripcion": "Control who can access the system and what each role can do",
     "nuevo": "New user",
     "nombre": "Full name",
@@ -544,7 +770,40 @@
     "reactivarConfirmar": "{{nombre}} will regain access with a temporary password.",
     "copiar": "Copy",
     "copiado": "Copied",
-    "confirmar": "Confirm"
+    "confirmar": "Confirm",
+    "permisos": {
+      "titulo": "What each profile can see",
+      "pantalla": "Screen",
+      "permitido": "Has access",
+      "denegado": "No access",
+      "pantallas_one": "{{count}} screen",
+      "pantallas_other": "{{count}} screens",
+      "sigla": {
+        "administrador": "AD",
+        "farmaceutico": "PH",
+        "tecnico": "PT",
+        "auditor": "AU"
+      },
+      "tituloSimple": "What each role can do",
+      "verTabla": "See screen by screen",
+      "resumen": {
+        "administrador": "Can do everything: besides what the others do, creates accounts and registers devices.",
+        "farmaceutico": "Sees temperatures, handles and reviews alerts, gets reports and checks the classifier.",
+        "tecnico": "Sees temperatures and alerts, and writes down what they did after a warning. Does not get reports.",
+        "auditor": "Only looks: temperatures, reports and who did what. Cannot change anything."
+      }
+    },
+    "vistas": "User view",
+    "vistaPersonas": "People",
+    "vistaPermisos": "Permissions",
+    "alcanceRol": "Will see {{n}} of {{total}} screens: {{pantallas}}.",
+    "passwordPendienteAyuda": "Has a temporary password and must change it when signing in.",
+    "sinUsuariosAyuda": "Create the first account with “New user”.",
+    "errorCargar": "The accounts could not be loaded.",
+    "personasConAcceso_one": "<n>{{count}}</n> person with access",
+    "personasConAcceso_other": "<n>{{count}}</n> people with access",
+    "cuentasDesactivadas_one": "{{count}} deactivated account",
+    "cuentasDesactivadas_other": "{{count}} deactivated accounts"
   },
   "privacidad": {
     "titulo": "Privacy notice",
@@ -556,8 +815,8 @@
     "rechazando": "Signing out…"
   },
   "dispositivos": {
-    "titulo": "Measurement devices",
-    "descripcion": "Manage each device code, sensors, connection, local buffer, calibration validity, and lifecycle.",
+    "titulo": "Your devices",
+    "descripcion": "How your refrigerators and cold rooms are doing, how long they stay calibrated and their full record.",
     "id": "Equipment code",
     "conectividad": "Connectivity",
     "firmware": "Software version",
@@ -615,13 +874,13 @@
     "sinHistorial": "No changes recorded yet.",
     "nuevoEquipo": "Register device",
     "nombreEquipo": "Device name",
-    "registroAyuda": "The code identifies the ESP32 node. It must be unique and remains stable when sensors are replaced.",
-    "codigoUnicoAyuda": "Use letters, numbers, and hyphens; this identifier appears on readings as device_id.",
+    "registroAyuda": "The code identifies the device in every reading. It must be unique and does not change if you replace a sensor.",
+    "codigoUnicoAyuda": "Use letters, numbers and hyphens. It appears in every reading.",
     "equipoRegistrado": "Device registered with its credential. Copy it now: it will not be shown again.",
     "codigoDuplicado": "That code is already registered.",
     "sensores": "Installed sensors",
     "opcional": "optional",
-    "resumenIoT": "IoT operational summary",
+    "resumenIoT": "Summary of your devices",
     "equiposRegistrados": "Registered devices",
     "sinDatos": "No data",
     "fallasSensor": "Sensor faults",
@@ -714,7 +973,78 @@
     "posesionPendienteAyuda": "Console confirmed. Retention ends when the node signs the challenge with the new credential; if the console was not changed, the node cannot do so and retention continues.",
     "reenviarDesafio": "Resend challenge",
     "reenviarDesafioAyuda": "After fixing the password in the console: kicks the node session so it reconnects with the new credential and resends the challenge.",
-    "desafioReenviado": "Challenge resent: the node will reconnect and must prove the new credential."
+    "desafioReenviado": "Challenge resent: the node will reconnect and must prove the new credential.",
+    "ficha": {
+      "titulo": "Device record",
+      "firmware": "Firmware",
+      "captura": "Sampling",
+      "capturaValor": "Every {{segundos}} s",
+      "silencio": "No data after",
+      "silencioValor": "{{segundos}} s",
+      "instalacion": "Installed",
+      "instaladoPor": "Installed by",
+      "responsable": "Owner",
+      "proximaCalibracion": "Next calibration",
+      "certificado": "Certificate",
+      "buffer": "Unsent readings",
+      "sinDato": "Not recorded",
+      "ultimaCalibracion": "Last calibration",
+      "sensoresActivos": "{{activos}} of {{total}}",
+      "conexion": "Connection and credential",
+      "servicio": "Service",
+      "telefono": "Phone",
+      "fechaBaja": "Decommission date",
+      "motivoBaja": "Decommission details",
+      "reemplazo": "Replaces",
+      "bufferLocal": "Local buffer",
+      "periodoCola": "Queued period",
+      "telemetria": "Telemetry"
+    },
+    "verFichaDe": "See record of {{nombre}}",
+    "fichaYSensores": "Record and sensors",
+    "registroCredencialAviso": "Registering issues its credential. It is shown only once.",
+    "sinDispositivosAyuda": "Register the first one to start receiving readings.",
+    "errorCargar": "The devices could not be loaded.",
+    "verFicha": "View record",
+    "resumenEquipos_one": "<n>{{count}}</n> device in service",
+    "resumenEquipos_other": "<n>{{count}}</n> devices in service",
+    "resumenBien_one": "it is online",
+    "resumenBien_other": "all online",
+    "resumenRevisar_one": "{{count}} needs a check",
+    "resumenRevisar_other": "{{count}} need a check",
+    "resumenBaja_one": "{{count}} retired",
+    "resumenBaja_other": "{{count}} retired",
+    "calibracionFrase": {
+      "vigente": "Calibrated until {{mes}}",
+      "proxima_a_vencer": "Calibration due in {{mes}}",
+      "vencida": "Calibration expired in {{mes}}",
+      "sin_registrar": "Calibration not registered"
+    },
+    "avisoPieza": {
+      "retenida": "It is not recording readings. Open its record.",
+      "pendiente": "A connection setting needs finishing. Open its record."
+    }
+  },
+  "isla": {
+    "abrir": "Open details",
+    "recoger": "Hide this notice",
+    "panel": "Current status of the devices",
+    "conectando": "Connecting",
+    "sinLectura": "No reading",
+    "sinLecturaNueva": "No new reading",
+    "sinLecturaHace": "No new reading for {{tiempo}}",
+    "equipos": "Now",
+    "avisos": "Notices this session",
+    "sinAlertas": "No pending alerts",
+    "alertas_one": "{{count}} pending alert",
+    "alertas_other": "{{count}} pending alerts"
+  },
+  "filtros": {
+    "titulo": "Filters",
+    "listo": "Done",
+    "quitar": "Remove filter: {{filtro}}",
+    "conActivos_one": "{{nombre}}, {{count}} active",
+    "conActivos_other": "{{nombre}}, {{count}} active"
   },
   "comunes": {
     "error": "Something went wrong. Please try again.",
@@ -747,29 +1077,30 @@
     "marcadorFechaHora": "mm/dd/yyyy hh:mm",
     "marcadorFecha": "mm/dd/yyyy",
     "verDetalles": "Show details",
-    "ocultarDetalles": "Hide details"
+    "ocultarDetalles": "Hide details",
+    "verMas": "See more"
   },
   "metricasIA": {
-    "titulo": "How the classifier behaves",
+    "titulo": "Risk classifier",
     "descripcion": "Review examples of how the model assigns a risk level to each reading.",
-    "resumenTitulo": "Evaluation result",
+    "resumenTitulo": "What it is and how it did",
     "f1Ponderado": "Weighted F1",
     "definicionF1": "Summarizes how the model identifies situations and avoids incorrect classifications, considering the number of cases in each group.",
     "criterioSuperado": "Meets the evaluation criterion.",
     "criterioNoAlcanzado": "Below the evaluation criterion.",
-    "avisoDatosNoReportables": "Illustrative sample with synthetic data. It is not a validated evaluation and cannot support claims about real classifier performance.",
+    "avisoDatosNoReportables": "Illustrative sample with synthetic data. It does not prove how it would really perform.",
     "muestraIlustrativa": "Illustrative, non-reportable value",
     "estadoNoVerificado": "Evaluation not verified.",
-    "contextoNoVerificado": "Data origin and test-set evidence still need confirmation. The threshold is not compared.",
+    "contextoNoVerificado": "The data origin still has to be confirmed. Not compared with the threshold.",
     "contextoUmbral": "The prototype criterion is {{umbral}} or higher. This result does not show the refrigerator's current status.",
     "exactitudGeneral": "Correct classifications",
     "definicionExactitud": "Share of evaluated cases the model classified correctly.",
     "deteccionCriticas": "Critical excursion detection",
     "definicionDeteccionCritica": "Share of actual critical excursion cases identified by the model.",
     "casosEvaluados": "Cases evaluated",
-    "notaEvaluacion": "Classifier results on a test set. These are not temperature readings or daily activity from the pharmacy.",
-    "detalleTitulo": "Results and method",
-    "porClase": "Results by situation",
+    "notaEvaluacion": "These are results of a model test. They are not temperature readings or what happens in your pharmacy.",
+    "detalleTitulo": "See technical details",
+    "porClase": "By situation type",
     "porClaseAyuda": "Compare how each risk level was classified in the evaluated cases.",
     "situacion": "Situation",
     "definicionesTabla": "Precision: of the cases the model assigned to a situation, how many matched. Detection: of the actual cases in that situation, how many it identified. F1 summarizes both measures. Cases evaluated is the count used for each row.",
@@ -787,7 +1118,7 @@
     "registrosConjunto": "Cases used",
     "particionMuestrasValor": "{{entrenamiento}} to train the model · {{prueba}} to evaluate it",
     "totalRegistros": "Total in the dataset: {{total}}",
-    "variablesTitulo": "Variables considered by the model",
+    "variablesTitulo": "Model variables",
     "variablesAyuda": "Importance reported for each variable; these details follow the results.",
     "notaImportancias": "The percentage compares importance reported for each variable. It does not, on its own, indicate a cause or the probability of a situation.",
     "barraImportancia": "{{variable}}: reported importance {{valor}}",
@@ -799,7 +1130,7 @@
     "huellaModelo": "Model fingerprint",
     "noDisponible": "Not available",
     "notaReproducibilidad": "These details help identify the evaluation. A random seed or fingerprint alone does not guarantee that training can be repeated exactly.",
-    "notaUsoProfesional": "These metrics evaluate a classifier. Follow your pharmacy's procedure when responding to an alert; this result does not replace professional review.",
+    "notaUsoProfesional": "To handle an alert, follow your pharmacy's procedure. This result does not replace professional review.",
     "noEntrenado": "No evaluation is available for this model yet. Contact the administrator to review its setup.",
     "errorCarga": "We couldn't load the model results. Try again.",
     "reintentar": "Try again",
@@ -815,77 +1146,52 @@
       "hora_evento": "Time of event",
       "estado_conectividad_online": "Device connection status"
     },
-    "reglaIndependiente": "Random Forest classifies Normal or Preventive risk. A critical excursion is confirmed by the independent 2–8 °C rule; it is not a model probability."
+    "reglaIndependiente": "Random Forest classifies Normal or Preventive risk. A critical excursion is confirmed by the independent 2–8 °C rule; it is not a model probability.",
+    "importanciaVisible": "Which variables weigh the most",
+    "modoSombra": "Shadow mode: it runs apart, not yet accepted. It does not open alerts.",
+    "matrizTitulo": "Confusion matrix",
+    "matrizAyuda": "Each row is the actual situation and each column is what the model assigned. The diagonal shows the correct calls.",
+    "matrizReal": "Actual situation",
+    "matrizAsignada": "Model assigned",
+    "matrizNotaCritica": "Here a critical excursion appears as one more class in the evaluation. In operation it is confirmed by the 2–\u20608\u00a0°C rule, not by the model.",
+    "matrizNoDisponible": "This evaluation does not include a complete matrix.",
+    "queSignifica": "What each figure means",
+    "selloMuestra": "Illustrative sample",
+    "identidadModelo": "Model identification",
+    "fraseSinValidar": "A model that tries to anticipate risks. It is not validated yet and decides nothing: the 2–\u20608\u00a0°C rule decides.",
+    "fraseSinAceptar": "A model that tries to anticipate risks. It is not accepted yet and decides nothing: the 2–\u20608\u00a0°C rule decides.",
+    "aciertoFrase": "It got {{n}} out of 100 right in this example sample",
+    "aciertoFraseEvaluacion": "It got {{n}} out of 100 right in the test evaluation",
+    "aciertoAntes": "It got",
+    "aciertoDe": "out of 100 right",
+    "aciertoMuestra": "in this example sample",
+    "aciertoEvaluacion": "in the test evaluation",
+    "loQueMasMira": "What it looks at most"
   },
   "sesion": {
     "porExpirar": "Your session expires in {{restante}}. Save your work."
   },
   "guia": {
     "eyebrow": "ColdCare help",
-    "titulo": "Using ColdCare",
-    "descripcion": "What to check, how to respond to an alert, and where to find records.",
-    "inicioEyebrow": "During your shift",
-    "navegacion": "Guide sections",
-    "nav": {
-      "inicio": "Get started",
-      "estados": "Temperature and status",
-      "alertas": "Respond to an alert",
-      "pantallas": "Find a screen",
-      "dudas": "Frequently asked questions"
-    },
-    "inicioTitulo": "Review, respond, and record",
-    "inicioDescripcion": "Start with the refrigerator status. If an alert appears, review the reading and follow your pharmacy's procedure.",
-    "pasos": {
-      "monitoreo": {
-        "titulo": "Check Monitoring",
-        "descripcion": "See the latest reading and device status."
-      },
-      "alerta": {
-        "titulo": "If an alert appears",
-        "descripcion": "Open Alerts to review its level and when it occurred."
-      },
-      "historial": {
-        "titulo": "Look back",
-        "descripcion": "Use History to review readings from another time or date."
-      }
-    },
-    "estadosTitulo": "Read the temperature and its status",
-    "estadosDescripcion": "The status summarizes how a reading compares with the allowed range.",
+    "titulo": "What do you need?",
+    "descripcion": "Everyday pharmacy questions, with the short answer and the screen where you solve them.",
+    "pausarAnimaciones": "Pause animations",
     "estados": {
       "normal": {
         "titulo": "Within range",
-        "descripcion": "The reading is within the range shown for the device."
+        "descripcion": "Inside the device range."
       },
       "preventivo": {
         "titulo": "Preventive risk",
-        "descripcion": "The reading is approaching a limit; review it before it leaves the range."
+        "descripcion": "Near a limit. Check before it leaves the range."
       },
       "critico": {
         "titulo": "Critical excursion",
-        "descripcion": "The reading is outside the allowed range. Check the refrigerator and follow your pharmacy's procedure."
+        "descripcion": "Out of range. Check it and follow your procedure."
       }
     },
-    "rangoNota": "Check the allowed range in Monitoring and compare the reading with its date and time.",
-    "alertaEyebrow": "When an alert appears",
-    "alertaTitulo": "Review the situation and record what happened",
-    "alertaDescripcion": "An alert shows a risk level and its related reading. Recording an action documents the response.",
-    "alertaPasos": {
-      "revisar": {
-        "titulo": "Review the reading",
-        "descripcion": "Open the alert and check temperature, date, and time."
-      },
-      "actuar": {
-        "titulo": "Check the refrigerator",
-        "descripcion": "Follow your pharmacy's storage procedure."
-      },
-      "registrar": {
-        "titulo": "Record the response",
-        "descripcion": "If your role allows it, mark the alert as reviewed and note the action taken."
-      }
-    },
-    "alertaPermisos": "Pharmacy technicians can record a corrective action; pharmacists can also mark an alert as reviewed. Auditors have read-only access.",
+    "rangoNota": "Always compare with the reading date and time.",
     "ejemploTitulo": "Illustrative example · 2–8 °C range",
-    "ejemplo": "4.3 °C is within range. A reading of 8.4 °C is outside it: review the alert, follow your pharmacy's procedure, and record the response.",
     "pantallasTitulo": "Find a screen",
     "pantallasDescripcion": "Available links depend on your role.",
     "grupos": {
@@ -895,44 +1201,43 @@
     },
     "pantallas": {
       "monitoreo": {
-        "titulo": "Monitoring",
-        "descripcion": "See the latest temperature, device status, and recent readings."
+        "titulo": "Home",
+        "descripcion": "Latest temperature and device status."
       },
       "alertas": {
         "titulo": "Alerts",
-        "descripcion": "Review notices, their risk level, and when they occurred."
+        "descripcion": "Alerts, risk level and time."
       },
       "historial": {
         "titulo": "History",
-        "descripcion": "Find readings by device, risk level, and date range."
+        "descripcion": "Readings by device, risk and period."
       },
       "integridad": {
-        "titulo": "Record integrity",
-        "descripcion": "Check for differences in related records; this does not replace official documents."
+        "titulo": "Check records",
+        "descripcion": "Record differences; does not replace official documents."
       },
       "reportes": {
         "titulo": "Monitoring reports",
-        "descripcion": "Review or download a period summary of readings, alerts, and actions."
+        "descripcion": "Downloadable summary for the period."
       },
       "metricas": {
         "titulo": "How the classifier behaves",
-        "descripcion": "Review the model evaluation; it does not show current temperatures."
+        "descripcion": "Model evaluation; not current temperatures."
       },
       "auditoria": {
         "titulo": "Audit log",
-        "descripcion": "See which actions were recorded and who performed them."
+        "descripcion": "What actions happened and who did them."
       },
       "usuarios": {
         "titulo": "Users and roles",
-        "descripcion": "Manage staff access and permissions for each role."
+        "descripcion": "Staff access and permissions."
       },
       "dispositivos": {
-        "titulo": "Measurement devices",
-        "descripcion": "Review device connection, location, and calibration dates."
+        "titulo": "Devices",
+        "descripcion": "Connection, location and calibration."
       }
     },
     "conceptosTitulo": "Useful terms",
-    "conceptosAyuda": "Read definitions",
     "conceptos": {
       "rango": {
         "titulo": "Allowed range",
@@ -968,9 +1273,55 @@
       "metricas": {
         "titulo": "Do these metrics show the current temperature?",
         "respuesta": "No. They summarize how a classifier performed on test cases; they do not show current temperatures or alerts."
+      },
+      "permisos": {
+        "titulo": "Who can record what after a warning?",
+        "respuesta": "Technical staff can record a corrective action; pharmacy staff can also mark an alert as reviewed. Audit is read-only."
       }
     },
-    "nota": "Available screens depend on your role. Actions that change records also follow your system permissions."
+    "nota": "Available screens depend on your role. Actions that change records also follow your system permissions.",
+    "previa": {
+      "lectura": "Main refrigerator",
+      "aviso": "Critical excursion",
+      "ejemploHora": "Today, 02:05",
+      "ejemplo": "Example"
+    },
+    "irA": "Go to {{pantalla}}",
+    "verMas": "See all screens and other questions",
+    "preguntasRapidas": {
+      "alerta": {
+        "pregunta": "An alert went off, what do I do?",
+        "respuesta": "Open Alerts and check the temperature and the time. Check the device, follow your pharmacy's procedure and write down what you did. An alert does not confirm a medicine was damaged: your procedure decides that."
+      },
+      "bien": {
+        "pregunta": "How do I know everything is fine?",
+        "respuesta": "Look at Home: at the top it says whether everything is fine or which device to check, and the colour reads from afar. Tap a state to see how it looks."
+      },
+      "anoche": {
+        "pregunta": "What happened last night?",
+        "respuesta": "Open History and pick the date. The line shows every reading and marks in red whatever went outside 2–\u20608 °C, with its time."
+      },
+      "constancia": {
+        "pregunta": "How do I get a certificate?",
+        "respuesta": "Open Reports, pick the dates and the device, and download the sheet as a PDF. It is meant for internal reviews."
+      },
+      "registros": {
+        "pregunta": "Did anyone change my records?",
+        "respuesta": "Open Check records: it looks for readings that changed after being saved. It helps detect it, but it does not replace an official document."
+      },
+      "quien": {
+        "pregunta": "Who did what?",
+        "respuesta": "Open Audit: each action appears with the person, the day and the time."
+      },
+      "equipo": {
+        "pregunta": "How do I register a new device?",
+        "respuesta": "Open Devices and tap “Register device”. Copy the credential that appears: it is shown only once."
+      },
+      "persona": {
+        "pregunta": "How do I give someone access?",
+        "respuesta": "Open Users and tap “New user”. Pick their role: it sets what they can see and do."
+      }
+    }
   },
   "recuperarContrasena": {
     "titulo": "Recover password",
@@ -1025,9 +1376,9 @@
     "cerrar": "Dismiss notice",
     "alerta": "New temperature alert on {{device}}.",
     "recuperacion": "{{device}} is back in the safe range.",
-    "desconexion": "{{device}} disconnected from the broker.",
-    "buffer_80": "{{device}}'s local buffer is above 80%.",
-    "buffer_saturado": "{{device}}'s local buffer is full: readings may have been lost.",
+    "desconexion": "{{device}} lost its connection.",
+    "buffer_80": "{{device}}'s reading memory is above 80%.",
+    "buffer_saturado": "{{device}}'s reading memory is full: readings may have been lost.",
     "registros_en_cuarentena": "{{device}} quarantined records (conflicting content).",
     "wifi_reconexion_prolongada": "{{device}} has been trying to reconnect to the network for a while.",
     "conmutacion_respaldo": "{{device}} is running on backup power.",

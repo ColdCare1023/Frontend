@@ -3,12 +3,13 @@ import { forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 
 // Campo hundido en el tema oscuro (un nivel por debajo de la superficie) y
-// blanco en el claro; el foco suma borde de acento y halo de 3 px.
+// blanco en el claro; el foco suma borde de acento y halo de 3 px, sin animarlos.
 const campoBase =
   'w-full min-w-0 rounded-(--radius-field) border border-border-field bg-surface text-base text-foreground placeholder:text-faint sm:text-sm dark:bg-surface-sunken'
 const campoEstados =
-  'transition-[border-color,box-shadow,background-color] duration-(--duration-micro) ease-(--ease-ui) hover:border-ink-400 focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/20 aria-[invalid=true]:border-critical aria-[invalid=true]:bg-critical-tint aria-[invalid=true]:focus:ring-critical/20 user-invalid:border-critical user-invalid:bg-critical-tint user-invalid:focus:ring-critical/20'
+  'hover:border-ink-400 focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/20 aria-[invalid=true]:border-critical aria-[invalid=true]:bg-critical-tint aria-[invalid=true]:focus:ring-critical/20 user-invalid:border-critical user-invalid:bg-critical-tint user-invalid:focus:ring-critical/20'
 
+/** Campo de texto de una línea; todo `input` nativo. `aria-invalid` lo marca en error. */
 export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
     <input
@@ -28,6 +29,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
 )
 Input.displayName = 'Input'
 
+/** Campo de texto de varias líneas. */
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
   React.TextareaHTMLAttributes<HTMLTextAreaElement>
@@ -46,6 +48,7 @@ export const Textarea = forwardRef<
 ))
 Textarea.displayName = 'Textarea'
 
+/** Lista desplegable nativa: en móvil abre el selector del sistema. */
 export const NativeSelect = forwardRef<
   HTMLSelectElement,
   React.SelectHTMLAttributes<HTMLSelectElement>
@@ -66,11 +69,43 @@ export const NativeSelect = forwardRef<
 ))
 NativeSelect.displayName = 'NativeSelect'
 
+/** Etiqueta de un campo. */
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
       className={cn('mb-1.5 block text-[13px] leading-5 font-medium text-ink-700', className)}
       {...props}
     />
+  )
+}
+
+/** Campo completo: etiqueta, control (`children`, con el `id` de `htmlFor`) y ayuda o error debajo. */
+export function Campo({
+  etiqueta,
+  htmlFor,
+  ayuda,
+  error,
+  className,
+  children,
+}: {
+  etiqueta: React.ReactNode
+  htmlFor: string
+  ayuda?: React.ReactNode
+  error?: React.ReactNode
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className={cn('min-w-0', className)}>
+      <Label htmlFor={htmlFor}>{etiqueta}</Label>
+      {children}
+      {error ? (
+        <p id={`${htmlFor}-error`} role="alert" className="mt-1.5 text-[13px] leading-5 text-critical">
+          {error}
+        </p>
+      ) : (
+        ayuda && <p id={`${htmlFor}-ayuda`} className="mt-1.5 text-[13px] leading-5 text-muted">{ayuda}</p>
+      )}
+    </div>
   )
 }

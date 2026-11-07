@@ -9,12 +9,16 @@ import { rutaApi } from '@/lib/rutaApi'
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
 
   const consultar = useCallback(async () => {
     setCargando(true)
     try {
       const { data } = await apiClient.get<Usuario[]>('/api/usuarios')
       setUsuarios(data)
+      setErrorCarga(false)
+    } catch {
+      setErrorCarga(true)
     } finally {
       setCargando(false)
     }
@@ -93,5 +97,5 @@ export function useUsuarios() {
     [consultar],
   )
 
-  return { usuarios, cargando, crear, desactivar, cambiarRol, asignarTemporal }
+  return { usuarios, cargando, errorCarga, crear, desactivar, cambiarRol, asignarTemporal }
 }

@@ -1,35 +1,83 @@
-import { useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Download, FilterX, ScrollText, ShieldAlert, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
+import { Download, Lock, ScrollText } from 'lucide-react'
 
 import { useAuditoria, type FiltrosAuditoria } from '@/application/hooks/useAuditoria'
+import { useUsuarios } from '@/application/hooks/useUsuarios'
+import { useAuthStore } from '@/application/stores/authStore'
+import type { RegistroAuditoria } from '@/domain/entities/Usuario'
 import { fechaHora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
-import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
-import { CompactWorkspace } from '../components/CompactWorkspace'
-import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
+import { EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { Paginacion } from '../components/Paginacion'
-import { PageHeader } from '../components/PageHeader'
-import { Badge } from '../components/ui/badge'
+import { BarraFiltros, type FiltroActivo } from '../components/ui/barra-filtros'
 import { Button } from '../components/ui/button'
-import { Card } from '../components/ui/card'
-import { Input, Label } from '../components/ui/input'
+import { Campo, Input } from '../components/ui/input'
 import { SelectorFecha } from '../components/ui/selector-fecha'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table'
+import { TituloPagina } from '../components/ui/titulo-pagina'
+import { momento } from './auditoria/dias'
+import { EsqueletoLinea, LineaTiempo } from './auditoria/LineaTiempo'
+import { CifraFrase, FrasePantalla } from './usuarios/piezas'
 
 const FILTROS_INICIALES: FiltrosAuditoria = {}
 
+const mismosFiltros = (a: FiltrosAuditoria, b: FiltrosAuditoria) =>
+  a.accion === b.accion && a.usuario_id === b.usuario_id && a.desde === b.desde && a.hasta === b.hasta
+
+/**
+ * El administrador puede ver la lista de cuentas: la línea dice el nombre de quien hizo cada cosa.
+ * El auditor no tiene acceso a esa lista, y ve el código de usuario (y «Tú» en lo suyo).
+ */
+function LineaConNombres({ quienHizo, ...props }: ComponentProps<typeof LineaTiempo>) {
+  const { usuarios } = useUsuarios()
+  const nombres = useMemo(() => new Map(usuarios.map((u) => [u.id, u.nombre])), [usuarios])
+  return <LineaTiempo {...props} quienHizo={(id) => quienHizo(id) ?? (id ? (nombres.get(id) ?? null) : null)} />
+}
+
+/** La respuesta en una frase: cuántas acciones, cuántas no salieron bien y cuándo fue la última. */
+function ResumenBitacora({ registros }: { registros: RegistroAuditoria[] }) {
+  const { t } = useTranslation()
+  const total = registros.length
+  const sinExito = registros.filter((r) => r.resultado && r.resultado !== 'exitoso').length
+  const ultima = registros.reduce<string | null>((max, r) => (!max || Date.parse(r.created_at) > Date.parse(max) ? r.created_at : max), null)
+  const cuando = ultima ? momento(ultima) : null
+  return (
+    <FrasePantalla className="mb-6 sm:mb-8">
+      <Trans t={t} i18nKey="auditoria.resumenAcciones" count={total} components={{ n: <CifraFrase valor={total} /> }} />
+      {'; '}
+      {sinExito > 0 ? t('auditoria.resumenMal', { count: sinExito }) : t('auditoria.resumenBien', { count: total })}.
+      {cuando && (
+        <>
+          {' '}
+          {t('auditoria.ultimaAccion', {
+            cuando:
+              cuando.dia === 'hoy'
+                ? t('auditoria.cuandoHoy', { hora: cuando.hora })
+                : cuando.dia === 'ayer'
+                  ? t('auditoria.cuandoAyer', { hora: cuando.hora })
+                  : t('auditoria.cuandoFecha', { fecha: cuando.fecha, hora: cuando.hora }),
+          })}
+        </>
+      )}
+    </FrasePantalla>
+  )
+}
+
+/** El panel de filtros se desmonta al cerrarse: lo escrito y no aplicado se aplica entonces. */
+function AlCerrar({ accion }: { accion: () => void }) {
+  const ultima = useRef(accion)
+  useEffect(() => {
+    ultima.current = accion
+  })
+  useEffect(() => () => ultima.current(), [])
+  return null
+}
+
 export function AuditoriaPage() {
   const { t } = useTranslation()
-  const { registros, cargando, consultar } = useAuditoria()
+  const { registros, cargando, errorCarga, consultar } = useAuditoria()
+  const sesion = useAuthStore((s) => s.usuario)
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   // La lista completa puede tener miles de filas; solo se pinta la página
@@ -38,16 +86,28 @@ export function AuditoriaPage() {
     () => registros.slice(...rangoPagina(pagina, tamanoPagina)),
     [registros, pagina, tamanoPagina],
   )
+  // Lo que se escribe en el panel y lo que ya está aplicado a la lista.
   const [filtros, setFiltros] = useState<FiltrosAuditoria>(FILTROS_INICIALES)
+  const [aplicados, setAplicados] = useState<FiltrosAuditoria>(FILTROS_INICIALES)
+  const [fallo, setFallo] = useState(false)
 
   const actualizarFiltro = (campo: keyof FiltrosAuditoria, valor: string) => {
     setFiltros((previos) => ({ ...previos, [campo]: valor || undefined }))
   }
 
-  const limpiar = () => {
-    setFiltros(FILTROS_INICIALES)
-    void consultar(FILTROS_INICIALES)
+  const aplicar = async (siguientes: FiltrosAuditoria) => {
+    setFiltros(siguientes)
+    setAplicados(siguientes)
+    setPagina(1)
+    setFallo(false)
+    try {
+      await consultar(siguientes)
+    } catch {
+      setFallo(true)
+    }
   }
+
+  const limpiar = () => void aplicar(FILTROS_INICIALES)
 
   const exportar = () => {
     const columnas = [t('auditoria.fecha'), t('auditoria.usuarioId'), t('auditoria.accion'), t('auditoria.recurso'), t('auditoria.resultado'), t('auditoria.ip')]
@@ -66,42 +126,48 @@ export function AuditoriaPage() {
     URL.revokeObjectURL(href)
   }
   const bloqueos = registros.filter((r) => r.accion === 'BLOQUEO_TEMPORAL').length
+  // Lo propio se lee como «Tú»; el resto, por nombre si se conoce.
+  const quienHizo = (id: string | null) => (id && id === sesion?.id ? t('auditoria.quienTu') : null)
+
+  const quitar = (campo: keyof FiltrosAuditoria) => () => void aplicar({ ...aplicados, [campo]: undefined })
+  const activos: FiltroActivo[] = []
+  if (aplicados.accion) activos.push({ id: 'accion', etiqueta: t('auditoria.filtroAccion', { valor: aplicados.accion }), onQuitar: quitar('accion') })
+  if (aplicados.usuario_id) activos.push({ id: 'usuario', etiqueta: t('auditoria.filtroUsuario', { valor: aplicados.usuario_id }), onQuitar: quitar('usuario_id') })
+  if (aplicados.desde) activos.push({ id: 'desde', etiqueta: t('auditoria.filtroDesde', { valor: fechaHora(aplicados.desde) }), onQuitar: quitar('desde') })
+  if (aplicados.hasta) activos.push({ id: 'hasta', etiqueta: t('auditoria.filtroHasta', { valor: fechaHora(aplicados.hasta) }), onQuitar: quitar('hasta') })
 
   return (
-    <CompactWorkspace>
-      <PageHeader eyebrow={t('nav.seccionAdministracion')} titulo={t('auditoria.titulo')} descripcion={t('auditoria.descripcion')}>
-        <Button variant="secondary" onClick={exportar} disabled={cargando || registros.length === 0}>
-          <Download />
-          {t('auditoria.exportar')}
-        </Button>
-      </PageHeader>
-
-      {bloqueos > 0 && (
-        <p
-          role="status"
-          className="flex items-start gap-2.5 rounded-(--radius-card) border border-honey-600/25 bg-honey-100 px-4 py-3 text-[13px] leading-5 text-honey-700 sm:px-5"
-        >
-          <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-          {t('auditoria.bloqueosTemporales', { count: bloqueos })}
-        </p>
-      )}
+    <div className="flex flex-1 flex-col">
+      <TituloPagina
+        antetitulo={t('nav.auditoria')}
+        titulo={t('auditoria.titulo')}
+        descripcion={t('auditoria.descripcion')}
+        className="mb-3 sm:mb-4"
+      />
+      {registros.length > 0 && !(fallo || errorCarga) ? <ResumenBitacora registros={registros} /> : <div className="mb-3 sm:mb-4" />}
 
       {/* HU-50 criterio 1: filtrar por periodo, usuario o tipo de acción. */}
-      <Card className="p-4 sm:px-5">
-        <h2 id="titulo-filtros-auditoria" className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <SlidersHorizontal className="size-4 text-primary" aria-hidden />
-          {t('auditoria.filtros')}
-        </h2>
+      <h2 id="titulo-filtros-auditoria" className="sr-only">{t('auditoria.filtros')}</h2>
+      <BarraFiltros
+        titulo={t('auditoria.filtros')}
+        activos={activos}
+        onLimpiar={limpiar}
+        acciones={
+          <Button variant="secondary" onClick={exportar} disabled={cargando || registros.length === 0}>
+            <Download />
+            {t('auditoria.exportar')}
+          </Button>
+        }
+      >
         <form
           aria-labelledby="titulo-filtros-auditoria"
-          className="mt-3 grid grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,1.15fr)_auto]"
+          className="contents"
           onSubmit={(e) => {
             e.preventDefault()
-            void consultar(filtros)
+            void aplicar(filtros)
           }}
         >
-          <div>
-            <Label htmlFor="fa-accion">{t('auditoria.accion')}</Label>
+          <Campo etiqueta={t('auditoria.accion')} htmlFor="fa-accion" ayuda={t('auditoria.ayudaAccion')}>
             <Input
               id="fa-accion"
               value={filtros.accion ?? ''}
@@ -109,110 +175,76 @@ export function AuditoriaPage() {
               placeholder={t('auditoria.accionPlaceholder')}
               aria-describedby="fa-accion-ayuda"
             />
-          </div>
-          <div>
-            <Label htmlFor="fa-usuario">{t('auditoria.usuario')}</Label>
+          </Campo>
+          <Campo etiqueta={t('auditoria.usuario')} htmlFor="fa-usuario">
             <Input
               id="fa-usuario"
               value={filtros.usuario_id ?? ''}
               onChange={(e) => actualizarFiltro('usuario_id', e.target.value)}
               placeholder={t('auditoria.usuarioPlaceholder')}
             />
-          </div>
-          <div>
-            <Label htmlFor="fa-desde">{t('historial.desde')}</Label>
+          </Campo>
+          <Campo etiqueta={t('historial.desde')} htmlFor="fa-desde">
             <SelectorFecha
               id="fa-desde"
               conHora
               valor={filtros.desde ?? ''}
               onCambiar={(valor) => actualizarFiltro('desde', valor)}
             />
-          </div>
-          <div>
-            <Label htmlFor="fa-hasta">{t('historial.hasta')}</Label>
+          </Campo>
+          <Campo etiqueta={t('historial.hasta')} htmlFor="fa-hasta">
             <SelectorFecha
               id="fa-hasta"
               conHora
               valor={filtros.hasta ?? ''}
               onCambiar={(valor) => actualizarFiltro('hasta', valor)}
             />
-          </div>
-          <div className="flex gap-2 sm:col-span-2 xl:col-span-1">
-            <Button type="submit" className="flex-1">
-              {t('historial.aplicar')}
-            </Button>
-            <Button variant="ghost" onClick={limpiar} aria-label={t('historial.limpiar')}>
-              <FilterX />
-            </Button>
-          </div>
+          </Campo>
+          <Button type="submit" variant="secondary" className="sm:col-span-2">
+            {t('historial.aplicar')}
+          </Button>
+          <AlCerrar
+            accion={() => {
+              if (!mismosFiltros(filtros, aplicados)) void aplicar(filtros)
+            }}
+          />
         </form>
-        <p id="fa-accion-ayuda" className="mt-2 text-xs text-faint">{t('auditoria.ayudaAccion')}</p>
-      </Card>
+      </BarraFiltros>
+
+      {bloqueos > 0 && (
+        <p role="status" className="mt-4 flex items-center gap-3 rounded-(--radius-card) bg-honey-100 px-3 py-2.5 text-sm leading-5 text-foreground sm:px-4">
+          <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-campo-preventivo text-campo-preventivo-tinta">
+            <Lock className="size-4" />
+          </span>
+          {t('auditoria.bloqueosTemporales', { count: bloqueos })}
+        </p>
+      )}
 
       {/* ── Bitácora: la tarea principal ────────────────────── */}
-      <div>
-        {cargando && registros.length === 0 ? (
-          <EstadoCarga />
+      <div className="mt-6 flex flex-1 flex-col sm:mt-8">
+        {fallo || errorCarga ? (
+          <EstadoError mensaje={t('auditoria.errorCarga')} onReintentar={() => void aplicar(aplicados)} />
+        ) : cargando && registros.length === 0 ? (
+          <EsqueletoLinea />
         ) : registros.length === 0 ? (
-          <EstadoVacio icono={ScrollText} titulo={t('auditoria.sinRegistros')} />
+          activos.length > 0 ? (
+            <EstadoVacio icono={ScrollText} titulo={t('auditoria.sinCoincidencias')} llenar>
+              <Button variant="secondary" onClick={limpiar}>{t('historial.limpiar')}</Button>
+            </EstadoVacio>
+          ) : (
+            <EstadoVacio icono={ScrollText} titulo={t('auditoria.sinRegistros')} llenar />
+          )
         ) : (
           <>
-            <Table
-              mobileLayout="stack"
-              className={cn('min-w-0 transition-opacity', cargando && 'opacity-60')}
-              titulo={t('auditoria.titulo')}
-              cargando={cargando}
-            >
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('auditoria.fecha')}</TableHead>
-                  <TableHead>{t('auditoria.accion')}</TableHead>
-                  <TableHead>{t('auditoria.resultado')}</TableHead>
-                  <TableHead>{t('auditoria.usuarioId')}</TableHead>
-                  <TableHead>{t('auditoria.recurso')}</TableHead>
-                  <TableHead>{t('auditoria.ip')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visibles.map((registro) => (
-                  <TableRow key={registro.id}>
-                    <TableCell data-label={t('auditoria.fecha')} className="nums whitespace-nowrap text-[13px]">
-                      {fechaHora(registro.created_at)}
-                    </TableCell>
-                    <TableCell data-label={t('auditoria.accion')}>
-                      {/* En móvil la fila se apila en dos columnas estrechas: la
-                          píldora se parte en líneas en vez de cortarse. */}
-                      <Badge variant="neutral" className="max-w-full max-sm:rounded-lg max-sm:whitespace-normal">
-                        {t(`auditoria.eventos.${registro.accion}`, {
-                          defaultValue: registro.accion
-                            .toLocaleLowerCase()
-                            .replaceAll('_', ' ')
-                            .replace(/^\p{L}/u, (letra) => letra.toLocaleUpperCase()),
-                        })}
-                      </Badge>
-                    </TableCell>
-                    <TableCell data-label={t('auditoria.resultado')}>
-                      <Badge variant={registro.resultado === 'exitoso' ? 'ok' : registro.resultado ? 'critical' : 'neutral'}>
-                        {registro.resultado ?? '—'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell data-label={t('auditoria.usuarioId')} className="nums text-xs text-muted">
-                      {registro.usuario_id ? `${registro.usuario_id.slice(0, 8)}…` : '—'}
-                    </TableCell>
-                    <TableCell data-label={t('auditoria.recurso')} className="nums text-[13px] text-muted">
-                      {registro.recurso}
-                    </TableCell>
-                    <TableCell data-label={t('auditoria.ip')} className="nums text-[13px] text-muted">
-                      {registro.ip_origen ?? '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {sesion?.rol === 'administrador' ? (
+              <LineaConNombres todos={registros} visibles={visibles} cargando={cargando} quienHizo={quienHizo} />
+            ) : (
+              <LineaTiempo todos={registros} visibles={visibles} cargando={cargando} quienHizo={quienHizo} />
+            )}
             <Paginacion total={registros.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
           </>
         )}
       </div>
-    </CompactWorkspace>
+    </div>
   )
 }

@@ -72,6 +72,50 @@ describe('Recuperar contraseña', () => {
   })
 })
 
+describe('Recuperar contraseña: estados', () => {
+  it('un correo inválido marca el campo y enlaza el aviso', async () => {
+    adaptador = instalarAdaptadorFalso()
+    const user = userEvent.setup()
+    montar('/recuperar-contrasena')
+
+    await user.type(screen.getByLabelText(/Correo electrónico/i), 'correo-invalido')
+    await user.click(screen.getByRole('button', { name: /Enviar instrucciones/i }))
+
+    expect(screen.getByLabelText(/Correo electrónico/i)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText(/Correo electrónico/i)).toHaveAccessibleDescription(/correo electrónico válido/)
+    expect(adaptador.peticiones).toHaveLength(0)
+  })
+
+  it('el límite de intentos avisa sin culpar al campo', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({ status: 429, data: {} }))
+    const user = userEvent.setup()
+    montar('/recuperar-contrasena')
+
+    await user.type(screen.getByLabelText(/Correo electrónico/i), 'farma@upc.pe')
+    await user.click(screen.getByRole('button', { name: /Enviar instrucciones/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Demasiados intentos fallidos.')
+    expect(screen.getByLabelText(/Correo electrónico/i)).toHaveAttribute('aria-invalid', 'false')
+  })
+
+  it('ofrece un solo regreso al login en cada estado', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({ status: 202, data: { detail: 'ok' } }))
+    const user = userEvent.setup()
+    montar('/recuperar-contrasena')
+    const regreso = () => screen.getAllByRole('link', { name: /Volver a iniciar sesión/ })
+
+    expect(regreso()).toHaveLength(1)
+    expect(regreso()[0]).toHaveAttribute('href', '/login')
+
+    await user.type(screen.getByLabelText(/Correo electrónico/i), 'farma@upc.pe')
+    await user.click(screen.getByRole('button', { name: /Enviar instrucciones/i }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(/Instrucciones enviadas/)
+    expect(regreso()).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /Intentar con otra dirección/ })).toBeInTheDocument()
+  })
+})
+
 describe('Restablecer contraseña con enlace', () => {
   it('sin token no hay formulario ni valor por defecto', () => {
     adaptador = instalarAdaptadorFalso()
@@ -109,6 +153,24 @@ describe('Restablecer contraseña con enlace', () => {
     })
   })
 
+  it('una contraseña que incumple la política marca los campos y enlaza el aviso', async () => {
+    adaptador = instalarAdaptadorFalso()
+    window.history.replaceState(null, '', '/restablecer-password#token=enlace-de-un-solo-uso-0123')
+    const user = userEvent.setup()
+    montar('/restablecer-password')
+
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'corta1')
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'corta1')
+    await user.click(screen.getByRole('button', { name: /Actualizar contraseña/ }))
+
+    const nueva = screen.getByLabelText('Nueva contraseña')
+    expect(nueva).toHaveFocus()
+    expect(nueva).toHaveAttribute('aria-invalid', 'true')
+    // Conserva los requisitos y suma el aviso.
+    expect(nueva).toHaveAccessibleDescription(/Mínimo 10 caracteres.*al menos 10 caracteres/)
+    expect(screen.getByLabelText('Confirmar contraseña')).toHaveAttribute('aria-invalid', 'true')
+  })
+
   it('un enlace usado o caducado lleva a pedir uno nuevo', async () => {
     adaptador = instalarAdaptadorFalso(() => ({ status: 400, data: { detail: 'caducado' } }))
     window.history.replaceState(null, '', '/restablecer-password#token=enlace-caducado-0123456')
@@ -124,6 +186,27 @@ describe('Restablecer contraseña con enlace', () => {
 })
 
 describe('Contraseña temporal', () => {
+  it('avisa que es temporal y sin la contraseña actual marca ese campo', async () => {
+    adaptador = instalarAdaptadorFalso()
+    useAuthStore.setState({
+      usuario: { id: 'u-1', email: 'tecnico@upc.pe', rol: 'tecnico', expiraEn: Date.now() + 3600_000 },
+      autenticado: true,
+      requiereCambioPassword: true,
+    })
+    const user = userEvent.setup()
+    montar('/cambiar-password')
+
+    expect(screen.getByRole('status')).toHaveTextContent(/Tu contraseña es temporal/)
+    await user.click(screen.getByRole('button', { name: 'Guardar contraseña' }))
+
+    const actual = screen.getByLabelText('Contraseña actual')
+    expect(screen.getByRole('alert')).toHaveTextContent('Ingresa tu contraseña actual.')
+    expect(actual).toHaveFocus()
+    expect(actual).toHaveAttribute('aria-invalid', 'true')
+    expect(actual).toHaveAccessibleDescription('Ingresa tu contraseña actual.')
+    expect(adaptador.peticiones).toHaveLength(0)
+  })
+
   it('tras el login obliga a cambiarla y no deja entrar al panel', async () => {
     adaptador = instalarAdaptadorFalso(() => ({
       data: { access_token: tokenDe('tecnico'), token_type: 'bearer', require_password_change: true },
@@ -195,6 +278,8 @@ describe('Contraseña temporal', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar contraseña' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('La contraseña actual no es correcta.')
+    expect(screen.getByLabelText('Contraseña actual')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('Nueva contraseña')).toHaveAttribute('aria-invalid', 'false')
     expect(useAuthStore.getState().requiereCambioPassword).toBe(true)
   })
 })

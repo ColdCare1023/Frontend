@@ -2,14 +2,18 @@ import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
-import { Loader2, ShieldAlert } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
+import { cn } from '@/lib/utils'
 import { AuthShell } from '../components/auth/AuthShell'
 import { CamposPasswordNueva } from '../components/auth/CamposPasswordNueva'
+import { CAMPO_ACCESO, ENLACE_ACCESO } from '../components/auth/clasesAcceso'
 import { errorPasswordNueva } from '../components/auth/errorPasswordNueva'
 import { ColdCareBrandPanel } from '../components/auth/ColdCareBrandPanel'
+import { AvisoAcceso, BotonAcceso, EncabezadoAcceso, type ErrorAcceso } from '../components/auth/PiezasAcceso'
 import { Input, Label } from '../components/ui/input'
+
+const ID_ERROR = 'cambiar-error'
 
 /**
  * FE-004: cambio de contraseña (BE-025). Obligatorio con una contraseña
@@ -22,22 +26,25 @@ export function CambiarPasswordPage() {
   const obligatorio = useAuthStore((s) => s.requiereCambioPassword)
   const cambiarPassword = useAuthStore((s) => s.cambiarPassword)
   const logout = useAuthStore((s) => s.logout)
+  const actualRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const [actual, setActual] = useState('')
   const [password, setPassword] = useState('')
   const [confirmacion, setConfirmacion] = useState('')
   const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // `campo`: qué campo explica el aviso; sin él, el problema está en el servidor.
+  const [error, setError] = useState<(ErrorAcceso & { campo?: 'actual' | 'nueva' }) | null>(null)
 
   const enviar = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!actual) {
-      setError(t('cambiarPassword.errorActualVacia'))
+      setError({ texto: t('cambiarPassword.errorActualVacia'), tono: 'error', campo: 'actual' })
+      actualRef.current?.focus()
       return
     }
     const problema = errorPasswordNueva(t, password, confirmacion)
     if (problema) {
-      setError(problema)
+      setError({ texto: problema, tono: 'error', campo: 'nueva' })
       passwordRef.current?.focus()
       return
     }
@@ -49,17 +56,22 @@ export function CambiarPasswordPage() {
     } catch (err) {
       const estado = axios.isAxiosError(err) ? err.response?.status : undefined
       const detalle = axios.isAxiosError(err) ? String(err.response?.data?.detail ?? '') : ''
-      setError(
-        estado === 400 && detalle.includes('distinta')
-          ? t('cambiarPassword.errorIgual')
-          : estado === 400
-            ? t('cambiarPassword.errorActual')
-            : estado === 422
-              ? t('restablecerContrasena.politica.sin_letras_y_digitos')
-              : estado === 429
-                ? t('login.errorDemasiadosIntentos')
+      if (estado === 429) {
+        setError({ texto: t('login.errorDemasiadosIntentos'), tono: 'bloqueo' })
+      } else {
+        const igual = estado === 400 && detalle.includes('distinta')
+        setError({
+          texto: igual
+            ? t('cambiarPassword.errorIgual')
+            : estado === 400
+              ? t('cambiarPassword.errorActual')
+              : estado === 422
+                ? t('restablecerContrasena.politica.sin_letras_y_digitos')
                 : t('login.errorServidor'),
-      )
+          tono: 'error',
+          campo: igual || estado === 422 ? 'nueva' : estado === 400 ? 'actual' : undefined,
+        })
+      }
     } finally {
       setCargando(false)
     }
@@ -67,84 +79,64 @@ export function CambiarPasswordPage() {
 
   return (
     <AuthShell brandPanel={<ColdCareBrandPanel />}>
-      <div className="flex flex-col">
-        <div className="mb-6">
-          <h2 className="text-[28px] leading-[34px] font-bold tracking-tight text-foreground sm:text-[32px] sm:leading-10">
-            {t('cambiarPassword.titulo')}
-          </h2>
-          <p className="mt-2 text-base leading-6 text-muted">{t('cambiarPassword.subtitulo')}</p>
-        </div>
+      <EncabezadoAcceso titulo={t('cambiarPassword.titulo')} bajada={t('cambiarPassword.subtitulo')} />
 
-        {obligatorio && (
-          <p role="status" className="mb-4 flex items-start gap-2 rounded-xl border border-honey-600/25 bg-honey-100 px-3.5 py-2.5 text-sm text-honey-700">
-            <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>{t('cambiarPassword.temporal')}</span>
-          </p>
-        )}
+      {obligatorio && (
+        <AvisoAcceso tono="preventivo" className="mb-4 lg:mb-6">
+          {t('cambiarPassword.temporal')}
+        </AvisoAcceso>
+      )}
 
-        <form onSubmit={(e) => void enviar(e)} className="space-y-4" noValidate>
-          <div className="space-y-1.5">
-            <Label htmlFor="password-actual">{t('cambiarPassword.actual')}</Label>
-            <Input
-              id="password-actual"
-              type="password"
-              autoComplete="current-password"
-              value={actual}
-              onChange={(e) => setActual(e.target.value)}
-              required
-            />
-          </div>
-          <CamposPasswordNueva
-            password={password}
-            confirmacion={confirmacion}
-            onPassword={setPassword}
-            onConfirmacion={setConfirmacion}
-            passwordRef={passwordRef}
+      <form onSubmit={(e) => void enviar(e)} className="acceso-formulario" aria-busy={cargando} noValidate>
+        <div>
+          <Label htmlFor="password-actual">{t('cambiarPassword.actual')}</Label>
+          <Input
+            ref={actualRef}
+            id="password-actual"
+            type="password"
+            autoComplete="current-password"
+            className={CAMPO_ACCESO}
+            value={actual}
+            onChange={(e) => setActual(e.target.value)}
+            aria-invalid={error?.campo === 'actual'}
+            aria-describedby={error?.campo === 'actual' ? ID_ERROR : undefined}
+            required
           />
-          {error && (
-            <p role="alert" className="rounded-xl border border-clay-100 bg-clay-100/60 px-3.5 py-2.5 text-sm text-clay-700 animate-fade">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={cargando}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
-          >
-            {cargando ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                <span>{t('restablecerContrasena.actualizando')}</span>
-              </>
-            ) : (
-              <span>{t('cambiarPassword.boton')}</span>
-            )}
-          </button>
-        </form>
-
-        <div className="pt-6 text-center text-xs text-muted">
-          {obligatorio ? (
-            <button
-              type="button"
-              onClick={() => {
-                logout()
-                void navigate('/login', { replace: true })
-              }}
-              className="font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm cursor-pointer"
-            >
-              {t('cambiarPassword.salir')}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void navigate(-1)}
-              className="font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm cursor-pointer"
-            >
-              {t('usuarios.cancelar')}
-            </button>
-          )}
         </div>
-      </div>
+        <CamposPasswordNueva
+          password={password}
+          confirmacion={confirmacion}
+          onPassword={setPassword}
+          onConfirmacion={setConfirmacion}
+          passwordRef={passwordRef}
+          errorId={error?.campo === 'nueva' ? ID_ERROR : undefined}
+        />
+        {error && (
+          <AvisoAcceso id={ID_ERROR} tono={error.tono}>
+            {error.texto}
+          </AvisoAcceso>
+        )}
+        <BotonAcceso cargando={cargando} textoCargando={t('restablecerContrasena.actualizando')}>
+          {t('cambiarPassword.boton')}
+        </BotonAcceso>
+      </form>
+
+      {obligatorio ? (
+        <button
+          type="button"
+          onClick={() => {
+            logout()
+            void navigate('/login', { replace: true })
+          }}
+          className={cn(ENLACE_ACCESO, 'mt-2 lg:mt-3')}
+        >
+          {t('cambiarPassword.salir')}
+        </button>
+      ) : (
+        <button type="button" onClick={() => void navigate(-1)} className={cn(ENLACE_ACCESO, 'mt-2 lg:mt-3')}>
+          {t('usuarios.cancelar')}
+        </button>
+      )}
     </AuthShell>
   )
 }

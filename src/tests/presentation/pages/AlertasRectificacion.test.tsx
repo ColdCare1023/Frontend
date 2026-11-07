@@ -61,9 +61,9 @@ function montar(ciclo: AccionCorrectiva[], rectificarAccion = vi.fn().mockResolv
 }
 
 async function abrirCronologia() {
+  // La cronología es parte del detalle del aviso (tras «Ver más»): en móvil (jsdom), la hoja inferior.
   const usuario = userEvent.setup()
-  await usuario.click(screen.getByRole('button', { name: /opciones/i }))
-  await usuario.click(await screen.findByRole('menuitem', { name: /FARM-01-CDL/i }))
+  await usuario.click(screen.getByRole('button', { name: /abrir alerta.*FARM-01-CDL/i }))
   return { usuario, dialogo: await screen.findByRole('dialog') }
 }
 

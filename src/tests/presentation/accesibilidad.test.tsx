@@ -136,19 +136,17 @@ describe('RiskBadge — el nivel no depende solo del color (WCAG 1.4.1)', () => 
     expect(screen.getByText(/temperatura salió del rango 2–8 °C/i)).toBeInTheDocument()
   })
 
-  it('marca cada nivel con una forma propia, oculta para el lector', () => {
-    const formas = (['normal', 'riesgo_preventivo', 'excursion_critica'] as const).map((nivel) => {
+  it('cada nivel se lee en el texto, sin depender del color', () => {
+    const textos = (['normal', 'riesgo_preventivo', 'excursion_critica'] as const).map((nivel) => {
       const { container, unmount } = render(<RiskBadge nivel={nivel} />)
-      const svg = container.querySelector('svg')
-      expect(svg).toHaveAttribute('aria-hidden')
-      const clase = svg?.getAttribute('class') ?? ''
+      const texto = container.textContent ?? ''
       unmount()
-      return clase
+      return texto
     })
 
-    // Tres iconos distintos: la píldora sigue siendo legible en escala de
-    // grises o con una deficiencia de percepción del rojo/verde.
-    expect(new Set(formas).size).toBe(3)
+    // Acta N.° 05, acuerdo 5: lo crítico va en rojo sólido y sin icono redundante;
+    // el nombre del nivel basta en escala de grises o con deficiencia de color.
+    expect(new Set(textos).size).toBe(3)
   })
 })
 

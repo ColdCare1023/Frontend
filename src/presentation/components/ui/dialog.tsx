@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
+/** Diálogo modal centrado (abajo en móvil): `Dialog`, `DialogContent` con `DialogTitle` y `DialogDescription`; `destructivo` lo vuelve `alertdialog`. */
 export const Dialog = DialogPrimitive.Root
 export const DialogTrigger = DialogPrimitive.Trigger
 export const DialogClose = DialogPrimitive.Close
@@ -36,7 +37,7 @@ export function DialogContent({
   return (
     <DialogPrimitive.Portal>
       {/* Radix espera a que terminen las animaciones de salida (data-state=closed). */}
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/55 backdrop-blur-[2px] data-[state=open]:animate-fade data-[state=closed]:animate-fade-out" />
+      <DialogPrimitive.Overlay className="velo-dialogo z-50 data-[state=open]:animate-fade data-[state=closed]:animate-fade-out" />
       <DialogPrimitive.Content
         ref={contenedor}
         // Ojo: `role={undefined}` no es «no tocar el rol», es sobrescribir con
@@ -52,8 +53,10 @@ export function DialogContent({
         }
         tabIndex={destructivo ? -1 : undefined}
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
-          'cristal max-h-[85dvh] overflow-y-auto rounded-(--radius-modal) border p-5 sm:p-6',
+          // En móvil queda abajo, al alcance del pulgar; desde 640 px, centrado.
+          'fixed bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100vw-1rem)] max-w-md -translate-x-1/2',
+          'sm:bottom-auto sm:top-1/2 sm:w-[calc(100vw-2rem)] sm:-translate-y-1/2',
+          'flotante max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-(--radius-modal) border p-5 sm:max-h-[85dvh] sm:p-6',
           'data-[state=open]:animate-(--animate-dialog-in) data-[state=closed]:animate-(--animate-dialog-out) focus:outline-none',
           className,
         )}
@@ -61,7 +64,7 @@ export function DialogContent({
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute right-3 top-3 flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200 hover:text-foreground max-sm:size-11 pointer-coarse:size-11 sm:right-4 sm:top-4"
+          className="realce absolute right-2 top-2 flex size-11 cursor-pointer items-center justify-center rounded-full text-muted hover:text-foreground sm:right-3 sm:top-3 sm:size-9 sm:pointer-coarse:size-11"
           aria-label={t('comunes.cerrar')}
         >
           <X className="size-4" aria-hidden />
@@ -77,7 +80,7 @@ export function DialogTitle({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('pr-10 font-display text-lg leading-7 font-semibold tracking-tight text-foreground', className)}
+      className={cn('pr-10 font-display text-xl leading-7 font-semibold tracking-[-0.02em] text-foreground', className)}
       {...props}
     />
   )

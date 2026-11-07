@@ -1,0 +1,332 @@
+/*
+ * Historial: arriba la frase que responde «¿qué pasó?», luego la curva y los días. Cada día dice si
+ * estuvo dentro del rango, con su cinta de 00:00 a 24:00, y solo lista lo que salió. Las lecturas
+ * completas van plegadas al final.
+ */
+@layer components {
+  /* ── La frase ── */
+  .frase-historial {
+    display: block;
+    font-size: clamp(1.75rem, 1.05rem + 2.6vw, 3.5rem);
+    line-height: 1.06;
+    letter-spacing: -0.035em;
+  }
+  .historial-nota {
+    max-width: 72ch;
+    margin-bottom: 14px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--color-muted);
+  }
+  .historial-controles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: clamp(16px, 2.4vw, 24px);
+  }
+
+  .curva-historial {
+    border-radius: 20px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    padding: clamp(12px, 2vw, 24px);
+    transition: opacity var(--duration-ui) var(--ease-out-soft);
+  }
+
+  /* ── Día por día ── */
+  .dias-resumen {
+    border-top: 1px solid var(--color-border);
+  }
+  .dia-resumen {
+    padding-block: clamp(16px, 2.4vw, 26px);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .dia-resumen__cabeza {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 24px;
+    margin-bottom: 12px;
+  }
+  .dia-resumen__titulo {
+    font-size: clamp(26px, 1.2rem + 1.4vw, 38px);
+    font-weight: 640;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    color: var(--color-foreground);
+  }
+  .dia-resumen__frase {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--color-muted);
+  }
+  @media (min-width: 640px) {
+    .dia-resumen__frase {
+      font-size: 17px;
+      line-height: 24px;
+    }
+  }
+
+  /* ── Cinta del día ── */
+  .cinta-dia {
+    display: grid;
+    grid-template-columns: repeat(48, minmax(0, 1fr));
+    gap: 2px;
+    height: 12px;
+  }
+  .cinta-dia > span {
+    border-radius: 2px;
+    background: var(--color-border);
+  }
+  .cinta-dia > span[data-riesgo='normal'] {
+    background: var(--color-campo-rango);
+  }
+  .cinta-dia > span[data-riesgo='riesgo_preventivo'] {
+    background: var(--color-campo-preventivo);
+  }
+  .cinta-dia > span[data-riesgo='excursion_critica'] {
+    background: var(--color-campo-critico);
+  }
+  .cinta-dia > span[data-riesgo='sin_clasificar'] {
+    background: var(--color-border-field);
+  }
+  .cinta-dia__eje {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--color-muted);
+  }
+
+  /* ── Cada salida del rango: una fila que crece hasta ser su detalle ── */
+  .salidas {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .salida {
+    overflow: hidden;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+  .salida[data-abierta='true'] {
+    box-shadow: var(--shadow-raised);
+  }
+  .salida__fila {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 64px;
+    padding: 10px 14px 10px 10px;
+    border-radius: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .salida__cifra {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: baseline;
+    justify-content: center;
+    gap: 3px;
+    min-width: 92px;
+    padding: 9px 10px 10px;
+    border-radius: var(--radius-field);
+    font-size: 26px;
+    font-weight: 640;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+  .salida__unidad {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .salida__horas {
+    display: block;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 22px;
+    letter-spacing: -0.01em;
+    color: var(--color-foreground);
+  }
+  .salida__datos {
+    display: block;
+    font-size: 13.5px;
+    line-height: 20px;
+    color: var(--color-muted);
+    overflow-wrap: anywhere;
+  }
+  .salida__flecha {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--color-muted);
+    transition: transform var(--duration-ui) var(--ease-out-soft);
+  }
+  .salida__detalle {
+    padding: 2px 12px 12px;
+  }
+
+  /* ── Todas las lecturas, plegadas ── */
+  /* Va justo debajo del último día, que ya trae su filete. */
+  .historial-todas {
+    border-bottom: 1px solid var(--color-border);
+  }
+  .historial-todas > button {
+    min-height: 52px;
+  }
+  .historial-todas__titulo {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-foreground);
+  }
+
+  /* ── Encabezado de cada día en la lista completa ── */
+  .dia-lecturas + .dia-lecturas {
+    margin-top: clamp(28px, 4vw, 44px);
+  }
+  .dia-lecturas__titulo {
+    font-size: clamp(26px, 1.2rem + 1.4vw, 38px);
+    font-weight: 640;
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+    color: var(--color-foreground);
+  }
+  .dia-lecturas__rango {
+    font-size: clamp(22px, 1.1rem + 0.8vw, 30px);
+    font-weight: 620;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+
+  /* ── Cifra de cada lectura: el color llena el fondo solo cuando hay algo que ver ── */
+  .cifra-lectura {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    font-size: 28px;
+    font-weight: 620;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .cifra-lectura__unidad {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .cifra-lectura[data-relleno='true'] {
+    margin-inline: -8px;
+    padding: 5px 8px 6px;
+    border-radius: var(--radius-field);
+  }
+
+  .lecturas-tabla {
+    table-layout: fixed;
+  }
+
+  @media (min-width: 640px) {
+    .lecturas-tabla__rotulo {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+  @media (min-width: 1024px) {
+    .cifra-lectura {
+      font-size: 30px;
+    }
+  }
+}
+
+/*
+ * En móvil cada lectura es una línea legible, no una ficha con un rótulo por dato. Sin capa: tiene
+ * que ganarle a las utilidades de relleno y alineación de la tabla compartida.
+ */
+@media (max-width: 639px) {
+  .lecturas-tabla,
+  .lecturas-tabla tbody {
+    display: block;
+  }
+  .lecturas-tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .lecturas-tabla tbody > tr {
+    display: grid;
+    grid-template-columns: auto auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'cifra cifra cifra hora'
+      'riesgo riesgo riesgo equipo'
+      'ambiente humedad puerta origen';
+    align-items: center;
+    gap: 6px 12px;
+    padding: 12px 16px 4px;
+  }
+  .lecturas-tabla tbody td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+  }
+  .lecturas-tabla td[data-area='cifra'] {
+    grid-area: cifra;
+  }
+  .lecturas-tabla td[data-area='hora'] {
+    grid-area: hora;
+    justify-self: end;
+    text-align: right;
+  }
+  .lecturas-tabla td[data-area='riesgo'] {
+    grid-area: riesgo;
+  }
+  .lecturas-tabla td[data-area='equipo'] {
+    grid-area: equipo;
+    justify-self: end;
+  }
+  .lecturas-tabla td[data-area='ambiente'] {
+    grid-area: ambiente;
+  }
+  .lecturas-tabla td[data-area='humedad'] {
+    grid-area: humedad;
+  }
+  .lecturas-tabla td[data-area='puerta'] {
+    grid-area: puerta;
+  }
+  .lecturas-tabla td[data-area='origen'] {
+    grid-area: origen;
+    justify-self: end;
+    text-align: right;
+  }
+  .lecturas-tabla .cifra-lectura {
+    font-size: 32px;
+  }
+  .salida__fila {
+    gap: 12px;
+    padding-right: 10px;
+  }
+  .salida__cifra {
+    min-width: 80px;
+    font-size: 24px;
+  }
+  .salida__detalle {
+    padding-inline: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .salida__flecha {
+    transition: none;
+  }
+}

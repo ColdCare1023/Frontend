@@ -25,7 +25,12 @@ for (const tema of ['dark', 'light'] as const) {
       await page.setViewportSize({ width: vista.width, height: vista.height })
       await page.goto('/login')
       await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
-      await expect(page).toHaveScreenshot(`login-${tema}-${vista.nombre}.png`, { fullPage: true, animations: 'disabled' })
+      await expect(page).toHaveScreenshot(`login-${tema}-${vista.nombre}.png`, {
+        fullPage: true,
+        animations: 'disabled',
+        // El suavizado del texto varía un píxel entre corridas; un cambio de diseño mueve miles.
+        maxDiffPixels: 20,
+      })
     })
   }
 }
@@ -38,7 +43,7 @@ test('guía de uso dentro del shell oscuro', async ({ page }) => {
   await expect(page).toHaveURL(/\/dashboard$/)
   await irA(page, '/guia')
   // El título propio de la guía: el h1 del monitoreo sigue en pantalla mientras carga.
-  await expect(page.getByRole('heading', { level: 1, name: 'Consulta y usa ColdCare' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: '¿Qué necesitas?' })).toBeVisible()
   await expect(page).toHaveScreenshot('guia-dark.png', {
     fullPage: true,
     animations: 'disabled',

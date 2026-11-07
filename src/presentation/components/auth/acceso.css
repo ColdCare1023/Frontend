@@ -1,0 +1,476 @@
+/*
+ * Pantallas de acceso. Estilo local: la foto aprobada y una hoja que se monta sobre ella.
+ *
+ * La foto tiene el vidrio oscuro arriba y los viales claros abajo. El titular va sobre el
+ * vidrio, así los viales quedan limpios y el velo solo oscurece lo que hace falta.
+ *
+ * Tres disposiciones: foto arriba (móvil y tablet), dos columnas (desde 1024 px) y dos
+ * columnas compactas (teléfono en horizontal, donde una foto arriba se comería la pantalla).
+ * Sin blur ni vidrio. Lo que se mueve solo anima `transform` y `opacity`.
+ */
+@layer components {
+  .acceso {
+    --solape: 24px;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 100dvh;
+    background: var(--color-background);
+  }
+
+  /* Cápsula negra de la landing (`.capsula` en su styles.css). */
+  .acceso-capsula {
+    background: #05070c;
+    color: #fff;
+    border-radius: 999px;
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.09),
+      0 1px 2px rgb(5 10 20 / 0.45),
+      0 18px 36px -20px rgb(5 10 20 / 0.7);
+  }
+
+  /* Sobre el azul noche el negro solo se separa por el borde. */
+  [data-theme='dark'] .acceso-capsula {
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.16),
+      0 1px 2px rgb(5 10 20 / 0.45);
+  }
+
+  .acceso-controles {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    height: 48px;
+    padding-inline: 2px;
+  }
+
+  /* ── Foto ─────────────────────────────────────────────── */
+  .acceso-foto {
+    /* El velo se ata a donde termina el titular, no a un porcentaje: en una banda baja la
+       segunda línea caería sobre los estantes claros y dejaría de leerse. */
+    --titular: clamp(28px, 9.6vw, 76px);
+    --sobre-titular: 72px;
+    --fin-titular: calc(var(--sobre-titular) + var(--titular) * 2);
+    --fundido: 28px;
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    /* Crece con el alto que le sobra al formulario; en un teléfono con barras no pasa de
+       un 30 %, así las cápsulas de demostración siguen sobre el pliegue. */
+    min-height: calc(min(64vw, max(30svh, 100svh - 520px)) + var(--solape));
+    padding: 12px 20px calc(var(--solape) + 12px);
+    overflow: hidden;
+    background: #05070c;
+    color: #fff;
+  }
+  .acceso-foto__imagen {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    object-position: 50% 46%;
+  }
+  /* En oscuro la foto baja un punto para no deslumbrar junto a la hoja. */
+  [data-theme='dark'] .acceso-foto__imagen {
+    opacity: 0.86;
+  }
+  .acceso-foto__velo {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      180deg,
+      rgb(5 7 12 / 0.84) 0,
+      rgb(5 7 12 / 0.72) var(--fin-titular),
+      rgb(5 7 12 / 0) calc(var(--fin-titular) + var(--fundido))
+    );
+  }
+
+  .acceso-marca {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    height: 48px;
+    padding: 0 18px 0 8px;
+  }
+
+  /* El titular de la landing: grande, apretado, peso 600 e interlínea 1. */
+  .acceso-titular {
+    margin-top: 12px;
+    font-size: var(--titular);
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    color: #fff;
+    text-shadow: 0 1px 26px rgb(5 7 12 / 0.5);
+  }
+  .acceso-titular__segunda {
+    color: var(--color-marca-glaciar);
+  }
+
+  /* Referencia, nunca una lectura en vivo: por eso dice «rango» y no da hora ni equipo. */
+  .acceso-rango {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    height: 48px;
+    margin-top: auto;
+    padding: 0 6px 0 18px;
+    font-size: 14px;
+    color: rgb(255 255 255 / 0.78);
+  }
+  .acceso-rango__cifra {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding-inline: 14px;
+    border-radius: 999px;
+    background: #00d1ff;
+    color: #0f172a;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Hoja ─────────────────────────────────────────────── */
+  .acceso-hoja {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-top: calc(var(--solape) * -1);
+    padding: 26px 20px 32px;
+    border-radius: 28px 28px 0 0;
+    background: var(--color-background);
+  }
+  .acceso-hoja__cuerpo {
+    width: 100%;
+    max-width: 440px;
+    margin-inline: auto;
+  }
+  .acceso-encabezado {
+    margin-bottom: 18px;
+  }
+  .acceso-titulo {
+    font-size: 30px;
+    line-height: 1.05;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+    color: var(--color-foreground);
+  }
+  .acceso-bajada {
+    margin-top: 10px;
+    max-width: 40ch;
+    font-size: 15px;
+    line-height: 1.45;
+    text-wrap: pretty;
+    color: var(--color-muted);
+  }
+  .acceso-formulario > * + * {
+    margin-top: 14px;
+  }
+  .acceso-demo {
+    margin-top: 22px;
+  }
+  .acceso-nota {
+    margin-top: 18px;
+    font-size: 13px;
+    line-height: 1.45;
+    text-wrap: pretty;
+    color: var(--color-faint);
+  }
+
+  /* ── Cápsulas de demostración ─────────────────────────── */
+  .acceso-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .acceso-rol {
+    position: relative;
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px 0 12px;
+    overflow: hidden;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    transition:
+      transform var(--duration-micro) var(--ease-ui),
+      opacity var(--duration-micro) var(--ease-ui);
+  }
+  /* Son cuatro juntas: con la sombra larga de la cabecera mancharían la hoja. */
+  :root:not([data-theme='dark']) .acceso-rol {
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.09),
+      0 1px 2px rgb(5 10 20 / 0.35),
+      0 8px 16px -12px rgb(5 10 20 / 0.55);
+  }
+  /* El brillo es una capa que aparece: así el cambio de color también es solo opacidad. */
+  .acceso-rol::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgb(255 255 255 / 0.11);
+    opacity: 0;
+    transition: opacity var(--duration-micro) var(--ease-ui);
+  }
+  .acceso-rol__icono {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    color: var(--color-marca-glaciar);
+  }
+  .acceso-rol__nombre {
+    position: relative;
+  }
+  @media (hover: hover) {
+    .acceso-rol:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+    .acceso-rol:hover:not(:disabled)::before {
+      opacity: 1;
+    }
+  }
+  .acceso-rol:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .acceso-rol:disabled {
+    cursor: not-allowed;
+    opacity: 0.38;
+  }
+  .acceso-rol[aria-busy='true'] {
+    cursor: wait;
+    opacity: 1;
+  }
+  .acceso-rol[aria-busy='true']::before {
+    opacity: 1;
+  }
+
+  /* Dos filas también en los iPhone de 375 y 390 px, para que quepan sobre el pliegue. */
+  @media (max-width: 400px) {
+    .acceso-rol {
+      gap: 6px;
+      padding: 0 14px 0 10px;
+    }
+  }
+  /* Más angosto, el icono cede su sitio. Al cargar, el giro ocupa el lugar del nombre: la
+     cápsula no cambia de ancho. */
+  @media (max-width: 379px) {
+    .acceso-rol {
+      padding-inline: 12px;
+      font-size: 13px;
+    }
+    .acceso-rol__icono {
+      display: none;
+    }
+    .acceso-rol[aria-busy='true'] .acceso-rol__icono {
+      position: absolute;
+      inset: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .acceso-rol[aria-busy='true'] .acceso-rol__nombre {
+      opacity: 0;
+    }
+  }
+
+  /* Tablet en vertical: el formulario toma el ancho del titular y se alinea con él. */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .acceso-foto {
+      --sobre-titular: 80px;
+      --fundido: 44px;
+      min-height: calc(min(64vw, max(30svh, 100svh - 568px)) + var(--solape));
+      padding-inline: 40px;
+    }
+    .acceso-titular {
+      margin-top: 20px;
+    }
+    .acceso-hoja {
+      padding: 32px 40px 40px;
+    }
+    .acceso-hoja__cuerpo {
+      max-width: 720px;
+      margin-inline: 0;
+    }
+    .acceso-encabezado {
+      margin-bottom: 28px;
+    }
+    .acceso-titulo {
+      font-size: 40px;
+    }
+    .acceso-bajada {
+      font-size: 16px;
+    }
+    .acceso-formulario > * + * {
+      margin-top: 20px;
+    }
+    .acceso-demo {
+      margin-top: 32px;
+    }
+    .acceso-nota {
+      margin-top: 24px;
+    }
+  }
+
+  /* ── Dos columnas ─────────────────────────────────────── */
+  @media (min-width: 1024px), (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+    .acceso {
+      --solape: 36px;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
+    }
+    .acceso-foto {
+      --titular: min(5.4vw, 11.5svh);
+      --sobre-titular: calc(68px + clamp(20px, 3.4svh, 40px));
+      --fundido: 18svh;
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+      min-height: 0;
+      margin-right: calc(var(--solape) * -1);
+      padding: 20px calc(var(--solape) + 24px) 28px 28px;
+    }
+    .acceso-foto__imagen {
+      object-position: 50% 25%;
+    }
+    .acceso-foto__velo {
+      background: linear-gradient(
+        180deg,
+        rgb(5 7 12 / 0.74) 0,
+        rgb(5 7 12 / 0.56) var(--fin-titular),
+        rgb(5 7 12 / 0) calc(var(--fin-titular) + var(--fundido))
+      );
+    }
+    .acceso-titular {
+      margin-top: clamp(20px, 3.4svh, 40px);
+    }
+    .acceso-rango {
+      display: inline-flex;
+    }
+    .acceso-controles {
+      top: 20px;
+      right: 20px;
+    }
+    .acceso-hoja {
+      justify-content: center;
+      min-height: 100dvh;
+      margin-top: 0;
+      padding: 88px clamp(28px, 4vw, 64px) 48px;
+      border-radius: 36px 0 0 36px;
+    }
+    .acceso-encabezado {
+      margin-bottom: 36px;
+    }
+    .acceso-titulo {
+      font-size: clamp(40px, 3.3vw, 56px);
+    }
+    .acceso-bajada {
+      margin-top: 14px;
+      font-size: 17px;
+    }
+    .acceso-formulario > * + * {
+      margin-top: 22px;
+    }
+    .acceso-demo {
+      margin-top: 40px;
+    }
+    .acceso-nota {
+      margin-top: 28px;
+    }
+  }
+
+  @media (min-width: 1600px) {
+    .acceso-hoja__cuerpo {
+      max-width: 480px;
+    }
+  }
+
+  /* ── Teléfono en horizontal: la foto cede sitio y el formulario se aprieta ── */
+  @media (orientation: landscape) and (max-height: 540px) and (min-width: 560px) {
+    .acceso {
+      --solape: 24px;
+      grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+    }
+    .acceso-foto {
+      --titular: clamp(22px, 3.7vw, 40px);
+      --sobre-titular: 72px;
+      --fundido: 56px;
+      padding: 12px calc(var(--solape) + 16px) 16px 16px;
+    }
+    .acceso-hoja__cuerpo {
+      max-width: 440px;
+      margin-inline: auto;
+    }
+    .acceso-foto__imagen {
+      object-position: 50% 52%;
+    }
+    .acceso-titular {
+      margin-top: 12px;
+    }
+    .acceso-rango {
+      display: none;
+    }
+    .acceso-controles {
+      top: 12px;
+      right: 12px;
+    }
+    .acceso-hoja {
+      justify-content: flex-start;
+      padding: 18px 24px 24px;
+      border-radius: 28px 0 0 28px;
+    }
+    /* El título no se mete bajo la cápsula de idioma y tema. */
+    .acceso-encabezado {
+      margin-bottom: 14px;
+      padding-right: 100px;
+    }
+    .acceso-titulo {
+      font-size: 26px;
+    }
+    .acceso-bajada {
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .acceso-formulario > * + * {
+      margin-top: 12px;
+    }
+    .acceso-demo {
+      margin-top: 18px;
+    }
+    .acceso-nota {
+      margin-top: 14px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .acceso-rol,
+    .acceso-rol::before {
+      transition: none;
+    }
+    .acceso-rol:hover:not(:disabled),
+    .acceso-rol:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}

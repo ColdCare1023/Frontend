@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
 
 /**
- * Tema de la interfaz. El oscuro es el predeterminado; «system» sigue la
+ * Tema de la interfaz. El claro es el predeterminado (paleta aprobada, fondo
+ * #F4F7FB); «system» sigue la
  * preferencia del sistema operativo y reacciona si cambia con la app abierta.
  *
  * `public/theme-init.js` aplica la misma regla antes del primer pintado; este
@@ -14,7 +15,7 @@ export type TemaResuelto = 'dark' | 'light'
 
 export const CLAVE_TEMA = 'coldcare-tema'
 const PREFERENCIAS: PreferenciaTema[] = ['dark', 'light', 'system']
-const COLOR_BARRA: Record<TemaResuelto, string> = { dark: '#000000', light: '#F4F7FB' }
+const COLOR_BARRA: Record<TemaResuelto, string> = { dark: '#0B1220', light: '#F4F7FB' }
 
 type Escucha = () => void
 const escuchas = new Set<Escucha>()
@@ -31,7 +32,7 @@ export function leerPreferencia(): PreferenciaTema {
   } catch {
     // Almacenamiento bloqueado (modo privado estricto): se usa el predeterminado.
   }
-  return 'dark'
+  return 'light'
 }
 
 export function resolverTema(preferencia: PreferenciaTema): TemaResuelto {

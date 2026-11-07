@@ -37,7 +37,7 @@ describe('AvisosTiempoReal', () => {
 
     const criticos = screen.getAllByRole('alert')
     expect(criticos.map((n) => n.textContent)).toEqual([
-      'FARM-01 se desconectó del broker.',
+      'FARM-01 se quedó sin conexión.',
       'Nueva alerta térmica en FARM-02.',
     ])
   })
@@ -47,7 +47,7 @@ describe('AvisosTiempoReal', () => {
     act(() => {
       suscriptores[0].onAvisoDispositivo?.({ tipo: 'saturacion_buffer', device_id: 'FARM-03', timestamp: 'x', detalle: null })
     })
-    expect(screen.getByRole('alert')).toHaveTextContent('El buffer local de FARM-03 se saturó')
+    expect(screen.getByRole('alert')).toHaveTextContent('La memoria de lecturas de FARM-03 se llenó: puede haber lecturas perdidas.')
   })
 
   it('una reconexión no genera ruido', () => {

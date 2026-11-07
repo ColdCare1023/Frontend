@@ -16,12 +16,16 @@ import { rutaApi } from '@/lib/rutaApi'
 export function useDispositivos() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
 
   const consultar = useCallback(async () => {
     setCargando(true)
     try {
       const { data } = await apiClient.get<Dispositivo[]>('/api/dispositivos')
       setDispositivos(data)
+      setErrorCarga(false)
+    } catch {
+      setErrorCarga(true)
     } finally {
       setCargando(false)
     }
@@ -243,6 +247,7 @@ export function useDispositivos() {
   }, [consultar])
 
   return {
+    errorCarga,
     dispositivos,
     cargando,
     consultar,

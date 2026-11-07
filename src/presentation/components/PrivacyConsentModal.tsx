@@ -44,18 +44,16 @@ export function PrivacyConsentModal() {
   return (
     <DialogPrimitive.Root open modal>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-ink-900/50 backdrop-blur-[2px] data-[state=open]:animate-fade" />
+        <DialogPrimitive.Overlay className="velo-dialogo z-[60] data-[state=open]:animate-fade" />
         <DialogPrimitive.Content
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           aria-describedby="privacidad-descripcion"
-          className="fixed left-1/2 top-1/2 z-[60] max-h-[85dvh] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-(--radius-modal) border border-border bg-surface-raised p-6 shadow-(--shadow-raised) data-[state=open]:animate-rise"
+          className="flotante fixed bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-1/2 z-[60] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md -translate-x-1/2 overflow-y-auto rounded-(--radius-modal) border p-6 data-[state=open]:animate-(--animate-dialog-in) sm:bottom-auto sm:top-1/2 sm:max-h-[85dvh] sm:w-[calc(100vw-2rem)] sm:-translate-y-1/2"
         >
           <div className="mb-3 flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-full bg-secondary-tint text-primary">
-              <ShieldQuestion className="size-5" />
-            </span>
+            <ShieldQuestion className="size-5 text-instrumento" aria-hidden />
             <DialogPrimitive.Title className="font-display text-lg font-semibold tracking-tight text-foreground">
               {t('privacidad.titulo')}
             </DialogPrimitive.Title>

@@ -1,11 +1,11 @@
 import { cn } from '@/lib/utils'
 
+/** Superficie base con borde fino. Para secciones de pantalla, mejor `Panel`; para cifras, `Indicadores`. */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        // `spotlight`: luz que sigue al puntero y borde iluminado al pasar.
-        'spotlight tarjeta-cristal rounded-(--radius-card) border',
+        'tarjeta-cristal rounded-(--radius-card) border',
         className,
       )}
       {...props}
@@ -37,7 +37,7 @@ export function CardTitle({ level = 2, className, ...props }: CardTitleProps) {
   const Tag = cardTitleTags[level]
   return (
     <Tag
-      className={cn('font-display font-semibold tracking-tight text-foreground', level === 2 ? 'text-[17px] leading-6' : 'text-[15px] leading-6', className)}
+      className={cn('font-display font-semibold tracking-tight text-foreground', level === 2 ? 'text-[15px] leading-6' : 'text-[14px] leading-6', className)}
       {...props}
     />
   )

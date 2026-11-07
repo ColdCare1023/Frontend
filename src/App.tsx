@@ -6,13 +6,8 @@ import { setOnPrivacidadRequerida, setOnSesionExpirada } from '@/infrastructure/
 import { marcarSesionExpirada } from '@/infrastructure/auth/avisoSesion'
 import { useAuthStore } from '@/application/stores/authStore'
 import { ErrorBoundary } from '@/presentation/components/ErrorBoundary'
-import { PrivacyConsentModal } from '@/presentation/components/PrivacyConsentModal'
 import { RequireAuth, RequireConsentimiento, RequirePasswordPropia, RequireRoles } from '@/presentation/components/RouteGuards'
-import { CambiarPasswordPage } from '@/presentation/pages/CambiarPasswordPage'
 import { LoginPage } from '@/presentation/pages/LoginPage'
-import { RecuperarContrasenaPage } from '@/presentation/pages/RecuperarContrasenaPage'
-import { ANCHO_COLAPSADO, ANCHO_EXPANDIDO, leerColapsado } from '@/presentation/layouts/preferenciaSidebar'
-import { RestablecerContrasenaPage } from '@/presentation/pages/RestablecerContrasenaPage'
 
 /**
  * Carga diferida por ruta (F-11). El dashboard arrastra ECharts (~600 KB), que
@@ -32,27 +27,53 @@ function diferida<T extends Record<string, ComponentType>>(
  * RNF-10 (carga ≤ 3 s). El layout se carga al autenticarse para que login no
  * descargue navegación ni las páginas protegidas antes de necesitarlas.
  */
-const AppLayout = diferida(() => import('@/presentation/layouts/AppLayout'), 'AppLayout')
+const PANTALLAS = {
+  '/guia': () => import('@/presentation/pages/GuiaPage'),
+  '/dashboard': () => import('@/presentation/pages/DashboardPage'),
+  '/historial': () => import('@/presentation/pages/HistorialPage'),
+  '/alertas': () => import('@/presentation/pages/AlertasPage'),
+  '/trazabilidad': () => import('@/presentation/pages/TrazabilidadPage'),
+  '/reportes': () => import('@/presentation/pages/ReportesPage'),
+  '/metricas-ia': () => import('@/presentation/pages/MetricasIAPage'),
+  '/auditoria': () => import('@/presentation/pages/AuditoriaPage'),
+  '/usuarios': () => import('@/presentation/pages/UsuariosPage'),
+  '/dispositivos': () => import('@/presentation/pages/DispositivosPage'),
+}
 
-const GuiaPage = diferida(() => import('@/presentation/pages/GuiaPage'), 'GuiaPage')
-const DashboardPage = diferida(() => import('@/presentation/pages/DashboardPage'), 'DashboardPage')
-const HistorialPage = diferida(() => import('@/presentation/pages/HistorialPage'), 'HistorialPage')
-const AlertasPage = diferida(() => import('@/presentation/pages/AlertasPage'), 'AlertasPage')
-const TrazabilidadPage = diferida(
-  () => import('@/presentation/pages/TrazabilidadPage'),
-  'TrazabilidadPage',
-)
-const ReportesPage = diferida(() => import('@/presentation/pages/ReportesPage'), 'ReportesPage')
-const MetricasIAPage = diferida(
-  () => import('@/presentation/pages/MetricasIAPage'),
-  'MetricasIAPage',
-)
-const AuditoriaPage = diferida(() => import('@/presentation/pages/AuditoriaPage'), 'AuditoriaPage')
-const UsuariosPage = diferida(() => import('@/presentation/pages/UsuariosPage'), 'UsuariosPage')
-const DispositivosPage = diferida(
-  () => import('@/presentation/pages/DispositivosPage'),
-  'DispositivosPage',
-)
+/**
+ * La pantalla se pide a la vez que el marco. Si no, primero se descarga el marco y solo al montarse
+ * pide su pantalla: una espera detrás de otra, ~0,7 s de más en un 4G lento.
+ */
+function precargarPantallaActual() {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  const ruta = window.location.pathname.slice(base.length) as keyof typeof PANTALLAS
+  PANTALLAS[ruta]?.().catch(() => undefined)
+}
+
+const AppLayout = diferida(() => {
+  precargarPantallaActual()
+  return import('@/presentation/layouts/AppLayout')
+}, 'AppLayout')
+
+// Los otros flujos de cuenta y el aviso de privacidad tampoco van en el paquete inicial: casi ninguna
+// visita los usa. El login sí: la sesión vive en memoria y toda visita empieza por él. Medido con la
+// CPU frenada ×4, cargarlo aparte retrasaba el primer pintado de ~210 ms a ~480 ms sin ahorrar bytes.
+const RecuperarContrasenaPage = diferida(() => import('@/presentation/pages/RecuperarContrasenaPage'), 'RecuperarContrasenaPage')
+const RestablecerContrasenaPage = diferida(() => import('@/presentation/pages/RestablecerContrasenaPage'), 'RestablecerContrasenaPage')
+const CambiarPasswordPage = diferida(() => import('@/presentation/pages/CambiarPasswordPage'), 'CambiarPasswordPage')
+const PrivacyConsentModal = diferida(() => import('@/presentation/components/PrivacyConsentModal'), 'PrivacyConsentModal')
+
+const GuiaPage = diferida(PANTALLAS['/guia'], 'GuiaPage')
+const DashboardPage = diferida(PANTALLAS['/dashboard'], 'DashboardPage')
+const HistorialPage = diferida(PANTALLAS['/historial'], 'HistorialPage')
+const AlertasPage = diferida(PANTALLAS['/alertas'], 'AlertasPage')
+const TrazabilidadPage = diferida(PANTALLAS['/trazabilidad'], 'TrazabilidadPage')
+const ReportesPage = diferida(PANTALLAS['/reportes'], 'ReportesPage')
+const MetricasIAPage = diferida(PANTALLAS['/metricas-ia'], 'MetricasIAPage')
+const AuditoriaPage = diferida(PANTALLAS['/auditoria'], 'AuditoriaPage')
+const UsuariosPage = diferida(PANTALLAS['/usuarios'], 'UsuariosPage')
+const DispositivosPage = diferida(PANTALLAS['/dispositivos'], 'DispositivosPage')
+
 /** Holds a stable shell while a protected route's code loads. */
 function RespaldoCarga({ shell = false }: { shell?: boolean }) {
   const { t } = useTranslation()
@@ -72,17 +93,18 @@ function RespaldoCarga({ shell = false }: { shell?: boolean }) {
     </>
   )
   if (shell) {
-    // Mismo ancho que el riel real (expandido o colapsado): sin salto al cargar.
-    const ancho = leerColapsado() ? ANCHO_COLAPSADO : ANCHO_EXPANDIDO
+    // Las mismas cápsulas del marco, quietas, para que nada salte cuando carga.
+    const capsula = 'h-12 rounded-full bg-[#05070c] shadow-(--shadow-card)'
     return (
-      <div role="status" aria-live="polite" aria-busy="true" className="min-h-dvh lg:pl-(--ancho-riel)" style={{ '--ancho-riel': `${ancho}px` } as React.CSSProperties}>
+      <div role="status" aria-live="polite" aria-busy="true" className="min-h-dvh bg-background">
         <span className="sr-only">{t('app.cargando')}</span>
-        <aside aria-hidden className="fixed inset-y-0 left-0 hidden w-(--ancho-riel) border-r border-border bg-surface px-4 py-4 lg:block">
-          <div className="esqueleto h-9 w-full max-w-36 rounded-lg" />
-          <div className="mt-10 space-y-4">{Array.from({ length: 9 }, (_, i) => <div key={i} className="esqueleto h-4 w-full max-w-40 rounded" />)}</div>
-        </aside>
-        <header aria-hidden className="h-14 border-b border-border bg-background/85" />
-        <main aria-hidden className="space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">{bloques}</main>
+        <div aria-hidden className="flex items-center justify-between gap-3 px-3 pt-2 sm:px-4">
+          <div className={`${capsula} w-12 sm:w-36`} />
+          <div className={`${capsula} hidden w-[440px] md:block`} />
+          <div className={`${capsula} w-12 md:w-40`} />
+        </div>
+        <main aria-hidden className="mx-auto max-w-[1760px] space-y-5 px-4 py-8 sm:px-6 lg:px-10">{bloques}</main>
+        <div aria-hidden className={`${capsula} fixed inset-x-4 bottom-3 md:hidden`} />
       </div>
     )
   }
@@ -96,6 +118,22 @@ function RespaldoCarga({ shell = false }: { shell?: boolean }) {
 
 function Pagina({ children, shell = false }: { children: ReactNode; shell?: boolean }) {
   return <Suspense fallback={<RespaldoCarga shell={shell} />}>{children}</Suspense>
+}
+
+/** Las pantallas de cuenta son una hoja completa: mientras llega su código, solo el fondo y el aviso. */
+function PaginaCuenta({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
+  return (
+    <Suspense
+      fallback={
+        <div role="status" aria-live="polite" aria-busy="true" className="min-h-dvh bg-background">
+          <span className="sr-only">{t('app.cargando')}</span>
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  )
 }
 
 function SesionExpiradaListener() {
@@ -126,7 +164,7 @@ function ConsentimientoPrivacidad() {
   const requierePrivacidad = useAuthStore((s) => s.requierePrivacidad)
   const requiereCambioPassword = useAuthStore((s) => s.requiereCambioPassword)
   if (!autenticado || !requierePrivacidad || requiereCambioPassword) return null
-  return <PrivacyConsentModal />
+  return <Suspense fallback={null}><PrivacyConsentModal /></Suspense>
 }
 
 export function App() {
@@ -140,11 +178,11 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           {/* FE-004: recuperación real (BE-025). No hay autorregistro ni
               "solicitud de acceso": las cuentas las crea el administrador. */}
-          <Route path="/recuperar-contrasena" element={<RecuperarContrasenaPage />} />
-          <Route path="/restablecer-password" element={<RestablecerContrasenaPage />} />
+          <Route path="/recuperar-contrasena" element={<PaginaCuenta><RecuperarContrasenaPage /></PaginaCuenta>} />
+          <Route path="/restablecer-password" element={<PaginaCuenta><RestablecerContrasenaPage /></PaginaCuenta>} />
 
           <Route element={<RequireAuth />}>
-            <Route path="/cambiar-password" element={<CambiarPasswordPage />} />
+            <Route path="/cambiar-password" element={<PaginaCuenta><CambiarPasswordPage /></PaginaCuenta>} />
             <Route element={<RequirePasswordPropia />}>
             <Route element={<RequireConsentimiento />}>
             <Route element={<Pagina shell><AppLayout /></Pagina>}>

@@ -79,6 +79,80 @@ describe('curva térmica', () => {
     expect(series[1].data.map(([, valor]) => valor)).toEqual([3.8, 3.8, 3.8, 3.8])
   })
 
+  it('si la ventana avanza menos de un píxel, devuelve la misma opción: la gráfica no repinta', () => {
+    const serie = [lectura(0, 5), lectura(30, 5)]
+    const dia = 24 * 60 * 60 * 1000
+    // En 24 h, un paso del eje son 54 s: se parte del comienzo de uno para no cruzar al siguiente.
+    const hasta = Math.ceil(BASE / 54_000) * 54_000
+    const primera = construirOpcionCurvaTermica(serie, ETIQUETAS, { desde: hasta - dia, hasta })
+    const quinceSegundos = 15_000
+    const igual = construirOpcionCurvaTermica(serie, ETIQUETAS, { desde: hasta + quinceSegundos - dia, hasta: hasta + quinceSegundos })
+    expect(igual).toBe(primera)
+
+    const otraLectura = construirOpcionCurvaTermica([...serie, lectura(60, 5)], ETIQUETAS, { desde: hasta - dia, hasta })
+    expect(otraLectura).not.toBe(primera)
+    const otroTema = construirOpcionCurvaTermica(serie, ETIQUETAS, { desde: hasta - dia, hasta }, 'dark')
+    expect(otroTema).not.toBe(primera)
+  })
+
+  it('sin animaciones: cada cuadro repintaría miles de puntos', () => {
+    expect(construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 5)], ETIQUETAS).animation).toBe(false)
+  })
+
+  it('la línea va en rojo fuera de 2–8 °C: un color fijo en `lineStyle` anularía el mapa', () => {
+    const opcion = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 9)], ETIQUETAS)
+    expect(opcion.visualMap).toMatchObject({ seriesIndex: 0, dimension: 1, pieces: [{ gte: 2, lte: 8 }] })
+    const interna = (opcion.series as Array<{ lineStyle: { color?: string } }>)[0]
+    expect(interna.lineStyle.color).toBeUndefined()
+  })
+
+  it('el mismo equipo lleva siempre el mismo color, llegue en el orden que llegue', () => {
+    const de = (equipo: string, segundos: number) => ({ ...lectura(segundos, 5), device_id: equipo })
+    const nombres = (serie: LecturaTermica[]) =>
+      (construirOpcionCurvaTermica(serie, ETIQUETAS).series as Array<{ name: string }>).map((s) => s.name)
+    expect(nombres([de('FARM-02', 0), de('FARM-01', 30)])).toEqual(['FARM-01', 'FARM-02'])
+  })
+
+  it('con varios equipos, cada línea tiene su propio mapa de rango', () => {
+    const de = (equipo: string, segundos: number) => ({ ...lectura(segundos, 5), device_id: equipo })
+    const opcion = construirOpcionCurvaTermica([de('FARM-01', 0), de('FARM-02', 30)], ETIQUETAS)
+    expect((opcion.visualMap as unknown[]).map((v) => (v as { seriesIndex: number }).seriesIndex)).toEqual([0, 1])
+  })
+
+  it('con ventana, la última lectura lleva su punto y su cifra', () => {
+    const hasta = BASE + 60_000
+    const opcion = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 4.56)], ETIQUETAS, { desde: BASE - 1000, hasta })
+    const puntos = (opcion.series as Array<{ markPoint?: { data: Array<{ label?: { formatter?: string } }> } }>)[0].markPoint?.data
+    expect(puntos?.at(-1)?.label?.formatter).toBe('4.6 °C')
+  })
+
+  it('rotula una excursión con su hora y deja sin rótulo las que se pisarían', () => {
+    const lejos = [lectura(0, 5), lectura(300, 9, true), lectura(600, 5), lectura(900, 9, true), lectura(1200, 5), lectura(36_000, 5)]
+    const puntos = (construirOpcionCurvaTermica(lejos, ETIQUETAS).series as Array<{ markPoint: { data: Array<{ label: { show: boolean; formatter?: string } }> } }>)[0].markPoint.data
+    expect(puntos).toHaveLength(2)
+    expect(puntos.filter((p) => p.label.show)).toHaveLength(1)
+    expect(puntos.find((p) => p.label.show)?.label.formatter).toMatch(/^Excursión · \d{2}:\d{2}$/)
+  })
+
+  it('el tooltip escapa lo que viene del backend y marca lo que está fuera de rango', () => {
+    const opcion = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 9)], ETIQUETAS)
+    const { formatter } = opcion.tooltip as { formatter: (p: unknown) => string }
+    const html = formatter([
+      { seriesName: '<img src=x onerror=alert(1)>', axisValue: BASE, value: [BASE, 9.25], color: '#123456' },
+      { seriesName: '__contexto', axisValue: BASE, value: [BASE, 1] },
+    ])
+    expect(html).not.toContain('<img')
+    expect(html).toContain('&#60;img')
+    expect(html).toContain('9.3 °C')
+    expect(html).not.toContain('__contexto')
+  })
+
+  it('en un hueco, el tooltip dice que no hay datos en vez de una cifra', () => {
+    const opcion = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 9)], ETIQUETAS)
+    const { formatter } = opcion.tooltip as { formatter: (p: unknown) => string }
+    expect(formatter([{ seriesName: 'Refrigerador', axisValue: BASE, value: [BASE, null] }])).toContain('Sin datos')
+  })
+
   it('con ventana, el eje termina en «ahora» y descarta lo anterior al inicio', () => {
     const hasta = BASE + 3_600_000
     const serie = [lectura(-60, 5), lectura(0, 5), lectura(3_590, 5)]

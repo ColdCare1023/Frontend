@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { abrirOpciones, accionPrimeraFila, irA } from './helpers'
+import { abrirOpciones, irA } from './helpers'
 
 async function entrarComo(page: import('@playwright/test').Page, perfil: string) {
   await page.goto('/login')
@@ -111,8 +111,8 @@ test('farmacéutico revisa alerta y genera reporte', async ({ page }) => {
   await irA(page, '/alertas')
   await page.getByRole('button', { name: 'Todas' }).click()
 
-  // Las acciones de cada alerta viven en su menú «Opciones» (ActionMenu).
-  await accionPrimeraFila(page, 'Acción correctiva')
+  // Las acciones van en el detalle del aviso elegido; en escritorio, el primero ya lo está.
+  await page.getByRole('complementary', { name: /^Aviso de/ }).getByRole('button', { name: 'Acción correctiva' }).click()
   const dialogoAccion = page.getByRole('dialog')
   await dialogoAccion.getByLabel('Descripción de la acción correctiva')
     .fill('Se verificó cierre de puerta en QA demo.')
@@ -120,6 +120,10 @@ test('farmacéutico revisa alerta y genera reporte', async ({ page }) => {
   await expect(dialogoAccion.getByRole('status')).toContainText('Acción correctiva registrada.')
 
   await irA(page, '/reportes')
-  await page.getByRole('button', { name: 'Generar reporte' }).click()
+  // Un solo gesto: llena la hoja y descarga el PDF.
+  const descarga = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Descargar PDF' }).click()
+  expect((await descarga).suggestedFilename()).toMatch(/^reporte-bpa-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.pdf$/)
   await expect(page.getByText('Resumen del periodo')).toBeVisible()
+  await expect(page.getByText('Constancia descargada')).toBeVisible()
 })

@@ -13,12 +13,6 @@ export async function abrirOpciones(page: Page, registro: string) {
   await page.getByRole('row').filter({ hasText: registro }).getByRole('button', { name: /^Opciones:/ }).click()
 }
 
-/** Abre el menú de acciones de la primera fila con acciones y elige `accion`. */
-export async function accionPrimeraFila(page: Page, accion: string | RegExp) {
-  await page.getByRole('row').getByRole('button', { name: /^Opciones:/ }).first().click()
-  await page.getByRole('menuitem', { name: accion }).first().click()
-}
-
 /** El cierre de sesión vive en el menú de usuario de la barra superior. */
 export async function cerrarSesion(page: Page) {
   await page.getByRole('button', { name: /^Menú de usuario/ }).click()

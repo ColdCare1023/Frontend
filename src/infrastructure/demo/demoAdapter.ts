@@ -357,7 +357,7 @@ function revisarSilencioDemo(dispositivo: Dispositivo, ahora = Date.now()): void
   const timestamp = referencia ? Date.parse(referencia) : Number.NaN
   if (!Number.isFinite(timestamp)) return
 
-  const intervalo = Math.max(1, dispositivo.intervalo_reporte_segundos ?? 30)
+  const intervalo = Math.max(1, dispositivo.intervalo_reporte_segundos ?? 10)
   const umbral = Math.max(1, dispositivo.umbral_sin_datos_segundos ?? intervalo * 3)
   const sinDatos = ahora - timestamp >= umbral * 1000
   const incidentes = estadoDemo.incidentesOperativos.filter((incidente) => incidente.device_id === dispositivo.id)
@@ -773,8 +773,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       estado_operativo: 'SIN_DATOS',
       ultimo_reporte_en: null,
       registrado_en: new Date().toISOString(),
-      intervalo_reporte_segundos: 30,
-      umbral_sin_datos_segundos: 90,
+      intervalo_reporte_segundos: 10,
+      umbral_sin_datos_segundos: 30,
       umbral_puerta_abierta_segundos: 120,
       sensores,
       buffer_littlefs: { pendientes: 0, limite: CAPACIDAD_BUFFER_NODO, desde: null, hasta: null, perdidas: 0 },
@@ -966,7 +966,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       // recibidas y funciona incluso si el LWT no reporta desconexión.
       dispositivo.estado_conectividad = 'online'
       dispositivo.estado_operativo = 'SIN_DATOS'
-      dispositivo.ultimo_reporte_en = momento((dispositivo.umbral_sin_datos_segundos ?? 90) * 1000 + 1000)
+      dispositivo.ultimo_reporte_en = momento((dispositivo.umbral_sin_datos_segundos ?? 30) * 1000 + 1000)
       const limiteLectura = Date.parse(dispositivo.ultimo_reporte_en)
       const desfase = ahora - limiteLectura + 2_000
       for (const lectura of estadoDemo.lecturas) {

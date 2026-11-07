@@ -1,0 +1,307 @@
+/*
+ * La hoja del reporte: papel de verdad, igual en los dos temas, como el cuaderno de la landing
+ * (`.cuaderno` y `.hoja` en su styles.css). De noche el papel sigue siendo papel, así que dentro
+ * de la hoja los tokens valen lo mismo que en el tema claro y ningún control se oscurece.
+ * Nada aquí se anima fuera de `opacity`: la hoja no se mueve.
+ */
+@layer components {
+  .hoja-reporte {
+    --color-foreground: #0f172a;
+    --color-muted: #475569;
+    --color-faint: #526176;
+    --color-marca-texto: #008eaf;
+    --color-border: var(--color-renglon);
+    --color-border-strong: #b4c2d3;
+    --color-surface: var(--color-papel);
+    --color-surface-raised: #ffffff;
+    --color-cream-200: #edf2f8;
+    --color-ink-700: #334155;
+    --color-primary: #0b5cff;
+    --color-success-700: #07546a;
+    --color-success-600: #08738f;
+    --color-success-100: #e6f8fb;
+    --color-honey-700: #93370d;
+    --color-honey-600: #dc6803;
+    --color-honey-100: #fef0c7;
+    --color-critical: #b42318;
+    --color-critical-tint: #f7f8fa;
+
+    position: relative;
+    isolation: isolate;
+    color-scheme: light;
+    container-type: inline-size;
+    border-radius: 3px;
+    background: var(--color-papel);
+    color: var(--color-foreground);
+    box-shadow:
+      0 1px 0 rgb(15 23 42 / 0.08),
+      0 2px 6px -2px rgb(15 23 42 / 0.1),
+      0 26px 44px -22px rgb(15 23 42 / 0.45);
+    transition: opacity var(--duration-ui) ease-out;
+  }
+  /* La hoja de abajo: un filo apenas torcido, para que se lea como papel y no como tarjeta. */
+  .hoja-reporte::before {
+    content: '';
+    position: absolute;
+    inset: 5px -3px -5px 3px;
+    z-index: -1;
+    border-radius: 3px;
+    background: var(--color-papel);
+    opacity: 0.72;
+    rotate: 0.5deg;
+    box-shadow: 0 10px 26px -18px rgb(15 23 42 / 0.5);
+  }
+  .hoja-reporte::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--color-papel);
+  }
+  .hoja-reporte[aria-busy='true'] {
+    opacity: 0.66;
+  }
+  [data-theme='dark'] .hoja-reporte {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.04),
+      0 30px 60px -24px rgb(0 0 0 / 0.9);
+  }
+
+  .hoja-reporte__interior {
+    display: flex;
+    flex-direction: column;
+    padding: clamp(18px, 6cqw, 56px) clamp(18px, 6.5cqw, 64px) clamp(16px, 4cqw, 36px);
+  }
+  /* Proporción de una página cuando hay ancho para ella; el contenido manda si es más largo. */
+  @container (min-width: 620px) {
+    .hoja-reporte__interior {
+      min-height: 122cqw;
+    }
+  }
+
+  .hoja-reporte__membrete {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color-foreground);
+  }
+  .hoja-reporte__titulo {
+    margin-top: clamp(16px, 4cqw, 30px);
+    font-size: clamp(1.625rem, 5.6cqw, 3rem);
+    font-weight: 650;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  /* Timbre de tinta, como los de la cadena en la landing. */
+  .hoja-reporte__timbre {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border: 2px solid currentColor;
+    border-radius: 5px;
+    color: var(--color-critical);
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    rotate: -2deg;
+  }
+
+  .hoja-reporte__cifras {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 6px;
+  }
+  .hoja-reporte__cifra {
+    min-width: 0;
+    padding-inline: clamp(8px, 3cqw, 24px);
+    border-left: 1px solid var(--color-renglon);
+  }
+  .hoja-reporte__cifra:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .hoja-reporte__numero {
+    display: block;
+    margin-top: 2px;
+    font-size: clamp(1.75rem, 8.2cqw, 4.25rem);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Sin dato todavía: una raya a pluma, no un bloque. */
+  .hoja-reporte__numero[data-vacio='true'] {
+    font-family: var(--font-pluma);
+    font-weight: 300;
+    color: var(--color-pluma);
+  }
+
+  /* Encabezado de sección de la hoja, con su filete. */
+  .hoja-reporte__seccion {
+    margin-top: clamp(22px, 5cqw, 40px);
+  }
+  .hoja-reporte__rotulo {
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-foreground);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 20px;
+  }
+
+  /* Renglones vacíos: lo que todavía no se ha escrito. */
+  .hoja-reporte__renglones {
+    min-height: 120px;
+    background-image: linear-gradient(to bottom, transparent calc(100% - 1px), var(--color-renglon) calc(100% - 1px));
+    background-size: 100% 30px;
+  }
+
+  .hoja-reporte__pluma {
+    font-family: var(--font-pluma);
+    font-weight: 300;
+    font-size: clamp(1.125rem, 3.4cqw, 1.375rem);
+    line-height: 1.2;
+    color: var(--color-pluma);
+  }
+
+  .hoja-reporte__extremos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+    margin-top: 6px;
+  }
+  @container (min-width: 460px) {
+    .hoja-reporte__extremos {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* Fecha y nivel comparten renglón si caben; si no, el nivel baja sin pisar la fecha. */
+  .hoja-reporte__alerta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+    padding-block: 10px;
+    border-bottom: 1px solid var(--color-renglon);
+  }
+  .hoja-reporte__alerta > p {
+    flex-basis: 100%;
+  }
+  @container (min-width: 620px) {
+    .hoja-reporte__alerta {
+      display: grid;
+      grid-template-columns: 11.5rem minmax(0, 1fr) auto;
+    }
+    .hoja-reporte__alerta > p {
+      grid-row: 1;
+      grid-column: 2;
+    }
+  }
+
+  .hoja-reporte__pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-top: auto;
+    padding-top: clamp(20px, 4cqw, 32px);
+  }
+}
+
+/*
+ * La pantalla de Reportes: a la izquierda la constancia y su gesto, a la derecha la hoja, que es la
+ * protagonista. En pantallas angostas, una debajo de la otra.
+ */
+@layer components {
+  .reportes {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: clamp(24px, 4vw, 36px);
+  }
+  .reportes__accion {
+    min-width: 0;
+  }
+  .reportes__titulo {
+    display: block;
+    font-size: clamp(2.25rem, 1.1rem + 2.4vw, 3.75rem);
+  }
+  .reportes__otros {
+    max-width: 30rem;
+    margin-top: 22px;
+    padding-top: 4px;
+    border-top: 1px solid var(--color-border);
+  }
+  .reportes__hoja {
+    width: 100%;
+    max-width: 1040px;
+    min-width: 0;
+    justify-self: center;
+  }
+  @media (min-width: 1024px) {
+    .reportes {
+      display: grid;
+      grid-template-columns: minmax(340px, 0.75fr) minmax(0, 1fr);
+      align-items: start;
+      gap: clamp(32px, 4vw, 72px);
+    }
+    .reportes__accion {
+      position: sticky;
+      top: calc(var(--marco-arriba, 16px) + var(--capsula-alto, 52px) + 24px);
+    }
+  }
+
+  /* El botón muestra su avance con una capa que solo se escala: preparar la hoja, luego el PDF. */
+  .constancia-boton__avance {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transform: scaleX(0);
+    transform-origin: left center;
+    background: rgb(255 255 255 / 0.24);
+    transition: transform 900ms var(--ease-out-soft);
+  }
+  .constancia-boton__avance[data-fase='preparando'] {
+    transform: scaleX(0.5);
+  }
+  .constancia-boton__avance[data-fase='descargando'] {
+    transform: scaleX(0.9);
+  }
+
+  /* El resultado: la misma pieza, ahora cápsula negra con lo que pasó. */
+  .constancia-resultado {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 30rem;
+    min-height: 56px;
+    padding: 8px 8px 8px 12px;
+    background: var(--color-capsula);
+    box-shadow: var(--shadow-capsula);
+    color: var(--color-foreground);
+  }
+  [data-theme='dark'] .constancia-resultado {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.1),
+      var(--shadow-capsula);
+  }
+  .constancia-resultado__marca {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--color-campo-rango);
+    color: var(--color-campo-rango-tinta);
+  }
+}

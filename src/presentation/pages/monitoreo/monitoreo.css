@@ -1,0 +1,718 @@
+/*
+ * Inicio. Arriba, una frase que responde «¿están bien mis medicamentos?». Debajo, cada equipo es un
+ * campo de color enorme, como la noche de la landing: el nombre, la cifra y una palabra; lo demás,
+ * tras «Ver más». Las medidas internas siguen al ancho del propio campo (`cqi`), no al de la
+ * ventana. Sin blur ni vidrio; lo que se mueve anima `transform` y `opacity`.
+ */
+@layer components {
+  .monitoreo {
+    container: monitoreo / inline-size;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    gap: clamp(28px, 4.6vw, 56px);
+  }
+
+  /* ── La frase ── */
+  .veredicto {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: end;
+    gap: 20px 40px;
+  }
+  @container monitoreo (min-width: 900px) {
+    .veredicto {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+  .veredicto__vivo {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+  .veredicto__vivo--reconectando {
+    color: var(--color-honey-700);
+  }
+  .veredicto__punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .veredicto__frase {
+    margin-top: 8px;
+    max-width: 17ch;
+    font-size: clamp(40px, 6.4cqi, 96px);
+    line-height: 0.98;
+    font-weight: 650;
+    letter-spacing: -0.045em;
+    color: var(--color-foreground);
+    text-wrap: balance;
+  }
+  .veredicto__frase:focus {
+    outline: none;
+  }
+  .veredicto[data-nivel='critico'] .veredicto__frase {
+    color: var(--color-critical);
+  }
+  .veredicto[data-nivel='espera'] .veredicto__frase {
+    color: var(--color-muted);
+  }
+  /* Cambia la frase, no el bloque: la nueva se funde en su sitio. */
+  .veredicto__texto {
+    display: block;
+    animation: veredicto-entra 0.24s var(--ease-out-soft) both;
+  }
+  @keyframes veredicto-entra {
+    from {
+      opacity: 0;
+      transform: translateY(0.12em);
+    }
+  }
+  .veredicto__detalle {
+    max-width: 54ch;
+    margin-top: 14px;
+    font-size: clamp(17px, 1.6cqi, 21px);
+    line-height: 1.42;
+    color: var(--color-muted);
+    text-wrap: pretty;
+  }
+  .veredicto__fuerte {
+    font-weight: 620;
+    color: var(--color-foreground);
+  }
+  .veredicto__otros {
+    display: block;
+    margin-top: 6px;
+    font-size: 15px;
+    line-height: 21px;
+  }
+  .veredicto__lado {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .veredicto__lado:empty {
+    display: none;
+  }
+
+  /* ── La llamada a Alertas: una cápsula negra, como la navegación ── */
+  .llamada-alertas.capsula {
+    display: inline-flex;
+    height: auto;
+    min-height: 56px;
+    max-width: 100%;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px 10px 18px;
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  [data-theme='dark'] .llamada-alertas.capsula {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14), var(--shadow-capsula);
+  }
+  .llamada-alertas:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 3px;
+  }
+  .llamada-alertas__punto {
+    width: 10px;
+    height: 10px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--color-campo-preventivo);
+  }
+  .llamada-alertas[data-critica] .llamada-alertas__punto {
+    background: #ff4d3f;
+  }
+  @container monitoreo (max-width: 899px) {
+    .llamada-alertas.capsula {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .llamada-alertas.capsula > :nth-child(2) {
+      flex: 1;
+    }
+  }
+  .monitoreo__mas {
+    border-top: 1px solid var(--color-border);
+    padding-top: 6px;
+  }
+  .monitoreo__mas .monitoreo__columnas {
+    padding-block: 12px 4px;
+  }
+  .monitoreo__subtitulo {
+    font-size: clamp(22px, 3cqi, 30px);
+    line-height: 1.1;
+    font-weight: 620;
+    letter-spacing: -0.03em;
+    color: var(--color-foreground);
+  }
+  .monitoreo__columnas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(36px, 5cqi, 64px);
+    align-items: start;
+  }
+  @container monitoreo (min-width: 860px) {
+    .monitoreo__columnas[data-dos] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .monitoreo__bloque {
+    min-width: 0;
+  }
+  .monitoreo__error-linea {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding-block: 10px;
+    border-block: 1px solid var(--color-border);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-foreground);
+  }
+
+  /* ── Los campos ── */
+  .campos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  @container monitoreo (min-width: 860px) {
+    .campos[data-varios] {
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+    }
+  }
+  .campo.panel-equipo {
+    transition: none;
+  }
+  .campo {
+    container-type: inline-size;
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px 20px 46px;
+    border-radius: 28px;
+    /* Casi toda la pantalla que queda entre las cápsulas, después de la frase. */
+    min-height: max(
+      380px,
+      calc(
+        100svh - 2 * var(--marco-margen) - var(--capsula-alto) - var(--nav-inferior-alto) - var(--marco-extra, 0px) -
+          env(safe-area-inset-bottom) - 250px
+      )
+    );
+  }
+  /* En el teléfono el color llega de borde a borde y las cápsulas flotan encima, como en la landing. */
+  @media (max-width: 639px) {
+    .campos {
+      margin-inline: -16px;
+      gap: 0;
+    }
+    .campo {
+      border-radius: 0;
+    }
+    .campos > :first-child {
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+    }
+    .campos > :last-child {
+      border-bottom-left-radius: 28px;
+      border-bottom-right-radius: 28px;
+    }
+  }
+  @media (min-width: 640px) {
+    .campo {
+      padding: 26px 28px 50px;
+      min-height: clamp(400px, 56svh, 640px);
+    }
+  }
+  @media (min-width: 1024px) {
+    .campo {
+      min-height: clamp(420px, calc(100svh - 380px), 680px);
+    }
+  }
+  /* Teléfono en horizontal: el campo no puede llenar lo que no hay. */
+  @media (max-height: 480px) {
+    .campo {
+      min-height: 300px;
+      padding-top: 16px;
+    }
+  }
+  .campo[data-elegible] {
+    cursor: pointer;
+  }
+  .campo :focus-visible {
+    outline-color: currentColor;
+  }
+  .campo__elegido {
+    position: absolute;
+    top: 0;
+    left: 28px;
+    z-index: 3;
+    width: 52px;
+    height: 6px;
+    border-radius: 0 0 4px 4px;
+    background: var(--color-capsula);
+  }
+  [data-tono='frio'] .campo__elegido,
+  [data-tono='critico'] .campo__elegido,
+  [data-theme='dark'] [data-tono='sinDatos'] .campo__elegido {
+    background: #ffffff;
+  }
+  /* El vial queda detrás de la cifra y arriba en el teléfono; a un lado en lo ancho. */
+  .campo__vial {
+    position: absolute;
+    top: 60px;
+    right: -14%;
+    z-index: 1;
+    width: 80%;
+    height: 42%;
+    pointer-events: none;
+  }
+  @media (max-height: 700px) and (max-width: 639px) {
+    .campo__vial {
+      top: 76px;
+      right: -18%;
+      height: 34%;
+    }
+  }
+  .campo__cabeza {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 4px 20px;
+  }
+  .campo__boton-nombre {
+    display: block;
+    min-height: 44px;
+    max-width: 100%;
+    cursor: pointer;
+    border-radius: 6px;
+    text-align: left;
+  }
+  @media (hover: hover) {
+    .campo[data-elegible]:hover .campo__nombre {
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
+  }
+  .campo__nombre {
+    display: block;
+    font-size: clamp(18px, 4.6cqi, 30px);
+    line-height: 1.15;
+    font-weight: 620;
+    letter-spacing: -0.025em;
+    overflow-wrap: anywhere;
+  }
+  .campo__codigo {
+    display: block;
+    margin-top: 2px;
+    font-size: 12.5px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: 0;
+    opacity: var(--campo-suave);
+  }
+  .campo__frescura {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+    padding-top: 6px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    opacity: var(--campo-suave);
+  }
+  .campo__cuerpo {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+    padding-top: 24px;
+  }
+  .campo__cifra {
+    --cifra-base: clamp(104px, min(41cqi, 30svh), 320px);
+    display: flex;
+    align-items: flex-start;
+    font-size: calc(var(--cifra-base) * min(1, calc(3.2 / max(3, var(--cifra-largo, 3)))));
+    line-height: 0.86;
+    font-weight: 620;
+    letter-spacing: -0.05em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* La cifra de una lectura vieja pierde fuerza; su unidad se sigue leyendo. */
+  .campo__cifra--vieja .num-raiz {
+    opacity: 0.62;
+  }
+  .campo__unidad {
+    margin-top: 0.06em;
+    margin-left: 0.08em;
+    font-size: 0.2em;
+    line-height: 1;
+    font-weight: 560;
+    letter-spacing: -0.01em;
+    opacity: var(--campo-suave);
+  }
+  .campo__palabra {
+    margin-top: 14px;
+    font-size: clamp(24px, 7cqi, 40px);
+    line-height: 1.05;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+  }
+  .campo__palabra-previa {
+    margin-top: 8px;
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 620;
+    letter-spacing: -0.01em;
+  }
+  .campo__mensaje {
+    max-width: 22ch;
+    font-size: clamp(26px, 7.6cqi, 44px);
+    line-height: 1.08;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+  .campo__explicacion {
+    max-width: 44ch;
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 22px;
+    opacity: var(--campo-suave);
+  }
+  /* Lo que cambia la decisión de ahora: una línea discreta, sin chips. */
+  .campo__lineas {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 12px;
+    max-width: 58ch;
+    font-size: 15px;
+    line-height: 21px;
+    font-weight: 560;
+  }
+  .campo__linea {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 8px;
+  }
+  .campo__linea > svg {
+    align-self: flex-start;
+  }
+  .campo__linea-etiqueta {
+    font-weight: 500;
+    opacity: var(--campo-suave);
+  }
+  .campo__mas {
+    margin-top: 10px;
+  }
+  .campo__datos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 18px;
+    padding-top: 12px;
+    border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  }
+  .campo__notas {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 62ch;
+    margin-top: 12px;
+    font-size: 13.5px;
+    line-height: 19px;
+  }
+  .campo__dato {
+    min-width: 0;
+  }
+  /* Una puerta abierta se explica en una línea entera: es lo primero que hay que atender. */
+  .campo__dato--ancho {
+    grid-column: 1 / -1;
+  }
+  .campo__dato dt {
+    font-size: 12.5px;
+    line-height: 16px;
+    font-weight: 500;
+    opacity: var(--campo-suave);
+  }
+  .campo__dato dd {
+    margin-top: 1px;
+    font-size: clamp(14.5px, 2.2cqi, 18px);
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    overflow-wrap: anywhere;
+  }
+  .campo__dato-unidad {
+    font-size: 12.5px;
+    font-weight: 500;
+    opacity: var(--campo-suave);
+  }
+  .campo__dato-extra {
+    margin-left: 5px;
+    font-weight: 500;
+    opacity: var(--campo-suave);
+  }
+  .campo__dato-nota {
+    display: block;
+    font-size: 12.5px;
+    line-height: 17px;
+    font-weight: 500;
+    opacity: var(--campo-suave);
+  }
+  .campo__dato-nota--fuerte {
+    font-weight: 650;
+    opacity: 1;
+  }
+
+  /* Lo ancho: cifra a la izquierda, vial a la derecha, datos en una línea. */
+  @container (min-width: 500px) {
+    .campo__cifra {
+      --cifra-base: clamp(120px, min(35cqi, 40svh), 320px);
+    }
+    .campo__vial {
+      top: 11%;
+      right: -3%;
+      width: 50%;
+      height: 74%;
+    }
+    .campo__palabra {
+      max-width: 60cqi;
+    }
+    .campo__lineas,
+    .campo__mas {
+      max-width: 60cqi;
+    }
+    .campo__datos {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @media (max-height: 480px) {
+    .veredicto__frase {
+      max-width: 24ch;
+      font-size: clamp(28px, 4.6vw, 44px);
+    }
+    .veredicto__detalle {
+      margin-top: 8px;
+      font-size: 16px;
+    }
+    .llamada-alertas.capsula {
+      min-height: 48px;
+    }
+    .campo__cuerpo {
+      padding-top: 10px;
+    }
+    .campo__datos {
+      margin-top: 10px;
+      padding-top: 8px;
+    }
+    .campo__palabra {
+      margin-top: 8px;
+    }
+  }
+
+  /* Reposo: el campo mientras llega el primer dato. Solo cambia de opacidad. */
+  .campo--reposo .campo__reposo-linea,
+  .campo--reposo .campo__reposo-cifra {
+    display: block;
+    border-radius: 10px;
+    background: currentColor;
+    opacity: 0.12;
+    animation: campo-reposo 1.6s ease-in-out infinite alternate;
+  }
+  .campo__reposo-linea {
+    height: 18px;
+  }
+  .campo__reposo-cifra {
+    width: min(62%, 420px);
+    height: clamp(96px, 30cqi, 240px);
+    border-radius: 18px;
+  }
+  @keyframes campo-reposo {
+    from { opacity: 0.08; }
+    to { opacity: 0.16; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .campo--reposo .campo__reposo-linea,
+    .campo--reposo .campo__reposo-cifra {
+      animation: none;
+    }
+  }
+
+  /* ── La línea del día ── */
+  .linea-dia {
+    min-width: 0;
+  }
+  .linea-dia__cabeza {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px 24px;
+  }
+  .linea-dia__titulo {
+    font-size: clamp(28px, 4cqi, 46px);
+    line-height: 1.04;
+    font-weight: 640;
+    letter-spacing: -0.04em;
+    color: var(--color-foreground);
+    text-wrap: balance;
+  }
+  .linea-dia__sub {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--color-muted);
+  }
+  .linea-dia__controles {
+    display: flex;
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  /* En oscuro, el segmento elegido se distingue del carril sobre el fondo de la página. */
+  [data-theme='dark'] .linea-dia__controles {
+    --color-surface-raised: #2f3d5a;
+  }
+  .linea-dia__equipos {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .linea-dia__equipos::-webkit-scrollbar {
+    display: none;
+  }
+  .linea-dia__mas {
+    margin-top: 8px;
+  }
+  .linea-dia__cifras {
+    padding-block: 6px 4px;
+  }
+  .linea-dia__grafica {
+    margin-top: clamp(14px, 2.4cqi, 24px);
+    margin-inline: -4px;
+  }
+  .tira-dia {
+    display: flex;
+    gap: 2px;
+    height: 6px;
+    margin: 6px 14px 0 32px;
+  }
+  .tira-dia > span {
+    flex: 1;
+    min-width: 0;
+    border-radius: 1.5px;
+    background: var(--color-cream-300);
+  }
+  .tira-dia > span[data-estado='ok'] { background: var(--color-instrumento); }
+  .tira-dia > span[data-estado='aviso'] { background: var(--color-honey-600); }
+  .tira-dia > span[data-estado='critico'] { background: var(--color-critical-solid); }
+
+  /* ── Renglones: últimas lecturas e incidentes, sin cajas ── */
+  .renglones {
+    margin-top: 12px;
+    border-top: 1px solid var(--color-border-strong);
+  }
+  ol.renglones {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    column-gap: 14px;
+  }
+  .renglon {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: baseline;
+    padding-block: 10px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .renglon__hora {
+    min-width: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--color-muted);
+  }
+  .renglon__cifra {
+    font-size: 18px;
+    line-height: 22px;
+    font-weight: 620;
+    letter-spacing: -0.02em;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .renglon__estado {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    color: var(--color-foreground);
+  }
+  .renglon__estado::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    flex: none;
+    translate: 0 -1px;
+    border-radius: 50%;
+    background: var(--color-faint);
+  }
+  .renglon__estado[data-nivel='normal']::before { background: var(--color-instrumento); }
+  .renglon__estado[data-nivel='riesgo_preventivo']::before { background: var(--color-honey-600); }
+  .renglon__estado[data-nivel='excursion_critica']::before { background: var(--color-critical-solid); }
+  .incidente {
+    padding-block: 14px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .simulador {
+    border-top: 1px solid var(--color-border);
+  }
+  .monitoreo__columnas + .simulador,
+  .linea-dia + .simulador {
+    margin-top: -12px;
+  }
+}
+
+/*
+ * «Ver más» dentro del campo de color: hereda la tinta del campo y queda pegado a su texto. Sin
+ * capa: tiene que ganarle a las utilidades con que la pieza compartida pinta su botón.
+ */
+.campo__mas > div > button {
+  width: auto;
+  min-height: 44px;
+  justify-content: flex-start;
+  gap: 6px;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: var(--campo-suave);
+}
+.campo__mas > div > button:hover {
+  color: inherit;
+  opacity: 1;
+}

@@ -74,8 +74,8 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
     estado_operativo: 'OPERATIVO',
     ultimo_reporte_en: new Date().toISOString(),
     registrado_en: new Date().toISOString(),
-    intervalo_reporte_segundos: 30,
-    umbral_sin_datos_segundos: 90,
+    intervalo_reporte_segundos: 10,
+    umbral_sin_datos_segundos: 30,
     umbral_puerta_abierta_segundos: 120,
     sensores: [
       { modelo: 'DS18B20', estado: 'ok', campo_telemetria: 'temperatura_interna' },
@@ -104,8 +104,8 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
     estado_operativo: 'SIN_DATOS',
     ultimo_reporte_en: new Date(Date.now() - 120_000).toISOString(),
     registrado_en: new Date(Date.now() - 7 * DIA_MS).toISOString(),
-    intervalo_reporte_segundos: 30,
-    umbral_sin_datos_segundos: 90,
+    intervalo_reporte_segundos: 10,
+    umbral_sin_datos_segundos: 30,
     umbral_puerta_abierta_segundos: 120,
     sensores: [
       { modelo: 'DS18B20', estado: 'ok', campo_telemetria: 'temperatura_interna' },
@@ -279,7 +279,7 @@ function generarEstadoInicial(): EstadoDemo {
   // Las alertas antiguas ya fueron atendidas (HU-23: PENDIENTE -> RECONOCIDA
   // -> ATENDIDA); quedan pendientes las recientes (incluida la excursión
   // crítica de ayer, para que el demo tenga qué mostrar).
-  const pendientesDesde = ahora - 30 * 60 * 60 * 1000
+  const pendientesDesde = ahora - 16 * 24 * 60 * 60 * 1000
   for (const alerta of alertas) {
     if (new Date(alerta.created_at ?? 0).getTime() < pendientesDesde) {
       alerta.revisada = true
@@ -573,16 +573,16 @@ export const METRICAS_IA_DEMO = {
     n_samples_test: 4032,
     classes: ['excursion_critica', 'normal', 'riesgo_preventivo'],
     accuracy: 0.9667658730158731,
-    f1_weighted: 0.9671300273539583,
+    f1_weighted: 0.9667479948131174,
     classification_report: {
-      normal: { precision: 0.9812, recall: 0.9801, 'f1-score': 0.9806, support: 2016 },
-      riesgo_preventivo: { precision: 0.9187, recall: 0.9169, 'f1-score': 0.9178, support: 1008 },
-      excursion_critica: { precision: 0.9744, recall: 0.9719, 'f1-score': 0.9731, support: 1008 },
+      normal: { precision: 0.9723, recall: 0.9762, 'f1-score': 0.9743, support: 2016 },
+      riesgo_preventivo: { precision: 0.9561, recall: 0.9504, 'f1-score': 0.9532, support: 1008 },
+      excursion_critica: { precision: 0.9662, recall: 0.9643, 'f1-score': 0.9652, support: 1008 },
     },
     confusion_matrix: [
-      [980, 22, 6],
-      [18, 1976, 22],
-      [8, 25, 975],
+      [972, 22, 14],
+      [18, 1968, 30],
+      [16, 34, 958],
     ],
     cross_validation: {
       folds: 5,

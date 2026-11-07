@@ -1,0 +1,103 @@
+/*
+ * Lo que comparten Monitoreo y la Guía: los campos de color y la regla de su borde inferior.
+ * El color significa temperatura y se lee de lejos, como en la noche de la landing.
+ */
+@layer components {
+  .capas-color {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .capas-color__capa {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.45s var(--ease-out-soft);
+  }
+  .capas-color__capa[data-activa] {
+    opacity: 1;
+  }
+  .capas-color__capa[data-capa='rango'] { background: var(--color-campo-rango); }
+  .capas-color__capa[data-capa='frio'] { background: var(--color-campo-frio); }
+  /* En oscuro el azul del token baja de 4.5:1 con su tinta blanca; este tono lo cumple y se sigue viendo. */
+  [data-theme='dark'] .capas-color__capa[data-capa='frio'] { background: #1f66ff; }
+  .capas-color__capa[data-capa='cerca'] { background: var(--color-campo-cerca); }
+  .capas-color__capa[data-capa='preventivo'] { background: var(--color-campo-preventivo); }
+  .capas-color__capa[data-capa='critico'] { background: var(--color-campo-critico); }
+  .capas-color__capa[data-capa='sinDatos'] { background: var(--color-campo-sin-datos); }
+
+  /* La tinta de cada color. `--campo-suave` atenúa lo secundario solo donde sobra contraste. */
+  [data-tono] {
+    --campo-tinta: var(--color-campo-rango-tinta);
+    --campo-suave: 0.76;
+    color: var(--campo-tinta);
+  }
+  /* Doble atributo: gana a `.panel-equipo` sea cual sea el orden en que se cargó cada hoja. */
+  [data-tono][data-tono='frio'] {
+    --campo-tinta: var(--color-campo-frio-tinta);
+    --campo-suave: 1;
+  }
+  [data-tono][data-tono='cerca'] { --campo-tinta: var(--color-campo-cerca-tinta); }
+  [data-tono][data-tono='preventivo'] { --campo-tinta: var(--color-campo-preventivo-tinta); }
+  [data-tono][data-tono='critico'] {
+    --campo-tinta: var(--color-campo-critico-tinta);
+    --campo-suave: 1;
+  }
+  [data-tono][data-tono='sinDatos'] { --campo-tinta: var(--color-campo-sin-datos-tinta); }
+
+  .banda-campo {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 2;
+    height: 34px;
+    overflow: hidden;
+  }
+  .banda-campo__pista,
+  .banda-campo__zona {
+    position: absolute;
+    bottom: 0;
+    background: currentColor;
+  }
+  .banda-campo__pista {
+    left: 0;
+    right: 0;
+    height: 4px;
+    opacity: 0.22;
+  }
+  .banda-campo__zona {
+    left: 20%;
+    right: 20%;
+    height: 4px;
+    opacity: 0.55;
+  }
+  .banda-campo__cota {
+    position: absolute;
+    bottom: 8px;
+    translate: -50% 0;
+    font-size: 11.5px;
+    line-height: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    opacity: var(--campo-suave, 0.76);
+  }
+  .banda-campo__recorrido {
+    position: absolute;
+    inset: 0;
+    transition: transform 0.5s var(--ease-out-soft);
+  }
+  .banda-campo__marca {
+    position: absolute;
+    left: -2px;
+    bottom: 0;
+    width: 4px;
+    height: 22px;
+    border-radius: 2px 2px 0 0;
+    background: currentColor;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .capas-color__capa,
+    .banda-campo__recorrido {
+      transition: none;
+    }
+  }
+}

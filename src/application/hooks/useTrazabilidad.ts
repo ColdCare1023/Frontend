@@ -13,6 +13,7 @@ import { rutaApi } from '@/lib/rutaApi'
 export function useTrazabilidad() {
   const [registros, setRegistros] = useState<RegistroTrazabilidad[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
   const [verificacion, setVerificacion] = useState<VerificacionIntegridad | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [estadoCadena, setEstadoCadena] = useState<EstadoCadena | null>(null)
@@ -24,6 +25,9 @@ export function useTrazabilidad() {
       if (tipoEvento) params.tipo_evento = tipoEvento
       const { data } = await apiClient.get<RegistroTrazabilidad[]>('/api/trazabilidad', { params })
       setRegistros(data)
+      setErrorCarga(false)
+    } catch {
+      setErrorCarga(true)
     } finally {
       setCargando(false)
     }
@@ -39,7 +43,8 @@ export function useTrazabilidad() {
   }, [])
 
   useEffect(() => {
-    void consultarEstadoCadena()
+    // El estado es un dato de apoyo: si no llega, la lista ya avisa de su propio error.
+    consultarEstadoCadena().catch(() => undefined)
   }, [consultarEstadoCadena])
 
   const verificarIntegridad = useCallback(async () => {
@@ -101,6 +106,7 @@ export function useTrazabilidad() {
   return {
     registros,
     cargando,
+    errorCarga,
     consultar,
     verificacion,
     verificando,
