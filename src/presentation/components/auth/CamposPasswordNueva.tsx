@@ -1,10 +1,8 @@
 import { useState, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Eye, EyeOff, KeyRound } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
 import { Input, Label } from '../ui/input'
-import { CAMPO_ACCESO } from './clasesAcceso'
-import { BotonVerClave } from './PiezasAcceso'
 
 /**
  * FE-004: contraseña nueva + confirmación con la política del backend.
@@ -16,21 +14,18 @@ export function CamposPasswordNueva({
   onPassword,
   onConfirmacion,
   passwordRef,
-  errorId,
 }: {
   password: string
   confirmacion: string
   onPassword: (valor: string) => void
   onConfirmacion: (valor: string) => void
   passwordRef?: RefObject<HTMLInputElement | null>
-  /** Con un error de la contraseña nueva: id del aviso que lo explica. */
-  errorId?: string
 }) {
   const { t } = useTranslation()
   const [visible, setVisible] = useState(false)
   return (
     <>
-      <div>
+      <div className="space-y-1.5">
         <Label htmlFor="nueva-password">{t('restablecerContrasena.passwordNueva')}</Label>
         <div className="relative">
           <Input
@@ -38,33 +33,37 @@ export function CamposPasswordNueva({
             id="nueva-password"
             type={visible ? 'text' : 'password'}
             autoComplete="new-password"
-            className={cn(CAMPO_ACCESO, 'pr-13 sm:pr-13')}
+            className="pr-12"
             value={password}
             onChange={(e) => onPassword(e.target.value)}
-            aria-invalid={Boolean(errorId)}
-            aria-describedby={errorId ? `requisitos-password ${errorId}` : 'requisitos-password'}
+            aria-describedby="requisitos-password"
             required
           />
-          <BotonVerClave visible={visible} onAlternar={() => setVisible((v) => !v)} />
+          <button
+            type="button"
+            className="absolute right-0.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-cream-100 focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
+            aria-label={t(visible ? 'login.ocultarPassword' : 'login.mostrarPassword')}
+            onClick={() => setVisible((v) => !v)}
+          >
+            {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
         </div>
-        <p id="requisitos-password" className="mt-1.5 text-[13px] leading-5 text-faint">
-          {t('restablecerContrasena.requisitos')}
-        </p>
       </div>
-      <div>
+      <div className="space-y-1.5">
         <Label htmlFor="confirmar-password">{t('restablecerContrasena.passwordConfirmacion')}</Label>
         <Input
           id="confirmar-password"
           type={visible ? 'text' : 'password'}
           autoComplete="new-password"
-          className={CAMPO_ACCESO}
           value={confirmacion}
           onChange={(e) => onConfirmacion(e.target.value)}
-          aria-invalid={Boolean(errorId)}
-          aria-describedby={errorId}
           required
         />
       </div>
+      <p id="requisitos-password" className="flex items-center gap-1.5 text-xs text-muted">
+        <KeyRound className="size-3.5 shrink-0 text-faint" aria-hidden />
+        <span>{t('restablecerContrasena.requisitos')}</span>
+      </p>
     </>
   )
 }

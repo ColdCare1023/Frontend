@@ -34,7 +34,6 @@ export default defineConfig(({ command, mode }) => {
   const backend = loadEnv(mode, __dirname, '').COLDCARE_BACKEND_URL || 'http://localhost:8000'
 
   return {
-    optimizeDeps: { include: ['three'] },
     // La SPA se publica junto a la landing bajo /app/ en Vercel.
     base: process.env.VITE_APP_BASE ?? '/',
     // Los builds y las pruebas demo deben incluir roles de acceso rápido aunque
@@ -45,23 +44,6 @@ export default defineConfig(({ command, mode }) => {
         ? { 'import.meta.env.VITE_MODO_DEMO': JSON.stringify('true') }
         : undefined,
     plugins: [react(), tailwindcss()],
-    build: {
-      // ECharts y three superan el aviso por defecto, pero solo se piden cuando hacen falta.
-      chunkSizeWarningLimit: 620,
-      rollupOptions: {
-        output: {
-          // Cada motor en su archivo: el nombre permite comprobar que el login no lo descarga
-          // (e2e/full-role-matrix.spec.ts) y React no cambia de hash en cada despliegue.
-          manualChunks(id) {
-            if (!id.includes('node_modules')) return undefined
-            if (/node_modules\/(echarts|zrender)\//.test(id)) return 'echarts'
-            if (/node_modules\/three\//.test(id)) return 'three'
-            if (/node_modules\/(react|react-dom|scheduler|react-router)\//.test(id)) return 'react-base'
-            return undefined
-          },
-        },
-      },
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

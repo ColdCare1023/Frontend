@@ -2,14 +2,14 @@ import { cn } from '@/lib/utils'
 import { Card } from './card'
 
 /**
- * Sección de pantalla con cabecera fija: icono, título, descripción y
- * acciones a la derecha; el contenido ocupa todo el ancho debajo. Sustituye a
+ * Sección de pantalla con cabecera fija: título, descripción y acciones a la
+ * derecha (el `icono` se acepta pero ya no se dibuja: era adorno); el contenido ocupa todo el ancho debajo. Sustituye a
  * los bloques sueltos para que cada pantalla se lea por secciones claras.
  */
 export function Panel({
   titulo,
   descripcion,
-  icono: Icono,
+  icono: _icono,
   acciones,
   nivel = 2,
   id,
@@ -19,7 +19,7 @@ export function Panel({
 }: {
   titulo: React.ReactNode
   descripcion?: React.ReactNode
-  icono?: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+  icono?: React.ComponentType<{ className?: string }>
   acciones?: React.ReactNode
   nivel?: 2 | 3
   id?: string
@@ -32,21 +32,18 @@ export function Panel({
   return (
     <Card className={cn('min-w-0', className)}>
       <section aria-labelledby={idTitulo} id={id}>
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 pt-4 sm:px-5 sm:pt-5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            {Icono && (
-              <Icono aria-hidden className="size-4 shrink-0 text-faint" />
-            )}
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-border px-4 py-3.5 sm:px-5">
+          <div className="flex min-w-0 items-start gap-3">
             <div className="min-w-0">
-              <Titulo id={idTitulo} className="text-base leading-6 font-semibold tracking-[-0.015em] text-foreground">
+              <Titulo id={idTitulo} className="text-[15px] leading-6 font-semibold tracking-tight text-foreground">
                 {titulo}
               </Titulo>
-              {descripcion && <p className="sr-only">{descripcion}</p>}
+              {descripcion && <p className="mt-0.5 text-[13px] leading-5 text-muted">{descripcion}</p>}
             </div>
           </div>
           {acciones && <div className="flex flex-wrap items-center gap-2">{acciones}</div>}
         </div>
-        <div className={cn('p-4 pt-3 sm:p-5 sm:pt-4', cuerpoClassName)}>{children}</div>
+        <div className={cn('p-4 sm:p-5', cuerpoClassName)}>{children}</div>
       </section>
     </Card>
   )

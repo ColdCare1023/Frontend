@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import { AlertCircle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { GOOGLE_HABILITADO, montarBotonGoogle } from '@/infrastructure/auth/googleIdentity'
-import { AvisoAcceso } from './PiezasAcceso'
 
 interface GoogleAuthSectionProps {
   /** Canjea el ID token en el backend y abre la sesión (authStore.loginConGoogle). */
@@ -60,13 +60,24 @@ export function GoogleAuthSection({ onIdToken, onExito, className }: GoogleAuthS
 
   return (
     <div className={cn('space-y-3.5', className)}>
-      <div className="flex items-center gap-3 text-[13px] text-faint">
-        <span aria-hidden className="h-px flex-1 bg-border" />
-        <span>{t('login.continuarCon')}</span>
-        <span aria-hidden className="h-px flex-1 bg-border" />
+      <div className="relative my-4 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-border" />
+        </div>
+        <span className="relative bg-surface px-3 text-[11px] font-medium uppercase tracking-wider text-muted backdrop-blur-xs">
+          {t('login.continuarCon')}
+        </span>
       </div>
 
-      {error && <AvisoAcceso tono="error">{error}</AvisoAcceso>}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-xl border border-clay-100 bg-clay-100/70 p-3 text-xs text-clay-700 animate-fade"
+        >
+          <AlertCircle className="size-4 shrink-0 text-clay-600" aria-hidden />
+          <span className="flex-1">{error}</span>
+        </div>
+      )}
 
       {/* Botón oficial renderizado por Google: su política de marca lo exige y
           el flujo de credenciales queda dentro de su iframe. */}

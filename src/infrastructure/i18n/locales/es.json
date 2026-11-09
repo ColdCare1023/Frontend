@@ -11,7 +11,7 @@
     "eslogan": "Protege cada dosis. En cada grado.",
     "descripcion": "Vigila tus equipos, recibe alertas a tiempo y conserva registros confiables para cada revisión.",
     "titulo": "Iniciar sesión",
-    "subtitulo": "Entra con tu correo y tu contraseña.",
+    "subtitulo": "Ingresa con tu cuenta autorizada.",
     "email": "Correo electrónico",
     "password": "Contraseña",
     "entrar": "Ingresar",
@@ -39,39 +39,32 @@
     "cuentasAdministrador": "¿No tienes cuenta? Pídela al administrador de tu farmacia.",
     "esloganLinea1": "Protege cada dosis.",
     "esloganLinea2": "En cada grado.",
-    "rangoReferencia": "Rango de referencia",
+    "rangoReferencia": "Rango térmico de referencia",
     "emailPlaceholder": "farmacia@ejemplo.com"
   },
   "nav": {
-    "dashboard": "Inicio",
+    "dashboard": "Monitoreo",
     "historial": "Historial",
     "alertas": "Alertas",
-    "trazabilidad": "Comprobar registros",
+    "trazabilidad": "Integridad de registros",
     "reportes": "Reportes",
     "auditoria": "Auditoría",
     "usuarios": "Usuarios",
-    "dispositivos": "Equipos",
+    "dispositivos": "Dispositivos",
     "cerrarSesion": "Cerrar sesión",
     "abrirMenu": "Abrir menú",
     "seccionOperacion": "Operación",
-    "seccionCumplimiento": "Revisión",
+    "seccionCumplimiento": "Registros y revisión",
     "seccionAdministracion": "Administración",
-    "metricasIA": "Clasificador",
-    "guia": "Ayuda",
+    "metricasIA": "Clasificador de riesgo",
+    "guia": "Guía de uso",
     "saltarAlContenido": "Saltar al contenido principal",
     "principal": "Navegación principal",
+    "principalMovil": "Navegación principal (menú móvil)",
     "contenidoPrincipal": "Contenido principal",
-    "menuUsuario": "Menú de usuario",
-    "mas": "Más",
-    "masPantallas": "Más pantallas",
-    "detalle": {
-      "trazabilidad": "Confirma que nadie cambió las lecturas guardadas.",
-      "metricasIA": "Cómo el modelo anticipa riesgos, y sus límites.",
-      "guia": "Qué hace cada pantalla y qué hacer ante una alerta.",
-      "auditoria": "Quién hizo qué y cuándo en el sistema.",
-      "usuarios": "Las cuentas de las personas y lo que puede abrir cada una.",
-      "dispositivos": "Los refrigeradores conectados y sus sensores."
-    }
+    "colapsarMenu": "Contraer menú",
+    "expandirMenu": "Expandir menú",
+    "menuUsuario": "Menú de usuario"
   },
   "roles": {
     "administrador": "Administrador",
@@ -107,28 +100,28 @@
     "sinInferencia": "Sin inferencia de IA para esta lectura"
   },
   "dashboard": {
-    "titulo": "Inicio",
+    "titulo": "Estado del refrigerador",
     "descripcion": "Temperatura, condiciones y alertas que requieren atención.",
     "tempInterna": "Temperatura del refrigerador",
     "tempAmbiental": "Temperatura ambiental",
-    "humedad": "Humedad",
+    "humedad": "Humedad relativa",
     "estadoActual": "Estado térmico",
-    "estadoRefrigerador": "Temperatura interna",
-    "ultimaTemperatura": "Última lectura",
-    "conexionEquipo": "Conexión",
+    "estadoRefrigerador": "Temperatura actual",
+    "ultimaTemperatura": "Última temperatura recibida",
+    "conexionEquipo": "Conexión del equipo",
     "rangoEsperadoCorto": "Rango esperado · 2–8 °C",
     "ejeAhora": "Ahora",
     "graficaExcursion": "Excursión confirmada",
     "graficaSinDatos": "Sin datos",
     "eventoGrafica": "Evento",
     "excursionEvento": "Temperatura fuera del rango",
-    "lecturaReciente": "Hace {{s}} s",
+    "lecturaReciente": "Lectura reciente · hace {{s}} s",
     "ultimaLecturaHora": "Última lectura",
     "actualizacionActiva": "En vivo",
     "equipo": "Equipo",
-    "actualizacionReconectando": "Reconectando…",
+    "actualizacionReconectando": "Reconectando al flujo de lecturas…",
     "fallaSensor": "No hay lectura de temperatura. Revisa el sensor.",
-    "sinLecturaDisponible": "Sin lectura",
+    "sinLecturaDisponible": "Sin lectura disponible para esta métrica.",
     "sinClasificacion": "Sin lectura de temperatura para calcular el riesgo.",
     "riesgoUltimaLectura": "Riesgo de la última lectura. Espera un dato nuevo para confirmar el estado actual.",
     "excursionConfirmada": "La temperatura salió del rango esperado de 2–8 °C.",
@@ -147,9 +140,9 @@
     "esperandoDatos": "Esperando lecturas del sensor…",
     "esperandoDetalle": "El tablero se actualizará automáticamente cuando llegue una nueva lectura del equipo.",
     "curvaTermica": "Cómo cambió la temperatura",
-    "lecturasRecientesTitulo": "Últimas lecturas",
+    "lecturasRecientesTitulo": "Lecturas recientes",
     "lecturasRecientesAyuda": "Últimos registros del periodo seleccionado.",
-    "ultimasLecturas": "{{n}} lecturas",
+    "ultimasLecturas": "últimas {{n}} lecturas",
     "rangoConservacion": "Rango 2–8 °C",
     "lecturaSobreEscala": "Lectura sobre la escala del indicador (0–10 °C). Valor real: {{temperatura}} °C.",
     "lecturaBajoEscala": "Lectura bajo la escala del indicador (0 °C). Valor real: {{temperatura}} °C.",
@@ -159,11 +152,19 @@
     "dispositivoOffline": "Sin conexión",
     "nodoSinConexionDesde": "Sin conexión desde las {{hora}}",
     "alertasActivas": "Alertas sin revisar",
+    "sinDatosRecientes": "Sin datos recientes",
+    "sinDatosRecientesDetalle": "No llegan lecturas nuevas: no se puede confirmar el estado actual del equipo.",
+    "alertasSinAtender_one": "{{count}} alerta sin atender",
+    "alertasSinAtender_other": "{{count}} alertas sin atender",
+    "alertasCriticas_one": "{{count}} excursión crítica",
+    "alertasCriticas_other": "{{count}} excursiones críticas",
+    "calibracionVencida": "Calibración vencida el {{fecha}}. Condición documental: registra una nueva calibración.",
+    "calibracionPorVencer": "La calibración vence el {{fecha}}.",
     "verAlertas": "Ver alertas",
     "resumenMinima": "Mínima",
     "resumenMaxima": "Máxima",
     "resumenPromedio": "Promedio",
-    "resumenFueraRango": "Fuera de rango",
+    "resumenFueraRango": "Lecturas fuera de rango · 2–8 °C",
     "graficaEtiqueta": "Gráfica de líneas: temperatura interna y ambiental de las últimas {{n}} lecturas, con el rango de conservación 2–8 °C marcado",
     "anuncioRiesgo": "{{nivel}}. Temperatura interna {{temperatura}} °C.",
     "anuncioRiesgoSinTemp": "{{nivel}}. Sin lectura de temperatura interna.",
@@ -176,7 +177,7 @@
     "ventana7d": "7 d",
     "variacionVsAnterior": "Frente a la lectura anterior",
     "errorHistorial": "No pudimos cargar las lecturas recientes.",
-    "estadoIoTTitulo": "Incidentes de equipos",
+    "estadoIoTTitulo": "Estado operativo de equipos",
     "estadoIoTDetalle": "Conexión, fallas de sensor y sincronización local. Este estado no se mezcla con el riesgo térmico.",
     "estadoSinDatos": "Sin datos ({{segundos}} s)",
     "alertaSilencio": "Sin reportes desde {{fecha}}. Se superó el umbral de {{segundos}} s.",
@@ -191,7 +192,7 @@
     "puertaSuperaUmbral": "Abierta más de {{segundos}} s. Revisa el cierre.",
     "umbralSilencio": "Avisar cuando no lleguen datos",
     "umbralPuerta": "Avisar por puerta abierta",
-    "demoTitulo": "Probar estados",
+    "demoTitulo": "Probar estados del dashboard",
     "demoAyuda": "Escenarios locales para revisar alertas y recuperación. No envían datos al equipo IoT.",
     "demoSinDatos": "Simular silencio del equipo",
     "demoBufferPendiente": "Simular lecturas en cola",
@@ -207,55 +208,13 @@
     "iaExperimentalDetalle": "Clase del modelo legado, entrenado con datos simulados: no abre alertas preventivas.",
     "sinClasificacionIa": "Sin clasificación IA",
     "sinClasificacionIaDetalle": "El estado Normal lo determina solo la regla de rango 2-8 °C; el modelo no clasificó esta lectura.",
-    "excursionNoVerificada": "Excursión crítica de origen no verificado: {{temperatura}} °C ({{fecha}}). Compruebe el refrigerador con el termómetro de respaldo.",
-    "enRangoVentana": "En rango",
-    "ambienteCorto": "Ambiente",
-    "anotacionMaxima": "Máxima {{valor}}° · {{hora}}",
-    "anotacionMinima": "Mínima {{valor}}° · {{hora}}",
-    "anotacionPuerta": "Puerta abierta {{duracion}} · {{hora}}",
-    "veredictoOk": "Todo en orden",
-    "veredictoOkUno": "{{equipo}} está dentro del rango de 2–8 °C.",
-    "veredictoOkVarios": "Tus {{n}} equipos están dentro del rango de 2–8 °C.",
-    "veredictoRevisa": "Revisa {{articulo}} {{equipo}}",
-    "veredictoOtros_one": "Y 1 equipo más necesita revisión.",
-    "veredictoOtros_other": "Y {{count}} equipos más necesitan revisión.",
-    "veredictoComprobando": "Comprobando tus equipos…",
-    "veredictoSinLecturas": "Aún no hay lecturas",
-    "veredictoError": "No pudimos comprobar tus equipos",
-    "veredictoErrorDetalle": "Vuelve a intentarlo en un momento.",
-    "causaCritico": "Está a {{temperatura}} °C, fuera de 2–8 °C. Comprueba que la puerta cierre y sigue el procedimiento de tu farmacia.",
-    "causaPreventivo": "Está a {{temperatura}} °C, cerca del límite de 2–8 °C. Comprueba que la puerta cierre y vuelve a mirar en unos minutos.",
-    "sinLecturaHace": "Sin lectura hace {{tiempo}}",
-    "sinLecturaNueva": "Sin lectura nueva",
-    "causaConexion": "Comprueba que tenga corriente y conexión.",
-    "causaSinReporte": "Todavía no envía lecturas.",
-    "causaSensor": "No llega la temperatura del sensor. Comprueba que esté bien conectado.",
-    "causaSuspendido": "El monitoreo está en pausa por un cambio de seguridad. Avisa al administrador.",
-    "causaSinRiesgo": "No se pudo calcular su estado. Míralo con el termómetro de respaldo.",
-    "causaPuerta": "La puerta sigue abierta. Comprueba que cierre bien.",
-    "ultimaLecturaFue": "Última lectura: {{nivel}}",
-    "codigoEquipo": "Código",
-    "verLecturasIncidentes": "Últimas lecturas y estado de los equipos",
-    "verCifrasPeriodo": "Ver mínima, máxima y promedio",
-    "lecturasPeriodo": "Lecturas",
-    "ventanaNombre1h": "última hora",
-    "ventanaNombre24h": "últimas 24 h",
-    "ventanaNombre7d": "últimos 7 días",
-    "periodoSinLecturas": "Sin lecturas en este periodo",
-    "periodoSalio_one": "Salió del rango 1 vez",
-    "periodoSalio_other": "Salió del rango {{count}} veces",
-    "periodoSinConfirmar": "Hubo lecturas fuera de 2–8 °C sin confirmar",
-    "periodoHastaUltima": "Dentro del rango hasta la última lectura",
-    "periodoConHuecos": "Dentro del rango, con tramos sin lecturas",
-    "periodoHoraBien": "En la última hora estuvo dentro del rango",
-    "periodoHoyBien": "Hoy estuvo dentro del rango todo el día",
-    "periodoSemanaBien": "Estos 7 días estuvo dentro del rango"
+    "excursionNoVerificada": "Excursión crítica de origen no verificado: {{temperatura}} °C ({{fecha}}). Compruebe el refrigerador con el termómetro de respaldo."
   },
   "demo": {
     "badge": "Demostración",
     "descripcionBadge": "Datos simulados: la aplicación funciona sin conexión al servidor",
     "accesoRapido": "Acceso de demostración",
-    "accesoDetalle": "Datos simulados",
+    "accesoDetalle": "Explora el sistema con datos simulados.",
     "entrandoComo": "Entrando como {{rol}}…",
     "roles": {
       "administrador": {
@@ -276,10 +235,10 @@
       }
     },
     "avisoTitulo": "Datos simulados",
-    "avisoDetalle": "Nada de esta pantalla viene de un refrigerador real."
+    "avisoDetalle": "Modo demostración: ninguna temperatura, alerta o verificación de esta pantalla corresponde a un refrigerador real."
   },
   "historial": {
-    "titulo": "Historial",
+    "titulo": "Historial de lecturas",
     "descripcion": "Busca temperaturas registradas por equipo, nivel de riesgo y periodo.",
     "filtros": "Filtros",
     "dispositivo": "Equipo",
@@ -293,9 +252,9 @@
     "aplicar": "Aplicar filtros",
     "limpiar": "Limpiar",
     "fecha": "Fecha y hora",
-    "tempInterna": "Interna",
-    "tempAmbiental": "Ambiente",
-    "humedad": "Humedad",
+    "tempInterna": "Temp. interna (°C)",
+    "tempAmbiental": "Temp. ambiente (°C)",
+    "humedad": "Humedad (%)",
     "puerta": "Puerta",
     "riesgo": "Riesgo",
     "sinResultados": "No hay lecturas para los filtros seleccionados.",
@@ -304,6 +263,15 @@
     "errorTabla": "No se muestran lecturas porque no pudimos cargar la información.",
     "rangoInvalido": "La fecha \"desde\" no puede ser posterior a la fecha \"hasta\".",
     "evidenciaModelo": "Modelo",
+    "sinDatosRango": "Sin datos registrados en el rango seleccionado",
+    "horizonteModelo": "Horizonte del modelo",
+    "esquemaCaracteristicas": "Versión de características",
+    "politicaOperativa": "Política operativa",
+    "politica": {
+      "experimental": "Experimental",
+      "aprobada": "Versión aprobada",
+      "sin_aprobacion_registrada": "Sin aprobación registrada"
+    },
     "verEvidencia": "Ver origen",
     "evidenciaTitulo": "Cómo se obtuvo este riesgo",
     "idLectura": "Código de lectura",
@@ -324,72 +292,7 @@
       "omitida": "Omitida",
       "fallida": "Fallida",
       "modelo_no_disponible": "Modelo no disponible"
-    },
-    "ayer": "Ayer",
-    "maxima": "Máxima",
-    "minima": "Mínima",
-    "fueraDeRango": "Fuera de rango",
-    "lecturas": "Lecturas",
-    "lecturasDia_one": "{{count}} lectura",
-    "lecturasDia_other": "{{count}} lecturas",
-    "fueraDeRangoDia_one": "{{count}} fuera de rango",
-    "fueraDeRangoDia_other": "{{count}} fuera de rango",
-    "periodo": "Periodo",
-    "atajos": {
-      "24h": "24 horas",
-      "hoy": "Hoy",
-      "ayer": "Ayer",
-      "7d": "7 días"
-    },
-    "periodos": {
-      "24h": "Últimas 24 horas",
-      "hoy": "Hoy",
-      "ayer": "Ayer",
-      "7d": "Últimos 7 días",
-      "personalizado": "En este periodo"
-    },
-    "frase": {
-      "dentro": "{{periodo}}: siempre dentro del rango",
-      "dentroConHuecos": "{{periodo}}: dentro del rango en todo lo registrado",
-      "fuera_one": "Salió del rango <n></n> vez, {{cuando}}",
-      "fuera_other": "Salió del rango <n></n> veces, la última {{cuando}}",
-      "enCurso": "Fuera del rango {{desde}}",
-      "sinLecturas": "{{periodo}}: sin lecturas",
-      "sinTemperatura": "{{periodo}}: hay lecturas, pero ninguna con temperatura",
-      "filtrado_one": "{{periodo}}: {{count}} lectura con nivel {{nivel}}",
-      "filtrado_other": "{{periodo}}: {{count}} lecturas con nivel {{nivel}}"
-    },
-    "nota": {
-      "parcial": "Solo se cargaron lecturas {{desde}}.",
-      "anteriores": "No se cargaron lecturas anteriores.",
-      "hueco": "Hubo {{duracion}} sin lecturas.",
-      "ultima": "La última llegó {{cuando}}.",
-      "salidasAntes_one": "Antes salió del rango {{count}} vez más.",
-      "salidasAntes_other": "Antes salió del rango {{count}} veces más."
-    },
-    "cuando": {
-      "hoy": "a las {{hora}}",
-      "ayer": "ayer a las {{hora}}",
-      "otro": "el {{fecha}} a las {{hora}}"
-    },
-    "desdeCuando": {
-      "hoy": "Desde las {{hora}}",
-      "ayer": "Desde ayer a las {{hora}}",
-      "otro": "Desde el {{fecha}} a las {{hora}}"
-    },
-    "porDia": "Día por día",
-    "diaDentro": "Siempre dentro del rango",
-    "diaFuera_one": "Salió del rango {{count}} vez",
-    "diaFuera_other": "Salió del rango {{count}} veces",
-    "diaEntre": "entre {{minima}} y {{maxima}} °C",
-    "diaSinTemperatura": "Sin temperatura registrada",
-    "salidasDelDia": "Salidas del rango · {{dia}}",
-    "salidaNombre": "Salida del rango",
-    "salidaPuerta": "puerta abierta",
-    "salidaTabla": "Lecturas de la salida de las {{hora}}",
-    "salidasMas_one": "Y {{count}} salida más: está en «Ver todas las lecturas».",
-    "salidasMas_other": "Y {{count}} salidas más: están en «Ver todas las lecturas».",
-    "verTodas": "Ver todas las lecturas"
+    }
   },
   "alertas": {
     "titulo": "Alertas",
@@ -450,6 +353,10 @@
     "filtroEstado": "Filtrar alertas por estado de seguimiento",
     "descripcionAccionPlaceholder": "Ej.: se reubicaron los viales y se ajustó el termostato a 5 °C",
     "descripcionAccionAyuda": "Describe qué se hizo para responder a la alerta. Quedará en el historial.",
+    "etiquetaDecision": "Decisión adoptada",
+    "decisionPlaceholder": "Ej.: inmovilizar el lote hasta evaluar su estabilidad",
+    "etiquetaJustificacion": "Justificación",
+    "justificacionPlaceholder": "Ej.: la temperatura superó 8 °C durante 40 minutos",
     "etiquetaAccion": "Descripción de la acción correctiva",
     "incidentesOperativos": "Incidentes operativos",
     "incidentesOperativosDetalle": "Sin datos del nodo y, durante una rotación de credencial por compromiso, monitoreo suspendido o excursiones de origen no verificado. No son las alertas térmicas registradas.",
@@ -485,48 +392,17 @@
       "reintentandoAyuda": "El proveedor de correo falló; el sistema reintenta ({{intentos}} intento(s)).",
       "no_entregadaAyuda": "Se agotaron los intentos: avise por otro medio.",
       "pendienteAyuda": "Aún no se intentó el envío."
-    },
-    "queHacer": "Qué hacer",
-    "detalleDe": "Aviso de {{equipo}}",
-    "porRevisar_one": "Tienes <n>{{count}}</n> alerta por revisar",
-    "porRevisar_other": "Tienes <n>{{count}}</n> alertas por revisar",
-    "porAtender_one": "Tienes <n>{{count}}</n> alerta por atender",
-    "porAtender_other": "Tienes <n>{{count}}</n> alertas por atender",
-    "pendientesConsulta_one": "Hay <n>{{count}}</n> alerta pendiente",
-    "pendientesConsulta_other": "Hay <n>{{count}}</n> alertas pendientes",
-    "todoRevisado": "Todo revisado",
-    "todoRevisadoDetalle": "Si algo sale de 2–8 °C, aparecerá aquí.",
-    "abrirAlerta": "Abrir alerta",
-    "hace": "hace {{tiempo}}",
-    "pasoMirarTitulo": "Mira cómo está ahora",
-    "pasoMirarDetalle": "En Inicio ves su temperatura de este momento.",
-    "pasoProtegerTitulo": "Protege los medicamentos",
-    "pasoRevisarEquipoTitulo": "Revisa el equipo",
-    "pasoProtegerDetalle": "Comprueba que la puerta cierre y sigue el procedimiento de tu farmacia.",
-    "pasoConstanciaTitulo": "Deja constancia",
-    "pasoConstanciaRevisar": "Márcala como revisada y anota lo que hiciste.",
-    "pasoConstanciaAnotar": "Anota lo que hiciste en la acción correctiva.",
-    "yaRevisada": "Ya se revisó. Falta anotar lo que se hizo.",
-    "yaAtendida": "Ya se atendió. En «Ver más» está quién lo hizo y qué hizo.",
-    "soloConsulta": "Solo consulta: esta alerta la atiende el personal de farmacia.",
-    "marcadaRevisada": "Alerta marcada como revisada."
+    }
   },
   "trazabilidad": {
-    "errorCargar": "No pudimos cargar los registros.",
-    "titulo": "Comprobar registros",
-    "descripcion": "Comprueba si alguien cambió una lectura después de guardarse.",
-    "verificar": "Comprobar ahora",
-    "comprobarOtraVez": "Comprobar otra vez",
-    "comprobado": "Comprobado",
-    "comprobadoALas": "Comprobado a las {{hora}}",
-    "verificando": "Comprobando…",
-    "cadenaIntegra": "Nadie cambió tus registros",
-    "cadenaIntegraDetalle_one": "Revisamos <n></n> registro y no cambió desde que se guardó.",
-    "cadenaIntegraDetalle_other": "Revisamos <n></n> registros y ninguno cambió desde que se guardó.",
-    "cadenaRota_one": "Un registro no coincide: revísalo",
-    "cadenaRota_other": "{{count}} registros no coinciden: revísalos",
+    "titulo": "Integridad del historial",
+    "descripcion": "Revisa si lecturas y acciones muestran modificaciones posteriores.",
+    "verificar": "Revisar integridad",
+    "verificando": "Verificando…",
+    "cadenaIntegra": "No se detectaron cambios",
+    "cadenaIntegraDetalle": "La verificación no detectó modificaciones posteriores en los {{n}} registros revisados.",
+    "cadenaRota": "Alteración detectada",
     "cadenaRotaDetalle": "Se detectó una diferencia en el registro #{{n}}. Avisa al administrador y conserva la información para su revisión.",
-    "cadenaRotaRegistro": "Es el registro «{{evento}}» del {{fecha}} a las {{hora}}. Avisa al administrador y conserva la información para su revisión.",
     "evento": "Evento",
     "fecha": "Fecha",
     "hash": "Sello digital",
@@ -535,9 +411,9 @@
     "registroN": "Registro N",
     "selloCompartido": "Sello digital → sello anterior",
     "registroSiguiente": "Registro N+1",
-    "cadenaExplicacion": "Comparamos cada lectura con lo que se guardó la primera vez: si algo cambió después, te lo decimos.",
-    "mostrarSellos": "Mostrar sellos digitales",
-    "ocultarSellos": "Ocultar sellos digitales",
+    "cadenaExplicacion": "ColdCare revisa las lecturas y acciones relacionadas. Si detecta un cambio posterior, señala el registro que requiere revisión.",
+    "mostrarSellos": "Mostrar detalles técnicos de los sellos",
+    "ocultarSellos": "Ocultar detalles técnicos de los sellos",
     "selloAyuda": "Detalle técnico de verificación criptográfica del registro",
     "sinRegistros": "Aún no hay registros de trazabilidad.",
     "tipoEvento": "Tipo de evento",
@@ -550,9 +426,8 @@
     "hashEsperado": "Sello recalculado",
     "hashAlmacenado": "Sello almacenado",
     "posterioresAfectados": "Registros posteriores afectados",
-    "rupturaAislada": "Un registro alterado quedó apartado",
-    "rupturaAisladaDetalle_one": "Un administrador apartó {{count}} registro alterado. Desde el {{fecha}} todo coincide.",
-    "rupturaAisladaDetalle_other": "Un administrador apartó {{count}} registros alterados. Desde el {{fecha}} todo coincide.",
+    "rupturaAislada": "Ruptura aislada: la cadena vuelve a ser verificable",
+    "rupturaAisladaDetalle": "{{n}} alteración(es) histórica(s) aislada(s) por un administrador. La cadena es íntegra desde el {{fecha}}",
     "tipoDiscrepancia": "Tipo de discrepancia",
     "discrepancia_payload_alterado": "Contenido modificado después de registrarse",
     "discrepancia_enlace_roto": "Enlace con el registro anterior roto",
@@ -560,10 +435,10 @@
     "totalRupturas": "Rupturas detectadas",
     "posterioresConsistentes": "Posteriores que siguen enlazados",
     "posterioresConsistentesValor": "{{c}} de {{n}}",
-    "alcanceVerificacion": "Esta verificación certifica únicamente que los registros almacenados no fueron alterados desde su creación y, de existir una ruptura, en qué punto ocurrió. No constituye una certificación sanitaria, regulatoria ni de conformidad DIGEMID sobre la conservación de los medicamentos.",
+    "alcanceVerificacion": "Esta verificación comprueba la consistencia de la cadena y detecta las alteraciones identificables con el mecanismo y las condiciones de seguridad empleados y, de existir una ruptura, en qué punto ocurrió. No equivale a inmutabilidad. No constituye una certificación sanitaria, regulatoria ni de conformidad DIGEMID sobre la conservación de los medicamentos.",
     "confirmarAislar": "Se marcará este registro como aislado y quedará excluido de la cadena verificable. La acción queda auditada y no se puede deshacer.",
-    "verificarSegmento": "Por equipo y periodo",
-    "verificarSegmentoBoton": "Verificar",
+    "verificarSegmento": "Verificar por dispositivo y periodo",
+    "verificarSegmentoBoton": "Verificar segmento",
     "desdeAyuda": "Obligatorio. Se incluye el día completo.",
     "hastaOpcional": "Opcional. Si lo dejas vacío, se revisa hasta ahora.",
     "rangoInvalido": "El rango seleccionado no es válido: \"desde\" no puede ser posterior a \"hasta\".",
@@ -580,55 +455,26 @@
       "REPORTE_BPA": "Reporte generado",
       "AUDITORIA": "Acción de usuario",
       "CONECTIVIDAD": "Cambio de conexión"
-    },
-    "sinRevisar": "¿Alguien cambió una lectura?",
-    "advertenciaSimple": "Detecta cambios posteriores, pero no prueba que la lectura original fuera correcta, y quien tenga la clave podría recalcular los registros.",
-    "verDetallesTecnicos": "Ver detalles técnicos",
-    "listaRegistros": "Todos los registros",
-    "advertenciaSello": "Detecta cambios posteriores. No prueba que la lectura física fuera cierta, y quien tenga la clave y acceso de escritura podría recalcular la cadena: el sello es evidencia, no inmutabilidad absoluta.",
-    "simular": "Simular inconsistencia (demo)",
-    "cadenaEtiqueta": "Últimos registros, del más antiguo al más reciente",
-    "registrosSaltados_one": "{{count}} registro más",
-    "registrosSaltados_other": "{{count}} registros más",
-    "timbre": {
-      "coincide": "Coincide",
-      "no_coincide": "No coincide",
-      "afectado": "Afectado"
     }
   },
   "reportes": {
-    "comoCambio": "Cómo cambió la temperatura",
-    "ultimasAlertas": "Últimas alertas",
-    "sinAlertas": "Sin alertas en este periodo.",
-    "sinLecturas": "Sin lecturas en este periodo.",
-    "titulo": "Reportes",
+    "titulo": "Reportes de monitoreo",
     "descripcion": "Consulta y descarga lecturas, alertas y acciones para revisiones internas.",
-    "periodoYEquipo": "Periodo y equipo",
-    "descargar": "Descargar",
-    "queTraeFormato": "Qué trae cada formato",
-    "periodoCambiado": "Cambiaste el periodo o el equipo: la hoja todavía muestra el anterior. Al descargar se actualiza.",
-    "constancia": "Tu constancia de cadena de frío",
-    "otrosFormatos": "Otros formatos",
-    "verEnPantalla": "Ver la hoja sin descargar",
-    "actualizarHoja": "Actualizar la hoja",
-    "generandoConstancia": "Preparando tu constancia…",
-    "descargada": "Constancia descargada",
-    "descargarOtraVez": "Descargar otra vez",
     "rango": "Periodo del reporte",
     "desde": "Desde",
     "hasta": "Hasta",
-    "dispositivo": "Equipo (opcional)",
+    "dispositivo": "Código del refrigerador (opcional)",
     "codigoEquipoEjemplo": "Ej.: FARM-01-CDL",
     "generar": "Generar reporte",
     "generando": "Generando…",
-    "descargarCsv": "Descargar CSV",
-    "descargarJson": "Descargar JSON",
+    "descargarCsv": "Descargar hoja de cálculo (CSV)",
+    "descargarJson": "Descargar datos para revisión técnica (JSON)",
     "notaFormatos": "El archivo CSV facilita la revisión e impresión. El JSON conserva los datos técnicos, incluidos los sellos de verificación.",
     "resumen": "Resumen del periodo",
     "lecturas": "Lecturas",
     "alertas": "Alertas",
-    "registrosTrazabilidad": "Registros",
-    "sinReporte": "Esta hoja se llena con tus datos al descargar.",
+    "registrosTrazabilidad": "Registros de trazabilidad",
+    "sinReporte": "Aún no hay un reporte generado.",
     "errorGenerar": "No se pudo generar el reporte.",
     "descargarPdf": "Descargar PDF",
     "generandoPdf": "Generando PDF…",
@@ -636,29 +482,16 @@
     "errorRangoInvertido": "La fecha inicial es posterior a la final. Corrige el periodo.",
     "errorPeriodoExcesivo": "El periodo no puede superar {{max}} días. Divide el reporte en tramos.",
     "errorCuota": "Demasiados reportes seguidos. Espera un minuto antes de volver a generar.",
-    "periodoDias_one": "Del {{desde}} al {{hasta}} · {{count}} día",
-    "periodoDias_other": "Del {{desde}} al {{hasta}} · {{count}} días",
-    "sinReporteDetalle": "Elige un periodo y genera el reporte para ver el resumen y descargarlo en PDF, CSV o JSON.",
+    "periodoDias_one": "Periodo seleccionado: {{count}} día.",
+    "periodoDias_other": "Periodo seleccionado: {{count}} días.",
+    "sinReporteDetalle": "Elige el periodo y genera el reporte para ver el resumen. Incluye lecturas, alertas y registros de trazabilidad, y se descarga en PDF, CSV o JSON.",
     "incluyeLecturas": "Lecturas del periodo",
     "incluyeAlertas": "Alertas registradas",
     "incluyeTrazabilidad": "Registros de trazabilidad",
-    "formatosDisponibles": "Formatos disponibles",
-    "vista": {
-      "titulo": "Reporte de cadena de frío",
-      "periodo": "{{desde}} al {{hasta}}",
-      "todosEquipos": "Todos los equipos",
-      "lecturas": "Lecturas",
-      "alertas": "Alertas",
-      "acciones": "Acciones correctivas",
-      "seccionExcursiones": "Excursiones y su atención",
-      "seccionAcciones": "Acciones correctivas registradas",
-      "seccionCadena": "Verificación de la cadena de registros",
-      "pendiente": "Se completa al descargar",
-      "pie": "Apoyo para revisiones internas. No reemplaza registros ni documentos oficiales."
-    }
+    "formatosDisponibles": "Formatos disponibles"
   },
   "auditoria": {
-    "titulo": "Quién hizo qué y cuándo",
+    "titulo": "Bitácora de auditoría",
     "descripcion": "Acciones críticas registradas en el sistema",
     "filtros": "Filtros",
     "fecha": "Fecha",
@@ -671,63 +504,34 @@
     "usuarioPlaceholder": "ID de usuario",
     "resultado": "Resultado",
     "exportar": "Exportar CSV",
+    "resumen": "Resumen de la bitácora",
+    "totalEventos": "Acciones registradas",
+    "fallidos": "Fallidas o denegadas",
+    "bloqueos": "Bloqueos temporales",
+    "alcancePanel": "Supervisión y evidencia técnica de los controles registrados. No constituye una certificación de seguridad ni la confirmación de un ataque.",
     "bloqueosTemporales_one": "{{count}} bloqueo temporal de acceso registrado. Esto no confirma un ataque.",
     "bloqueosTemporales_other": "{{count}} bloqueos temporales de acceso registrados. Esto no confirma un ataque.",
     "ip": "IP de origen",
     "sinRegistros": "Todavía no hay acciones registradas.",
-    "sinCoincidencias": "Ninguna acción coincide con estos filtros.",
-    "errorCarga": "No pudimos consultar la bitácora. Inténtalo nuevamente.",
-    "ayer": "Ayer",
-    "accionesDia_one": "{{count}} acción",
-    "accionesDia_other": "{{count}} acciones",
-    "noExitosasDia_one": "{{count}} sin éxito",
-    "noExitosasDia_other": "{{count}} sin éxito",
-    "filtroAccion": "Acción: {{valor}}",
-    "filtroUsuario": "Usuario: {{valor}}",
-    "filtroDesde": "Desde: {{valor}}",
-    "filtroHasta": "Hasta: {{valor}}",
-    "resultados": {
-      "exitoso": "exitoso",
-      "fallido": "fallido",
-      "bloqueado": "bloqueado",
-      "denegado": "denegado"
-    },
     "eventos": {
-      "ALERTA_REVISADA": "Revisó una alerta",
-      "REPORTE_BPA_GENERADO": "Generó un reporte",
-      "LOGIN_FALLIDO": "Intentó entrar y no pudo",
-      "LOGIN_EXITOSO": "Entró al sistema",
-      "BLOQUEO_TEMPORAL": "El acceso quedó bloqueado un rato",
-      "RBAC_DENEGADO": "Intentó abrir algo sin permiso",
-      "USUARIO_CREADO": "Creó una cuenta",
-      "ACCION_CORRECTIVA_REGISTRADA": "Registró una acción correctiva",
-      "REPORTE_GENERADO": "Generó un reporte"
-    },
-    "bitacora": "Bitácora de auditoría",
-    "resumenAcciones_one": "<n>{{count}}</n> acción registrada",
-    "resumenAcciones_other": "<n>{{count}}</n> acciones registradas",
-    "resumenBien_one": "salió bien",
-    "resumenBien_other": "todas salieron bien",
-    "resumenMal_one": "{{count}} no salió bien",
-    "resumenMal_other": "{{count}} no salieron bien",
-    "ultimaAccion": "La última fue {{cuando}}.",
-    "cuandoHoy": "hoy a las {{hora}}",
-    "cuandoAyer": "ayer a las {{hora}}",
-    "cuandoFecha": "el {{fecha}} a las {{hora}}",
-    "verDetalle": "Ver detalle",
-    "ocultarDetalle": "Ocultar detalle",
-    "detalle": "Detalle",
-    "codigo": "Código de la acción",
-    "fechaExacta": "Fecha y hora exactas",
-    "quienSinUsuario": "Sin usuario identificado",
-    "quienTu": "Tú",
-    "quienCodigo": "Usuario {{id}}"
+      "ALERTA_REVISADA": "Alerta revisada",
+      "REPORTE_BPA_GENERADO": "Reporte generado",
+      "LOGIN_FALLIDO": "Inicio de sesión fallido",
+      "LOGIN_EXITOSO": "Inicio de sesión correcto",
+      "BLOQUEO_TEMPORAL": "Bloqueo temporal",
+      "RBAC_DENEGADO": "Acceso denegado por rol",
+      "USUARIO_CREADO": "Usuario creado"
+    }
   },
   "usuarios": {
     "tuCuenta": "Tu cuenta",
+    "resumen": "Resumen de cuentas",
+    "conAcceso": "Con acceso",
+    "administradores": "Administradores activos",
+    "sinAcceso": "Sin acceso",
     "ultimoAdmin": "Es el último administrador activo: el sistema quedaría sin administración.",
     "errorRbac": "No se puede: es tu propia cuenta o el sistema quedaría sin un administrador activo.",
-    "titulo": "Usuarios",
+    "titulo": "Usuarios y roles",
     "descripcion": "Controla quién accede al sistema y qué puede hacer según su rol",
     "nuevo": "Nuevo usuario",
     "nombre": "Nombre completo",
@@ -770,40 +574,7 @@
     "reactivarConfirmar": "{{nombre}} volverá a tener acceso con una contraseña temporal.",
     "copiar": "Copiar",
     "copiado": "Copiado",
-    "confirmar": "Confirmar",
-    "permisos": {
-      "titulo": "Qué puede ver cada perfil",
-      "pantalla": "Pantalla",
-      "permitido": "Con acceso",
-      "denegado": "Sin acceso",
-      "pantallas_one": "{{count}} pantalla",
-      "pantallas_other": "{{count}} pantallas",
-      "sigla": {
-        "administrador": "AD",
-        "farmaceutico": "QF",
-        "tecnico": "TF",
-        "auditor": "AU"
-      },
-      "tituloSimple": "Qué puede hacer cada rol",
-      "verTabla": "Ver pantalla por pantalla",
-      "resumen": {
-        "administrador": "Puede hacer todo: además de lo que hacen los demás, crea cuentas y registra equipos.",
-        "farmaceutico": "Ve las temperaturas, atiende y revisa alertas, saca reportes y consulta el clasificador.",
-        "tecnico": "Ve las temperaturas y las alertas, y anota lo que hizo ante un aviso. No saca reportes.",
-        "auditor": "Solo mira: temperaturas, reportes y quién hizo qué. No puede cambiar nada."
-      }
-    },
-    "vistas": "Vista de usuarios",
-    "vistaPersonas": "Personas",
-    "vistaPermisos": "Permisos",
-    "alcanceRol": "Verá {{n}} de {{total}} pantallas: {{pantallas}}.",
-    "passwordPendienteAyuda": "Tiene una contraseña temporal y deberá cambiarla al ingresar.",
-    "sinUsuariosAyuda": "Crea la primera cuenta con «Nuevo usuario».",
-    "errorCargar": "No se pudieron cargar las cuentas.",
-    "personasConAcceso_one": "<n>{{count}}</n> persona con acceso",
-    "personasConAcceso_other": "<n>{{count}}</n> personas con acceso",
-    "cuentasDesactivadas_one": "{{count}} cuenta desactivada",
-    "cuentasDesactivadas_other": "{{count}} cuentas desactivadas"
+    "confirmar": "Confirmar"
   },
   "privacidad": {
     "titulo": "Aviso de privacidad",
@@ -815,8 +586,8 @@
     "rechazando": "Cerrando sesión…"
   },
   "dispositivos": {
-    "titulo": "Tus equipos",
-    "descripcion": "Cómo están tus refrigeradores y cámaras, hasta cuándo están calibrados y su ficha completa.",
+    "titulo": "Equipos de medición",
+    "descripcion": "Administra código único, sensores, conexión, buffer local, vigencia de calibración y ciclo de vida de cada equipo.",
     "id": "Código del equipo",
     "conectividad": "Conectividad",
     "firmware": "Versión de software",
@@ -824,7 +595,7 @@
     "activo": "Activo",
     "inactivo": "Dado de baja",
     "darDeBaja": "Dar de baja",
-    "sinDispositivos": "No hay equipos registrados.",
+    "sinDispositivos": "No hay dispositivos registrados.",
     "confirmarBaja": "¿Dar de baja el dispositivo {{id}}? El histórico de lecturas y trazabilidad permanece intacto.",
     "motivo": "Motivo de baja",
     "descripcionBaja": "Descripción (opcional)",
@@ -851,6 +622,9 @@
     "calibracionVence": "Vence: {{fecha}}",
     "calibrarA": "Registrar calibración del dispositivo {{id}}",
     "registrarCalibracion": "Registrar calibración",
+    "fechaVencimiento": "Vencimiento del certificado",
+    "vencimientoInvalido": "El vencimiento debe ser posterior a la fecha de calibración.",
+    "margenAvisoAyuda": "El aviso se calcula desde la fecha del certificado (1 a 365 días).",
     "fechaCalibracion": "Fecha de calibración",
     "numeroCertificado": "N.° de certificado",
     "validaHasta": "Certificado válido hasta",
@@ -874,13 +648,13 @@
     "sinHistorial": "Sin cambios registrados todavía.",
     "nuevoEquipo": "Registrar equipo",
     "nombreEquipo": "Nombre del equipo",
-    "registroAyuda": "El código identifica al equipo en cada lectura. Debe ser único y no cambia si reemplazas un sensor.",
-    "codigoUnicoAyuda": "Usa letras, números y guiones. Aparece en cada lectura.",
+    "registroAyuda": "El código identifica al nodo ESP32. Debe ser único y no cambia al reemplazar sensores.",
+    "codigoUnicoAyuda": "Usa letras, números y guiones; este identificador aparece en cada lectura como device_id.",
     "equipoRegistrado": "Equipo registrado con su credencial. Cópiela ahora: no se volverá a mostrar.",
     "codigoDuplicado": "Ese código ya está registrado.",
     "sensores": "Sensores instalados",
     "opcional": "opcional",
-    "resumenIoT": "Resumen de tus equipos",
+    "resumenIoT": "Resumen operativo IoT",
     "equiposRegistrados": "Equipos registrados",
     "sinDatos": "Sin datos",
     "fallasSensor": "Fallas de sensor",
@@ -973,78 +747,7 @@
     "posesionPendienteAyuda": "Consola confirmada. La retención termina cuando el nodo firma el desafío con la credencial nueva; si la consola no se cambió, el nodo no puede hacerlo y la retención sigue.",
     "reenviarDesafio": "Reenviar desafío",
     "reenviarDesafioAyuda": "Tras corregir la contraseña en la consola: expulsa la sesión del nodo para que entre con la credencial nueva y le reenvía el desafío.",
-    "desafioReenviado": "Desafío reenviado: el nodo se reconectará y deberá probar la credencial nueva.",
-    "ficha": {
-      "titulo": "Ficha de cada equipo",
-      "firmware": "Firmware",
-      "captura": "Captura",
-      "capturaValor": "Cada {{segundos}} s",
-      "silencio": "Sin datos tras",
-      "silencioValor": "{{segundos}} s",
-      "instalacion": "Instalación",
-      "instaladoPor": "Instalado por",
-      "responsable": "Responsable",
-      "proximaCalibracion": "Próxima calibración",
-      "certificado": "Certificado",
-      "buffer": "Lecturas sin enviar",
-      "sinDato": "Sin registrar",
-      "ultimaCalibracion": "Última calibración",
-      "sensoresActivos": "{{activos}} de {{total}}",
-      "conexion": "Conexión y credencial",
-      "servicio": "Servicio",
-      "telefono": "Teléfono",
-      "fechaBaja": "Fecha de baja",
-      "motivoBaja": "Detalle de la baja",
-      "reemplazo": "Reemplaza a",
-      "bufferLocal": "Buffer local",
-      "periodoCola": "Periodo en cola",
-      "telemetria": "Telemetría"
-    },
-    "verFichaDe": "Ver ficha de {{nombre}}",
-    "fichaYSensores": "Ficha y sensores",
-    "registroCredencialAviso": "Al registrarlo se emite su credencial. Se muestra una sola vez.",
-    "sinDispositivosAyuda": "Registra el primero para empezar a recibir lecturas.",
-    "errorCargar": "No se pudieron cargar los equipos.",
-    "verFicha": "Ver ficha",
-    "resumenEquipos_one": "<n>{{count}}</n> equipo en servicio",
-    "resumenEquipos_other": "<n>{{count}}</n> equipos en servicio",
-    "resumenBien_one": "está en línea",
-    "resumenBien_other": "todos en línea",
-    "resumenRevisar_one": "{{count}} necesita revisión",
-    "resumenRevisar_other": "{{count}} necesitan revisión",
-    "resumenBaja_one": "{{count}} dado de baja",
-    "resumenBaja_other": "{{count}} dados de baja",
-    "calibracionFrase": {
-      "vigente": "Calibrado hasta {{mes}}",
-      "proxima_a_vencer": "Calibración por vencer en {{mes}}",
-      "vencida": "Calibración vencida desde {{mes}}",
-      "sin_registrar": "Calibración sin registrar"
-    },
-    "avisoPieza": {
-      "retenida": "No está registrando lecturas. Abre la ficha.",
-      "pendiente": "Falta terminar un ajuste de conexión. Abre la ficha."
-    }
-  },
-  "isla": {
-    "abrir": "Abrir el detalle",
-    "recoger": "Ocultar este aviso",
-    "panel": "Estado actual de los equipos",
-    "conectando": "Conectando",
-    "sinLectura": "Sin lectura",
-    "sinLecturaNueva": "Sin lectura nueva",
-    "sinLecturaHace": "Sin lectura nueva hace {{tiempo}}",
-    "equipos": "Ahora",
-    "avisos": "Avisos de esta sesión",
-    "sinAlertas": "Sin alertas pendientes",
-    "alertas_one": "{{count}} alerta pendiente",
-    "alertas_other": "{{count}} alertas pendientes"
-  },
-  "filtros": {
-    "titulo": "Filtros",
-    "listo": "Listo",
-    "quitar": "Quitar filtro: {{filtro}}",
-    "conActivos_one": "{{nombre}}, {{count}} activo",
-    "conActivos_other": "{{nombre}}, {{count}} activos"
+    "desafioReenviado": "Desafío reenviado: el nodo se reconectará y deberá probar la credencial nueva."
   },
   "comunes": {
     "error": "Ocurrió un error. Intenta de nuevo.",
@@ -1077,30 +780,29 @@
     "marcadorFechaHora": "dd/mm/aaaa hh:mm",
     "marcadorFecha": "dd/mm/aaaa",
     "verDetalles": "Ver detalles",
-    "ocultarDetalles": "Ocultar detalles",
-    "verMas": "Ver más"
+    "ocultarDetalles": "Ocultar detalles"
   },
   "metricasIA": {
-    "titulo": "Clasificador de riesgo",
+    "titulo": "Cómo se comporta el clasificador",
     "descripcion": "Revisa ejemplos de cómo el modelo asigna un nivel de riesgo a cada lectura.",
-    "resumenTitulo": "Qué es y cómo le fue",
+    "resumenTitulo": "Resultado de la evaluación",
     "f1Ponderado": "F1 ponderado",
     "definicionF1": "Resume cómo el modelo identifica las situaciones y evita clasificaciones incorrectas, considerando cuántos casos hay de cada tipo.",
     "criterioSuperado": "Alcanza el criterio de evaluación.",
     "criterioNoAlcanzado": "No alcanza el criterio de evaluación.",
-    "avisoDatosNoReportables": "Muestra ilustrativa con datos sintéticos. No prueba cómo funcionaría de verdad.",
+    "avisoDatosNoReportables": "Muestra ilustrativa con datos sintéticos. No representa una evaluación validada ni sirve para afirmar el desempeño real del clasificador.",
     "muestraIlustrativa": "Valor ilustrativo, no reportable",
     "estadoNoVerificado": "Evaluación no verificada.",
-    "contextoNoVerificado": "Falta confirmar el origen de los datos. No se compara con el umbral.",
+    "contextoNoVerificado": "Falta confirmar el origen de los datos y la evidencia del conjunto evaluado. No se compara con el umbral.",
     "contextoUmbral": "El criterio del prototipo es {{umbral}} o más. Este resultado no indica el estado actual del refrigerador.",
     "exactitudGeneral": "Clasificaciones correctas",
     "definicionExactitud": "Proporción de casos evaluados que el modelo clasificó correctamente.",
     "deteccionCriticas": "Detección de excursiones críticas",
     "definicionDeteccionCritica": "Porcentaje de casos reales de excursión crítica que el modelo identificó.",
     "casosEvaluados": "Casos evaluados",
-    "notaEvaluacion": "Son resultados de una prueba del modelo. No son mediciones de temperatura ni lo que pasa en tu botica.",
-    "detalleTitulo": "Ver detalles técnicos",
-    "porClase": "Por tipo de situación",
+    "notaEvaluacion": "Resultados del clasificador en un conjunto de prueba. No son mediciones de temperatura ni actividad diaria de la botica.",
+    "detalleTitulo": "Resultados y método",
+    "porClase": "Resultados por tipo de situación",
     "porClaseAyuda": "Compara cómo clasificó cada nivel de riesgo en los casos evaluados.",
     "situacion": "Situación",
     "definicionesTabla": "Precisión: de los casos que el modelo asignó a una situación, cuántos correspondían. Detección: de los casos reales de esa situación, cuántos identificó. F1 resume ambas medidas. Casos evaluados indica el número usado para cada fila.",
@@ -1118,7 +820,7 @@
     "registrosConjunto": "Casos usados",
     "particionMuestrasValor": "{{entrenamiento}} para preparar el modelo · {{prueba}} para evaluarlo",
     "totalRegistros": "Total en el conjunto de datos: {{total}}",
-    "variablesTitulo": "Variables del modelo",
+    "variablesTitulo": "Variables consideradas por el modelo",
     "variablesAyuda": "Importancia informada para cada variable; consulta estos datos después de los resultados.",
     "notaImportancias": "El porcentaje compara la importancia informada para cada variable. No indica por sí solo una causa ni la probabilidad de una situación.",
     "barraImportancia": "{{variable}}: importancia informada {{valor}}",
@@ -1130,7 +832,7 @@
     "huellaModelo": "Huella del modelo",
     "noDisponible": "No disponible",
     "notaReproducibilidad": "Estos datos ayudan a identificar la evaluación. Una semilla o una huella, por sí solas, no garantizan que el entrenamiento pueda repetirse exactamente.",
-    "notaUsoProfesional": "Para atender una alerta, sigue el procedimiento de tu farmacia. Este resultado no sustituye la revisión profesional.",
+    "notaUsoProfesional": "Estas métricas evalúan un clasificador. Para atender una alerta, sigue el procedimiento de tu farmacia; este resultado no sustituye la revisión profesional.",
     "noEntrenado": "Aún no hay una evaluación disponible para este modelo. Contacta al administrador para revisar su configuración.",
     "errorCarga": "No pudimos cargar los resultados del modelo. Inténtalo nuevamente.",
     "reintentar": "Volver a intentar",
@@ -1146,52 +848,77 @@
       "hora_evento": "Hora del evento",
       "estado_conectividad_online": "Estado de conexión del equipo"
     },
-    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2–8 °C; no es una probabilidad del modelo.",
-    "importanciaVisible": "Qué variables pesan más",
-    "modoSombra": "Modo sombra: corre aparte, todavía sin aceptar. No abre alertas.",
-    "matrizTitulo": "Matriz de confusión",
-    "matrizAyuda": "Cada fila es la situación real y cada columna, lo que asignó el modelo. La diagonal son los aciertos.",
-    "matrizReal": "Situación real",
-    "matrizAsignada": "Asignó el modelo",
-    "matrizNotaCritica": "Aquí la excursión crítica figura como una clase más de la evaluación. En la operación la confirma la regla de 2–\u20608\u00a0°C, no el modelo.",
-    "matrizNoDisponible": "Esta evaluación no incluye una matriz completa.",
-    "queSignifica": "Qué significa cada cifra",
-    "selloMuestra": "Muestra ilustrativa",
-    "identidadModelo": "Identificación del modelo",
-    "fraseSinValidar": "Un modelo que intenta anticipar riesgos. Aún no está validado y no decide nada: la regla de 2–\u20608\u00a0°C decide.",
-    "fraseSinAceptar": "Un modelo que intenta anticipar riesgos. Todavía no está aceptado y no decide nada: la regla de 2–\u20608\u00a0°C decide.",
-    "aciertoFrase": "Acertó {{n}} de cada 100 en esta muestra de ejemplo",
-    "aciertoFraseEvaluacion": "Acertó {{n}} de cada 100 en la evaluación de prueba",
-    "aciertoAntes": "Acertó",
-    "aciertoDe": "de cada 100",
-    "aciertoMuestra": "en esta muestra de ejemplo",
-    "aciertoEvaluacion": "en la evaluación de prueba",
-    "loQueMasMira": "Lo que más mira"
+    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2–8 °C; no es una probabilidad del modelo."
   },
   "sesion": {
     "porExpirar": "Tu sesión expirará en {{restante}}. Guarda lo que estés haciendo."
   },
   "guia": {
     "eyebrow": "Ayuda de ColdCare",
-    "titulo": "¿Qué necesitas?",
-    "descripcion": "Las dudas de cada día en la botica, con la respuesta corta y la pantalla donde se resuelven.",
-    "pausarAnimaciones": "Pausar animaciones",
+    "titulo": "Consulta y usa ColdCare",
+    "descripcion": "Qué revisar, cómo responder a un aviso y dónde consultar los registros.",
+    "inicioEyebrow": "Durante tu jornada",
+    "navegacion": "Secciones de la guía",
+    "nav": {
+      "inicio": "Empezar",
+      "estados": "Temperatura y estados",
+      "alertas": "Responder a una alerta",
+      "pantallas": "Encontrar una pantalla",
+      "dudas": "Dudas frecuentes"
+    },
+    "inicioTitulo": "Revisa, responde y deja registro",
+    "inicioDescripcion": "Empieza por el estado del refrigerador. Si aparece un aviso, revisa la lectura y sigue el procedimiento de tu farmacia.",
+    "pasos": {
+      "monitoreo": {
+        "titulo": "Revisa Monitoreo",
+        "descripcion": "Consulta la lectura más reciente y el estado del equipo."
+      },
+      "alerta": {
+        "titulo": "Si aparece un aviso",
+        "descripcion": "Abre Alertas para revisar el nivel indicado y cuándo ocurrió."
+      },
+      "historial": {
+        "titulo": "Consulta qué ocurrió",
+        "descripcion": "Usa Historial para revisar lecturas de otro momento o fecha."
+      }
+    },
+    "estadosTitulo": "Lee la temperatura y su estado",
+    "estadosDescripcion": "El estado resume cómo se compara la lectura con el rango permitido.",
     "estados": {
       "normal": {
         "titulo": "Dentro del rango",
-        "descripcion": "Dentro del rango del equipo."
+        "descripcion": "La lectura está dentro del rango que muestra el equipo."
       },
       "preventivo": {
         "titulo": "Riesgo preventivo",
-        "descripcion": "Cerca de un límite. Revisa antes de que salga."
+        "descripcion": "La lectura se acerca a uno de los límites; revisa antes de que salga del rango."
       },
       "critico": {
         "titulo": "Excursión crítica",
-        "descripcion": "Fuera del rango. Revisa y sigue tu procedimiento."
+        "descripcion": "La lectura salió del rango permitido. Revisa el refrigerador y sigue el procedimiento de tu farmacia."
       }
     },
-    "rangoNota": "Compara siempre con la fecha y hora de la lectura.",
+    "rangoNota": "Consulta en Monitoreo el rango permitido para el equipo y compara la lectura con su fecha y hora.",
+    "alertaEyebrow": "Ante un aviso",
+    "alertaTitulo": "Revisa la situación y deja constancia",
+    "alertaDescripcion": "La alerta muestra el nivel de riesgo y la lectura relacionada. El registro de una acción deja constancia de la respuesta.",
+    "alertaPasos": {
+      "revisar": {
+        "titulo": "Revisa la lectura",
+        "descripcion": "Abre la alerta y comprueba temperatura, fecha y hora."
+      },
+      "actuar": {
+        "titulo": "Revisa el refrigerador",
+        "descripcion": "Sigue el procedimiento de conservación de tu farmacia."
+      },
+      "registrar": {
+        "titulo": "Registra la respuesta",
+        "descripcion": "Si tu rol lo permite, marca la alerta como revisada y anota la acción realizada."
+      }
+    },
+    "alertaPermisos": "El personal técnico puede registrar una acción correctiva; el personal farmacéutico también puede marcar una alerta como revisada. Auditoría es de solo lectura.",
     "ejemploTitulo": "Ejemplo ilustrativo · rango de 2–8 °C",
+    "ejemplo": "4,3 °C está dentro del rango. Una lectura de 8,4 °C está fuera: revisa la alerta, aplica el procedimiento de tu farmacia y registra la respuesta.",
     "pantallasTitulo": "Encuentra una pantalla",
     "pantallasDescripcion": "Los enlaces disponibles se adaptan a tu rol.",
     "grupos": {
@@ -1201,43 +928,44 @@
     },
     "pantallas": {
       "monitoreo": {
-        "titulo": "Inicio",
-        "descripcion": "Última temperatura y estado del equipo."
+        "titulo": "Monitoreo",
+        "descripcion": "Consulta la temperatura más reciente, el estado del equipo y las lecturas recientes."
       },
       "alertas": {
         "titulo": "Alertas",
-        "descripcion": "Avisos, nivel de riesgo y momento."
+        "descripcion": "Revisa avisos, su nivel de riesgo y el momento en que ocurrieron."
       },
       "historial": {
         "titulo": "Historial",
-        "descripcion": "Lecturas por equipo, riesgo y periodo."
+        "descripcion": "Busca lecturas por equipo, nivel de riesgo y periodo."
       },
       "integridad": {
-        "titulo": "Comprobar registros",
-        "descripcion": "Diferencias en registros; no sustituye documentos oficiales."
+        "titulo": "Integridad de registros",
+        "descripcion": "Revisa si hay diferencias en registros relacionados; no sustituye documentos oficiales."
       },
       "reportes": {
         "titulo": "Reportes de monitoreo",
-        "descripcion": "Resumen descargable del periodo."
+        "descripcion": "Consulta o descarga un resumen de lecturas, alertas y acciones del periodo."
       },
       "metricas": {
         "titulo": "Cómo se comporta el clasificador",
-        "descripcion": "Evaluación del modelo; no son temperaturas actuales."
+        "descripcion": "Consulta la evaluación del modelo; no muestra las temperaturas actuales."
       },
       "auditoria": {
         "titulo": "Bitácora de auditoría",
-        "descripcion": "Qué acciones se hicieron y quién."
+        "descripcion": "Consulta qué acciones quedaron registradas y quién las realizó."
       },
       "usuarios": {
         "titulo": "Usuarios y roles",
-        "descripcion": "Acceso del personal y permisos."
+        "descripcion": "Administra el acceso del personal y los permisos de cada rol."
       },
       "dispositivos": {
-        "titulo": "Equipos",
-        "descripcion": "Conexión, ubicación y calibración."
+        "titulo": "Equipos de medición",
+        "descripcion": "Consulta conexión, ubicación y fechas de calibración de los equipos."
       }
     },
     "conceptosTitulo": "Palabras útiles",
+    "conceptosAyuda": "Consultar definiciones",
     "conceptos": {
       "rango": {
         "titulo": "Rango permitido",
@@ -1273,55 +1001,9 @@
       "metricas": {
         "titulo": "¿Las métricas muestran la temperatura actual?",
         "respuesta": "No. Resumen cómo se evaluó el clasificador con casos de prueba; no muestran la temperatura ni las alertas actuales."
-      },
-      "permisos": {
-        "titulo": "¿Quién puede registrar qué ante un aviso?",
-        "respuesta": "El personal técnico puede registrar una acción correctiva; el personal farmacéutico también puede marcar una alerta como revisada. Auditoría es de solo lectura."
       }
     },
-    "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema.",
-    "previa": {
-      "lectura": "Refrigerador principal",
-      "aviso": "Excursión crítica",
-      "ejemploHora": "Hoy, 02:05",
-      "ejemplo": "Ejemplo"
-    },
-    "irA": "Ir a {{pantalla}}",
-    "verMas": "Ver todas las pantallas y otras dudas",
-    "preguntasRapidas": {
-      "alerta": {
-        "pregunta": "Una alerta sonó, ¿qué hago?",
-        "respuesta": "Abre Alertas y mira la temperatura y la hora. Revisa el equipo, sigue el procedimiento de tu farmacia y anota lo que hiciste. Una alerta no confirma que un medicamento se dañó: eso lo decide tu procedimiento."
-      },
-      "bien": {
-        "pregunta": "¿Cómo sé si todo está bien?",
-        "respuesta": "Mira Inicio: arriba dice si todo está en orden o qué equipo revisar, y el color se lee desde lejos. Toca un estado para ver cómo se ve."
-      },
-      "anoche": {
-        "pregunta": "¿Qué pasó anoche?",
-        "respuesta": "Abre Historial y elige la fecha. La línea muestra cada lectura y marca en rojo lo que salió de 2–\u20608 °C, con su hora."
-      },
-      "constancia": {
-        "pregunta": "¿Cómo saco una constancia?",
-        "respuesta": "Abre Reportes, elige las fechas y el equipo, y descarga la hoja en PDF. Sirve para revisiones internas."
-      },
-      "registros": {
-        "pregunta": "¿Alguien cambió mis registros?",
-        "respuesta": "Abre Comprobar registros: revisa si alguna lectura cambió después de guardarse. Ayuda a detectarlo, pero no reemplaza un documento oficial."
-      },
-      "quien": {
-        "pregunta": "¿Quién hizo qué?",
-        "respuesta": "Abre Auditoría: cada acción aparece con la persona, el día y la hora."
-      },
-      "equipo": {
-        "pregunta": "¿Cómo registro un equipo nuevo?",
-        "respuesta": "Abre Equipos y toca «Registrar equipo». Copia la credencial que aparece: se muestra una sola vez."
-      },
-      "persona": {
-        "pregunta": "¿Cómo le doy acceso a alguien?",
-        "respuesta": "Abre Usuarios y toca «Nuevo usuario». Elige su rol: eso define qué puede ver y hacer."
-      }
-    }
+    "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema."
   },
   "recuperarContrasena": {
     "titulo": "Recuperar contraseña",
@@ -1376,9 +1058,9 @@
     "cerrar": "Cerrar aviso",
     "alerta": "Nueva alerta térmica en {{device}}.",
     "recuperacion": "{{device}} volvió al rango seguro.",
-    "desconexion": "{{device}} se quedó sin conexión.",
-    "buffer_80": "La memoria de lecturas de {{device}} supera el 80 %.",
-    "buffer_saturado": "La memoria de lecturas de {{device}} se llenó: puede haber lecturas perdidas.",
+    "desconexion": "{{device}} se desconectó del broker.",
+    "buffer_80": "El buffer local de {{device}} supera el 80 %.",
+    "buffer_saturado": "El buffer local de {{device}} se saturó: puede haber lecturas perdidas.",
     "registros_en_cuarentena": "{{device}} apartó registros en cuarentena (contenido en conflicto).",
     "wifi_reconexion_prolongada": "{{device}} lleva tiempo intentando reconectarse a la red.",
     "conmutacion_respaldo": "{{device}} funciona con la alimentación de respaldo.",

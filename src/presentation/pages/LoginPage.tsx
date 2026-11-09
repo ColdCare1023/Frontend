@@ -1,32 +1,18 @@
 import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
+import { ArrowRight, CircleAlert, Eye, EyeOff, Info, Loader2, Lock, Mail } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
 import { consumirMotivoAviso } from '@/infrastructure/auth/avisoSesion'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
-import { cn } from '@/lib/utils'
 import { AuthShell } from '@/presentation/components/auth/AuthShell'
-import { CAMPO_ACCESO, ENLACE_ACCESO } from '@/presentation/components/auth/clasesAcceso'
 import { ColdCareBrandPanel } from '@/presentation/components/auth/ColdCareBrandPanel'
 import { DemoRoleGrid } from '@/presentation/components/auth/DemoRoleGrid'
 import { GoogleAuthSection } from '@/presentation/components/auth/GoogleAuthSection'
-import {
-  AvisoAcceso,
-  BotonAcceso,
-  BotonVerClave,
-  EncabezadoAcceso,
-  type ErrorAcceso,
-} from '@/presentation/components/auth/PiezasAcceso'
-import { Input, Label } from '@/presentation/components/ui/input'
+import { Input } from '@/presentation/components/ui/input'
 
-const FORMATO_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const ID_ERROR = 'login-error'
-
-/** `credenciales`: el servidor rechazó la pareja, sin decir cuál de los dos campos falló. */
-type ErrorLogin = ErrorAcceso & { credenciales?: boolean }
-
-/** Acceso con credenciales y de demostración sobre la foto aprobada. */
+/** Credential and demo access share the light ColdCare account workspace. */
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -39,9 +25,8 @@ export function LoginPage() {
   const loginConGoogle = useAuthStore((state) => state.loginConGoogle)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<ErrorLogin | null>(null)
-  // De dónde salió la petición en curso: cada origen muestra su propia carga.
-  const [enCurso, setEnCurso] = useState<'formulario' | 'demo' | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [cargando, setCargando] = useState(false)
   const [mostrarPassword, setMostrarPassword] = useState(false)
 
   const emailRef = useRef<HTMLInputElement>(null)
@@ -49,9 +34,9 @@ export function LoginPage() {
 
   const mostrarDemo = MODO_DEMO
 
-  const autenticar = async (correo: string, clave: string, origen: 'formulario' | 'demo') => {
+  const autenticar = async (correo: string, clave: string) => {
     setError(null)
-    setEnCurso(origen)
+    setCargando(true)
     try {
       await login(correo, clave)
       // FE-004: con una contraseña temporal solo se puede cambiarla.
@@ -60,137 +45,171 @@ export function LoginPage() {
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { detail?: string } } }
       if (e?.response?.status === 429) {
-        setError({ texto: t('login.errorDemasiadosIntentos'), tono: 'bloqueo' })
+        setError(t('login.errorDemasiadosIntentos'))
+      } else if (e?.response?.status === 401) {
+        setError(t('login.errorCredenciales'))
       } else {
-        setError({ texto: t('login.errorCredenciales'), tono: 'error', credenciales: true })
+        setError(t('login.errorCredenciales'))
       }
     } finally {
-      setEnCurso(null)
+      setCargando(false)
     }
   }
 
   const enviar = async (event: FormEvent) => {
     event.preventDefault()
     if (!email.trim()) {
-      setError({ texto: t('login.errorEmailVacio'), tono: 'error' })
+      setError(t('login.errorEmailVacio'))
       emailRef.current?.focus()
       return
     }
-    if (!FORMATO_CORREO.test(email.trim())) {
-      setError({ texto: t('login.errorEmailInvalido'), tono: 'error' })
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError(t('login.errorEmailInvalido'))
       emailRef.current?.focus()
       return
     }
     if (!password) {
-      setError({ texto: t('login.errorPasswordVacia'), tono: 'error' })
+      setError(t('login.errorPasswordVacia'))
       passwordRef.current?.focus()
       return
     }
-    await autenticar(email.trim(), password, 'formulario')
+    await autenticar(email.trim(), password)
   }
 
-  const entrarDemo = (correo: string) => autenticar(correo, 'demo-2026', 'demo')
+  const entrarDemo = (correo: string) => autenticar(correo, 'demo-2026')
 
   const irAlPanel = useCallback(() => {
     const destino = useAuthStore.getState().requiereCambioPassword ? '/cambiar-password' : '/dashboard'
     void navigate(destino, { replace: true })
   }, [navigate])
 
-  const correoValido = FORMATO_CORREO.test(email.trim())
-  const emailInvalido = Boolean(error && (error.credenciales || !correoValido))
-  // La contraseña solo se marca cuando el aviso habla de ella: primero se corrige el correo.
-  const passwordInvalida = Boolean(error && (error.credenciales || (correoValido && !password)))
-
   return (
     <AuthShell brandPanel={<ColdCareBrandPanel />}>
-      <EncabezadoAcceso titulo={t('login.titulo')} bajada={t('login.subtitulo')} bajadaSoloEnEscritorio />
-
-      {/* Notificación de sesión expirada o recarga de página (HU-40) */}
-      {avisoSesion && (
-        <AvisoAcceso tono="info" className="mb-4 lg:mb-6">
-          {avisoSesion === 'expirada' ? t('comunes.sesionExpirada') : t('login.sesionCerradaRecarga')}
-        </AvisoAcceso>
-      )}
-
-      <form className="acceso-formulario" onSubmit={enviar} aria-busy={enCurso === 'formulario'} noValidate>
-        <div>
-          <Label htmlFor="login-email">{t('login.email')}</Label>
-          <Input
-            ref={emailRef}
-            id="login-email"
-            type="email"
-            autoComplete="username"
-            placeholder={t('login.emailPlaceholder')}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            aria-invalid={emailInvalido}
-            aria-describedby={emailInvalido ? ID_ERROR : undefined}
-            className={CAMPO_ACCESO}
-            required
-          />
+      <div className="w-full">
+        <div className="mb-8">
+          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
+            {t('login.titulo')}
+          </h2>
+          <p className="mt-2 text-[15px] leading-6 text-muted">{t('login.subtitulo')}</p>
         </div>
 
-        <div>
-          <div className="flex items-baseline justify-between gap-3">
-            <Label htmlFor="login-password">{t('login.password')}</Label>
-            {/* El área táctil crece hacia afuera: el enlace no empuja al campo. */}
-            <Link
-              to="/recuperar-contrasena"
-              className={cn(
-                ENLACE_ACCESO,
-                'relative min-h-0 text-[13px] leading-5 after:absolute after:-inset-x-1 after:-top-3.5 after:-bottom-1.5',
-              )}
-            >
-              {t('login.olvidastePassword')}
-            </Link>
-          </div>
-          <div className="relative">
-            <Input
-              ref={passwordRef}
-              id="login-password"
-              type={mostrarPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              className={cn(CAMPO_ACCESO, 'pr-13 sm:pr-13')}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              aria-invalid={passwordInvalida}
-              aria-describedby={passwordInvalida ? ID_ERROR : undefined}
-              required
-            />
-            <BotonVerClave visible={mostrarPassword} onAlternar={() => setMostrarPassword((visible) => !visible)} />
-          </div>
-        </div>
-
-        {error && (
-          <AvisoAcceso id={ID_ERROR} tono={error.tono}>
-            {error.texto}
-          </AvisoAcceso>
+        {/* Notificación de sesión expirada o recarga de página (HU-40) */}
+        {avisoSesion && (
+          <p
+            role="status"
+            className="mb-5 flex items-start gap-2.5 rounded-(--radius-field) bg-primary-tint px-3 py-2.5 text-sm leading-5 text-foreground ring-1 ring-inset ring-primary/20"
+          >
+            <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            {avisoSesion === 'expirada' ? t('comunes.sesionExpirada') : t('login.sesionCerradaRecarga')}
+          </p>
         )}
 
-        <BotonAcceso
-          cargando={enCurso === 'formulario'}
-          textoCargando={t('login.entrando')}
-          disabled={enCurso === 'demo'}
-        >
-          {t('login.entrar')}
-        </BotonAcceso>
+        <form className="space-y-4" onSubmit={enviar} noValidate>
+          <div className="space-y-1.5">
+            <label htmlFor="login-email" className="block text-[13px] leading-5 font-medium text-ink-700">
+              {t('login.email')}
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden="true" />
+              <Input
+                ref={emailRef}
+                id="login-email"
+                type="email"
+                autoComplete="username"
+                placeholder={t('login.emailPlaceholder')}
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                aria-invalid={Boolean(
+                  error && (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())),
+                )}
+                className="h-12 rounded-[10px] pl-10 text-[15px]"
+                required
+              />
+            </div>
+          </div>
 
-        {/* FE-001: Google real (ID token verificado por el backend); sin
-            VITE_GOOGLE_CLIENT_ID no se muestra. */}
-        <GoogleAuthSection onIdToken={loginConGoogle} onExito={irAlPanel} />
-      </form>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="login-password" className="block text-[13px] leading-5 font-medium text-ink-700">
+                {t('login.password')}
+              </label>
+              <Link
+                to="/recuperar-contrasena"
+                className="rounded-sm text-[13px] font-medium text-marca-texto transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+              >
+                {t('login.olvidastePassword')}
+              </Link>
+            </div>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden="true" />
+              <Input
+                ref={passwordRef}
+                id="login-password"
+                type={mostrarPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="h-12 rounded-[10px] pl-10 pr-12 text-[15px]"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-cream-200/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:right-1 sm:size-9 sm:pointer-coarse:size-10"
+                aria-label={t(mostrarPassword ? 'login.ocultarPassword' : 'login.mostrarPassword')}
+                aria-pressed={mostrarPassword}
+                onClick={() => setMostrarPassword((visible) => !visible)}
+              >
+                {mostrarPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </div>
 
-      {/* Los roles de demostración quedan a la vista: nadie debe buscarlos en un menú. */}
-      {mostrarDemo && (
-        <DemoRoleGrid
-          onSelectRole={entrarDemo}
-          cargandoGeneral={enCurso === 'formulario'}
-          className="acceso-demo"
-        />
-      )}
+          {error && (
+            <p
+              role="alert"
+              className="flex items-start gap-2.5 rounded-(--radius-field) bg-critical-tint px-3 py-2.5 text-sm leading-5 text-critical ring-1 ring-inset ring-critical/25 animate-fade"
+            >
+              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {error}
+            </p>
+          )}
 
-      {/* FE-004: no hay autorregistro; las cuentas las crea el administrador. */}
-      <p className="acceso-nota">{t('login.cuentasAdministrador')}</p>
+          <button
+            type="submit"
+            disabled={cargando}
+            className="coldcare-primary-action flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] px-4 text-[15px] font-semibold disabled:cursor-wait disabled:opacity-70"
+          >
+            {cargando ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                <span>{t('login.entrando')}</span>
+              </>
+            ) : (
+              <>
+                <span>{t('login.entrar')}</span>
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </>
+            )}
+          </button>
+
+          {/* FE-001: Google real (ID token verificado por el backend); sin
+              VITE_GOOGLE_CLIENT_ID no se muestra. */}
+          <GoogleAuthSection onIdToken={loginConGoogle} onExito={irAlPanel} />
+
+          {/* FE-004: no hay autorregistro; las cuentas las crea el administrador. */}
+          <p className="text-center text-xs leading-5 text-faint">{t('login.cuentasAdministrador')}</p>
+        </form>
+
+        {/* Demo roles stay in view; users should not have to discover a hidden menu. */}
+        {mostrarDemo && (
+          <DemoRoleGrid
+            onSelectRole={entrarDemo}
+            cargandoGeneral={cargando}
+            className="mt-8 border-t border-border pt-7"
+          />
+        )}
+      </div>
     </AuthShell>
   )
 }

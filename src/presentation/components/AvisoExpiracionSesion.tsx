@@ -8,8 +8,10 @@ import { formatearRestante, useExpiracionSesion } from '@/application/hooks/useE
 import { marcarSesionExpirada } from '@/infrastructure/auth/avisoSesion'
 
 /**
- * FS5: aviso de que el JWT está a punto de caducar. Es una pieza flotante y no un
- * diálogo: bloquear la pantalla cuando quedan minutos para guardar sería contraproducente.
+ * FS5 — banda de aviso cuando el JWT está a punto de caducar.
+ *
+ * Se muestra fija arriba y no como diálogo: bloquear la pantalla justo cuando
+ * al usuario le quedan minutos para guardar sería contraproducente.
  */
 export function AvisoExpiracionSesion() {
   const { t } = useTranslation()
@@ -32,7 +34,7 @@ export function AvisoExpiracionSesion() {
     <div
       role="status"
       aria-live="polite"
-      className="aviso-sesion animate-fade"
+      className="sticky top-0 z-40 flex items-center justify-center gap-2 border-b border-honey-600/25 bg-honey-100 px-4 py-2 text-[13px] text-honey-700 animate-rise"
     >
       <Clock className="size-3.5 shrink-0" aria-hidden />
       <span>{t('sesion.porExpirar', { restante: formatearRestante(restanteMs) })}</span>

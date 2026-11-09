@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
-import { LayoutGroup, motion, useReducedMotion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { SearchX } from 'lucide-react'
+import { ChartSpline, FilterX, SearchX } from 'lucide-react'
 
 import { useHistorial, type FiltrosHistorial } from '@/application/hooks/useHistorial'
 import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
@@ -10,100 +9,75 @@ import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { fechaHora } from '@/lib/formato'
+import { fechaCorta, fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
 import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
+import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
-import { BarraFiltros, type FiltroActivo } from '../components/ui/barra-filtros'
+import { RiskBadge } from '../components/RiskBadge'
 import { Button } from '../components/ui/button'
-import { Detalles } from '../components/ui/detalles'
-import { Indicador, Indicadores } from '../components/ui/indicadores'
-import { Campo, Input, NativeSelect } from '../components/ui/input'
-import { Segmentado } from '../components/ui/segmentado'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog'
+import { Input, Label, NativeSelect } from '../components/ui/input'
+import { Panel } from '../components/ui/panel'
 import { SelectorFecha } from '../components/ui/selector-fecha'
-import { TituloPagina } from '../components/ui/titulo-pagina'
 import {
-  agruparPorDia,
-  claveDeDia,
-  dentroDeVentana,
-  filtrosDeAtajo,
-  notaDelResumen,
-  resumir,
-  resumirPeriodo,
-  ventanaDe,
-  type Atajo,
-  type Periodo,
-} from './historial/agrupar'
-import { EvidenciaLectura } from './historial/EvidenciaLectura'
-import { FraseHistorial } from './historial/FraseHistorial'
-import { LecturasDelDia } from './historial/LecturasDelDia'
-import { transicionPieza } from './historial/movimiento'
-import { ResumenDias } from './historial/ResumenDias'
-import './historial/historial.css'
+  Table,
+  TableBody,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table'
 
 const FILTROS_INICIALES: FiltrosHistorial = {}
-const ATAJOS: Atajo[] = ['24h', 'hoy', 'ayer', '7d']
 
-const ALTO_CURVA = 'clamp(220px, 50dvh, 620px)'
+// Ocho columnas: bajo 1280 px el relleno lateral se ciñe para que quepan.
+const RELLENO = 'sm:px-2 xl:px-4'
+// Lectura principal (fecha, equipo, temperatura interna y riesgo) en primer
+// plano; ambiente, humedad, puerta y origen quedan en segundo plano.
+const SECUNDARIA = 'nums text-[13px] text-muted'
 
-const iguales = (a: FiltrosHistorial, b: FiltrosHistorial) =>
-  a.device_id === b.device_id && a.riesgo_efectivo === b.riesgo_efectivo && a.desde === b.desde && a.hasta === b.hasta
+/** Fecha arriba y hora debajo: ninguna de las dos se parte al estrechar la columna. */
+function FechaYHora({ iso }: { iso: string | null }) {
+  if (!iso || Number.isNaN(new Date(iso).getTime())) return <>{fechaHora(iso)}</>
+  return (
+    <>
+      <span className="block whitespace-nowrap font-medium text-foreground">{fechaCorta(iso)}</span>
+      <span className="mt-0.5 block whitespace-nowrap text-[12px] text-faint">{hora(iso)}</span>
+    </>
+  )
+}
 
-function porClaveDeDia(lecturas: LecturaTermica[]) {
-  const mapa = new Map<string, LecturaTermica[]>()
-  for (const lectura of lecturas) {
-    const clave = claveDeDia(lectura.timestamp)
-    const lista = mapa.get(clave)
-    if (lista) lista.push(lectura)
-    else mapa.set(clave, [lectura])
-  }
-  return mapa
+/** La cifra solo toma color cuando la lectura pide atención; la columna de riesgo lo dice en texto. */
+const CIFRA_RIESGO: Record<string, string> = {
+  riesgo_preventivo: 'text-honey-700',
+  excursion_critica: 'text-critical',
 }
 
 export function HistorialPage() {
   const { t } = useTranslation()
-  const reducir = useReducedMotion()
   const { lecturas, cargando, errorCarga, consultar } = useHistorial()
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
-
-  // Lo escrito en el panel y lo que está consultado: los chips muestran solo lo segundo.
+  // La lista completa puede tener miles de filas; solo se pinta la página
+  // visible. Al cambiar la lista (filtro nuevo) se vuelve a la primera.
+  const visibles = useMemo(
+    () => lecturas.slice(...rangoPagina(pagina, tamanoPagina)),
+    [lecturas, pagina, tamanoPagina],
+  )
   const [filtros, setFiltros] = useState<FiltrosHistorial>(FILTROS_INICIALES)
-  const [aplicados, setAplicados] = useState<FiltrosHistorial>(FILTROS_INICIALES)
-  // «24 horas» no filtra en el backend: recorta lo que llega. Los demás atajos piden su periodo.
-  const [periodo, setPeriodo] = useState<Periodo>('24h')
-  const [ahora, setAhora] = useState(() => Date.now())
   // HU-36 criterio 3: el rango inválido se bloquea en el FRONTEND antes de
-  // consultar: la validación del backend (422) sigue existiendo para una
+  // consultar — la validación del backend (422) sigue existiendo para una
   // llamada directa a la API, pero no es la única barrera.
   const [errorRango, setErrorRango] = useState<string | null>(null)
-
   const [lecturaDetalle, setLecturaDetalle] = useState<string | null>(null)
   const [evidencia, setEvidencia] = useState<EvidenciaInferencia | null>(null)
   const [cargandoEvidencia, setCargandoEvidencia] = useState(false)
   const [errorEvidencia, setErrorEvidencia] = useState(false)
-
-  // ── Lo que responde la pregunta: la ventana del periodo ─────────────────
-  const ventana = useMemo(() => ventanaDe(periodo, aplicados, ahora), [periodo, aplicados, ahora])
-  const enVentana = useMemo(() => dentroDeVentana(lecturas, ventana), [lecturas, ventana])
-  const resumenPeriodo = useMemo(() => resumirPeriodo(lecturas, enVentana, ventana, ahora), [lecturas, enVentana, ventana, ahora])
-  // Si en la ventana no hay nada, la curva y los días muestran lo último que llegó; la frase ya lo dice.
-  const delPeriodo = enVentana.length > 0 ? enVentana : lecturas
-  const diasDelPeriodo = useMemo(
-    () => [...porClaveDeDia(delPeriodo)].map(([clave, delDia]) => ({ clave, lecturas: delDia })),
-    [delPeriodo],
-  )
-
-  // ── Todas las lecturas cargadas, plegadas ───────────────────────────────
-  // La lista completa puede tener miles de filas; solo se pinta la página
-  // visible. Al cambiar la lista (filtro nuevo) se vuelve a la primera.
-  const visibles = useMemo(() => lecturas.slice(...rangoPagina(pagina, tamanoPagina)), [lecturas, pagina, tamanoPagina])
-  const dias = useMemo(() => agruparPorDia(visibles), [visibles])
-  // Lo del día completo, no solo de esta página: la cifra no cambia al paginar.
-  const porDia = useMemo(() => porClaveDeDia(lecturas), [lecturas])
-  const resumen = useMemo(() => resumir(lecturas), [lecturas])
 
   const abrirEvidencia = async (lectura: LecturaTermica) => {
     if (!lectura.id) return
@@ -120,68 +94,32 @@ export function HistorialPage() {
     }
   }
 
-  const aplicar = (siguientes: FiltrosHistorial) => {
-    if (siguientes.desde && siguientes.hasta && new Date(siguientes.desde) > new Date(siguientes.hasta)) {
-      setErrorRango(t('historial.rangoInvalido'))
-      return
-    }
-    setErrorRango(null)
-    if (iguales(siguientes, aplicados)) return
-    setAplicados(siguientes)
-    setAhora(Date.now())
-    setPagina(1)
-    void consultar(siguientes)
+  const actualizarFiltro = (campo: keyof FiltrosHistorial, valor: string) => {
+    setFiltros((previos) => ({ ...previos, [campo]: valor || undefined }))
   }
-
-  // Una lista y un calendario ya son una decisión: se aplican al elegir, con la curva detrás del panel.
-  const elegir = (campo: keyof FiltrosHistorial, valor: string) => {
-    const siguientes = { ...filtros, [campo]: valor || undefined }
-    if (campo === 'desde' || campo === 'hasta') setPeriodo(siguientes.desde || siguientes.hasta ? 'personalizado' : '24h')
-    setFiltros(siguientes)
-    aplicar(siguientes)
-  }
-
-  const elegirAtajo = (atajo: Periodo) => {
-    if (atajo === 'personalizado') return
-    const siguientes = { ...filtros, ...filtrosDeAtajo(atajo) }
-    if (atajo === '24h') {
-      delete siguientes.desde
-      delete siguientes.hasta
-    }
-    setPeriodo(atajo)
-    setFiltros(siguientes)
-    setAhora(Date.now())
-    aplicar(siguientes)
-  }
-
-  const quitar = (campo: keyof FiltrosHistorial) => elegir(campo, '')
 
   const limpiar = () => {
     setFiltros(FILTROS_INICIALES)
     setErrorRango(null)
-    setAplicados(FILTROS_INICIALES)
-    setPeriodo('24h')
-    setAhora(Date.now())
-    setPagina(1)
     void consultar(FILTROS_INICIALES)
   }
 
-  const fechaChip = (valor: string) => fechaHora(new Date(valor).toISOString())
-  const activos: FiltroActivo[] = [
-    aplicados.device_id && { id: 'equipo', etiqueta: aplicados.device_id, onQuitar: () => quitar('device_id') },
-    aplicados.riesgo_efectivo && { id: 'riesgo', etiqueta: t(`riesgo.${aplicados.riesgo_efectivo}`), onQuitar: () => quitar('riesgo_efectivo') },
-    // Con un atajo elegido, sus fechas ya se ven en el control de periodo.
-    periodo === 'personalizado' && aplicados.desde && { id: 'desde', etiqueta: `${t('historial.desde')} ${fechaChip(aplicados.desde)}`, onQuitar: () => quitar('desde') },
-    periodo === 'personalizado' && aplicados.hasta && { id: 'hasta', etiqueta: `${t('historial.hasta')} ${fechaChip(aplicados.hasta)}`, onQuitar: () => quitar('hasta') },
-  ].filter((filtro): filtro is FiltroActivo => Boolean(filtro))
+  const aplicarFiltros = () => {
+    if (filtros.desde && filtros.hasta && new Date(filtros.desde) > new Date(filtros.hasta)) {
+      setErrorRango(t('historial.rangoInvalido'))
+      return
+    }
+    setErrorRango(null)
+    void consultar(filtros)
+  }
 
   // HU-36 criterio 1: la gráfica necesita orden cronológico ascendente; el
   // backend devuelve el historial en orden descendente (más reciente primero).
   const tema = useTemaResuelto()
-  const serieGrafica = useMemo(() => [...delPeriodo].reverse(), [delPeriodo])
+  const serieGrafica = useMemo(() => [...lecturas].reverse(), [lecturas])
   const opcionHistorial = useMemo(
     () =>
-      // HU-36 criterio 1: la misma consulta filtrada alimenta la gráfica y la lista.
+      // HU-36 criterio 1: la misma consulta filtrada alimenta la gráfica y la tabla.
       construirOpcionCurvaTermica(serieGrafica, {
         interna: t('dashboard.tempInterna'),
         ambiental: t('dashboard.tempAmbiental'),
@@ -194,208 +132,240 @@ export function HistorialPage() {
     [serieGrafica, t, tema],
   )
 
-  const cargaInicial = cargando && lecturas.length === 0
-  const conDatos = !errorCarga && lecturas.length > 0
-  // Filtrado por nivel, la cobertura y los huecos no se pueden leer de lo que llega: no se anotan.
-  const nota = conDatos && !aplicados.riesgo_efectivo ? notaDelResumen(resumenPeriodo, t) : null
-  const transicion = transicionPieza(reducir)
-
   return (
-    <div className="flex flex-1 flex-col">
-      <TituloPagina
-        antetitulo={t('nav.seccionOperacion')}
-        descripcion={t('historial.descripcion')}
-        className="mb-3 sm:mb-4"
-        titulo={
-          conDatos ? (
-            <>
-              {/* El nombre de la pantalla, para quien no ve la navegación; el espacio va fuera para que cuente. */}
-              <span className="sr-only">{`${t('historial.titulo')}:`}</span>{' '}
-              <span className={cn('block transition-opacity duration-(--duration-ui)', cargando && 'opacity-60')}>
-                <FraseHistorial
-                  resumen={resumenPeriodo}
-                  periodo={periodo}
-                  riesgo={aplicados.riesgo_efectivo}
-                  cantidad={enVentana.length}
-                />
-              </span>
-            </>
-          ) : (
-            t('historial.titulo')
-          )
-        }
-      />
-      {nota && <p className="historial-nota">{nota}</p>}
+    <div className="space-y-4">
+      <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('historial.titulo')} descripcion={t('historial.descripcion')} />
 
-      {/* ── Periodo a un toque; lo demás, en la barra compacta ──────────────── */}
-      <div className="historial-controles">
-        <Segmentado<Periodo>
-          etiqueta={t('historial.periodo')}
-          valor={periodo}
-          onCambiar={elegirAtajo}
-          opciones={ATAJOS.map((atajo) => ({ valor: atajo, etiqueta: t(`historial.atajos.${atajo}`) }))}
-          className="max-sm:w-full max-sm:[&>button]:flex-1"
-          botonClassName="max-[359px]:px-2"
-        />
-        <BarraFiltros titulo={t('historial.filtros')} activos={activos} onLimpiar={limpiar}>
-          <form
-            className="contents"
-            onSubmit={(evento) => {
-              evento.preventDefault()
-              aplicar(filtros)
-            }}
-          >
-            <Campo etiqueta={t('historial.codigoEquipo')} htmlFor="f-device">
-              <Input
-                id="f-device"
-                value={filtros.device_id ?? ''}
-                onChange={(e) => setFiltros((previos) => ({ ...previos, device_id: e.target.value || undefined }))}
-                onBlur={() => aplicar(filtros)}
-                placeholder={t('historial.codigoEquipoEjemplo')}
-              />
-            </Campo>
-            <Campo etiqueta={t('historial.nivelRiesgo')} htmlFor="f-riesgo">
-              <NativeSelect id="f-riesgo" value={filtros.riesgo_efectivo ?? ''} onChange={(e) => elegir('riesgo_efectivo', e.target.value)}>
-                <option value="">{t('historial.todosNiveles')}</option>
-                {NIVELES_RIESGO.map((nivel) => (
-                  <option key={nivel} value={nivel}>
-                    {t(`riesgo.${nivel}`)}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Campo>
-            <Campo etiqueta={t('historial.desde')} htmlFor="f-desde">
-              <SelectorFecha
-                id="f-desde"
-                conHora
-                valor={filtros.desde ?? ''}
-                onCambiar={(valor) => elegir('desde', valor)}
-                invalido={errorRango !== null}
-                aria-describedby={errorRango ? 'f-hasta-error' : undefined}
-              />
-            </Campo>
-            <Campo etiqueta={t('historial.hasta')} htmlFor="f-hasta">
-              <SelectorFecha
-                id="f-hasta"
-                conHora
-                valor={filtros.hasta ?? ''}
-                onCambiar={(valor) => elegir('hasta', valor)}
-                invalido={errorRango !== null}
-                aria-describedby={errorRango ? 'f-hasta-error' : undefined}
-              />
-            </Campo>
-            {errorRango && (
-              <p id="f-hasta-error" role="alert" className="rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] leading-5 text-critical sm:col-span-2">
-                {errorRango}
-              </p>
-            )}
-            <Button type="submit" variant="secondary" className="sm:col-span-2">
+      {/* ── Filtros: una sola barra (apilada en móvil) ─────────── */}
+      <Card className="p-4 sm:p-5">
+        <p id="titulo-filtros-historial" className="sr-only">
+          {t('historial.filtros')}
+        </p>
+        <form
+          aria-labelledby="titulo-filtros-historial"
+          className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1.15fr)_minmax(0,1.15fr)_auto]"
+          onSubmit={(e) => {
+            e.preventDefault()
+            aplicarFiltros()
+          }}
+        >
+          <div>
+            <Label htmlFor="f-device">{t('historial.codigoEquipo')}</Label>
+            <Input
+              id="f-device"
+              value={filtros.device_id ?? ''}
+              onChange={(e) => actualizarFiltro('device_id', e.target.value)}
+              placeholder={t('historial.codigoEquipoEjemplo')}
+            />
+          </div>
+          <div>
+            <Label htmlFor="f-riesgo">{t('historial.nivelRiesgo')}</Label>
+            <NativeSelect
+              id="f-riesgo"
+              value={filtros.riesgo_efectivo ?? ''}
+              onChange={(e) => actualizarFiltro('riesgo_efectivo', e.target.value)}
+            >
+              <option value="">{t('historial.todosNiveles')}</option>
+              {NIVELES_RIESGO.map((nivel) => (
+                <option key={nivel} value={nivel}>
+                  {t(`riesgo.${nivel}`)}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          <div>
+            <Label htmlFor="f-desde">{t('historial.desde')}</Label>
+            <SelectorFecha
+              id="f-desde"
+              conHora
+              valor={filtros.desde ?? ''}
+              onCambiar={(valor) => actualizarFiltro('desde', valor)}
+              invalido={errorRango !== null}
+              aria-describedby={errorRango ? 'historial-error-rango' : undefined}
+            />
+          </div>
+          <div>
+            <Label htmlFor="f-hasta">{t('historial.hasta')}</Label>
+            <SelectorFecha
+              id="f-hasta"
+              conHora
+              valor={filtros.hasta ?? ''}
+              onCambiar={(valor) => actualizarFiltro('hasta', valor)}
+              invalido={errorRango !== null}
+              aria-describedby={errorRango ? 'historial-error-rango' : undefined}
+            />
+          </div>
+          <div className="flex gap-2 sm:col-span-2 sm:justify-end xl:col-span-1">
+            <Button type="submit" className="flex-1 sm:flex-none">
               {t('historial.aplicar')}
             </Button>
-          </form>
-        </BarraFiltros>
-      </div>
-
-      {errorCarga ? (
-        <EstadoError mensaje={t('historial.errorCargar')} onReintentar={() => void consultar(aplicados)} />
-      ) : !cargando && lecturas.length === 0 ? (
-        <EstadoVacio icono={SearchX} titulo={t('historial.sinResultados')} llenar>
-          {activos.length > 0 && (
-            <Button variant="secondary" size="sm" onClick={limpiar}>
+            <Button variant="ghost" className="text-muted hover:text-foreground" onClick={limpiar}>
+              <FilterX aria-hidden />
               {t('historial.limpiar')}
             </Button>
-          )}
-        </EstadoVacio>
-      ) : (
-        <>
-          {/* ── HU-36 criterio 1: la misma consulta alimenta la curva y las lecturas ──── */}
-          <section
-            id="historial-grafica"
-            aria-labelledby="historial-grafica-titulo"
-            aria-busy={cargando || undefined}
-            className={cn('curva-historial', cargando && !cargaInicial && 'opacity-60')}
+          </div>
+        </form>
+        {errorRango && (
+          <p
+            id="historial-error-rango"
+            role="alert"
+            className="mt-3 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] text-critical"
           >
-            <h2 id="historial-grafica-titulo" className="mb-3 px-1 text-[15px] leading-6 font-semibold text-foreground sm:mb-4">
-              {t('dashboard.curvaTermica')}
-            </h2>
-            {cargaInicial ? (
-              <div aria-hidden className="esqueleto rounded-(--radius-field)" style={{ height: ALTO_CURVA }} />
-            ) : (
-              <EChartWrapper
-                option={opcionHistorial}
-                height={ALTO_CURVA}
-                ariaLabel={t('dashboard.graficaEtiqueta', { n: serieGrafica.length })}
-                ariaDescribedBy="historial-datos-tabla"
-              />
-            )}
-          </section>
+            {errorRango}
+          </p>
+        )}
+      </Card>
 
-          {cargaInicial ? (
-            <div
-              id="historial-datos-tabla"
-              role="region"
-              aria-label={t('historial.titulo')}
-              aria-busy
-              className="mt-[clamp(28px,4vw,44px)] min-w-0"
-            >
-              <EstadoCarga texto={t('historial.cargando')} variant="tabla" />
-            </div>
-          ) : (
-            <LayoutGroup>
-              {/* ── Día por día: solo lo que salió del rango, a la vista ──────── */}
-              <ResumenDias dias={diasDelPeriodo} onVerEvidencia={(lectura) => void abrirEvidencia(lectura)} />
-
-              {/* ── Todas las lecturas, plegadas: nadie tiene que leer 200 filas ── */}
-              <motion.div layout="position" transition={transicion}>
-                <Detalles
-                  className="historial-todas"
-                  titulo={
-                    <span className="historial-todas__titulo">
-                      {t('historial.verTodas')}
-                      <span className="nums ml-2 font-medium text-muted">{lecturas.length}</span>
-                    </span>
-                  }
-                >
-                  <div className="pb-2">
-                    <Indicadores className="mb-6 max-sm:grid max-sm:grid-cols-2">
-                      {resumen.maxima !== null && <Indicador etiqueta={t('historial.maxima')} valor={resumen.maxima.toFixed(1)} unidad="°C" />}
-                      {resumen.minima !== null && <Indicador etiqueta={t('historial.minima')} valor={resumen.minima.toFixed(1)} unidad="°C" />}
-                      <Indicador etiqueta={t('historial.fueraDeRango')} valor={resumen.fueraDeRango} tono={resumen.fueraDeRango > 0 ? 'critico' : 'neutro'} />
-                      <Indicador etiqueta={t('historial.lecturas')} valor={resumen.total} />
-                    </Indicadores>
-                    <div
-                      id="historial-datos-tabla"
-                      role="region"
-                      aria-label={t('historial.titulo')}
-                      aria-busy={cargando || undefined}
-                      className="min-w-0"
-                    >
-                      {dias.map((dia, indice) => (
-                        <LecturasDelDia
-                          key={dia.clave}
-                          dia={dia}
-                          todas={porDia.get(dia.clave) ?? dia.lecturas}
-                          mostrarCabecera={indice === 0}
-                          onVerEvidencia={(lectura) => void abrirEvidencia(lectura)}
-                        />
-                      ))}
-                      <Paginacion total={lecturas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
-                    </div>
-                  </div>
-                </Detalles>
-              </motion.div>
-            </LayoutGroup>
-          )}
-        </>
+      {/* ── HU-36 criterio 1: la misma consulta alimenta la gráfica ──── */}
+      {lecturas.length > 0 && !errorCarga && (
+        <Panel
+          id="historial-grafica"
+          icono={ChartSpline}
+          titulo={t('dashboard.curvaTermica')}
+          descripcion={`${t('dashboard.ultimasLecturas', { n: serieGrafica.length })} · ${t('dashboard.rangoConservacion')}`}
+          cuerpoClassName="p-3 sm:p-5"
+        >
+          <div aria-busy={cargando || undefined}>
+            <EChartWrapper
+              option={opcionHistorial}
+              height="clamp(220px, 28vh, 280px)"
+              ariaLabel={t('dashboard.graficaEtiqueta', { n: serieGrafica.length })}
+              ariaDescribedBy="historial-datos-tabla"
+            />
+          </div>
+        </Panel>
       )}
 
-      <EvidenciaLectura
-        lecturaId={lecturaDetalle}
-        evidencia={evidencia}
-        cargando={cargandoEvidencia}
-        error={errorEvidencia}
-        onCerrar={() => setLecturaDetalle(null)}
-      />
+      {/* ── Lecturas ────────────────────────────────────────── */}
+      <div id="historial-datos-tabla">
+        {errorCarga ? (
+          <EstadoError mensaje={t('historial.errorCargar')}>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar(filtros)}>
+              {t('comunes.reintentar')}
+            </Button>
+          </EstadoError>
+        ) : !cargando && lecturas.length === 0 ? (
+          <EstadoVacio icono={SearchX} titulo={t(filtros.desde || filtros.hasta ? 'historial.sinDatosRango' : 'historial.sinResultados')} />
+        ) : (
+          <>
+            <Table mobileLayout="stack" className="min-w-0" titulo={t('historial.titulo')} cargando={cargando}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className={cn('w-36', RELLENO)}>{t('historial.fecha')}</TableHead>
+                  <TableHead className={cn('w-32', RELLENO)}>{t('historial.codigoEquipo')}</TableHead>
+                  <TableHead className={cn('w-28 text-right', RELLENO)}>{t('historial.tempInterna')}</TableHead>
+                  <TableHead className={cn('w-44', RELLENO)}>{t('historial.riesgo')}</TableHead>
+                  <TableHead className={cn('w-28 text-right', RELLENO)}>{t('historial.tempAmbiental')}</TableHead>
+                  <TableHead className={cn('w-24 text-right', RELLENO)}>{t('historial.humedad')}</TableHead>
+                  <TableHead className={cn('w-20 text-center', RELLENO)}>{t('historial.puerta')}</TableHead>
+                  <TableHead className={cn('w-32 text-right', RELLENO)}>{t('historial.evidenciaModelo')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {cargando ? (
+                  <TableEmpty colSpan={8}>
+                    <EstadoCarga texto={t('historial.cargando')} className="py-0" />
+                  </TableEmpty>
+                ) : (
+                  visibles.map((lectura) => (
+                    <TableRow key={lectura.id}>
+                      <TableCell data-label={t('historial.fecha')} className={cn('nums text-[13px] leading-5', RELLENO)}>
+                        <FechaYHora iso={lectura.timestamp} />
+                      </TableCell>
+                      <TableCell data-label={t('historial.codigoEquipo')} className={cn('whitespace-nowrap', RELLENO)}>
+                        <span className="nums text-[13px] text-ink-700">
+                          {lectura.device_id}
+                        </span>
+                      </TableCell>
+                      <TableCell data-label={t('historial.tempInterna')} className={cn('nums whitespace-nowrap text-right', RELLENO)}>
+                        <span className="inline-flex items-baseline gap-1">
+                          <span className={cn('text-[16px] font-semibold tracking-[-0.02em] text-foreground', lectura.riesgo_efectivo && CIFRA_RIESGO[lectura.riesgo_efectivo])}>{lectura.temperatura_interna?.toFixed(1) ?? '—'}</span>
+                          <span className="text-[12px] font-medium text-muted">°C</span>
+                        </span>
+                      </TableCell>
+                      {/* En móvil el riesgo encabeza la ficha de cada lectura, a lo ancho. */}
+                      <TableCell data-label={t('historial.riesgo')} className={cn('mobile-full max-sm:order-first', RELLENO)}>
+                        {/* HU-34: el historial también debe mostrar el riesgo
+                            EFECTIVO, no la clase cruda de la IA. */}
+                        <RiskBadge nivel={lectura.riesgo_efectivo} />
+                      </TableCell>
+                      <TableCell data-label={t('historial.tempAmbiental')} className={cn(SECUNDARIA, 'whitespace-nowrap text-right', RELLENO)}>
+                        {lectura.temperatura_ambiental?.toFixed(1) ?? '—'} °C
+                      </TableCell>
+                      <TableCell data-label={t('historial.humedad')} className={cn(SECUNDARIA, 'whitespace-nowrap text-right', RELLENO)}>
+                        {lectura.humedad_ambiental?.toFixed(0) ?? '—'} %
+                      </TableCell>
+                      <TableCell data-label={t('historial.puerta')} className={cn('text-center', RELLENO)}>
+                        {/* HU-35 criterio 4: si el dato de puerta no está disponible, null no es
+                            "cerrada" — se marca aparte para no fingir un dato. */}
+                        {/* En texto: un icono de puerta solo no se entiende de un vistazo. */}
+                        <span className="inline-flex w-full justify-start text-[13px] sm:justify-center">
+                          {lectura.apertura_refrigerador === null ? (
+                            <span role="img" className="text-faint" title={t('dashboard.puertaSinSensor')} aria-label={t('dashboard.puertaSinSensor')}>—</span>
+                          ) : lectura.apertura_refrigerador ? (
+                            <span className="font-medium text-honey-700">{t('dashboard.puertaAbierta')}</span>
+                          ) : (
+                            <span className="text-muted">{t('dashboard.puertaCerrada')}</span>
+                          )}
+                        </span>
+                      </TableCell>
+                      <TableCell data-label={t('historial.evidenciaModelo')} className={cn('text-right', RELLENO)}>
+                        {/* Discreto en la tabla; en la ficha táctil conserva el borde de botón. */}
+                        <Button variant="ghost" size="sm" className="text-muted hover:text-marca-texto max-sm:border max-sm:border-border-strong" disabled={!lectura.id} onClick={() => void abrirEvidencia(lectura)}>
+                          {t('historial.verEvidencia')}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            <Paginacion total={lecturas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+          </>
+        )}
+      </div>
+
+      <Dialog open={lecturaDetalle !== null} onOpenChange={(abierto) => !abierto && setLecturaDetalle(null)}>
+        <DialogContent>
+          <DialogTitle>{t('historial.evidenciaTitulo')}</DialogTitle>
+          <DialogDescription className="break-all">{t('historial.idLectura')}: {lecturaDetalle}</DialogDescription>
+          {cargandoEvidencia ? (
+            <p role="status" className="mt-4 text-sm text-muted">{t('app.cargando')}</p>
+          ) : errorEvidencia ? (
+            <p role="alert" className="mt-4 rounded-lg bg-critical-tint px-3 py-2 text-sm text-critical">{t('historial.evidenciaNoDisponible')}</p>
+          ) : evidencia && (
+            <div className="mt-4 space-y-4">
+              {evidencia.datos_simulados && <p className="rounded-lg border border-critical/20 bg-critical-tint px-3 py-2 text-xs leading-relaxed text-critical">{t('historial.evidenciaDemo')}</p>}
+              <dl className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.claseModelo')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.model_class ? t(`riesgo.${evidencia.model_class}`) : t('historial.sinInferencia')}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.riesgoEfectivo')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.effective_risk ? t(`riesgo.${evidencia.effective_risk}`) : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.versionModelo')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.model_version ?? '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.estadoInferencia')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.inference_status ? t(`historial.inferencia.${evidencia.inference_status}`) : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.fechaInferencia')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.inference_at ? fechaHora(evidencia.inference_at) : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.horizonteModelo')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.horizon_min != null ? `${evidencia.horizon_min} min` : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.esquemaCaracteristicas')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.feature_schema_version ?? '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.politicaOperativa')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.operating_policy ? t(`historial.politica.${evidencia.operating_policy}`) : '—'}</dd></div>
+              </dl>
+              <div>
+                <h3 className="mb-2 text-sm font-semibold">{t('historial.variablesEntrada')}</h3>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
+                  {Object.entries(evidencia.feature_vector).map(([nombre, valor]) => <div key={nombre}><dt className="text-muted">{t(`metricasIA.variables.${nombre}`, { defaultValue: nombre.replaceAll('_', ' ') })}</dt><dd className="nums font-medium">{valor == null ? '—' : typeof valor === 'boolean' ? (valor ? t('comunes.si') : t('comunes.no')) : valor}</dd></div>)}
+                </dl>
+              </div>
+              {evidencia.probabilities && (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold">{t('historial.probabilidadesEjemplo')}</h3>
+                  <div className="space-y-2">
+                    {Object.entries(evidencia.probabilities).map(([clase, probabilidad]) => <div key={clase} className="grid grid-cols-[1fr_auto] gap-3 text-xs"><span>{t(`riesgo.${clase}`)}</span><span className="nums font-semibold">{(probabilidad * 100).toFixed(1)}%</span><div className="col-span-2 h-1.5 rounded-full bg-border"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, probabilidad * 100))}%` }} /></div></div>)}
+                  </div>
+                </div>
+              )}
+              <p className="border-t border-border pt-3 text-xs leading-relaxed text-muted">{t('historial.reglaDeterminista')}: {evidencia.excursion_confirmada ? t('dashboard.excursionConfirmada') : t('historial.sinExcursion')}</p>
+            </div>
+          )}
+          <div className="mt-4 flex justify-end"><Button variant="ghost" onClick={() => setLecturaDetalle(null)}>{t('comunes.cerrar')}</Button></div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

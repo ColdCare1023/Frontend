@@ -9,8 +9,9 @@ interface OpcionSegmento<T> {
 }
 
 /**
- * Control segmentado: elige una opción de `opciones` y el indicador se desliza hasta
- * ella. Es un `group` con nombre y botones `aria-pressed`, alcanzables con Tab.
+ * Control segmentado con indicador que se desliza a la opción activa (patrón
+ * «Animated Tabs», 21st.dev). Conserva la semántica previa de las pantallas:
+ * un `group` con nombre y botones `aria-pressed`, alcanzables con Tab.
  */
 export function Segmentado<T extends string | number>({
   opciones,
@@ -31,10 +32,11 @@ export function Segmentado<T extends string | number>({
   const reducir = useReducedMotion()
 
   return (
+    // Carril sólido con un filo interior: sin el filtro de refracción, que se recalculaba en cada cambio.
     <div
       role="group"
       aria-label={etiqueta}
-      className={cn('relative inline-flex max-w-full items-center gap-0.5 rounded-xl bg-cream-200 p-1', className)}
+      className={cn('relative inline-flex items-center gap-0.5 rounded-xl bg-surface-sunken p-1 ring-1 ring-inset ring-border', className)}
     >
       {opciones.map((opcion) => {
         const activo = opcion.valor === valor
@@ -45,7 +47,7 @@ export function Segmentado<T extends string | number>({
             aria-pressed={activo}
             onClick={() => onCambiar(opcion.valor)}
             className={cn(
-              'relative h-11 min-w-0 cursor-pointer whitespace-nowrap rounded-lg px-3.5 text-[13px] font-medium focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11',
+              'relative h-11 min-w-0 cursor-pointer whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:h-8 sm:pointer-coarse:h-10',
               activo ? 'text-foreground' : 'text-muted hover:text-foreground',
               botonClassName,
             )}
@@ -55,7 +57,7 @@ export function Segmentado<T extends string | number>({
                 layoutId={`segmento-${id}`}
                 aria-hidden
                 transition={reducir ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 40, mass: 0.7 }}
-                className="absolute inset-0 rounded-lg bg-surface-raised shadow-(--shadow-card) dark:bg-white/16 dark:ring-1 dark:ring-white/20"
+                className="absolute inset-0 rounded-lg bg-surface-raised shadow-[0_1px_2px_rgb(0_0_0/0.25),0_4px_12px_-6px_rgb(0_0_0/0.4)] ring-1 ring-inset ring-border-strong"
               />
             )}
             <span className="relative">{opcion.etiqueta}</span>

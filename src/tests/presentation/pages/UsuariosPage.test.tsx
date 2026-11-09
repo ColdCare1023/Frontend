@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -9,7 +9,6 @@ const useUsuarios = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useUsuarios', () => ({ useUsuarios }))
 
 import { UsuariosPage } from '@/presentation/pages/UsuariosPage'
-import { iniciales } from '@/presentation/pages/usuarios/personas'
 
 function usuario(over: Partial<Usuario> = {}): Usuario {
   return {
@@ -160,116 +159,5 @@ describe('UsuariosPage — contraseñas temporales (FE-004)', () => {
 
     expect(asignarTemporal).toHaveBeenCalledWith('u-2', 'reactivar')
     expect(await screen.findByTestId('password-temporal')).toHaveTextContent('Otra-temporal-9')
-  })
-})
-
-describe('UsuariosPage — rediseño: personas y permisos por perfil', () => {
-  beforeEach(() => {
-    useUsuarios.mockReset()
-    useAuthStore.setState({ usuario: null, autenticado: false })
-  })
-
-  it('cada persona es una fila con sus iniciales, su rol y su estado', () => {
-    montar([usuario({ nombre: 'Ana María Ríos', email: 'ana@upc.pe', rol: 'auditor' })])
-
-    const fila = screen.getByRole('row', { name: /Ana María Ríos/ })
-    expect(within(fila).getByText('AM')).toBeInTheDocument()
-    expect(within(fila).getByText('ana@upc.pe')).toBeInTheDocument()
-    expect(within(fila).getByText('Auditor')).toBeInTheDocument()
-    expect(within(fila).getByText('Activo')).toBeInTheDocument()
-  })
-
-  it('una cuenta desactivada enseña el motivo a la vista, no solo al lector de pantalla', () => {
-    montar([usuario({ nombre: 'Baja Dos', is_active: false, motivo_desactivacion: 'renuncia' })])
-
-    const fila = screen.getByRole('row', { name: /Baja Dos/ })
-    expect(within(fila).getByText('Inactivo')).toBeInTheDocument()
-    expect(within(fila).getByText(/Renuncia/)).toBeVisible()
-  })
-
-  it('avisa de la contraseña temporal pendiente', () => {
-    montar([usuario({ debe_cambiar_password: true })])
-    expect(screen.getByText('Contraseña temporal')).toHaveAttribute('title', expect.stringMatching(/cambiarla al ingresar/))
-  })
-
-  it('una frase dice cuántas personas tienen acceso, sin cuatro indicadores', () => {
-    montar([usuario(), usuario({ id: 'u-2', is_active: false, rol: 'administrador' })])
-
-    const frase = screen.getByText(/persona con acceso · 1 cuenta desactivada$/)
-    // La cifra rueda: el lector de pantalla la lee una vez, entera.
-    expect(within(frase).getByText('1', { selector: '.sr-only' })).toBeInTheDocument()
-    expect(screen.queryByRole('term')).toBeNull()
-  })
-
-  it('los permisos tienen su propia vista y salen de la misma lista que arma el menú', async () => {
-    montar([usuario()])
-    const user = userEvent.setup()
-    expect(screen.queryByRole('table', { name: 'Qué puede ver cada perfil' })).toBeNull()
-
-    await user.click(screen.getByRole('button', { name: 'Permisos' }))
-
-    // Primero, qué puede hacer cada rol en una frase; la tabla de pantallas queda a un clic.
-    expect(screen.getByText(/Solo mira: temperaturas, reportes y quién hizo qué/)).toBeInTheDocument()
-    const verTabla = screen.getByRole('button', { name: 'Ver pantalla por pantalla' })
-    expect(verTabla).toHaveAttribute('aria-expanded', 'false')
-    await user.click(verTabla)
-    const tabla = screen.getByRole('table', { name: 'Qué puede ver cada perfil' })
-    const accesos = (pantalla: string) =>
-      within(within(tabla).getByRole('row', { name: new RegExp(`^${pantalla}`) }))
-        .getAllByRole('cell')
-        .map((celda) => celda.textContent)
-    const si = 'Con acceso'
-    const no = 'Sin acceso'
-    // Orden de columnas: administrador, farmacéutico, técnico, auditor.
-    expect(accesos('Usuarios')).toEqual([si, no, no, no])
-    expect(accesos('Auditoría')).toEqual([si, no, no, si])
-    expect(accesos('Reportes')).toEqual([si, si, no, si])
-    expect(accesos('Inicio')).toEqual([si, si, si, si])
-    // Cada perfil dice cuántas pantallas abre.
-    expect(within(tabla).getByText('10 pantallas')).toBeInTheDocument()
-    expect(within(tabla).getByText('5 pantallas')).toBeInTheDocument()
-    // Al volver, las personas siguen ahí.
-    await user.click(screen.getByRole('button', { name: 'Personas' }))
-    expect(screen.getByText('Usuaria Prueba')).toBeInTheDocument()
-  })
-
-  it('al crear, dice qué abrirá el rol elegido y conserva las validaciones del formulario', async () => {
-    montar([usuario()])
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }))
-
-    expect(screen.getByText(/Verá 5 de 10 pantallas/)).toBeInTheDocument()
-    await user.selectOptions(screen.getByLabelText('Rol'), 'administrador')
-    expect(screen.getByText(/Verá 10 de 10 pantallas/)).toBeInTheDocument()
-
-    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('minlength', '8')
-    expect(screen.getByLabelText('Contraseña')).toBeRequired()
-    expect(screen.getByLabelText('Celular (opcional)')).toHaveAttribute('pattern', '^\\+[1-9][0-9]{7,14}$')
-    expect(screen.getByLabelText('Celular (opcional)')).not.toBeRequired()
-  })
-
-  it('carga, vacío y error se distinguen', () => {
-    useUsuarios.mockReturnValue({ usuarios: [], cargando: true })
-    const { unmount } = render(<UsuariosPage />)
-    expect(screen.getByRole('status')).toHaveTextContent(/cargando/i)
-    expect(screen.queryByText('No hay usuarios registrados.')).toBeNull()
-    unmount()
-
-    montar([])
-    expect(screen.getByText('No hay usuarios registrados.')).toBeInTheDocument()
-    cleanup()
-
-    montar([], { errorCarga: true })
-    expect(screen.getByRole('alert')).toHaveTextContent('No se pudieron cargar las cuentas.')
-    expect(screen.queryByText('No hay usuarios registrados.')).toBeNull()
-  })
-})
-
-describe('iniciales', () => {
-  it('toma dos palabras con letras y respeta acentos', () => {
-    expect(iniciales('Técnico Demo 2')).toBe('TD')
-    expect(iniciales('Ángel')).toBe('Á')
-    expect(iniciales('  ñandú   ñu  ')).toBe('ÑÑ')
-    expect(iniciales('')).toBe('')
   })
 })

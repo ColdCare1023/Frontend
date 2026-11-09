@@ -1,26 +1,23 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleAlert, Download, Eye } from 'lucide-react'
+import { Bell, ClipboardList, Download, FileDown, FileSearch, FileText, Link2 } from 'lucide-react'
 
-import { useReportesBPA, MAX_DIAS_RANGO_REPORTE, diasDeRango, type ReporteBPA } from '@/application/hooks/useReportesBPA'
+import { useReportesBPA, MAX_DIAS_RANGO_REPORTE, diasDeRango } from '@/application/hooks/useReportesBPA'
+import { fechaCorta, fechaISOlocal } from '@/lib/formato'
 import { cn } from '@/lib/utils'
-import { BarraFiltros, type FiltroActivo } from '../components/ui/barra-filtros'
+import { EstadoVacio } from '../components/EstadoPagina'
+import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
 import { Detalles } from '../components/ui/detalles'
-import { Campo, Input } from '../components/ui/input'
+import { Input, Label } from '../components/ui/input'
+import { Panel } from '../components/ui/panel'
 import { SelectorFecha } from '../components/ui/selector-fecha'
-import { TituloPagina } from '../components/ui/titulo-pagina'
-import { AccionConstancia, type FaseConstancia } from './reportes/AccionConstancia'
-import { HojaReporte } from './reportes/HojaReporte'
-import { diaLocal, hoyISO, mismoPedido, type PedidoReporte } from './reportes/periodo'
-import './reportes/hoja-reporte.css'
 
-type Formato = 'pdf' | 'csv' | 'json'
-
-/** Una descarga que espera a que la hoja esté al día. `base` es la hoja que había al pedirla. */
-interface Encargo {
-  formato: Formato
-  base: ReporteBPA | null
+function hoyISO(desplazamientoDias = 0): string {
+  const fecha = new Date()
+  fecha.setDate(fecha.getDate() + desplazamientoDias)
+  return fechaISOlocal(fecha)
 }
 
 export function ReportesPage() {
@@ -28,25 +25,9 @@ export function ReportesPage() {
   const { reporte, generando, error, descargandoPdf, generar, descargarJson, descargarCsv, descargarPdf } =
     useReportesBPA()
 
-  // El periodo más pedido ya elegido: el último mes, hasta hoy.
   const [desde, setDesde] = useState(hoyISO(-30))
   const [hasta, setHasta] = useState(hoyISO())
   const [deviceId, setDeviceId] = useState('')
-  const actual: PedidoReporte = { desde, hasta, equipo: deviceId }
-  // Lo último enviado y lo que trajo la hoja que se ve: la hoja no se reescribe sola si luego cambia
-  // el periodo, y si una generación falla sigue siendo la del pedido anterior.
-  const [enviado, setEnviado] = useState<PedidoReporte | null>(null)
-  const [pedido, setPedido] = useState<PedidoReporte | null>(null)
-  const [reporteVisto, setReporteVisto] = useState(reporte)
-  if (reporte !== reporteVisto) {
-    setReporteVisto(reporte)
-    setPedido(enviado)
-  }
-
-  const [encargo, setEncargo] = useState<Encargo | null>(null)
-  // El último PDF que llegó a descargarse: el botón se vuelve su resultado mientras el periodo sea ese.
-  const [pdfDescargado, setPdfDescargado] = useState<PedidoReporte | null>(null)
-  if (error && pdfDescargado) setPdfDescargado(null)
 
   // El periodo se mide y se muestra antes de enviar nada: el backend rechaza
   // con 400 los rangos invertidos y los de más de 366 días, y además el
@@ -74,197 +55,141 @@ export function ReportesPage() {
             ? t('reportes.errorCuota')
             : t('reportes.errorGenerar')
 
-  const hojaDesactualizada = reporte !== null && pedido !== null && !mismoPedido(pedido, actual)
-  const hojaAlDia = reporte !== null && !hojaDesactualizada
-
-  const generarReporte = () => {
-    if (rangoInvalido) return
-    setEnviado(actual)
-    void generar(desde, hasta, deviceId || undefined)
-  }
-
-  const bajarPdf = async () => {
-    const solicitado = actual
-    setPdfDescargado(null)
-    await descargarPdf(desde, hasta, deviceId || undefined)
-    setPdfDescargado(solicitado)
-  }
-
-  const entregar = (formato: Formato) => {
-    if (formato === 'pdf') void bajarPdf()
-    else if (formato === 'csv') descargarCsv()
-    else descargarJson()
-  }
-
-  // Un solo gesto: si la hoja no está al día, primero se llena y después se descarga lo pedido.
-  const pedir = (formato: Formato) => {
-    if (rangoInvalido) return
-    if (hojaAlDia) {
-      entregar(formato)
-      return
-    }
-    setEncargo({ formato, base: reporte })
-    generarReporte()
-  }
-
-  // La entrega usa las descargas del hook con la hoja recién llegada: se lee siempre la última.
-  const entregarConLoUltimo = useRef(entregar)
-  useLayoutEffect(() => {
-    entregarConLoUltimo.current = entregar
-  })
-  useEffect(() => {
-    if (!encargo || generando) return
-    // La hoja no se pudo llenar: no se descarga nada, el aviso de error ya está a la vista.
-    if (error) {
-      setEncargo(null)
-      return
-    }
-    if (reporte === encargo.base) return
-    setEncargo(null)
-    entregarConLoUltimo.current(encargo.formato)
-  }, [encargo, generando, error, reporte])
-
-  const fase: FaseConstancia = descargandoPdf
-    ? 'descargando'
-    : generando || encargo
-      ? 'preparando'
-      : mismoPedido(pdfDescargado, actual) && !error
-        ? 'listo'
-        : 'reposo'
-  const ocupado = fase === 'preparando' || fase === 'descargando'
-  const activos: FiltroActivo[] = deviceId
-    ? [{ id: 'equipo', etiqueta: deviceId, onQuitar: () => setDeviceId('') }]
-    : []
-
   return (
-    <div className="reportes">
-      {/* ── La constancia y el gesto que la entrega ──────────────────────── */}
-      <div className="reportes__accion">
-        <TituloPagina
-          antetitulo={t('nav.seccionCumplimiento')}
-          descripcion={t('reportes.descripcion')}
-          className="mb-4 sm:mb-5"
-          titulo={
-            <>
-              <span className="sr-only">{`${t('reportes.titulo')}:`}</span>{' '}
-              <span className="reportes__titulo">{t('reportes.constancia')}</span>
-            </>
-          }
-        />
+    // Mismo marco que el resto de pantallas: título a tamaño completo y secciones con aire.
+    <div className="space-y-4">
+      <PageHeader eyebrow={t('nav.seccionCumplimiento')} titulo={t('reportes.titulo')} descripcion={t('reportes.descripcion')} />
 
-        <h2 id="reportes-rango-titulo" className="sr-only">{t('reportes.rango')}</h2>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <p
-            id="reportes-periodo"
-            role={errorPeriodo ? 'alert' : 'status'}
-            className={cn('nums text-[15px] leading-6', errorPeriodo ? 'font-medium text-critical' : 'text-foreground')}
-          >
-            {errorPeriodo ??
-              (periodoCompleto
-                ? t('reportes.periodoDias', { count: dias + 1, desde: diaLocal(desde), hasta: diaLocal(hasta) })
-                : null)}
-          </p>
-          <BarraFiltros titulo={t('reportes.periodoYEquipo')} activos={activos} onLimpiar={() => setDeviceId('')}>
-            <form
-              aria-labelledby="reportes-rango-titulo"
-              className="contents"
-              onSubmit={(e) => {
-                e.preventDefault()
-                generarReporte()
-              }}
-            >
-              <Campo etiqueta={t('reportes.desde')} htmlFor="r-desde">
-                <SelectorFecha
-                  id="r-desde"
-                  valor={desde}
-                  onCambiar={setDesde}
-                  invalido={!desde || errorPeriodo !== null}
-                  aria-describedby="reportes-periodo"
-                />
-              </Campo>
-              <Campo etiqueta={t('reportes.hasta')} htmlFor="r-hasta">
-                <SelectorFecha
-                  id="r-hasta"
-                  valor={hasta}
-                  onCambiar={setHasta}
-                  invalido={!hasta || errorPeriodo !== null}
-                  aria-describedby="reportes-periodo"
-                />
-              </Campo>
-              {/* En la hoja inferior el aviso de la barra queda tapado: aquí se repite a la vista. */}
-              {errorPeriodo && <p aria-hidden className="text-[13px] leading-5 text-critical sm:col-span-2">{errorPeriodo}</p>}
-              <Campo etiqueta={t('reportes.dispositivo')} htmlFor="r-device" className="sm:col-span-2">
-                <Input
-                  id="r-device"
-                  value={deviceId}
-                  onChange={(e) => setDeviceId(e.target.value)}
-                  placeholder={t('reportes.codigoEquipoEjemplo')}
-                />
-              </Campo>
-              {/* Enter en un campo llena la hoja, sin descargar nada. */}
-              <button type="submit" aria-hidden tabIndex={-1} className="sr-only" />
-            </form>
-          </BarraFiltros>
-        </div>
-
-        <div className="mt-5 flex flex-col items-stretch gap-3 sm:items-start">
-          <AccionConstancia
-            fase={fase}
-            deshabilitado={rangoInvalido || ocupado}
-            archivo={`reporte-bpa-${desde}-${hasta}.pdf`}
-            onDescargar={() => pedir('pdf')}
-          />
-          {hojaDesactualizada && fase !== 'preparando' && (
-            <p role="status" className="max-w-[46ch] text-[13.5px] leading-5 font-medium text-honey-700">
-              {t('reportes.periodoCambiado')}
-            </p>
-          )}
-          {mensajeError && (
-            <p role="alert" className="flex max-w-[52ch] items-start gap-2.5 rounded-(--radius-card) border border-critical/30 bg-surface px-4 py-3 text-[13px] leading-5 font-medium text-critical">
-              <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-              {mensajeError}
-            </p>
-          )}
-          <p className="max-w-[46ch] text-[13px] leading-5 text-muted">{t('reportes.vista.pie')}</p>
-        </div>
-
-        {/* ── Lo de segundo plano: ver sin descargar, CSV y JSON ─────────────── */}
-        <Detalles
-          className="reportes__otros"
-          titulo={<span className="text-[15px] font-semibold text-foreground">{t('reportes.otrosFormatos')}</span>}
+      {/* ── Periodo, equipo y generación en una sola barra ──── */}
+      <Card className="p-4 sm:p-5">
+        <h2 id="reportes-rango-titulo" className="text-[15px] font-semibold tracking-tight text-foreground">
+          {t('reportes.rango')}
+        </h2>
+        <form
+          aria-labelledby="reportes-rango-titulo"
+          className="mt-4 grid grid-cols-1 items-end gap-3 min-[420px]:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto]"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (rangoInvalido) return
+            void generar(desde, hasta, deviceId || undefined)
+          }}
         >
+          <div>
+            <Label htmlFor="r-desde">{t('reportes.desde')}</Label>
+            <SelectorFecha
+              id="r-desde"
+              valor={desde}
+              onCambiar={setDesde}
+              invalido={!desde || errorPeriodo !== null}
+              aria-describedby="reportes-periodo"
+            />
+          </div>
+          <div>
+            <Label htmlFor="r-hasta">{t('reportes.hasta')}</Label>
+            <SelectorFecha
+              id="r-hasta"
+              valor={hasta}
+              onCambiar={setHasta}
+              invalido={!hasta || errorPeriodo !== null}
+              aria-describedby="reportes-periodo"
+            />
+          </div>
+          <div className="min-[420px]:col-span-2 lg:col-span-1">
+            <Label htmlFor="r-device">{t('reportes.dispositivo')}</Label>
+            <Input
+              id="r-device"
+              value={deviceId}
+              onChange={(e) => setDeviceId(e.target.value)}
+              placeholder={t('reportes.codigoEquipoEjemplo')}
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full min-[420px]:col-span-2 lg:col-span-1 lg:w-auto lg:min-w-40"
+            disabled={generando || rangoInvalido}
+          >
+            <FileText />
+            {generando ? t('reportes.generando') : t('reportes.generar')}
+          </Button>
+        </form>
+
+        <p
+          id="reportes-periodo"
+          role={errorPeriodo ? 'alert' : 'status'}
+          className={cn('nums mt-2 text-xs', errorPeriodo ? 'text-critical' : 'text-faint')}
+        >
+          {errorPeriodo ?? (periodoCompleto ? t('reportes.periodoDias', { count: dias + 1 }) : null)}
+        </p>
+
+        {mensajeError && (
+          <p role="alert" className="mt-3 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] text-critical">
+            {mensajeError}
+          </p>
+        )}
+      </Card>
+
+      {/* ── Resumen y descargas ─────────────────────────────── */}
+      {reporte === null ? (
+        <EstadoVacio icono={FileSearch} titulo={t('reportes.sinReporte')} detalle={t('reportes.sinReporteDetalle')} />
+      ) : (
+        <Panel
+          id="reportes-resumen"
+          icono={FileText}
+          titulo={t('reportes.resumen')}
+          descripcion={
+            <span className="nums break-words">
+              {fechaCorta(reporte.fecha_desde)} — {fechaCorta(reporte.fecha_hasta)}
+              {reporte.device_id && ` · ${reporte.device_id}`}
+            </span>
+          }
+        >
+          <dl className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
+            {(
+              [
+                ['reportes.lecturas', reporte.lecturas.length, ClipboardList],
+                ['reportes.alertas', reporte.alertas.length, Bell],
+                ['reportes.registrosTrazabilidad', reporte.registros_trazabilidad.length, Link2],
+              ] as const
+            ).map(([clave, cantidad, Icono]) => (
+              <div
+                key={clave}
+                className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-surface-sunken/70 px-4 py-3.5 ring-1 ring-inset ring-border min-[420px]:flex-col min-[420px]:items-start min-[420px]:justify-start min-[420px]:gap-2"
+              >
+                <dt className="flex items-center gap-2 text-[13px] font-medium text-muted">
+                  <Icono aria-hidden className="size-3.5 text-secondary" />
+                  {t(clave)}
+                </dt>
+                <dd className="nums text-[30px] leading-9 font-semibold tracking-[-0.03em] text-foreground">{cantidad}</dd>
+              </div>
+            ))}
+          </dl>
+
           {/* Los tres formatos que exige RF-13. El reporte es apoyo para
               revisión: no reemplaza registros ni documentos oficiales. */}
-          <div className="grid gap-2 pb-1 min-[400px]:grid-cols-2">
-            <Button variant="secondary" disabled={rangoInvalido || ocupado} cargando={encargo?.formato === 'csv'} onClick={() => pedir('csv')}>
-              {encargo?.formato !== 'csv' && <Download />}
+          <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:flex-wrap sm:items-center">
+            <Button
+              size="sm"
+              className="w-full sm:w-auto"
+              disabled={descargandoPdf || rangoInvalido}
+              onClick={() => void descargarPdf(desde, hasta, deviceId || undefined)}
+            >
+              <FileDown />
+              {descargandoPdf ? t('reportes.generandoPdf') : t('reportes.descargarPdf')}
+            </Button>
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={descargarCsv}>
+              <Download />
               {t('reportes.descargarCsv')}
             </Button>
-            <Button variant="secondary" disabled={rangoInvalido || ocupado} cargando={encargo?.formato === 'json'} onClick={() => pedir('json')}>
-              {encargo?.formato !== 'json' && <Download />}
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto" onClick={descargarJson}>
+              <Download />
               {t('reportes.descargarJson')}
             </Button>
-            <Button
-              variant="ghost"
-              className="min-[400px]:col-span-2 min-[400px]:justify-start"
-              disabled={rangoInvalido || ocupado}
-              onClick={generarReporte}
-            >
-              <Eye />
-              {hojaAlDia ? t('reportes.actualizarHoja') : t('reportes.verEnPantalla')}
-            </Button>
           </div>
-          <div className="space-y-2 pt-2 pb-2 text-xs leading-5 text-muted">
-            <p>{t('reportes.notaFormatos')}</p>
-            <p>{t('reportes.notaPdf')}</p>
-          </div>
-        </Detalles>
-      </div>
-
-      {/* ── La hoja: la protagonista ───────────────────────────────────────── */}
-      <div className="reportes__hoja">
-        <HojaReporte reporte={reporte} desde={desde} hasta={hasta} equipo={deviceId} generando={generando} />
-      </div>
+          <Detalles className="mt-2">
+            <p className="max-w-[72ch] text-xs leading-5 text-muted">{t('reportes.notaFormatos')}</p>
+          </Detalles>
+        </Panel>
+      )}
     </div>
   )
 }

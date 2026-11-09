@@ -1,38 +1,46 @@
 import { useMemo, useState } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
-import { RotateCw, UserPlus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { KeyRound, RotateCcw, ShieldCheck, UserPlus, UserX, Users } from 'lucide-react'
 
 import { useUsuarios } from '@/application/hooks/useUsuarios'
 import { useAuthStore } from '@/application/stores/authStore'
+import type { MotivoDesactivacion, PasswordTemporal, Usuario } from '@/domain/entities/Usuario'
+import { MOTIVOS_DESACTIVACION } from '@/domain/entities/Usuario'
+import { ROLES, type Rol } from '@/domain/value-objects/Rol'
 import { rangoPagina } from '@/lib/paginacion'
-import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
-import { EstadoError } from '../components/EstadoPagina'
-import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
+import { ActionMenu } from '../components/ActionMenu'
+import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
+import { PageHeader } from '../components/PageHeader'
+import { CifrasResumen } from './compartido/CifrasResumen'
+import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Segmentado } from '../components/ui/segmentado'
-import { DialogosPersona } from './usuarios/DialogosPersona'
-import { EsqueletoPersonas, FilaPersona } from './usuarios/FilaPersona'
-import { CELDA, REJILLA_FILA } from './usuarios/personas'
-import { PermisosPorPerfil } from './usuarios/PermisosPorPerfil'
-import { BloqueVacio, CifraFrase, FrasePantalla } from './usuarios/piezas'
-import { useAccionesPersonas } from './usuarios/useAccionesPersonas'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog'
+import { Input, Label, NativeSelect } from '../components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table'
 
-type Vista = 'personas' | 'permisos'
+type MensajeDialogo = { tipo: 'ok' | 'error'; texto: string } | null
 
-const CABECERA_FILA = 'text-[12.5px] leading-4 font-medium text-muted'
+const FORM_INICIAL = { nombre: '', email: '', telefono: '', password: '', rol: 'tecnico' as Rol }
+
+/** «Farmacéutica Demo» → «FD»: las dos primeras iniciales del nombre. */
+function iniciales(nombre: string): string {
+  const partes = nombre.trim().split(/\s+/).filter(Boolean)
+  return (partes.slice(0, 2).map((p) => p.charAt(0)).join('') || '?').toUpperCase()
+}
 
 export function UsuariosPage() {
   const { t } = useTranslation()
-  const estado = useUsuarios()
-  const { usuarios, cargando } = estado
-  // useUsuarios todavía no distingue un fallo de una lista vacía; la pantalla ya lo atiende.
-  const errorCarga = 'errorCarga' in estado && estado.errorCarga === true
-  const a = useAccionesPersonas(estado)
+  const { usuarios, cargando, crear, desactivar, cambiarRol, asignarTemporal } = useUsuarios()
   const sesion = useAuthStore((s) => s.usuario)
-  const [vista, setVista] = useState<Vista>('personas')
-
   // HU-41: nunca puede quedar el sistema sin un administrador activo.
   const administradoresActivos = useMemo(
     () => usuarios.filter((u) => u.rol === 'administrador' && u.is_active).length,
@@ -47,94 +55,481 @@ export function UsuariosPage() {
     [usuarios, pagina, tamanoPagina],
   )
 
-  // Sin cuentas, el gesto es el bloque grande de la vista de personas.
-  const sinUsuarios = vista === 'personas' && !cargando && !errorCarga && usuarios.length === 0
+  const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const [form, setForm] = useState(FORM_INICIAL)
+  const [creando, setCreando] = useState(false)
+  const [mensaje, setMensaje] = useState<MensajeDialogo>(null)
 
-  // Una frase en lugar de cuatro indicadores: cuántas personas pueden entrar hoy.
-  const conAcceso = usuarios.filter((u) => u.is_active).length
-  const desactivadas = usuarios.length - conAcceso
+  const [usuarioDesactivar, setUsuarioDesactivar] = useState<Usuario | null>(null)
+  const [motivoDesactivacion, setMotivoDesactivacion] = useState<MotivoDesactivacion>(MOTIVOS_DESACTIVACION[0])
+  const [desactivando, setDesactivando] = useState(false)
+  const [mensajeDesactivacion, setMensajeDesactivacion] = useState<MensajeDialogo>(null)
+
+  // HU-41 criterio 1: cambiar el rol de un usuario YA existente, no solo
+  // fijarlo al crearlo.
+  const [usuarioCambiarRol, setUsuarioCambiarRol] = useState<Usuario | null>(null)
+  const [rolNuevo, setRolNuevo] = useState<Rol>('tecnico')
+  const [cambiandoRol, setCambiandoRol] = useState(false)
+  const [mensajeCambioRol, setMensajeCambioRol] = useState<MensajeDialogo>(null)
+
+  // FE-004: restablecer contraseña / reactivar. La contraseña temporal solo
+  // vive en este estado mientras su diálogo está abierto.
+  const [temporalPendiente, setTemporalPendiente] = useState<{
+    usuario: Usuario
+    accion: 'restablecer-password' | 'reactivar'
+  } | null>(null)
+  const [temporalEmitida, setTemporalEmitida] = useState<PasswordTemporal | null>(null)
+  const [procesandoTemporal, setProcesandoTemporal] = useState(false)
+  const [errorTemporal, setErrorTemporal] = useState<string | null>(null)
+  const [temporalCopiada, setTemporalCopiada] = useState(false)
+
+  const cerrarTemporal = () => {
+    setTemporalPendiente(null)
+    setTemporalEmitida(null)
+    setErrorTemporal(null)
+    setTemporalCopiada(false)
+  }
+
+  const confirmarTemporal = async () => {
+    if (!temporalPendiente) return
+    setProcesandoTemporal(true)
+    setErrorTemporal(null)
+    const resultado = await asignarTemporal(temporalPendiente.usuario.id, temporalPendiente.accion)
+    setProcesandoTemporal(false)
+    if (resultado) setTemporalEmitida(resultado)
+    else setErrorTemporal(t('comunes.error'))
+  }
+
+  const copiarTemporal = async () => {
+    if (!temporalEmitida) return
+    try {
+      await navigator.clipboard.writeText(temporalEmitida.password_temporal)
+      setTemporalCopiada(true)
+    } catch {
+      setTemporalCopiada(false)
+    }
+  }
+
+  const enviarCambioRol = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!usuarioCambiarRol) return
+    setCambiandoRol(true)
+    setMensajeCambioRol(null)
+    const resultado = await cambiarRol(usuarioCambiarRol.id, rolNuevo)
+    setCambiandoRol(false)
+
+    if (resultado === 'ok') {
+      setMensajeCambioRol({ tipo: 'ok', texto: t('usuarios.rolActualizadoOk') })
+      setTimeout(() => setUsuarioCambiarRol(null), 1000)
+    } else {
+      setMensajeCambioRol({
+        tipo: 'error',
+        texto: resultado === 'conflicto' ? t('usuarios.errorRbac') : t('comunes.error'),
+      })
+    }
+  }
+
+  const enviarDesactivacion = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!usuarioDesactivar) return
+    setDesactivando(true)
+    setMensajeDesactivacion(null)
+    const resultado = await desactivar(usuarioDesactivar.id, motivoDesactivacion)
+    setDesactivando(false)
+
+    if (resultado === 'ok') {
+      setMensajeDesactivacion({ tipo: 'ok', texto: t('usuarios.desactivadoOk') })
+      setTimeout(() => setUsuarioDesactivar(null), 1000)
+    } else {
+      setMensajeDesactivacion({
+        tipo: 'error',
+        texto: resultado === 'conflicto' ? t('usuarios.errorRbac') : t('comunes.error'),
+      })
+    }
+  }
+
+  const enviar = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setCreando(true)
+    setMensaje(null)
+    const resultado = await crear(form.nombre, form.email, form.password, form.rol, form.telefono.trim() || undefined)
+    setCreando(false)
+
+    if (resultado === 'ok') {
+      setMensaje({ tipo: 'ok', texto: t('usuarios.creado') })
+      setTimeout(() => {
+        setDialogoAbierto(false)
+        setForm(FORM_INICIAL)
+        setMensaje(null)
+      }, 1000)
+    } else if (resultado === 'duplicado') {
+      setMensaje({ tipo: 'error', texto: t('usuarios.errorDuplicado') })
+    } else {
+      setMensaje({ tipo: 'error', texto: t('comunes.error') })
+    }
+  }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div>
       <PageHeader eyebrow={t('nav.seccionAdministracion')} titulo={t('usuarios.titulo')} descripcion={t('usuarios.descripcion')}>
-        {/* Sin cuentas, el gesto es el bloque grande de abajo: no hacen falta dos. */}
-        {!sinUsuarios && (
-          <Button onClick={() => a.setDialogoAbierto(true)}>
-            <UserPlus aria-hidden />
-            {t('usuarios.nuevo')}
-          </Button>
-        )}
+        <Button onClick={() => setDialogoAbierto(true)}>
+          <UserPlus />
+          {t('usuarios.nuevo')}
+        </Button>
       </PageHeader>
 
-      <div className="-mt-2 mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 sm:-mt-4 sm:mb-8">
-        <FrasePantalla className="min-h-7">
-          {!cargando && !errorCarga && usuarios.length > 0 && (
-            <>
-              <Trans t={t} i18nKey="usuarios.personasConAcceso" count={conAcceso} components={{ n: <CifraFrase valor={conAcceso} /> }} />
-              {desactivadas > 0 && <> · {t('usuarios.cuentasDesactivadas', { count: desactivadas })}</>}
-            </>
-          )}
-        </FrasePantalla>
-        <Segmentado<Vista>
-          etiqueta={t('usuarios.vistas')}
-          valor={vista}
-          onCambiar={setVista}
-          // En oscuro el riel se hunde: si no, la opción elegida no se distingue de él.
-          className="dark:bg-surface-sunken"
-          botonClassName="px-3 sm:px-3.5"
-          opciones={[
-            { valor: 'personas', etiqueta: t('usuarios.vistaPersonas') },
-            { valor: 'permisos', etiqueta: t('usuarios.vistaPermisos') },
-          ]}
-        />
-      </div>
-
-      {vista === 'permisos' ? (
-        <PermisosPorPerfil />
-      ) : cargando ? (
-        <EsqueletoPersonas />
-      ) : errorCarga ? (
-        <EstadoError mensaje={t('usuarios.errorCargar')}>
-          <Button variant="secondary" size="sm" className="mt-3" onClick={() => window.location.reload()}>
-            <RotateCw aria-hidden />
-            {t('comunes.recargarPagina')}
-          </Button>
-        </EstadoError>
+      {cargando ? (
+        <EstadoCarga />
       ) : usuarios.length === 0 ? (
-        <BloqueVacio
-          titulo={t('usuarios.sinUsuarios')}
-          detalle={t('usuarios.sinUsuariosAyuda')}
-          accion={t('usuarios.nuevo')}
-          onAccion={() => a.setDialogoAbierto(true)}
-        />
+        <EstadoVacio icono={Users} titulo={t('usuarios.sinUsuarios')} />
       ) : (
-        <div className="animate-fade min-w-0">
-          <div role="table" aria-label={t('usuarios.titulo')} className="min-w-0">
-            <div role="row" className={cn('max-md:sr-only border-b border-border-strong pb-2.5 pl-14', REJILLA_FILA)}>
-              <div role="columnheader" className={cn(CABECERA_FILA, CELDA.nombre)}>{t('usuarios.nombre')}</div>
-              <div role="columnheader" className={cn(CABECERA_FILA, 'md:sr-only', CELDA.email)}>{t('usuarios.email')}</div>
-              <div role="columnheader" className={cn(CABECERA_FILA, CELDA.rol)}>{t('usuarios.rol')}</div>
-              <div role="columnheader" className={cn(CABECERA_FILA, CELDA.estado)}>{t('usuarios.estado')}</div>
-              <div role="columnheader" className={cn(CABECERA_FILA, 'text-right', CELDA.opciones)}>{t('comunes.acciones')}</div>
-            </div>
-            {visibles.map((usuario) => (
-              <FilaPersona
-                key={usuario.id}
-                usuario={usuario}
-                esSesion={usuario.id === sesion?.id}
+        <div>
+          <CifrasResumen
+            etiqueta={t('usuarios.resumen')}
+            cifras={[
+              { clave: 'activas', etiqueta: t('usuarios.conAcceso'), valor: usuarios.filter((u) => u.is_active).length, tono: 'vivo' },
+              { clave: 'admins', etiqueta: t('usuarios.administradores'), valor: administradoresActivos },
+              { clave: 'inactivas', etiqueta: t('usuarios.sinAcceso'), valor: usuarios.filter((u) => !u.is_active).length },
+            ]}
+          />
+          <Table mobileLayout="stack" titulo={t('usuarios.titulo')}>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[26%]">{t('usuarios.nombre')}</TableHead>
+                <TableHead className="w-[30%]">{t('usuarios.email')}</TableHead>
+                <TableHead className="w-[18%]">{t('usuarios.rol')}</TableHead>
+                <TableHead className="w-[12%]">{t('usuarios.estado')}</TableHead>
+                <TableHead className="w-[14%] text-right">{t('comunes.acciones')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visibles.map((usuario) => {
                 // HU-41: con un solo administrador activo no se le quita el rol ni se le desactiva.
-                ultimoAdmin={usuario.rol === 'administrador' && administradoresActivos <= 1}
-                onCambiarRol={() => a.abrirCambioRol(usuario)}
-                onDesactivar={() => a.abrirDesactivacion(usuario)}
-                onTemporal={(accion) => a.setTemporalPendiente({ usuario, accion })}
-              />
-            ))}
-          </div>
+                const ultimoAdmin = usuario.rol === 'administrador' && administradoresActivos <= 1
+                return (
+                  <TableRow key={usuario.id}>
+                    <TableCell data-label={t('usuarios.nombre')} className="mobile-full">
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span
+                          aria-hidden
+                          className={
+                            usuario.is_active
+                              ? 'flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-tint text-[13px] font-semibold text-secondary ring-1 ring-inset ring-secondary/20'
+                              : 'flex size-9 shrink-0 items-center justify-center rounded-full bg-cream-200 text-[13px] font-semibold text-faint ring-1 ring-inset ring-border'
+                          }
+                        >
+                          {iniciales(usuario.nombre)}
+                        </span>
+                        <span className="min-w-0 font-semibold tracking-[-0.01em]">{usuario.nombre}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell data-label={t('usuarios.email')} className="mobile-full break-all text-muted">{usuario.email}</TableCell>
+                    <TableCell data-label={t('usuarios.rol')} className="sm:whitespace-nowrap">
+                      <span className="text-[13px] text-ink-700">
+                        {t(`roles.${usuario.rol}`)}
+                      </span>
+                    </TableCell>
+                    <TableCell data-label={t('usuarios.estado')}>
+                      {usuario.is_active ? (
+                        <Badge variant="ok" dot>{t('usuarios.activo')}</Badge>
+                      ) : (
+                        <Badge variant="neutral" dot>
+                          {t('usuarios.inactivo')}
+                          {usuario.motivo_desactivacion && (
+                            <span className="sr-only"> — {usuario.motivo_desactivacion}</span>
+                          )}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell data-label={t('comunes.acciones')} className="mobile-full mobile-actions text-right">
+                      {usuario.is_active && usuario.id === sesion?.id && (
+                        // HU-41 (P8): un administrador no modifica su propia cuenta.
+                        // Misma altura que el botón «Opciones»: todas las filas miden igual.
+                        <span className="inline-flex h-11 items-center text-xs text-muted sm:h-9 sm:pointer-coarse:h-11">{t('usuarios.tuCuenta')}</span>
+                      )}
+                      {usuario.is_active && usuario.id !== sesion?.id && (
+                        <ActionMenu label={usuario.nombre}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('usuarios.cambiarRolA', { nombre: usuario.nombre })}
+                            disabled={ultimoAdmin}
+                            title={ultimoAdmin ? t('usuarios.ultimoAdmin') : undefined}
+                            onClick={() => {
+                              setUsuarioCambiarRol(usuario)
+                              setRolNuevo(usuario.rol)
+                              setMensajeCambioRol(null)
+                            }}
+                          >
+                            <ShieldCheck />
+                            {t('usuarios.cambiarRol')}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            aria-label={t('usuarios.desactivarA', { nombre: usuario.nombre })}
+                            disabled={ultimoAdmin}
+                            title={ultimoAdmin ? t('usuarios.ultimoAdmin') : undefined}
+                            onClick={() => {
+                              setUsuarioDesactivar(usuario)
+                              setMotivoDesactivacion(MOTIVOS_DESACTIVACION[0])
+                              setMensajeDesactivacion(null)
+                            }}
+                          >
+                            <UserX />
+                            {t('usuarios.desactivar')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTemporalPendiente({ usuario, accion: 'restablecer-password' })}
+                          >
+                            <KeyRound />
+                            {t('usuarios.restablecerPassword')}
+                          </Button>
+                        </ActionMenu>
+                      )}
+                      {!usuario.is_active && (
+                        <ActionMenu label={usuario.nombre}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTemporalPendiente({ usuario, accion: 'reactivar' })}
+                          >
+                            <RotateCcw />
+                            {t('usuarios.reactivar')}
+                          </Button>
+                        </ActionMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
           <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
         </div>
       )}
 
-      <DialogosPersona a={a} />
+      {/* ── Diálogo de cambio de rol (HU-41) ────────────────── */}
+      <Dialog open={usuarioCambiarRol !== null} onOpenChange={(abierto) => !abierto && setUsuarioCambiarRol(null)}>
+        <DialogContent>
+          <DialogTitle>{t('usuarios.cambiarRol')}</DialogTitle>
+          <DialogDescription>
+            {t('usuarios.confirmarCambiarRol', { nombre: usuarioCambiarRol?.nombre ?? '' })}
+          </DialogDescription>
+          <form onSubmit={enviarCambioRol} className="mt-4 space-y-3">
+            <div>
+              <Label htmlFor="ur-rol">{t('usuarios.nuevoRol')}</Label>
+              <NativeSelect
+                id="ur-rol"
+                value={rolNuevo}
+                onChange={(e) => setRolNuevo(e.target.value as Rol)}
+              >
+                {ROLES.map((rol) => (
+                  <option key={rol} value={rol}>
+                    {t(`roles.${rol}`)}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+
+            <MensajeFormulario mensaje={mensajeCambioRol} />
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+              <Button variant="ghost" onClick={() => setUsuarioCambiarRol(null)} disabled={cambiandoRol}>
+                {t('usuarios.cancelar')}
+              </Button>
+              <Button type="submit" disabled={cambiandoRol}>
+                {cambiandoRol ? t('usuarios.cambiando') : t('usuarios.cambiarRol')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Diálogo de desactivación (HU-45) ────────────────── */}
+      <Dialog open={usuarioDesactivar !== null} onOpenChange={(abierto) => !abierto && setUsuarioDesactivar(null)}>
+        <DialogContent destructivo>
+          <DialogTitle>{t('usuarios.desactivar')}</DialogTitle>
+          <DialogDescription>
+            {t('usuarios.confirmarDesactivar', { nombre: usuarioDesactivar?.nombre ?? '' })}
+          </DialogDescription>
+          <form onSubmit={enviarDesactivacion} className="mt-4 space-y-3">
+            <div>
+              <Label htmlFor="ud-motivo">{t('usuarios.motivo')}</Label>
+              <NativeSelect
+                id="ud-motivo"
+                value={motivoDesactivacion}
+                onChange={(e) => setMotivoDesactivacion(e.target.value as MotivoDesactivacion)}
+              >
+                {MOTIVOS_DESACTIVACION.map((motivo) => (
+                  <option key={motivo} value={motivo}>
+                    {t(`usuarios.motivos.${motivo}`)}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+
+            <MensajeFormulario mensaje={mensajeDesactivacion} />
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+              <Button variant="ghost" onClick={() => setUsuarioDesactivar(null)} disabled={desactivando}>
+                {t('usuarios.cancelar')}
+              </Button>
+              <Button type="submit" variant="danger" disabled={desactivando}>
+                {desactivando ? t('dispositivos.procesando') : t('dispositivos.confirmar')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── FE-004: contraseña temporal (restablecer / reactivar) ── */}
+      <Dialog open={temporalPendiente !== null} onOpenChange={(abierto) => !abierto && cerrarTemporal()}>
+        <DialogContent>
+          <DialogTitle>
+            {temporalEmitida
+              ? t('usuarios.passwordTemporalTitulo')
+              : t(temporalPendiente?.accion === 'reactivar' ? 'usuarios.reactivar' : 'usuarios.restablecerPassword')}
+          </DialogTitle>
+          <DialogDescription>
+            {temporalEmitida
+              ? t('usuarios.passwordTemporalDetalle', { nombre: temporalPendiente?.usuario.nombre ?? '' })
+              : t(
+                  temporalPendiente?.accion === 'reactivar' ? 'usuarios.reactivarConfirmar' : 'usuarios.restablecerConfirmar',
+                  { nombre: temporalPendiente?.usuario.nombre ?? '' },
+                )}
+          </DialogDescription>
+          {temporalEmitida ? (
+            <div className="mt-4 space-y-3">
+              <code
+                data-testid="password-temporal"
+                className="block break-all rounded-(--radius-field) border border-border bg-secondary-tint px-3 py-2 font-mono text-sm select-all"
+              >
+                {temporalEmitida.password_temporal}
+              </code>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => void copiarTemporal()}>
+                  <KeyRound />
+                  {t(temporalCopiada ? 'usuarios.copiado' : 'usuarios.copiar')}
+                </Button>
+                <Button variant="ghost" onClick={cerrarTemporal}>{t('comunes.cerrar')}</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              <MensajeFormulario mensaje={errorTemporal ? { tipo: 'error', texto: errorTemporal } : null} />
+              <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+                <Button variant="ghost" onClick={cerrarTemporal} disabled={procesandoTemporal}>
+                  {t('usuarios.cancelar')}
+                </Button>
+                <Button onClick={() => void confirmarTemporal()} disabled={procesandoTemporal}>
+                  {procesandoTemporal ? t('dispositivos.procesando') : t('usuarios.confirmar')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Diálogo de creación ─────────────────────────────── */}
+      <Dialog open={dialogoAbierto} onOpenChange={setDialogoAbierto}>
+        <DialogContent>
+          <DialogTitle>{t('usuarios.nuevo')}</DialogTitle>
+          <DialogDescription>{t('usuarios.descripcion')}</DialogDescription>
+          <form onSubmit={enviar} className="mt-4 space-y-3">
+            <div>
+              <Label htmlFor="u-nombre">{t('usuarios.nombre')}</Label>
+              <Input
+                id="u-nombre"
+                required
+                value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="u-email">{t('usuarios.email')}</Label>
+              <Input
+                id="u-email"
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="u-telefono">{t('usuarios.telefono')}</Label>
+              <Input
+                id="u-telefono"
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                placeholder="+51999888777"
+                pattern="^\+[1-9][0-9]{7,14}$"
+                title={t('usuarios.telefonoAyuda')}
+                value={form.telefono}
+                onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted">{t('usuarios.telefonoAyuda')}</p>
+            </div>
+            <div>
+              <Label htmlFor="u-password">{t('usuarios.password')}</Label>
+              <Input
+                id="u-password"
+                type="password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="u-rol">{t('usuarios.rol')}</Label>
+              <NativeSelect
+                id="u-rol"
+                value={form.rol}
+                onChange={(e) => setForm({ ...form, rol: e.target.value as Rol })}
+              >
+                {ROLES.map((rol) => (
+                  <option key={rol} value={rol}>
+                    {t(`roles.${rol}`)}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+
+            <MensajeFormulario mensaje={mensaje} />
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+              <Button variant="ghost" onClick={() => setDialogoAbierto(false)} disabled={creando}>
+                {t('usuarios.cancelar')}
+              </Button>
+              <Button type="submit" disabled={creando}>
+                {creando ? t('usuarios.creando') : t('usuarios.crear')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+/** Resultado de un diálogo: `status` si salió bien, `alert` si falló. */
+function MensajeFormulario({ mensaje }: { mensaje: MensajeDialogo }) {
+  if (!mensaje) return null
+  return (
+    <p
+      role={mensaje.tipo === 'error' ? 'alert' : 'status'}
+      className={
+        mensaje.tipo === 'ok'
+          ? 'rounded-(--radius-field) bg-success-100 px-3 py-2 text-[13px] text-success-700'
+          : 'rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] text-critical'
+      }
+    >
+      {mensaje.texto}
+    </p>
   )
 }

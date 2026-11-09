@@ -20,9 +20,7 @@ export function useHistorial() {
     setCargando(true)
     setErrorCarga(false)
     try {
-      // Más lecturas para que "últimas 24 horas" y "7 días" cubran su periodo. El backend acepta
-      // hasta 5000; si aun así no alcanzan, la pantalla dice desde cuándo hay datos.
-      const params: Record<string, string> = { limite: '1500' }
+      const params: Record<string, string> = { limite: '200' }
       if (filtros.device_id) params.device_id = filtros.device_id
       if (filtros.riesgo_efectivo) params.riesgo_efectivo = filtros.riesgo_efectivo
       if (filtros.desde) params.desde = new Date(filtros.desde).toISOString()

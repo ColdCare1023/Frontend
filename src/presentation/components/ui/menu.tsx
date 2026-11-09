@@ -7,14 +7,13 @@ export const Menu = DropdownMenu.Root
 export const MenuTrigger = DropdownMenu.Trigger
 export const MenuRadioGroup = DropdownMenu.RadioGroup
 
-/** Menú desplegable: `Menu`, `MenuTrigger` y `MenuContent` con `MenuItem`; `tono="noche"` lo hace del negro de las cápsulas. */
+/** Panel flotante compartido por los menús de la barra superior. */
 export function MenuContent({
   className,
   align = 'end',
-  tono = 'superficie',
   children,
   ...props
-}: React.ComponentPropsWithoutRef<typeof DropdownMenu.Content> & { tono?: 'superficie' | 'noche' }) {
+}: React.ComponentPropsWithoutRef<typeof DropdownMenu.Content>) {
   return (
     <DropdownMenu.Portal>
       <DropdownMenu.Content
@@ -22,8 +21,7 @@ export function MenuContent({
         sideOffset={8}
         collisionPadding={12}
         className={cn(
-          'flotante z-50 min-w-48 origin-(--radix-dropdown-menu-content-transform-origin) rounded-(--radius-card) border p-1.5 text-sm text-foreground',
-          tono === 'noche' && 'tema-capsula border-transparent',
+          'cristal z-50 min-w-48 origin-(--radix-dropdown-menu-content-transform-origin) rounded-(--radius-card) border p-1.5 text-sm text-foreground',
           'data-[state=open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)',
           className,
         )}
@@ -36,7 +34,7 @@ export function MenuContent({
 }
 
 const itemBase =
-  'realce flex min-h-11 cursor-pointer select-none items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 sm:min-h-10 sm:pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0'
+  'relative flex min-h-11 cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors duration-(--duration-micro) data-[highlighted]:bg-cream-200/70 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 sm:min-h-9 sm:pointer-coarse:min-h-11 [&_svg]:size-4 [&_svg]:shrink-0'
 
 export function MenuItem({ className, ...props }: React.ComponentPropsWithoutRef<typeof DropdownMenu.Item>) {
   return <DropdownMenu.Item className={cn(itemBase, className)} {...props} />

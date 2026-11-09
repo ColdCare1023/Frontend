@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { abrirOpciones, irA } from './helpers'
+import { abrirOpciones, accionPrimeraFila, irA } from './helpers'
 
 async function entrarComo(page: import('@playwright/test').Page, perfil: string) {
   await page.goto('/login')
@@ -55,8 +55,8 @@ test('admin actualiza dispositivo, consulta historial y registra baja de reempla
   const hoy = new Date()
   await dialogo.getByLabel('Fecha de calibración').fill(hoy.toISOString().slice(0, 10))
   await dialogo.getByLabel('N.° de certificado').fill(`QA-CAL-${Date.now()}`)
-  // B-12: el backend calcula el vencimiento con la vigencia en meses.
-  await dialogo.getByLabel('Vigencia del certificado (meses)').fill('12')
+  // HU-30: el vencimiento sale del certificado.
+  await dialogo.getByLabel('Vencimiento del certificado').fill(`${hoy.getFullYear() + 1}-12-31`)
   await dialogo.getByRole('button', { name: 'Guardar' }).click()
   await expect(dialogo).toBeHidden()
 
@@ -111,19 +111,17 @@ test('farmacéutico revisa alerta y genera reporte', async ({ page }) => {
   await irA(page, '/alertas')
   await page.getByRole('button', { name: 'Todas' }).click()
 
-  // Las acciones van en el detalle del aviso elegido; en escritorio, el primero ya lo está.
-  await page.getByRole('complementary', { name: /^Aviso de/ }).getByRole('button', { name: 'Acción correctiva' }).click()
+  // Las acciones de cada alerta viven en su menú «Opciones» (ActionMenu).
+  await accionPrimeraFila(page, 'Acción correctiva')
   const dialogoAccion = page.getByRole('dialog')
+  await dialogoAccion.getByLabel('Decisión adoptada').fill('Inmovilizar el lote')
+  await dialogoAccion.getByLabel('Justificación').fill('Lectura fuera de rango')
   await dialogoAccion.getByLabel('Descripción de la acción correctiva')
     .fill('Se verificó cierre de puerta en QA demo.')
   await dialogoAccion.getByRole('button', { name: 'Guardar acción' }).click()
   await expect(dialogoAccion.getByRole('status')).toContainText('Acción correctiva registrada.')
 
   await irA(page, '/reportes')
-  // Un solo gesto: llena la hoja y descarga el PDF.
-  const descarga = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Descargar PDF' }).click()
-  expect((await descarga).suggestedFilename()).toMatch(/^reporte-bpa-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.pdf$/)
+  await page.getByRole('button', { name: 'Generar reporte' }).click()
   await expect(page.getByText('Resumen del periodo')).toBeVisible()
-  await expect(page.getByText('Constancia descargada')).toBeVisible()
 })

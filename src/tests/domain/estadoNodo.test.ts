@@ -42,7 +42,7 @@ describe('B-17 / HU-54: umbral de silencio por dispositivo', () => {
 
   it('sin umbral del backend, 3 × el intervalo del nodo', () => {
     expect(umbralSilencioSegundos({ intervalo_reporte_segundos: 60 })).toBe(180)
-    expect(umbralSilencioSegundos(undefined)).toBe(30)
+    expect(umbralSilencioSegundos(undefined)).toBe(90)
   })
 
   it('el historial de incidentes existe en el backend', () => {

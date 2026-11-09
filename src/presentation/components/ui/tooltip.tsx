@@ -5,20 +5,18 @@ import { cn } from '@/lib/utils'
 export const TooltipProvider = TooltipPrimitive.Provider
 
 /**
- * Tooltip accesible: aparece con foco de teclado y con el cursor, se cierra con
- * Escape y no sustituye al nombre accesible del control.
+ * Tooltip accesible (Radix): aparece con foco de teclado y con el cursor, se
+ * cierra con Escape y no sustituye al nombre accesible del control.
  */
 export function Tooltip({
   contenido,
   lado = 'right',
   desactivado = false,
-  className,
   children,
 }: {
   contenido: React.ReactNode
   lado?: 'top' | 'right' | 'bottom' | 'left'
   desactivado?: boolean
-  className?: string
   children: React.ReactElement
 }) {
   if (desactivado) return children
@@ -31,9 +29,8 @@ export function Tooltip({
           sideOffset={10}
           collisionPadding={8}
           className={cn(
-            'flotante z-[70] rounded-md border px-2.5 py-1.5 text-xs font-medium text-foreground',
+            'cristal z-[70] rounded-md border px-2.5 py-1.5 text-xs font-medium text-foreground',
             'data-[state=delayed-open]:animate-(--animate-pop-in) data-[state=instant-open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)',
-            className,
           )}
         >
           {contenido}

@@ -66,7 +66,7 @@ export type OperacionBroker = 'aprovisionar' | 'retirar'
 /** B-16: capacidad real del buffer LittleFS del nodo (300 archivos × 100 lecturas). */
 export const CAPACIDAD_BUFFER_LITTLEFS = 30_000
 /** Intervalo de captura de fábrica del nodo, en segundos. */
-export const INTERVALO_REPORTE_POR_DEFECTO = 10
+export const INTERVALO_REPORTE_POR_DEFECTO = 30
 /** HU-54: ciclos de captura perdidos antes de declarar SIN_DATOS. */
 export const N_INTERVALOS_SIN_DATOS = 3
 

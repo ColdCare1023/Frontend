@@ -16,7 +16,6 @@ export interface FiltrosAuditoria {
 export function useAuditoria() {
   const [registros, setRegistros] = useState<RegistroAuditoria[]>([])
   const [cargando, setCargando] = useState(true)
-  const [errorCarga, setErrorCarga] = useState(false)
 
   const consultar = useCallback(async (filtros: FiltrosAuditoria = {}) => {
     setCargando(true)
@@ -28,11 +27,6 @@ export function useAuditoria() {
       if (filtros.accion) params.accion = filtros.accion
       const { data } = await apiClient.get<RegistroAuditoria[]>('/api/auditoria', { params })
       setRegistros(data)
-      setErrorCarga(false)
-    } catch (error) {
-      setErrorCarga(true)
-      // Quien filtra también se entera: la pantalla decide qué mostrar.
-      if (Object.keys(filtros).length > 0) throw error
     } finally {
       setCargando(false)
     }
@@ -42,5 +36,5 @@ export function useAuditoria() {
     void consultar()
   }, [consultar])
 
-  return { registros, cargando, errorCarga, consultar }
+  return { registros, cargando, consultar }
 }

@@ -1,7 +1,40 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import * as echarts from 'echarts/core'
+import { LineChart } from 'echarts/charts'
+import {
+  GridComponent,
+  TooltipComponent,
+  MarkLineComponent,
+  MarkAreaComponent,
+  MarkPointComponent,
+  LegendComponent,
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import type { EChartsCoreOption } from 'echarts/core'
 
-import { montarGrafica, type EstadoGrafica, type GraficaViva } from './graficaViva'
+/**
+ * Registro explícito de módulos: ECharts solo empaqueta lo que se declara aquí.
+ *
+ * `BarChart`, `GaugeChart` y `DataZoomComponent` estaban registrados pero
+ * ninguna pantalla los usaba —la única gráfica del sistema es la curva térmica
+ * del dashboard, de tipo `line`; las barras de importancias de MetricasIA son
+ * `div` con CSS—. Al declararlos se desactivaba su sacudida de árbol y
+ * viajaban íntegros en el trozo `echarts`, que es lo que se descarga justo
+ * después de iniciar sesión (RNF-10).
+ *
+ * Antes de añadir un tipo de gráfica nuevo hay que registrarlo aquí; si falta,
+ * ECharts no dibuja la serie y no avisa.
+ */
+echarts.use([
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  MarkLineComponent,
+  MarkAreaComponent,
+  MarkPointComponent,
+  LegendComponent,
+  CanvasRenderer,
+])
 
 interface EChartWrapperProps {
   option: EChartsCoreOption
@@ -23,54 +56,45 @@ interface EChartWrapperProps {
 }
 
 /**
- * Wrapper propio sobre Apache ECharts (decisión del stack: se descartó
+ * Wrapper propio sobre Apache ECharts v5 (decisión del stack: se descartó
  * echarts-for-react por incidente de seguridad en npm y peer dependency
- * inestable con React 19).
- *
- * Este archivo no importa ECharts: reserva el alto, muestra un esqueleto y deja que `graficaViva`
- * lo descargue cuando la gráfica va a verse. Con `memo`, el reloj de cada segundo del monitoreo no lo
- * toca; una instancia vive tanto como el componente y cada lectura solo la actualiza.
+ * inestable con React 19). Tree-shaking por módulos + ResizeObserver.
  */
-export const EChartWrapper = memo(function EChartWrapper({
+export function EChartWrapper({
   option,
   height = '300px',
   className = '',
   ariaLabel,
   ariaDescribedBy,
 }: EChartWrapperProps) {
-  const host = useRef<HTMLDivElement>(null)
-  const viva = useRef<GraficaViva | null>(null)
-  const opcionInicial = useRef(option)
-  const [estado, setEstado] = useState<EstadoGrafica>('esperando')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<echarts.ECharts | null>(null)
 
   useEffect(() => {
-    if (!host.current) return
-    const grafica = montarGrafica(host.current, opcionInicial.current, setEstado)
-    viva.current = grafica
+    if (!containerRef.current) return
+    chartRef.current = echarts.init(containerRef.current)
+    const observer = new ResizeObserver(() => chartRef.current?.resize())
+    observer.observe(containerRef.current)
     return () => {
-      grafica.cerrar()
-      viva.current = null
+      observer.disconnect()
+      chartRef.current?.dispose()
+      chartRef.current = null
     }
   }, [])
 
   useEffect(() => {
-    viva.current?.actualizar(option)
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    chartRef.current?.setOption({ ...option, ...(reducedMotion ? { animation: false } : {}) }, { notMerge: false })
   }, [option])
 
   return (
     <div
+      ref={containerRef}
       role="img"
       aria-label={ariaLabel}
       aria-describedby={ariaDescribedBy}
-      // Sin el paquete no queda un hueco: los mismos datos siguen en la tabla de la pantalla.
-      style={{ height: estado === 'fallo' ? 0 : height, width: '100%', position: 'relative', fontVariantNumeric: 'tabular-nums' }}
+      style={{ height, width: '100%' }}
       className={className}
-    >
-      {estado === 'esperando' && <div aria-hidden className="esqueleto absolute inset-0 rounded-(--radius-field)" />}
-      <div
-        ref={host}
-        className={`absolute inset-0 transition-opacity duration-200 motion-reduce:transition-none ${estado === 'lista' ? 'opacity-100' : 'opacity-0'}`}
-      />
-    </div>
+    />
   )
-})
+}

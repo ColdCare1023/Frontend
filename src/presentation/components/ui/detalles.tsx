@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 /**
- * Información secundaria plegada: la pantalla muestra lo esencial y el resto queda a
- * un clic. Se funde al abrir, sin animar la altura, y cerrada sale del orden de
- * tabulación (`inert`).
+ * Información secundaria plegada: la pantalla muestra lo esencial y el resto
+ * queda a un clic, sin borrarse. Se despliega animando la altura (grid 0fr →
+ * 1fr) y, cerrada, sale del orden de tabulación (`inert`).
  */
 export function Detalles({
   titulo,
@@ -32,7 +32,7 @@ export function Detalles({
         aria-expanded={abierto}
         aria-controls={id}
         onClick={() => setAbierto((previo) => !previo)}
-        className="group flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-lg text-left text-[13px] font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="group flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-lg text-left text-[13px] font-medium text-muted transition-colors duration-(--duration-micro) hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <span>{titulo ?? (abierto ? t('comunes.ocultarDetalles') : t('comunes.verDetalles'))}</span>
         <ChevronDown
@@ -43,7 +43,7 @@ export function Detalles({
       <div
         id={id}
         className={cn(
-          'grid transition-opacity duration-(--duration-ui) ease-(--ease-out-soft)',
+          'grid transition-[grid-template-rows,opacity] duration-(--duration-panel) ease-(--ease-out-soft)',
           abierto ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
         )}
       >

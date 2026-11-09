@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/infrastructure/demo/modoDemo', () => ({
   MODO_DEMO: true,
@@ -23,13 +23,6 @@ function montar() {
       </Routes>
     </MemoryRouter>,
   )
-}
-
-/** Deja el login pendiente para poder mirar el estado de carga. */
-function loginSinRespuesta() {
-  const original = useAuthStore.getState().login
-  useAuthStore.setState({ login: () => new Promise<void>(() => {}) })
-  onTestFinished(() => useAuthStore.setState({ login: original }))
 }
 
 describe('LoginPage', () => {
@@ -127,117 +120,7 @@ describe('LoginPage', () => {
     expect(screen.getByText(/Pídela al administrador/)).toBeInTheDocument()
   })
 
-  it('conserva la foto aprobada y el titular de marca', () => {
-    adaptador = instalarAdaptadorFalso()
-    const { container } = montar()
-    // La dueña del proyecto la pidió de vuelta: si alguien la quita, esta prueba falla.
-    expect(container.querySelector('img[src$="assets/coldcare-auth-editorial.webp"]')).not.toBeNull()
-    expect(screen.getByRole('heading', { level: 1, name: 'Protege cada dosis. En cada grado.' })).toBeInTheDocument()
-  })
-
-  it('con el correo vacío marca solo el correo y enlaza el aviso', async () => {
-    adaptador = instalarAdaptadorFalso()
-    const user = userEvent.setup()
-    montar()
-    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    const correo = screen.getByLabelText('Correo electrónico')
-    expect(correo).toHaveAttribute('aria-invalid', 'true')
-    expect(correo).toHaveAccessibleDescription('Ingresa tu correo electrónico.')
-    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('aria-invalid', 'false')
-  })
-
-  it('con el correo correcto y sin contraseña marca solo la contraseña', async () => {
-    adaptador = instalarAdaptadorFalso()
-    const user = userEvent.setup()
-    montar()
-    await user.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
-    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    expect(screen.getByLabelText('Contraseña')).toHaveFocus()
-    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.getByLabelText('Correo electrónico')).toHaveAttribute('aria-invalid', 'false')
-  })
-
-  it('credenciales incorrectas marcan ambos campos: no dice cuál de los dos falló', async () => {
-    adaptador = instalarAdaptadorFalso(() => ({ status: 401, data: { detail: 'no' } }))
-    const user = userEvent.setup()
-    montar()
-    await user.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
-    await user.type(screen.getByLabelText('Contraseña'), 'incorrecta')
-    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    await screen.findByRole('alert')
-    for (const campo of ['Correo electrónico', 'Contraseña']) {
-      expect(screen.getByLabelText(campo)).toHaveAttribute('aria-invalid', 'true')
-      expect(screen.getByLabelText(campo)).toHaveAccessibleDescription('Correo o contraseña incorrectos.')
-    }
-  })
-
-  it('el bloqueo por intentos no culpa a ningún campo', async () => {
-    adaptador = instalarAdaptadorFalso(() => ({ status: 429, data: { detail: 'rate limited' } }))
-    const user = userEvent.setup()
-    montar()
-    await user.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
-    await user.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
-    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    await screen.findByRole('alert')
-    expect(screen.getByLabelText('Correo electrónico')).toHaveAttribute('aria-invalid', 'false')
-    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('aria-invalid', 'false')
-  })
-
-  it('cada cápsula de demostración conserva su rol y su nombre accesible', () => {
-    adaptador = instalarAdaptadorFalso()
-    montar()
-    const grupo = screen.getByRole('group', { name: 'Acceso de demostración' })
-
-    expect(within(grupo).getAllByRole('button').map((boton) => boton.getAttribute('data-demo-role'))).toEqual([
-      'administrador',
-      'farmaceutico',
-      'tecnico',
-      'auditor',
-    ])
-    expect(within(grupo).getByRole('button', { name: 'Administrador Gestión del sistema' })).toBeInTheDocument()
-    expect(within(grupo).getByRole('button', { name: 'Químico Farmacéutico Gestión térmica' })).toBeInTheDocument()
-    expect(within(grupo).getByRole('button', { name: 'Técnico de Farmacia Operación y consulta' })).toBeInTheDocument()
-    expect(within(grupo).getByRole('button', { name: 'Auditor Consulta de registros' })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Datos simulados')
-  })
-
-  it('mientras entra un rol, la carga se muestra en su cápsula y lo anuncia', async () => {
-    adaptador = instalarAdaptadorFalso()
-    loginSinRespuesta()
-    const user = userEvent.setup()
-    montar()
-
-    await user.click(screen.getByRole('button', { name: /Auditor/ }))
-
-    const auditor = screen.getByRole('button', { name: /Auditor/ })
-    expect(auditor).toHaveAttribute('aria-busy', 'true')
-    expect(screen.getByRole('button', { name: /Administrador/ })).toBeDisabled()
-    expect(screen.getByRole('status')).toHaveTextContent('Entrando como Auditor…')
-    // El botón del formulario no finge una carga que no es suya, pero tampoco se puede usar.
-    expect(screen.getByRole('button', { name: 'Ingresar' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Ingresar' })).not.toHaveAttribute('aria-busy')
-  })
-
-  it('mientras el formulario envía, el botón lo dice y las cápsulas esperan', async () => {
-    adaptador = instalarAdaptadorFalso()
-    loginSinRespuesta()
-    const user = userEvent.setup()
-    montar()
-    await user.type(screen.getByLabelText('Correo electrónico'), 'farmaceutico@upc.pe')
-    await user.type(screen.getByLabelText('Contraseña'), 'Secreta-2026')
-    await user.click(screen.getByRole('button', { name: 'Ingresar' }))
-
-    const enviando = screen.getByRole('button', { name: 'Ingresando…' })
-    expect(enviando).toBeDisabled()
-    expect(enviando).toHaveAttribute('aria-busy', 'true')
-    expect(screen.getByRole('button', { name: /Auditor/ })).toBeDisabled()
-  })
-
-  it('permite autenticación rápida mediante las cápsulas de roles demo', async () => {
+  it('permite autenticación rápida mediante el grid 2x2 de roles demo', async () => {
     adaptador = instalarAdaptadorFalso(() => ({
       data: { access_token: TOKEN, token_type: 'bearer' },
     }))

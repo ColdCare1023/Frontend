@@ -52,7 +52,10 @@ export interface AccionCorrectiva {
   id: string
   alert_id: string
   usuario_id: string
+  // HU-27: decisión adoptada, acción ejecutada (`descripcion`) y justificación.
+  decision?: string | null
   descripcion: string
+  justificacion?: string | null
   created_at: string | null
   // HU-28: referencia a la acción que esta rectifica (null si es la original).
   corrige_accion_id: string | null

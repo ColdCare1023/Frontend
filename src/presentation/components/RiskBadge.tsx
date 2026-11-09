@@ -1,28 +1,36 @@
 import { useTranslation } from 'react-i18next'
+import { AlertTriangle, CheckCircle2, OctagonAlert } from 'lucide-react'
 
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
+import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 
 /**
- * Semáforo de riesgo térmico. Acta N.° 05 (acuerdo 5): lo crítico va en rojo
- * sólido, sin tonos salmón ni iconos redundantes; el nivel se lee en el texto,
- * así que no depende del color (WCAG 1.4.1).
+ * Semáforo de riesgo térmico.
  *
- * El detalle («Fuera del rango 2–8 °C…») queda oculto visualmente pero sí
- * anunciado por el lector de pantalla.
+ * WCAG 1.4.1 (Uso del color): el nivel no puede distinguirse solo por el tinte
+ * de la píldora. Cada nivel lleva ahora una forma propia —círculo, triángulo,
+ * octágono— además de su etiqueta textual, de modo que una impresión en blanco
+ * y negro o una deficiencia protán/deután siguen siendo legibles.
+ *
+ * El detalle («Fuera del rango 2–8 °C…») vivía solo en `title`, que ni el
+ * teclado ni buena parte de los lectores de pantalla exponen: pasa a texto
+ * oculto visualmente pero sí anunciado.
  */
-const VARIANTE = {
-  normal: 'ok',
-  riesgo_preventivo: 'warn',
-  excursion_critica: 'critical',
+const PRESENTACION = {
+  normal: { variante: 'ok', icono: CheckCircle2 },
+  riesgo_preventivo: { variante: 'warn', icono: AlertTriangle },
+  excursion_critica: { variante: 'critical', icono: OctagonAlert },
 } as const
 
 export function RiskBadge({ nivel }: { nivel: NivelRiesgo | null }) {
   const { t } = useTranslation()
   if (!nivel) return <Badge variant="outline">—</Badge>
 
+  const { variante, icono: Icono } = PRESENTACION[nivel]
   return (
-    <Badge variant={VARIANTE[nivel]} dot={nivel !== 'excursion_critica'} data-riesgo={nivel}>
+    <Badge variant={variante}>
+      <Icono className={cn('size-3.5 shrink-0', nivel === 'normal' && 'text-success-600')} aria-hidden />
       {t(`riesgo.${nivel}`)}
       <span className="sr-only"> — {t(`riesgo.detalle.${nivel}`)}</span>
     </Badge>
