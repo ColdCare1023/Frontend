@@ -80,8 +80,9 @@ function Metrica({
       {fallo || valor == null ? (
         <dd className="mt-1 text-meta font-medium text-warning-700">
           {/* El rol va en un span: un <dd> con role deja de ser dd y rompe el <dl> (axe definition-list). */}
-          <span role={fallo ? 'alert' : 'status'}>
-            {fallo ? t('dashboard.fallaSensor') : t('dashboard.sinLecturaDisponible')}
+          <span role={fallo ? 'alert' : 'status'} data-testid={`kpi-${campo}-sin-valor`}>
+            {/* HU-33: la falla dice de qué sensor es; antes decía «No hay lectura de temperatura» también para la humedad. */}
+            {fallo ? t(TEXTO_FALLA[campo]) : t('dashboard.sinLecturaDisponible')}
           </span>
         </dd>
       ) : (
@@ -105,6 +106,12 @@ function Metrica({
       </dd>
     </div>
   )
+}
+
+/** HU-33: texto de falla de cada KPI del SHT31. */
+const TEXTO_FALLA: Record<'temperatura_ambiental' | 'humedad_ambiental', string> = {
+  temperatura_ambiental: 'dashboard.fallaSensorAmbiente',
+  humedad_ambiental: 'dashboard.fallaSensorHumedad',
 }
 
 /** «1 h», «24 h» o «7 d»: la misma etiqueta del selector de la curva. */
@@ -145,6 +152,8 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   desactualizado,
   ventana,
   horasVentana,
+  umbralPuertaEquipo = null,
+  recorte = null,
 }: {
   ultima: LecturaTermica | null
   serie: readonly LecturaTermica[]
@@ -152,6 +161,10 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   desactualizado: boolean
   ventana: string
   horasVentana: number
+  /** HU-35: umbral del backend para el equipo (estado operativo), si la lectura no lo trae. */
+  umbralPuertaEquipo?: number | null
+  /** HU-31: el historial crudo no cubre la ventana; el conteo de aperturas es parcial. */
+  recorte?: { mostradas: number; total: number } | null
 }) {
   const { t } = useTranslation()
   const segundosDesdeUltima = useSegundosDesde(ultima?.timestamp)
@@ -192,7 +205,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
       </dl>
     )
   } else {
-    const puerta = estadoPuerta(ultima, segundosDesdeUltima, desactualizado)
+    const puerta = estadoPuerta(ultima, segundosDesdeUltima, desactualizado, umbralPuertaEquipo)
     const hasta = Date.parse(ultima.timestamp) || 0
     const aperturas = puerta.sinSensor ? 0 : aperturasEnSerie(serie, puerta.umbral).length
     contenido = (
@@ -278,9 +291,20 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
               <dd className="mt-auto">
                 <TiraAperturas serie={serie} umbral={puerta.umbral} desde={hasta - horasVentana * 3_600_000} hasta={hasta} />
               </dd>
-              {/* «5 aperturas · 24 h» cabe en la columna; la frase larga queda en el title. */}
-              <dd className="nums mt-1 text-micro text-faint lg:truncate" title={t('dashboard.aperturasVentana', { count: aperturas, ventana })}>
-                {t('dashboard.aperturasCorto', { count: aperturas, ventana: ventanaCorta(horasVentana, t).replace(' ', '\u00a0') })}
+              {/* «5 aperturas · 24 h» cabe en la columna; la frase larga queda en el title. Con el
+                  historial recortado el conteo es un mínimo («≥5»), no el total de la ventana. */}
+              <dd
+                className="nums mt-1 text-micro text-faint lg:truncate"
+                title={
+                  recorte
+                    ? t('dashboard.aperturasVentanaParcial', { count: aperturas, ventana, mostradas: recorte.mostradas.toLocaleString() })
+                    : t('dashboard.aperturasVentana', { count: aperturas, ventana })
+                }
+              >
+                {t(recorte ? 'dashboard.aperturasCortoParcial' : 'dashboard.aperturasCorto', {
+                  count: aperturas,
+                  ventana: ventanaCorta(horasVentana, t).replace(' ', '\u00a0'),
+                })}
               </dd>
             </>
           )}

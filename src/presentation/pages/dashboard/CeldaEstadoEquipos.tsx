@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CircleCheck, Hourglass, Info, ShieldAlert, TriangleAlert, WifiOff } from 'lucide-react'
 
-import { umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { brechasRecientes, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { porcentajeConDatos, tramosDisponibilidad, type EstadoTramo } from '@/domain/value-objects/Disponibilidad'
 import { fechaHora, hora } from '@/lib/formato'
 import { clsx } from 'clsx'
@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Regla } from '../../components/ui/regla'
 import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
+import { textoRangoBuffer, textosBrecha } from './bufferNodo'
 import { CintaDisponibilidad } from './CintaDisponibilidad'
 import { FONDO_TRAMO } from './utilidades'
 import { ordenarEquipos, rangoEquipo, tieneIncidencia } from './equipos'
@@ -68,23 +69,27 @@ function AvisoFila({ equipo, porcentaje }: { equipo: Dispositivo; porcentaje: nu
       </span>
     )
   const buffer = equipo.buffer_littlefs
-  const brecha = buffer?.brechas?.at(-1)
-  if (brecha)
+  // HU-48: la brecha más reciente (el backend las entrega de la más nueva a la más antigua).
+  const brecha = brechasRecientes(buffer, 1)[0]
+  if (brecha) {
+    const { resumen, periodo } = textosBrecha(brecha, t)
     return (
       <span className="text-danger-700">
-        {t('dashboard.brechaBuffer', { n: brecha.muestras_perdidas })} · {t('dashboard.causaBufferAgotado')} ·{' '}
-        {t('dashboard.periodoBrecha', { desde: fechaHora(brecha.desde), hasta: fechaHora(brecha.hasta) })}
+        {resumen} · {periodo}
       </span>
     )
+  }
   if (buffer && (buffer.perdidas ?? 0) > 0)
     return <span className="font-medium text-warning-700">{t('dispositivos.perdidas', { n: buffer.perdidas })}</span>
-  if (buffer && buffer.pendientes > 0)
+  if (buffer && buffer.pendientes > 0) {
+    const rango = textoRangoBuffer(buffer, t)
     return (
       <span className="text-muted">
         {t('dispositivos.bufferLittlefs', { n: buffer.pendientes, max: buffer.limite })}
-        {buffer.desde && ` · ${t('dispositivos.rangoBuffer', { desde: fechaHora(buffer.desde), hasta: buffer.hasta ? fechaHora(buffer.hasta) : '—' })}`}
+        {rango && ` · ${rango}`}
       </span>
     )
+  }
   if (equipo.estado_operativo === 'SIN_DATOS')
     return (
       <span className="text-muted">

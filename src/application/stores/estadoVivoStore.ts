@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import type { EstadoRiesgo } from '@/domain/entities/LecturaTermica'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 import { ordenarAlertas } from '@/lib/ordenAlertas'
 
@@ -17,6 +18,7 @@ export type ClaveEstado =
   | 'normal'
   | 'riesgo_preventivo'
   | 'excursion_critica'
+  | 'sin_clasificacion_ia'
   | 'falla_sensor'
   | 'sin_datos'
   | 'suspendido'
@@ -35,6 +37,8 @@ export interface LecturaVivo {
   temperatura: number | null
   /** riesgo_efectivo ?? nivel_riesgo */
   riesgo: NivelRiesgo | null
+  /** HU-34 esc. 4: estado a rotular (`estadoRiesgoDe`); distingue «sin clasificación IA». */
+  estadoRiesgo?: EstadoRiesgo | null
   timestamp: string
 }
 
@@ -130,12 +134,14 @@ export interface EstadoEquipo {
 
 /** Estado de un equipo, en el orden de la tabla del spec del shell (§3.1). */
 export function estadoDeEquipo(e: EquipoVivo, l: LecturaVivo | undefined): EstadoEquipo {
-  if (e.estadoOperativo === 'FALLA_SENSOR') return { clave: 'falla_sensor', tono: 'critico', severidad: 5 }
+  if (e.estadoOperativo === 'FALLA_SENSOR' || l?.estadoRiesgo === 'falla_sensor') return { clave: 'falla_sensor', tono: 'critico', severidad: 5 }
   if (l?.riesgo === 'excursion_critica') return { clave: 'excursion_critica', tono: 'critico', severidad: 4 }
   if (e.estadoOperativo === 'SIN_DATOS') return { clave: 'sin_datos', tono: 'aviso', severidad: 3 }
   if (e.estadoOperativo === 'MONITOREO_SUSPENDIDO') return { clave: 'suspendido', tono: 'aviso', severidad: 3 }
   if (e.conectividad === 'offline') return { clave: 'sin_conexion', tono: 'aviso', severidad: 3 }
   if (l?.riesgo === 'riesgo_preventivo') return { clave: 'riesgo_preventivo', tono: 'aviso', severidad: 2 }
+  // HU-34 esc. 4: sin clasificación del modelo no se presenta como Normal.
+  if (l?.estadoRiesgo === 'sin_clasificacion_ia') return { clave: 'sin_clasificacion_ia', tono: 'neutro', severidad: 1 }
   if (l) return { clave: 'normal', tono: 'ok', severidad: 1 }
   return { clave: 'sin_lectura', tono: 'neutro', severidad: 0 }
 }

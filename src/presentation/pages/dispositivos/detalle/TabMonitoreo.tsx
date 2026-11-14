@@ -4,7 +4,8 @@ import { Link } from 'react-router'
 import { Cpu, DoorClosed, DoorOpen, Droplets, ThermometerSun } from 'lucide-react'
 
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
-import { CAPACIDAD_BUFFER_LITTLEFS, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { useSerieTermica } from '@/application/hooks/useSerieTermica'
+import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, perdidasDeBrecha, type Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionLegible, fechaHora, hora, localeActual } from '@/lib/formato'
 import { cn } from '@/lib/utils'
@@ -16,6 +17,7 @@ import { Regla } from '../../../components/ui/regla'
 import { segmentarLecturas } from '../../../components/ui/segmentar-lecturas'
 import { useMinuto } from '../../../hooks/useReloj'
 import { CeldaCurva } from '../../dashboard/CeldaCurva'
+import { claveBrecha, textosBrecha } from '../../dashboard/bufferNodo'
 import { ActividadReciente } from '../ActividadReciente'
 import { eventosRecientes } from '../actividad'
 import { Dato, Tarjeta } from '../compartido'
@@ -38,6 +40,8 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
   const { t } = useTranslation()
   const dia = useMonitoreoTermico(24, dispositivo.id)
   const [horas, setHoras] = useState(24)
+  // HU-31: la curva de 24 h cubre el periodo completo (serie agregada).
+  const agregada24 = useSerieTermica(horas === 24 ? dispositivo.id : null, 24)
   const actividad = useActividad()
   const ahora = useMinuto()
 
@@ -127,15 +131,20 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
             <Dato etiqueta={t('dispositivos.periodoCola')} className="col-span-2">
               <span className="nums">
                 {fechaHora(buffer.desde)} – {buffer.hasta ? fechaHora(buffer.hasta) : '—'}
+                {buffer.rango_estimado && ` (${t('dashboard.rangoEstimado')})`}
               </span>
             </Dato>
           )}
           {(buffer?.brechas ?? []).length > 0 && (
             <Dato etiqueta={t('dispositivos.monitoreo.brechas')} className="col-span-2">
+              {/* HU-48: la más reciente primero; sin hora del nodo, su secuencia. */}
               <ul className="space-y-0.5">
-                {(buffer?.brechas ?? []).map((b) => (
-                  <li key={`${b.desde}-${b.hasta}`} className="nums text-meta">
-                    {t('dispositivos.monitoreo.brecha', { desde: fechaHora(b.desde), hasta: fechaHora(b.hasta), n: b.muestras_perdidas })}
+                {brechasRecientes(buffer).map((b, indice) => (
+                  <li key={claveBrecha(b, indice)} className="nums text-meta">
+                    {b.desde || b.hasta
+                      ? t('dispositivos.monitoreo.brecha', { desde: fechaHora(b.desde), hasta: fechaHora(b.hasta), n: perdidasDeBrecha(b) })
+                      : `${textosBrecha(b, t).resumen} · ${textosBrecha(b, t).periodo}`}
+                    {b.abierta && (b.desde || b.hasta) && ` · ${t('dashboard.brechaEnCurso')}`}
                   </li>
                 ))}
               </ul>
@@ -166,6 +175,8 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
             horasVentana={24}
             onCambiarVentana={setHoras}
             ventana={t('dashboard.ventanaFrase.24')}
+            agregada={agregada24.serie}
+            cobertura={dia.cobertura}
           />
         ) : (
           <CurvaOtraVentana deviceId={dispositivo.id} horas={horas} onCambiar={setHoras} />
@@ -239,7 +250,8 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
 /** Curva en 1 h o 7 d: su propia consulta, montada solo mientras se elige esa ventana. */
 function CurvaOtraVentana({ deviceId, horas, onCambiar }: { deviceId: string; horas: number; onCambiar: (horas: number) => void }) {
   const { t } = useTranslation()
-  const { ultima, serie, estadoHistorial, reintentar } = useMonitoreoTermico(horas, deviceId)
+  const { ultima, serie, estadoHistorial, reintentar, cobertura } = useMonitoreoTermico(horas, deviceId)
+  const agregada = useSerieTermica(deviceId, horas)
   return (
     <CeldaCurva
       serie={serie}
@@ -249,6 +261,8 @@ function CurvaOtraVentana({ deviceId, horas, onCambiar }: { deviceId: string; ho
       horasVentana={horas}
       onCambiarVentana={onCambiar}
       ventana={t(`dashboard.ventanaFrase.${horas}`)}
+      agregada={agregada.serie}
+      cobertura={cobertura}
     />
   )
 }

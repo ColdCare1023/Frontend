@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight } from 'lucide-react'
 
-import { CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { tramosDisponibilidad } from '@/domain/value-objects/Disponibilidad'
 import { fechaCorta, fechaHora } from '@/lib/formato'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
@@ -17,10 +17,14 @@ import {
   SidePanelHeader,
   SidePanelTitle,
 } from '../../components/ui/side-panel'
+import { claveBrecha, textoRangoBuffer, textosBrecha } from './bufferNodo'
 import { AnilloBuffer, EstadoCalibracionCorto } from './CeldaEquipo'
 import { BadgeEstadoOperativo } from './CeldaEstadoEquipos'
 import { CintaDisponibilidad } from './CintaDisponibilidad'
 import { useMinuto } from '../../hooks/useReloj'
+
+/** Brechas por buffer agotado que caben en el panel (las más recientes). */
+const BRECHAS_EN_PANEL = 3
 
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -92,6 +96,8 @@ function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: Return
   const buffer = equipo.buffer_littlefs
   const limite = buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS
   const pendientes = buffer?.pendientes ?? 0
+  const rango = textoRangoBuffer(buffer, t)
+  const brechas = brechasRecientes(buffer, BRECHAS_EN_PANEL)
   const incidentes = equipo.incidencias_operativas ?? []
   const silencio = incidentes.find((i) => i.estado === 'activo' && i.tipo === 'sin_datos')
   const excursion = incidentes.find((i) => i.estado === 'activo' && i.tipo === 'excursion_no_verificada')
@@ -142,23 +148,29 @@ function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: Return
               />
               <div className="space-y-1">
                 <p className="nums text-foreground">{t('dispositivos.bufferLittlefs', { n: pendientes, max: limite })}</p>
-                {buffer.desde && (
-                  <p className="nums">
-                    {t('dispositivos.rangoBuffer', { desde: fechaHora(buffer.desde), hasta: buffer.hasta ? fechaHora(buffer.hasta) : '—' })}
-                  </p>
-                )}
+                {rango && <p className="nums" data-testid="panel-buffer-rango">{rango}</p>}
                 <p className={buffer.perdidas > 0 ? 'font-semibold text-warning-700' : undefined}>{t('dispositivos.perdidas', { n: buffer.perdidas ?? 0 })}</p>
+                {(buffer.cuarentena ?? 0) > 0 && <p className="nums">{t('dashboard.bufferCuarentena', { n: buffer.cuarentena })}</p>}
               </div>
             </div>
             {pendientes === 0 && buffer.ultima_sincronizacion_en && (
               <p className="text-success-700">{t('dashboard.sinPendientes', { fecha: fechaHora(buffer.ultima_sincronizacion_en) })}</p>
             )}
-            {buffer.brechas?.slice(-2).map((brecha) => (
-              <p key={`${brecha.desde}-${brecha.hasta}`} className="rounded-(--radius-field) bg-critical-tint px-2 py-1 text-danger-700">
-                {t('dashboard.brechaBuffer', { n: brecha.muestras_perdidas })} · {t('dashboard.causaBufferAgotado')}
-                <span className="block">{t('dashboard.periodoBrecha', { desde: fechaHora(brecha.desde), hasta: fechaHora(brecha.hasta) })}</span>
-              </p>
-            ))}
+            {buffer.reportado_en && <p className="nums text-meta text-faint">{t('dashboard.bufferReportado', { fecha: fechaHora(buffer.reportado_en) })}</p>}
+            {/* HU-48 esc. 2: las brechas más recientes primero, con su periodo (o su secuencia si el nodo no tenía hora). */}
+            {brechas.length > 0 && (
+              <ul className="space-y-1" aria-label={t('dashboard.brechasBufferTitulo')}>
+                {brechas.map((brecha, indice) => {
+                  const { resumen, periodo } = textosBrecha(brecha, t)
+                  return (
+                    <li key={claveBrecha(brecha, indice)} className="rounded-(--radius-field) bg-critical-tint px-2 py-1 text-danger-700">
+                      {resumen}
+                      <span className="block">{periodo}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </>
         ) : (
           <p>—</p>

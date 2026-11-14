@@ -1,4 +1,4 @@
-import type { NivelRiesgo } from '../value-objects/NivelRiesgo'
+import { RANGO_TERMICO, type NivelRiesgo } from '../value-objects/NivelRiesgo'
 
 /** Origen real de la clasificación (AIV-04): quién decidió el nivel de riesgo. */
 export type OrigenClasificacion =
@@ -60,9 +60,97 @@ export interface LecturaTermica {
   // independiente de la IA — nunca se infiere desde `nivel_riesgo`.
   excursion_confirmada: boolean
   // HU-34: la política determinista que combina excursión confirmada +
-  // clasificación IA. Es lo que debe mostrarse como "estado actual" — no
-  // `nivel_riesgo` directamente.
+  // clasificación IA. Vale «normal» también para una lectura en rango que el
+  // modelo no clasificó: para rotular el estado se usa `estado_riesgo`.
   riesgo_efectivo: NivelRiesgo | null
+  /** HU-34 esc. 4: lo que el tablero rotula como riesgo. Distingue «sin
+   * clasificación IA» y «falla de sensor» de Normal. Ausente en backends
+   * anteriores: ver `estadoRiesgoDe`. */
+  estado_riesgo?: EstadoRiesgo | null
+  /** Hora reconstruida de una lectura `unsynced` ya reanclada (HU-01/HU-06). */
+  timestamp_estimado?: string | null
+  /** HU-07 (H2): arranque sin hora sincronizada aún sin reanclar. Su
+   * `timestamp` es la hora de LLEGADA al backend, no la de captura. */
+  sin_hora?: boolean
+  /** De dónde sale la hora que se muestra (ver `OrigenHora`). */
+  origen_hora?: OrigenHora
+  /** HU-05: instante en que el backend recibió la lectura. */
+  recibida_en?: string | null
+  /** BE-001: «dispositivo» (telemetría del nodo) o «manual». */
+  origen?: string
+}
+
+/**
+ * HU-34 esc. 4: estado de riesgo que se rotula. Además de los tres niveles,
+ * «sin_clasificacion_ia» (el modelo no clasificó y la temperatura está en
+ * rango) y «falla_sensor» (sin temperatura interna válida).
+ */
+export const ESTADOS_RIESGO = ['normal', 'riesgo_preventivo', 'excursion_critica', 'sin_clasificacion_ia', 'falla_sensor'] as const
+export type EstadoRiesgo = (typeof ESTADOS_RIESGO)[number]
+
+/**
+ * Origen de la hora mostrada: «nodo» (reloj sincronizado), «reconstruida»
+ * (`timestamp_estimado`), «recepcion» (sin hora: llegada al backend) o
+ * «manual» (la declaró quien registró la lectura).
+ */
+export type OrigenHora = 'nodo' | 'reconstruida' | 'recepcion' | 'manual'
+
+/**
+ * HU-34: estado de riesgo a rotular. Usa `estado_riesgo` del backend y, si no
+ * llega (backend anterior o lectura en vivo antigua), aplica la misma regla
+ * que el backend, en orden: excursión confirmada por la regla 2-8 °C; sin
+ * temperatura interna válida, falla de sensor; sin inferencia completada del
+ * modelo, sin clasificación IA; si no, el riesgo efectivo.
+ */
+export function estadoRiesgoDe(lectura: LecturaTermica | null | undefined): EstadoRiesgo | null {
+  if (!lectura) return null
+  const declarado = lectura.estado_riesgo
+  if (declarado && (ESTADOS_RIESGO as readonly string[]).includes(declarado)) return declarado
+  const temperatura = lectura.temperatura_interna
+  const fueraDeRango =
+    typeof temperatura === 'number' &&
+    Number.isFinite(temperatura) &&
+    (temperatura < RANGO_TERMICO.minimo || temperatura > RANGO_TERMICO.maximo)
+  if (lectura.excursion_confirmada || fueraDeRango) return 'excursion_critica'
+  if (temperatura == null || !Number.isFinite(temperatura) || lectura.origen_clasificacion === 'fallo_sensor') return 'falla_sensor'
+  if (lectura.riesgo_efectivo == null || lectura.nivel_riesgo == null || lectura.estado_inferencia !== 'completada') {
+    return 'sin_clasificacion_ia'
+  }
+  return lectura.riesgo_efectivo
+}
+
+/**
+ * HU-07 (H2): la lectura no tiene hora de captura. Usa `sin_hora` del backend;
+ * sin él, la misma regla: `unsynced` sin hora reconstruida y no manual.
+ */
+export function lecturaSinHora(
+  lectura: Pick<LecturaTermica, 'sin_hora' | 'origen' | 'time_quality' | 'timestamp_estimado'>,
+): boolean {
+  if (typeof lectura.sin_hora === 'boolean') return lectura.sin_hora
+  return lectura.origen !== 'manual' && lectura.time_quality === 'unsynced' && !lectura.timestamp_estimado
+}
+
+/** Instante de captura en ms (la hora reconstruida si existe); null sin hora. */
+export function instanteCaptura(lectura: LecturaTermica): number | null {
+  if (lecturaSinHora(lectura)) return null
+  const ms = Date.parse(lectura.timestamp_estimado || lectura.timestamp)
+  return Number.isFinite(ms) ? ms : null
+}
+
+/**
+ * Serie para la curva (HU-07): sin las lecturas sin hora, que no se pueden
+ * ubicar en el eje, y cada una en su hora de captura. Si ninguna lo necesita
+ * devuelve la misma referencia (no rompe la memoización de la gráfica).
+ */
+export function serieGraficable(serie: LecturaTermica[]): LecturaTermica[] {
+  if (!serie.some((l) => lecturaSinHora(l) || l.timestamp_estimado)) return serie
+  return serie
+    .flatMap((l) => {
+      const ms = instanteCaptura(l)
+      if (ms === null) return []
+      return [l.timestamp_estimado ? { ...l, timestamp: new Date(ms).toISOString() } : l]
+    })
+    .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
 }
 
 /** B-15: `time_quality` de una lectura según la API (ver contrato_v1.TIME_QUALITY_INTERNO). */

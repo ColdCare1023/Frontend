@@ -4,10 +4,11 @@ import { CalendarClock, ChevronRight, HardDrive, TriangleAlert, Wifi, WifiOff } 
 
 import { CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { fechaCorta, fechaHora, hora } from '@/lib/formato'
+import { fechaCorta, hora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
 import { Button } from '../../components/ui/button'
+import { textoRangoBuffer } from './bufferNodo'
 
 /**
  * Anillo del buffer local (HU-48; Magic UI Circular, movin Rings). Estático:
@@ -47,18 +48,27 @@ export function AnilloBuffer({
   )
 }
 
-/** Meta del buffer: rango en cola, pérdidas o última sincronización. */
+/**
+ * Meta del buffer (HU-48): con pendientes, el rango que cubren (esc. 1) y las
+ * pérdidas si las hay; si no, las pérdidas o la última sincronización
+ * (esc. 3). La línea se trunca: la frase completa queda en el `title`.
+ */
 export function MetaBuffer({ equipo }: { equipo: Dispositivo }) {
   const { t } = useTranslation()
   const buffer = equipo.buffer_littlefs
   if (!buffer) return <span className="text-faint">—</span>
-  if ((buffer.perdidas ?? 0) > 0) return <span className="font-medium text-warning-700">{t('dispositivos.perdidas', { n: buffer.perdidas })}</span>
-  if (buffer.pendientes > 0 && buffer.desde)
+  const perdidas = (buffer.perdidas ?? 0) > 0 ? t('dispositivos.perdidas', { n: buffer.perdidas }) : null
+  const rango = textoRangoBuffer(buffer, t)
+  if (rango) {
+    const texto = [rango, perdidas].filter(Boolean).join(' · ')
     return (
-      <span>
-        {t('dispositivos.rangoBuffer', { desde: fechaHora(buffer.desde), hasta: buffer.hasta ? fechaHora(buffer.hasta) : '—' })}
+      <span title={texto} data-testid="buffer-rango">
+        {rango}
+        {perdidas && <span className="font-medium text-warning-700"> · {perdidas}</span>}
       </span>
     )
+  }
+  if (perdidas) return <span className="font-medium text-warning-700">{perdidas}</span>
   if (buffer.ultima_sincronizacion_en) return <span>{t('dashboard.bufferSincronizado', { hora: hora(buffer.ultima_sincronizacion_en) })}</span>
   return null
 }

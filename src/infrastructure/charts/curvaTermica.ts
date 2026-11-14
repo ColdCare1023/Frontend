@@ -1,6 +1,6 @@
 import type { EChartsCoreOption } from 'echarts/core'
 
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { serieGraficable, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
 import { fechaHora, hora as formatearHora } from '@/lib/formato'
 import { temaGrafica, type TemaGrafica } from './temaColdCare'
@@ -14,14 +14,14 @@ export const HUECO_SIN_DATOS_MS = 90_000
 
 // Más episodios que esto en pantalla ya no se distinguen entre sí; se marcan
 // las franjas igual, pero el marcador de inicio solo en los más recientes.
-const MAX_MARCADORES_EPISODIO = 12
+export const MAX_MARCADORES_EPISODIO = 12
 
 // Un hueco es un intervalo bastante mayor que la cadencia habitual de la serie.
 const FACTOR_CADENCIA_HUECO = 2.5
 
 // Por debajo de esta fracción del eje la etiqueta «Sin datos» no cabe y solo
 // se superpone a las vecinas; la franja sombreada se mantiene igual.
-const FRACCION_MINIMA_ETIQUETA_HUECO = 0.04
+export const FRACCION_MINIMA_ETIQUETA_HUECO = 0.04
 
 /**
  * Umbral efectivo de hueco: el de SIN_DATOS (HU-33) mientras la serie llegue
@@ -59,7 +59,7 @@ interface Episodio {
   recortado?: boolean
 }
 
-type Punto = [number, number | null]
+export type Punto = [number, number | null]
 
 /** Agrupa lecturas consecutivas con excursión confirmada en episodios. */
 export function episodiosDeExcursion(serie: LecturaTermica[], umbralMs = umbralHueco(serie)): Episodio[] {
@@ -114,9 +114,9 @@ function puntos(
   return resultado
 }
 
-const FUENTE_GRAFICA = 'Inter Variable, sans-serif'
+export const FUENTE_GRAFICA = 'Inter Variable, sans-serif'
 
-type ColoresGrafica = ReturnType<typeof temaGrafica>
+export type ColoresGrafica = ReturnType<typeof temaGrafica>
 
 /**
  * Tramos de la curva fuera de 2–8 °C, para pintarlos en carmesí encima del
@@ -173,7 +173,7 @@ export function tramosFueraDeRango(datos: readonly Punto[], minimo = RANGO_TERMI
  * Lleva el MISMO nombre que su línea: la leyenda los oculta y muestra juntos
  * y toma el icono de la primera (la navy).
  */
-function serieFueraDeRango(nombre: string, datos: readonly Punto[], colores: ColoresGrafica, tipo: TipoTrazo = 'solid') {
+export function serieFueraDeRango(nombre: string, datos: readonly Punto[], colores: ColoresGrafica, tipo: TipoTrazo = 'solid') {
   const tramos = tramosFueraDeRango(datos)
   if (tramos.length === 0) return []
   return [
@@ -198,7 +198,7 @@ function serieFueraDeRango(nombre: string, datos: readonly Punto[], colores: Col
  * Trama de «sin datos» (la misma de `.trama-sin-datos`) como patrón de
  * canvas. Sin canvas (pruebas en jsdom) queda el fondo liso.
  */
-function rellenoSinDatos(colores: ColoresGrafica): string | { image: HTMLCanvasElement; repeat: 'repeat' } {
+export function rellenoSinDatos(colores: ColoresGrafica): string | { image: HTMLCanvasElement; repeat: 'repeat' } {
   if (typeof document === 'undefined' || (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent))) return colores.nodata
   const lado = 6
   const lienzo = document.createElement('canvas')
@@ -221,7 +221,7 @@ function rellenoSinDatos(colores: ColoresGrafica): string | { image: HTMLCanvasE
 }
 
 /** Ejes, rejilla y tooltip comunes a la curva de un equipo y a la de varios. */
-function baseCurva(colores: ColoresGrafica, ventana?: { desde: number; hasta: number }) {
+export function baseCurva(colores: ColoresGrafica, ventana?: { desde: number; hasta: number }) {
   const fuente = FUENTE_GRAFICA
   const guia = { color: colores.muted, type: 'dashed', width: 1 }
   return {
@@ -288,7 +288,7 @@ function baseCurva(colores: ColoresGrafica, ventana?: { desde: number; hasta: nu
  * la franja se dibuja en carmesí en el propio trazo (HU-31 esc. 1: el rango
  * se ve como zona y lo que queda fuera, en rojo).
  */
-function marcasRango(colores: ColoresGrafica, etiquetas: EtiquetasCurvaTermica) {
+export function marcasRango(colores: ColoresGrafica, etiquetas: EtiquetasCurvaTermica) {
   const fuente = FUENTE_GRAFICA
   return {
     markArea: {
@@ -319,11 +319,11 @@ const ICONO_TRAZO: Record<string, string> = {
   mixto: 'path://M0,0H8V1H0ZM11,0H13V1H11ZM16,0H20V1H16Z',
 }
 
-function iconoTrazo(tipo: TipoTrazo): string {
+export function iconoTrazo(tipo: TipoTrazo): string {
   return ICONO_TRAZO[Array.isArray(tipo) ? 'mixto' : tipo]
 }
 
-function leyenda(colores: ColoresGrafica, extra: Record<string, unknown>) {
+export function leyenda(colores: ColoresGrafica, extra: Record<string, unknown>) {
   return {
     top: 0,
     right: 0,
@@ -338,7 +338,7 @@ function leyenda(colores: ColoresGrafica, extra: Record<string, unknown>) {
   }
 }
 
-type TipoTrazo = 'solid' | 'dashed' | 'dotted' | number[]
+export type TipoTrazo = 'solid' | 'dashed' | 'dotted' | number[]
 
 /**
  * Trazo por equipo cuando la curva compara varios: tinta navy, gris
@@ -423,12 +423,15 @@ function construirCurvaPorEquipo(
  *   marcador al inicio, en lugar de un círculo por lectura.
  */
 export function construirOpcionCurvaTermica(
-  serie: LecturaTermica[],
+  serieCompleta: LecturaTermica[],
   etiquetas: EtiquetasCurvaTermica,
   ventana?: { desde: number; hasta: number },
   tema?: TemaGrafica,
 ): EChartsCoreOption {
   const colores = temaGrafica(tema)
+  // HU-07: una lectura sin hora no se ubica en el eje (su `timestamp` es la
+  // llegada al backend) y una reanclada va en su hora reconstruida.
+  const serie = serieGraficable(serieCompleta)
   // Orden estable: el mismo equipo conserva su trazo entre consultas.
   const equipos = [...new Set(serie.map((l) => l.device_id).filter(Boolean))].sort()
   if (equipos.length > 1) return construirCurvaPorEquipo(serie, equipos, etiquetas, colores, ventana)
@@ -555,7 +558,7 @@ export function construirOpcionCurvaTermica(
   }
 }
 
-function etiquetaCortaTemperatura(nombre: string): string {
+export function etiquetaCortaTemperatura(nombre: string): string {
   return nombre
     .replace(/^temperatura\s+/i, '')
     .replace(/\s+temperature$/i, '')

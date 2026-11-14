@@ -14,12 +14,39 @@ export const VENTANA_HORAS_POR_DEFECTO = 24
 // podría acumular sin fin en el navegador.
 export const MAX_LECTURAS_EN_MEMORIA = 5000
 
+/**
+ * HU-31: cuántas lecturas trajo el historial y cuántas hay en la ventana
+ * (`X-Total-Count`). Si `total` supera a `recibidas`, lo crudo no cubre el
+ * periodo: la interfaz lo avisa. `total` es null con backends que no envían
+ * la cabecera.
+ */
+export interface CoberturaHistorial {
+  recibidas: number
+  total: number | null
+}
+
 interface MonitoreoTermico {
   ultima: LecturaTermica | null
   serie: LecturaTermica[]
   sseConectado: boolean
   estadoHistorial: 'cargando' | 'completo' | 'error'
   reintentar: () => void
+  cobertura: CoberturaHistorial | null
+}
+
+/** Valor entero no negativo de `X-Total-Count`, o null si no llegó. */
+export function totalDeCabecera(cabeceras: unknown): number | null {
+  const crudo =
+    cabeceras && typeof (cabeceras as { get?: unknown }).get === 'function'
+      ? (cabeceras as { get: (nombre: string) => unknown }).get('x-total-count')
+      : (cabeceras as Record<string, unknown> | undefined)?.['x-total-count']
+  const valor = typeof crudo === 'number' ? crudo : typeof crudo === 'string' && crudo.trim() !== '' ? Number(crudo) : Number.NaN
+  return Number.isInteger(valor) && valor >= 0 ? valor : null
+}
+
+/** Identidad de una lectura para no repetirla (sin `id`, equipo e instante). */
+function claveLectura(lectura: LecturaTermica): string {
+  return lectura.id ?? `${lectura.device_id}|${lectura.timestamp}`
 }
 
 /**
@@ -39,6 +66,7 @@ export function useMonitoreoTermico(
   const [sseConectado, setSseConectado] = useState(false)
   const [estadoHistorial, setEstadoHistorial] = useState<MonitoreoTermico['estadoHistorial']>('cargando')
   const [intento, setIntento] = useState(0)
+  const [cobertura, setCobertura] = useState<CoberturaHistorial | null>(null)
   const reintentar = useCallback(() => setIntento((actual) => actual + 1), [])
   const deviceAnterior = useRef<string | null>(deviceId)
 
@@ -52,6 +80,7 @@ export function useMonitoreoTermico(
       deviceAnterior.current = deviceId
       setSerie([])
       setUltima(null)
+      setCobertura(null)
     }
 
     const desde = new Date(Date.now() - horasVentana * 60 * 60 * 1000).toISOString()
@@ -61,27 +90,43 @@ export function useMonitoreoTermico(
       .get<LecturaTermica[]>('/api/lecturas', {
         params: { desde, limite: MAX_LECTURAS_EN_MEMORIA, ...(deviceId ? { device_id: deviceId } : {}) },
       })
-      .then(({ data }) => {
+      .then(({ data, headers }) => {
         if (!activo) return
+        setCobertura({ recibidas: data.length, total: totalDeCabecera(headers) })
         // El historial no puede sobrescribir la serie: la suscripción SSE se
         // abre en el mismo efecto y no hay garantía de qué responde antes. Si
         // una lectura en vivo llegaba mientras el GET seguía en vuelo, este
         // `set` la borraba —y con una excursión térmica en marcha, esa es
-        // justo la lectura que no puede perderse—. Se antepone el historial a
-        // lo ya recibido, descartando por `id` lo que venga repetido.
+        // justo la lectura que no puede perderse—. Se combina el historial con
+        // lo ya recibido, sin repetir por `id`.
         setSerie((previa) => {
-          const enVentana = previa.filter((lectura) => new Date(lectura.timestamp).getTime() >= desdeMs)
-          const yaRecibidas = new Set(enVentana.map((lectura) => lectura.id))
-          const historial = [...data]
-            .reverse()
-            .filter((lectura) => new Date(lectura.timestamp).getTime() >= desdeMs)
-            .filter((lectura) => !yaRecibidas.has(lectura.id))
-          return [...historial, ...enVentana].slice(-MAX_LECTURAS_EN_MEMORIA)
+          const porLectura = new Map<string, LecturaTermica>()
+          for (const lectura of previa) {
+            if (new Date(lectura.timestamp).getTime() >= desdeMs) porLectura.set(claveLectura(lectura), lectura)
+          }
+          // Repetida, manda la versión del servidor: puede haber cambiado
+          // desde que llegó por SSE (HU-07: lectura sin hora ya reanclada).
+          for (const lectura of data) {
+            if (new Date(lectura.timestamp).getTime() >= desdeMs) porLectura.set(claveLectura(lectura), lectura)
+          }
+          // Lo ya mostrado no es siempre posterior al historial: al ampliar la
+          // ventana (24 h → 7 d) o al reintentar, el historial trae lecturas
+          // más antiguas y también más nuevas que lo previo. Sin ordenar, las
+          // nuevas quedaban antes y «Lecturas recientes» mostraba lo viejo.
+          return [...porLectura.values()]
+            .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
+            .slice(-MAX_LECTURAS_EN_MEMORIA)
         })
         const lecturaMasReciente = data.reduce<LecturaTermica | null>((reciente, lectura) =>
           !reciente || lectura.timestamp > reciente.timestamp ? lectura : reciente, null)
         if (lecturaMasReciente) {
-          setUltima((previa) => !previa || lecturaMasReciente.timestamp > previa.timestamp ? lecturaMasReciente : previa)
+          setUltima((previa) =>
+            !previa ||
+            lecturaMasReciente.timestamp > previa.timestamp ||
+            (lecturaMasReciente.timestamp === previa.timestamp && claveLectura(lecturaMasReciente) === claveLectura(previa))
+              ? lecturaMasReciente
+              : previa,
+          )
         }
         setEstadoHistorial('completo')
       })
@@ -108,5 +153,5 @@ export function useMonitoreoTermico(
     }
   }, [horasVentana, deviceId, intento])
 
-  return { ultima, serie, sseConectado, estadoHistorial, reintentar }
+  return { ultima, serie, sseConectado, estadoHistorial, reintentar, cobertura }
 }

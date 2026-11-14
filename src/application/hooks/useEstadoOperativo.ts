@@ -11,8 +11,8 @@ import { suscribirseTiempoReal, type EstadoNodo } from '@/infrastructure/sse/sse
  */
 export function useEstadoOperativo(todos = false) {
   const [equipos, setEquipos] = useState<Dispositivo[]>([])
-  // HU-48: el backend no guarda el buffer del nodo; se conserva el último
-  // `estado_nodo` recibido por SSE para no perderlo en cada sondeo.
+  // HU-48: un backend anterior no guardaba el buffer del nodo; se conserva el
+  // último `estado_nodo` recibido por SSE para no perderlo en cada sondeo.
   const estadosNodo = useRef(new Map<string, EstadoNodo>())
 
   const consultar = useCallback(async () => {
@@ -20,6 +20,12 @@ export function useEstadoOperativo(todos = false) {
       const { data } = await apiClient.get<Dispositivo[]>('/api/dispositivos/estado-operativo', {
         params: todos ? { todos: true } : undefined,
       })
+      // El backend actual persiste el último `estado_nodo` (`reportado_en`):
+      // su buffer, con rango y brechas, manda. Reaplicar un evento SSE ya
+      // guardado pisaría el rango que el backend estimó.
+      for (const equipo of data) {
+        if (equipo.buffer_littlefs?.reportado_en) estadosNodo.current.delete(equipo.id)
+      }
       setEquipos([...estadosNodo.current.values()].reduce(aplicarEstadoNodo, data))
     } catch {
       // Endpoint nuevo no disponible en backend: no inferir estado ni mostrar alarma falsa.

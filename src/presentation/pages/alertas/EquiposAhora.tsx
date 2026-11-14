@@ -14,6 +14,8 @@ const TONO: Record<ClaveEstado, TonoEstado> = {
   normal: 'normal',
   riesgo_preventivo: 'preventivo',
   excursion_critica: 'critico',
+  // HU-34 esc. 4: sin clasificación del modelo es neutro, no Normal.
+  sin_clasificacion_ia: 'neutro',
   falla_sensor: 'critico',
   sin_datos: 'sin_datos',
   suspendido: 'sin_datos',

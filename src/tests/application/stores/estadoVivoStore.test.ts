@@ -55,6 +55,15 @@ describe('estadoVivoStore: selectores puros', () => {
     expect(estadoDeEquipo(equipo('x'), undefined)).toMatchObject({ clave: 'sin_lectura', tono: 'neutro' })
   })
 
+  it('HU-34 esc. 4: una lectura sin clasificación IA es neutra en la píldora, no Normal; la falla de sensor, crítica', () => {
+    const sinClase = { ...lectura(5, 'normal', '2026-11-14T10:00:00Z'), estadoRiesgo: 'sin_clasificacion_ia' as const }
+    expect(estadoDeEquipo(equipo('x'), sinClase)).toEqual({ clave: 'sin_clasificacion_ia', tono: 'neutro', severidad: 1 })
+    const falla = { ...lectura(5, 'normal', '2026-11-14T10:00:00Z'), estadoRiesgo: 'falla_sensor' as const }
+    expect(estadoDeEquipo(equipo('x'), falla)).toMatchObject({ clave: 'falla_sensor', tono: 'critico' })
+    // Sin el campo (lecturas guardadas antes), el comportamiento de siempre.
+    expect(estadoDeEquipo(equipo('x'), lectura(5, 'normal', '2026-11-14T10:00:00Z'))).toMatchObject({ clave: 'normal' })
+  })
+
   it('ignora una lectura más antigua que la vigente', () => {
     const ultimas = { A: lectura(5, 'normal', '2026-11-14T10:00:00Z') }
     expect(aplicarLectura(ultimas, 'A', lectura(9, 'excursion_critica', '2026-11-14T09:59:00Z'))).toBe(ultimas)

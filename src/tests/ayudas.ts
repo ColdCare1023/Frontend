@@ -38,7 +38,7 @@ export interface PeticionCapturada {
   params: Record<string, unknown>
 }
 
-type Respondedor = (config: AxiosRequestConfig) => { status?: number; data?: unknown }
+type Respondedor = (config: AxiosRequestConfig) => { status?: number; data?: unknown; headers?: Record<string, string> }
 
 /**
  * Sustituye el adaptador del `apiClient` real en vez de simular el módulo
@@ -58,12 +58,12 @@ export function instalarAdaptadorFalso(responder: Respondedor = () => ({})) {
       data: config.data,
       params: { ...((config.params ?? {}) as Record<string, unknown>) },
     })
-    const { status = 200, data = {} } = responder(config)
+    const { status = 200, data = {}, headers = {} } = responder(config)
     const respuesta = {
       data,
       status,
       statusText: '',
-      headers: {},
+      headers,
       config,
     } as AxiosResponse
     if (status >= 400) {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DoorClosed, DoorOpen, HardDrive, Hourglass, RefreshCw, TriangleAlert } from 'lucide-react'
+import { ClockAlert, DoorClosed, DoorOpen, HardDrive, Hourglass, RefreshCw, TriangleAlert } from 'lucide-react'
 
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
@@ -26,6 +26,7 @@ type EscenarioDashboard =
   | 'falla_sensor'
   | 'puerta_abierta'
   | 'puerta_cerrada'
+  | 'sin_hora'
   | 'recuperar'
 
 const ESCENARIOS: Array<{ id: EscenarioDashboard; clave: string; icono: React.ComponentType<{ className?: string }> }> = [
@@ -35,6 +36,7 @@ const ESCENARIOS: Array<{ id: EscenarioDashboard; clave: string; icono: React.Co
   { id: 'falla_sensor', clave: 'dashboard.demoFallaSensor', icono: TriangleAlert },
   { id: 'puerta_abierta', clave: 'dashboard.demoPuertaAbierta', icono: DoorOpen },
   { id: 'puerta_cerrada', clave: 'dashboard.demoPuertaCerrada', icono: DoorClosed },
+  { id: 'sin_hora', clave: 'dashboard.demoSinHora', icono: ClockAlert },
   { id: 'recuperar', clave: 'dashboard.demoRecuperar', icono: RefreshCw },
 ]
 
