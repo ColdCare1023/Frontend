@@ -135,7 +135,7 @@ const INDICE = [
 
 const ESTADOS = [
   { clave: 'normal', icono: CircleCheck, tono: 'bg-success-100 text-success-700 ring-success-600/25' },
-  { clave: 'preventivo', icono: CircleDot, tono: 'bg-honey-100 text-honey-700 ring-honey-600/30' },
+  { clave: 'preventivo', icono: CircleDot, tono: 'bg-warning-100 text-warning-700 ring-warning-600/30' },
   { clave: 'critico', icono: CircleAlert, tono: 'bg-critical-solid text-on-critical ring-transparent' },
 ] as const
 

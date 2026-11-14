@@ -76,7 +76,7 @@ export function CambiarPasswordPage() {
         </div>
 
         {obligatorio && (
-          <p role="status" className="mb-4 flex items-start gap-2 rounded-xl border border-honey-600/25 bg-honey-100 px-3.5 py-2.5 text-sm text-honey-700">
+          <p role="status" className="mb-4 flex items-start gap-2 rounded-xl border border-warning-600/25 bg-warning-100 px-3.5 py-2.5 text-sm text-warning-700">
             <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>{t('cambiarPassword.temporal')}</span>
           </p>
@@ -102,7 +102,7 @@ export function CambiarPasswordPage() {
             passwordRef={passwordRef}
           />
           {error && (
-            <p role="alert" className="rounded-xl border border-clay-100 bg-clay-100/60 px-3.5 py-2.5 text-sm text-clay-700 animate-fade">
+            <p role="alert" className="rounded-xl border border-danger-100 bg-danger-100/60 px-3.5 py-2.5 text-sm text-danger-700 animate-fade">
               {error}
             </p>
           )}

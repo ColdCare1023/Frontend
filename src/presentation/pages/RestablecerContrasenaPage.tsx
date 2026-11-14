@@ -64,7 +64,7 @@ export function RestablecerContrasenaPage() {
 
         {enlaceInvalido ? (
           <div className="space-y-6 animate-fade">
-            <div role="alert" className="rounded-2xl border border-clay-700/20 bg-clay-100/50 p-6">
+            <div role="alert" className="rounded-2xl border border-danger-700/20 bg-danger-100/50 p-6">
               <div className="flex items-start gap-3.5">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-critical-solid text-on-critical shadow-sm">
                   <XCircle className="size-5" aria-hidden />
@@ -86,7 +86,7 @@ export function RestablecerContrasenaPage() {
           <div className="space-y-6 animate-fade">
             <div role="status" className="rounded-2xl border border-border bg-secondary-tint/60 p-5">
               <div className="flex items-start gap-3.5">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary-tint text-glacier-700">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary-tint text-success-700">
                   <CheckCircle2 className="size-5" aria-hidden />
                 </div>
                 <div className="space-y-1.5">
@@ -112,7 +112,7 @@ export function RestablecerContrasenaPage() {
               passwordRef={passwordRef}
             />
             {error && (
-              <p role="alert" className="rounded-xl border border-clay-100 bg-clay-100/60 px-3.5 py-2.5 text-sm text-clay-700 animate-fade">
+              <p role="alert" className="rounded-xl border border-danger-100 bg-danger-100/60 px-3.5 py-2.5 text-sm text-danger-700 animate-fade">
                 {error}
               </p>
             )}

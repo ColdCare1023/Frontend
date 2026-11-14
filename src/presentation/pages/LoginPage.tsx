@@ -106,7 +106,7 @@ export function LoginPage() {
 
         <form className="space-y-4" onSubmit={enviar} noValidate>
           <div className="space-y-1.5">
-            <label htmlFor="login-email" className="block text-[13px] leading-5 font-medium text-ink-700">
+            <label htmlFor="login-email" className="block text-[13px] leading-5 font-medium text-subtle">
               {t('login.email')}
             </label>
             <div className="relative">
@@ -130,7 +130,7 @@ export function LoginPage() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-3">
-              <label htmlFor="login-password" className="block text-[13px] leading-5 font-medium text-ink-700">
+              <label htmlFor="login-password" className="block text-[13px] leading-5 font-medium text-subtle">
                 {t('login.password')}
               </label>
               <Link
@@ -155,7 +155,7 @@ export function LoginPage() {
               />
               <button
                 type="button"
-                className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-cream-200/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:right-1 sm:size-9 sm:pointer-coarse:size-10"
+                className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-neutral-200/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:right-1 sm:size-9 sm:pointer-coarse:size-10"
                 aria-label={t(mostrarPassword ? 'login.ocultarPassword' : 'login.mostrarPassword')}
                 aria-pressed={mostrarPassword}
                 onClick={() => setMostrarPassword((visible) => !visible)}

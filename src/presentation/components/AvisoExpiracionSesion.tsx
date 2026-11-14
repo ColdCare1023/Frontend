@@ -34,7 +34,7 @@ export function AvisoExpiracionSesion() {
     <div
       role="status"
       aria-live="polite"
-      className="sticky top-0 z-40 flex items-center justify-center gap-2 border-b border-honey-600/25 bg-honey-100 px-4 py-2 text-[13px] text-honey-700 animate-rise"
+      className="sticky top-0 z-40 flex items-center justify-center gap-2 border-b border-warning-600/25 bg-warning-100 px-4 py-2 text-[13px] text-warning-700 animate-rise"
     >
       <Clock className="size-3.5 shrink-0" aria-hidden />
       <span>{t('sesion.porExpirar', { restante: formatearRestante(restanteMs) })}</span>

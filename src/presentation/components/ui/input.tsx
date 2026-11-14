@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 const campoBase =
   'w-full min-w-0 rounded-(--radius-field) border border-border-field bg-surface text-base text-foreground placeholder:text-faint sm:text-sm dark:bg-surface-sunken'
 const campoEstados =
-  'transition-[border-color,box-shadow,background-color] duration-(--duration-micro) ease-(--ease-ui) hover:border-ink-400 focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/20 aria-[invalid=true]:border-critical aria-[invalid=true]:bg-critical-tint aria-[invalid=true]:focus:ring-critical/20 user-invalid:border-critical user-invalid:bg-critical-tint user-invalid:focus:ring-critical/20'
+  'transition-[border-color,box-shadow,background-color] duration-(--duration-micro) ease-(--ease-ui) hover:border-faint focus:border-primary focus:outline-none focus:ring-[3px] focus:ring-primary/20 aria-[invalid=true]:border-critical aria-[invalid=true]:bg-critical-tint aria-[invalid=true]:focus:ring-critical/20 user-invalid:border-critical user-invalid:bg-critical-tint user-invalid:focus:ring-critical/20'
 
 export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTML
         campoBase,
         'h-11 px-3 sm:h-10 sm:pointer-coarse:h-11',
         campoEstados,
-        'aria-[invalid=true]:text-clay-700 aria-[invalid=true]:placeholder:text-clay-600 user-invalid:text-clay-700',
+        'aria-[invalid=true]:text-danger-700 aria-[invalid=true]:placeholder:text-danger-600 user-invalid:text-danger-700',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
@@ -69,7 +69,7 @@ NativeSelect.displayName = 'NativeSelect'
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn('mb-1.5 block text-[13px] leading-5 font-medium text-ink-700', className)}
+      className={cn('mb-1.5 block text-[13px] leading-5 font-medium text-subtle', className)}
       {...props}
     />
   )

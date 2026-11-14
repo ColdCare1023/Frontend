@@ -71,7 +71,7 @@ export function RecuperarContrasenaPage() {
             <div className="space-y-6 animate-fade">
               <div className="rounded-2xl border border-border bg-secondary-tint/60 p-5">
                 <div className="flex items-start gap-3.5">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary-tint text-glacier-700">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary-tint text-success-700">
                     <CheckCircle2 className="size-5" aria-hidden />
                   </div>
                   <div className="space-y-1.5">
@@ -85,7 +85,7 @@ export function RecuperarContrasenaPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-cream-100/50 p-4 text-xs text-muted flex items-start gap-2.5">
+              <div className="rounded-xl border border-border bg-neutral-100/50 p-4 text-xs text-muted flex items-start gap-2.5">
                 <ShieldAlert className="size-4 shrink-0 text-faint mt-0.5" aria-hidden />
                 <p>{t('recuperarContrasena.notaSeguridad')}</p>
               </div>
@@ -135,7 +135,7 @@ export function RecuperarContrasenaPage() {
               {error && (
                 <p
                   role="alert"
-                  className="rounded-xl border border-clay-100 bg-clay-100/60 px-3.5 py-2.5 text-sm text-clay-700 animate-fade"
+                  className="rounded-xl border border-danger-100 bg-danger-100/60 px-3.5 py-2.5 text-sm text-danger-700 animate-fade"
                 >
                   {error}
                 </p>

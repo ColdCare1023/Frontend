@@ -14,7 +14,7 @@ export interface CifraResumen {
 const CIFRA: Record<TonoCifra, string> = {
   neutro: 'text-foreground',
   vivo: 'text-foreground',
-  aviso: 'text-honey-700',
+  aviso: 'text-warning-700',
   critico: 'text-critical',
 }
 
@@ -34,7 +34,7 @@ export function CifrasResumen({ cifras, etiqueta, className }: { cifras: CifraRe
             className={cn(
               'tarjeta-cristal relative flex min-w-0 flex-col rounded-(--radius-card) border px-4 py-3.5 sm:px-5 sm:py-4',
               tono === 'critico' && 'border-critical/30',
-              tono === 'aviso' && 'border-honey-600/30',
+              tono === 'aviso' && 'border-warning-600/30',
             )}
           >
             <dt className="min-w-0 text-[13px] leading-[18px] font-medium text-pretty text-muted">{texto}</dt>

@@ -100,7 +100,7 @@ function AvisoDatosSimulados() {
   return (
     <div
       role="status"
-      className="flex items-center justify-center gap-2 border-b border-honey-600/15 bg-honey-100/70 px-4 py-1.5 text-center text-[12px] leading-5 text-honey-700 sm:px-6 lg:px-10"
+      className="flex items-center justify-center gap-2 border-b border-warning-600/15 bg-warning-100/70 px-4 py-1.5 text-center text-[12px] leading-5 text-warning-700 sm:px-6 lg:px-10"
     >
       <FlaskConical aria-hidden className="size-3.5 shrink-0" />
       <p>
@@ -171,7 +171,7 @@ function NavegacionPrincipal({
                       className={({ isActive }) =>
                         cn(
                           'group relative flex h-11 items-center gap-3 rounded-[10px] px-3 text-[14px] font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:h-10 lg:pointer-coarse:h-11 lg:[@media(max-height:700px)]:h-8',
-                          isActive ? 'text-foreground' : 'text-muted hover:bg-cream-200/70 hover:text-foreground',
+                          isActive ? 'text-foreground' : 'text-muted hover:bg-neutral-200/70 hover:text-foreground',
                         )
                       }
                     >
@@ -230,7 +230,7 @@ function MenuUsuario() {
         <button
           type="button"
           aria-label={`${t('nav.menuUsuario')}: ${usuario.email}`}
-          className="flex h-11 min-w-11 cursor-pointer items-center justify-center gap-2 rounded-lg pl-1 pr-1.5 text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:bg-cream-200/70 sm:h-9 sm:pointer-coarse:h-11"
+          className="flex h-11 min-w-11 cursor-pointer items-center justify-center gap-2 rounded-lg pl-1 pr-1.5 text-muted transition-colors duration-(--duration-micro) hover:bg-neutral-200/70 hover:text-foreground data-[state=open]:bg-neutral-200/70 sm:h-9 sm:pointer-coarse:h-11"
         >
           <span className="flex size-7 items-center justify-center rounded-full bg-primary-tint text-xs font-semibold text-primary ring-1 ring-inset ring-primary/20">
             {inicial}
@@ -336,7 +336,7 @@ export function AppLayout() {
                 onClick={alternarColapso}
                 aria-expanded={!colapsado}
                 aria-label={etiquetaColapso}
-                className="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg px-[15px] text-[13px] font-medium whitespace-nowrap text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/60 hover:text-foreground"
+                className="flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg px-[15px] text-[13px] font-medium whitespace-nowrap text-muted transition-colors duration-(--duration-micro) hover:bg-neutral-200/60 hover:text-foreground"
               >
                 {colapsado ? <PanelLeftOpen className="size-[18px] shrink-0" aria-hidden /> : <PanelLeftClose className="size-[18px] shrink-0" aria-hidden />}
                 <span className={cn('transition-opacity duration-(--duration-ui)', colapsado && 'opacity-0')} aria-hidden>
@@ -360,7 +360,7 @@ export function AppLayout() {
                 <ColdCareBrand subtitulo={t('app.subtitulo')} className="[&_svg]:size-9" />
                 <DialogPrimitive.Close
                   aria-label={t('comunes.cerrar')}
-                  className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground"
+                  className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground"
                 >
                   <X className="size-4.5" aria-hidden />
                 </DialogPrimitive.Close>
@@ -386,7 +386,7 @@ export function AppLayout() {
             <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md backdrop-saturate-150 sm:px-6 lg:px-10">
               <DialogPrimitive.Trigger
                 aria-label={t('nav.abrirMenu')}
-                className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground lg:hidden"
+                className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground lg:hidden"
               >
                 <MenuIcono className="size-5" aria-hidden />
               </DialogPrimitive.Trigger>

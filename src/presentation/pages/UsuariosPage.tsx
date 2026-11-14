@@ -221,7 +221,7 @@ export function UsuariosPage() {
                           className={
                             usuario.is_active
                               ? 'flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-tint text-[13px] font-semibold text-secondary ring-1 ring-inset ring-secondary/20'
-                              : 'flex size-9 shrink-0 items-center justify-center rounded-full bg-cream-200 text-[13px] font-semibold text-faint ring-1 ring-inset ring-border'
+                              : 'flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-[13px] font-semibold text-faint ring-1 ring-inset ring-border'
                           }
                         >
                           {iniciales(usuario.nombre)}
@@ -231,7 +231,7 @@ export function UsuariosPage() {
                     </TableCell>
                     <TableCell data-label={t('usuarios.email')} className="mobile-full break-all text-muted">{usuario.email}</TableCell>
                     <TableCell data-label={t('usuarios.rol')} className="sm:whitespace-nowrap">
-                      <span className="text-[13px] text-ink-700">
+                      <span className="text-[13px] text-subtle">
                         {t(`roles.${usuario.rol}`)}
                       </span>
                     </TableCell>

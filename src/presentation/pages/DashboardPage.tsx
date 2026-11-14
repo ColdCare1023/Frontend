@@ -88,8 +88,8 @@ function TarjetaMetrica({
     <Card
       className={cn(
         'h-full rounded-none border-0 bg-transparent shadow-none',
-        destacada && !fallaSensor && !sinLectura && !desactualizado && 'border-pine-200 bg-primary-tint/50',
-        (fallaSensor || sinLectura) && 'border-clay-200 bg-clay-50/40',
+        destacada && !fallaSensor && !sinLectura && !desactualizado && 'border-brand-200 bg-primary-tint/50',
+        (fallaSensor || sinLectura) && 'border-danger-200 bg-danger-50/40',
         !fallaSensor && !sinLectura && desactualizado && 'opacity-60',
       )}
       style={{ animationDelay: `${retraso}ms` }}
@@ -103,7 +103,7 @@ function TarjetaMetrica({
             : <Icono className="size-4 text-faint" aria-hidden />}
         </div>
         {fallaSensor || sinLectura ? (
-          <p role={fallaSensor ? 'alert' : 'status'} className="mt-4 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-2 text-sm font-medium leading-snug text-clay-700">
+          <p role={fallaSensor ? 'alert' : 'status'} className="mt-4 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-2 text-sm font-medium leading-snug text-danger-700">
             {fallaSensor ? textoFallaSensor : textoSinLectura}
           </p>
         ) : (
@@ -124,7 +124,7 @@ function TarjetaMetrica({
               </p>
             )}
             {desactualizado && (
-              <p className="mt-2.5 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium leading-snug text-clay-700">
+              <p className="mt-2.5 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium leading-snug text-danger-700">
                 {textoDesactualizado}
               </p>
             )}
@@ -132,12 +132,12 @@ function TarjetaMetrica({
               <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                 <span className="relative flex size-1.5">
                   {enVivo.conectado && (
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-glacier-600 opacity-60" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-600 opacity-60" />
                   )}
                   <span
                     className={cn(
                       'relative inline-flex size-1.5 rounded-full',
-                      enVivo.conectado ? 'bg-glacier-600' : 'bg-faint',
+                      enVivo.conectado ? 'bg-success-600' : 'bg-faint',
                     )}
                   />
                 </span>
@@ -174,9 +174,9 @@ function EstadoPrincipal({
     ? 50
     : Math.max(minimoIndicador, Math.min(maximoIndicador, lectura)) * 10
   const colorIndicador = riesgo === 'excursion_critica'
-    ? 'var(--color-clay-600)'
+    ? 'var(--color-danger-600)'
     : riesgo === 'riesgo_preventivo'
-      ? 'var(--color-honey-600)'
+      ? 'var(--color-warning-600)'
       : 'var(--color-secondary)'
   const sensorFallido = fallaSensor(ultima, 'temperatura_interna')
   const sinLectura = lectura == null
@@ -236,17 +236,17 @@ function EstadoPrincipal({
               </p>
             : <p className="mt-1.5 text-sm text-muted">{t('dashboard.sinClasificacion')}</p>}
           {ultima.excursion_confirmada && (
-            <p className="mt-1.5 text-xs font-semibold text-clay-700">{t('dashboard.excursionConfirmada')}</p>
+            <p className="mt-1.5 text-xs font-semibold text-danger-700">{t('dashboard.excursionConfirmada')}</p>
           )}
           {!ultima.excursion_confirmada && ultima.nivel_riesgo === 'excursion_critica' && riesgo !== 'excursion_critica' && (
-            <p className="mt-1.5 flex items-start gap-1.5 text-xs text-honey-700">
+            <p className="mt-1.5 flex items-start gap-1.5 text-xs text-warning-700">
               <ShieldQuestion className="mt-0.5 size-3.5 shrink-0" aria-hidden />
               {t('dashboard.clasificacionIaDivergente')}
             </p>
           )}
           <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
             {sensorFallido || sinLectura ? (
-              <p role={sensorFallido ? 'alert' : 'status'} className="text-sm font-medium text-clay-700">
+              <p role={sensorFallido ? 'alert' : 'status'} className="text-sm font-medium text-danger-700">
                 {sensorFallido ? t('dashboard.fallaSensor') : t('dashboard.sinLecturaDisponible')}
               </p>
             ) : (
@@ -254,7 +254,7 @@ function EstadoPrincipal({
                 <p
                   className={cn(
                     'lectura-cifra nums text-[76px] font-semibold leading-[0.9] tracking-[-0.045em] sm:text-[104px]',
-                    riesgo === 'excursion_critica' && !desactualizado ? 'text-clay-700' : 'text-foreground',
+                    riesgo === 'excursion_critica' && !desactualizado ? 'text-danger-700' : 'text-foreground',
                     desactualizado && 'opacity-70',
                   )}
                 >
@@ -283,14 +283,14 @@ function EstadoPrincipal({
             </div>
           </div>
           {fueraDeEscala && lectura != null && (
-            <p role="note" className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium text-clay-700">
+            <p role="note" className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium text-danger-700">
               {lectura > maximoIndicador
                 ? t('dashboard.lecturaSobreEscala', { temperatura: lectura.toFixed(1) })
                 : t('dashboard.lecturaBajoEscala', { temperatura: lectura.toFixed(1) })}
             </p>
           )}
           <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-            <span className={cn('size-2 rounded-full', desactualizado ? 'bg-clay-600' : 'bg-success-600')} />
+            <span className={cn('size-2 rounded-full', desactualizado ? 'bg-danger-600' : 'bg-success-600')} />
             {desactualizado
               ? t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })
               : t('dashboard.lecturaReciente', { s: segundosDesdeUltima })}
@@ -303,9 +303,9 @@ function EstadoPrincipal({
 
         <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-1 sm:border-t-0 sm:border-l sm:pl-5 sm:pt-0">
           <div className="py-1.5">
-            <dt className="flex items-center gap-2 text-xs font-medium text-muted">{abiertaAhora ? <DoorOpen className="size-4 text-honey-600" aria-hidden /> : <DoorClosed className="size-4 text-primary" aria-hidden />}{t('dashboard.puerta')}</dt>
+            <dt className="flex items-center gap-2 text-xs font-medium text-muted">{abiertaAhora ? <DoorOpen className="size-4 text-warning-600" aria-hidden /> : <DoorClosed className="size-4 text-primary" aria-hidden />}{t('dashboard.puerta')}</dt>
             <dd
-              className={cn('mt-2 text-sm font-semibold', abiertaAhora ? 'text-honey-700' : 'text-foreground')}
+              className={cn('mt-2 text-sm font-semibold', abiertaAhora ? 'text-warning-700' : 'text-foreground')}
               role={aperturaProlongada ? 'alert' : undefined}
               data-testid={abiertaAhora ? 'puerta-advertencia' : undefined}
             >
@@ -315,7 +315,7 @@ function EstadoPrincipal({
                   ? t('dashboard.puertaAbierta')
                   : t('dashboard.puertaCerrada')}
               {aperturaEnCurso != null && (
-                <span className={cn('nums ml-1 font-normal', aperturaProlongada ? 'text-clay-700' : 'text-muted')}>
+                <span className={cn('nums ml-1 font-normal', aperturaProlongada ? 'text-danger-700' : 'text-muted')}>
                   · {t('dashboard.puertaDesdeHace', { duracion: duracionBreve(aperturaEnCurso) })}
                   {aperturaProlongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}
                 </span>
@@ -323,7 +323,7 @@ function EstadoPrincipal({
               {!conAperturaContinua && ultima.apertura_refrigerador && ultima.duracion_apertura_segundos != null && (() => {
                 const duracion = ultima.duracion_apertura_segundos
                 const prolongada = duracion >= umbralPuerta
-                return <span className={cn('nums ml-1 font-normal', prolongada ? 'text-clay-700' : 'text-muted')}>· {duracionBreve(duracion)}{prolongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}</span>
+                return <span className={cn('nums ml-1 font-normal', prolongada ? 'text-danger-700' : 'text-muted')}>· {duracionBreve(duracion)}{prolongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}</span>
               })()}
               {huboAperturaCerrada && ultima.duracion_apertura_segundos != null && (
                 <span className="mt-1 block text-xs font-normal text-muted">
@@ -331,7 +331,7 @@ function EstadoPrincipal({
                 </span>
               )}
               {aperturaProlongada && (
-                <span className="mt-1 block text-xs font-medium text-clay-700">
+                <span className="mt-1 block text-xs font-medium text-danger-700">
                   {t('dashboard.puertaSuperaUmbral', { segundos: umbralPuerta })}
                 </span>
               )}
@@ -379,7 +379,7 @@ function AvisoAlertasPendientes() {
         'mb-4 flex items-center gap-2.5 rounded-(--radius-card) border px-4 py-3 text-[13.5px] font-medium transition-colors',
         criticas > 0
           ? 'border-critical/30 bg-critical-tint text-critical hover:border-critical/50'
-          : 'border-honey-600/30 bg-honey-100 text-honey-700 hover:border-honey-600/50',
+          : 'border-warning-600/30 bg-warning-100 text-warning-700 hover:border-warning-600/50',
       )}
     >
       <AlertTriangle className="size-4 shrink-0" aria-hidden />
@@ -400,7 +400,7 @@ function AvisoCalibracion({ equipo }: { equipo?: Dispositivo }) {
   if (estado !== 'vencida' && estado !== 'proxima_a_vencer') return null
   return (
     <p role="status" className="mb-4 flex items-center gap-2.5 rounded-(--radius-card) border border-border-strong bg-surface-raised px-4 py-3 text-[13.5px] text-foreground">
-      <CalendarClock className="size-4 shrink-0 text-honey-600" aria-hidden />
+      <CalendarClock className="size-4 shrink-0 text-warning-600" aria-hidden />
       {t(estado === 'vencida' ? 'dashboard.calibracionVencida' : 'dashboard.calibracionPorVencer', {
         fecha: fechaCorta(equipo.fecha_proxima_calibracion),
       })}
@@ -452,7 +452,7 @@ function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
                       {dispositivo.estado_operativo === 'OPERATIVO' && incidentesResueltos.length > 0 && <Badge variant="ok">{t('dispositivos.estadoOperativo.OPERATIVO')}</Badge>}
                     </div>
                     {excursionNoVerificada && (
-                      <p role="alert" className="mt-1.5 text-xs font-semibold text-clay-700">
+                      <p role="alert" className="mt-1.5 text-xs font-semibold text-danger-700">
                         {t('dashboard.excursionNoVerificada', {
                           temperatura: excursionNoVerificada.detalle?.temperatura_interna?.toFixed(2) ?? '—',
                           fecha: fechaHora(excursionNoVerificada.detalle?.captured_at ?? excursionNoVerificada.detectado_en),
@@ -460,7 +460,7 @@ function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
                       </p>
                     )}
                     {incidenteActivo && (
-                      <p role="status" className="mt-1.5 text-xs font-medium text-clay-700">
+                      <p role="status" className="mt-1.5 text-xs font-medium text-danger-700">
                         {t('dashboard.alertaSilencio', {
                           fecha: fechaHora(incidenteActivo.detectado_en),
                           segundos: incidenteActivo.umbral_silencio_segundos,
@@ -492,12 +492,12 @@ function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
                           </span>
                         )}
                         {perdidas > 0 && (
-                          <span className="font-semibold text-honey-600">
+                          <span className="font-semibold text-warning-600">
                             {t('dispositivos.perdidas', { n: perdidas })}
                           </span>
                         )}
                         {buffer.brechas?.slice(-2).map((brecha) => (
-                          <span key={`${brecha.desde}-${brecha.hasta}`} className="rounded-md bg-critical-tint px-2 py-1 text-clay-700">
+                          <span key={`${brecha.desde}-${brecha.hasta}`} className="rounded-md bg-critical-tint px-2 py-1 text-danger-700">
                             {t('dashboard.brechaBuffer', { n: brecha.muestras_perdidas })} · {t('dashboard.causaBufferAgotado')}
                             <span className="mt-0.5 block font-normal">
                               {t('dashboard.periodoBrecha', {
@@ -583,13 +583,13 @@ function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<vo
 
   return (
     <details className="tarjeta-cristal group mb-4 rounded-(--radius-card) border">
-      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-(--radius-card) px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-(--duration-micro) hover:bg-cream-200/30 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-(--radius-card) px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-(--duration-micro) hover:bg-neutral-200/30 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-3">
-          <span aria-hidden className="flex size-8 items-center justify-center rounded-lg bg-honey-100 text-honey-700 ring-1 ring-inset ring-honey-600/25">
+          <span aria-hidden className="flex size-8 items-center justify-center rounded-lg bg-warning-100 text-warning-700 ring-1 ring-inset ring-warning-600/25">
             <FlaskConical className="size-4" />
           </span>
           {t('dashboard.demoTitulo')}
-          <span className="rounded-full bg-secondary-tint px-2.5 py-0.5 text-xs font-semibold text-glacier-700 ring-1 ring-inset ring-glacier-200">
+          <span className="rounded-full bg-secondary-tint px-2.5 py-0.5 text-xs font-semibold text-success-700 ring-1 ring-inset ring-success-200">
             {t('demo.badge')}
           </span>
         </span>
@@ -647,7 +647,7 @@ function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<vo
             role={mensaje.tipo === 'error' ? 'alert' : 'status'}
             className={cn(
               'mt-3 text-xs font-medium',
-              mensaje.tipo === 'error' ? 'text-clay-700' : 'text-success-700',
+              mensaje.tipo === 'error' ? 'text-danger-700' : 'text-success-700',
             )}
           >
             {mensaje.texto}
@@ -883,17 +883,17 @@ export function DashboardPage() {
           className={cn(
             'inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-[13px] font-semibold',
             sseConectado
-              ? 'border-glacier-200 bg-glacier-100 text-glacier-700'
-              : 'border-honey-600/25 bg-honey-100 text-honey-700',
+              ? 'border-success-200 bg-success-100 text-success-700'
+              : 'border-warning-600/25 bg-warning-100 text-warning-700',
           )}
         >
           <span className="relative flex size-2">
             {/* El latido solo mientras llegan datos: dice «esto está vivo» sin texto extra. */}
-            {sseConectado && <span aria-hidden className="absolute inline-flex size-full animate-ping rounded-full bg-glacier-600 opacity-50" />}
+            {sseConectado && <span aria-hidden className="absolute inline-flex size-full animate-ping rounded-full bg-success-600 opacity-50" />}
             <span
               className={cn(
                 'relative inline-flex size-2 rounded-full',
-                sseConectado ? 'bg-glacier-600 shadow-[0_0_8px_currentColor]' : 'bg-honey-600',
+                sseConectado ? 'bg-success-600 shadow-[0_0_8px_currentColor]' : 'bg-warning-600',
               )}
             />
           </span>
@@ -919,7 +919,7 @@ export function DashboardPage() {
         <EstadoCarga variant="dashboard">
           {equiposConIncidencias.length > 0
             ? <EstadoEquiposIoT equipos={equiposConIncidencias} />
-            : <div aria-hidden className="h-52 rounded-(--radius-card) border border-border bg-surface p-5"><div className="h-4 w-48 rounded bg-cream-200" /><div className="mt-6 h-4 w-64 max-w-full rounded bg-cream-200" /></div>}
+            : <div aria-hidden className="h-52 rounded-(--radius-card) border border-border bg-surface p-5"><div className="h-4 w-48 rounded bg-neutral-200" /><div className="mt-6 h-4 w-64 max-w-full rounded bg-neutral-200" /></div>}
         </EstadoCarga>
       ) : ultima === null && estadoHistorial === 'error' ? null : ultima === null ? (
         <Card className="animate-rise">
@@ -1037,7 +1037,7 @@ export function DashboardPage() {
                       <dd
                         className={cn(
                           'nums mt-1.5 text-[22px] leading-7 font-semibold tracking-[-0.025em] text-foreground',
-                          alerta && 'text-clay-600',
+                          alerta && 'text-danger-600',
                         )}
                       >
                         {valor}
@@ -1085,7 +1085,7 @@ export function DashboardPage() {
                         </Badge>
                       </div>
                       {incidenteActivo && (
-                        <p role="status" className="mt-3 flex items-start gap-2 text-[13px] leading-5 font-medium text-clay-700">
+                        <p role="status" className="mt-3 flex items-start gap-2 text-[13px] leading-5 font-medium text-danger-700">
                           <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
                           {t('dashboard.alertaSilencio', { fecha: fechaHora(incidenteActivo.detectado_en), segundos: incidenteActivo.umbral_silencio_segundos })}
                         </p>
@@ -1093,7 +1093,7 @@ export function DashboardPage() {
                       {/* Lo que el farmacéutico necesita ver; la ficha técnica queda plegada. */}
                       <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-border pt-3 text-xs">
                         <div><dt className="text-faint">{t('dispositivos.ultimoReporte')}</dt><dd className="nums mt-1 text-[13.5px] font-semibold text-foreground">{ultimaLectura}</dd></div>
-                        <div><dt className="text-faint">{t('dispositivos.conectividad')}</dt><dd className="mt-1 flex items-center gap-1.5 text-[13.5px] font-semibold text-foreground"><span aria-hidden className={cn('size-1.5 rounded-full', equipo.estado_conectividad === 'online' ? 'bg-glacier-600' : 'bg-clay-600')} />{equipo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}</dd></div>
+                        <div><dt className="text-faint">{t('dispositivos.conectividad')}</dt><dd className="mt-1 flex items-center gap-1.5 text-[13.5px] font-semibold text-foreground"><span aria-hidden className={cn('size-1.5 rounded-full', equipo.estado_conectividad === 'online' ? 'bg-success-600' : 'bg-danger-600')} />{equipo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}</dd></div>
                       </dl>
                       <Detalles className="mt-1">
                       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
@@ -1120,7 +1120,7 @@ export function DashboardPage() {
                   <CardContent>
                     <ol className="divide-y divide-border">
                       {lecturasRecientes.map((lectura) => (
-                        <li key={`${lectura.device_id}-${lectura.timestamp}`} className="-mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors duration-(--duration-micro) first:pt-1 hover:bg-cream-200/40">
+                        <li key={`${lectura.device_id}-${lectura.timestamp}`} className="-mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors duration-(--duration-micro) first:pt-1 hover:bg-neutral-200/40">
                           <p className="nums min-w-0 text-[13px] text-muted">
                             <time dateTime={lectura.timestamp} className="font-medium text-foreground">{fechaHora(lectura.timestamp)}</time>
                             <span className="text-faint"> · {lectura.device_id}</span>
@@ -1153,7 +1153,7 @@ export function DashboardPage() {
             </div>
             <Link
               to="/alertas"
-              className="group inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border-strong bg-surface-raised px-3.5 text-[13px] font-semibold text-foreground transition-colors duration-(--duration-micro) hover:border-border-field hover:bg-cream-200/60 sm:min-h-10 sm:gap-2 sm:px-4"
+              className="group inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border-strong bg-surface-raised px-3.5 text-[13px] font-semibold text-foreground transition-colors duration-(--duration-micro) hover:border-border-field hover:bg-neutral-200/60 sm:min-h-10 sm:gap-2 sm:px-4"
             >
               {t('dashboard.verAlertas')}
               <ArrowRight className="size-3.5 transition-transform duration-(--duration-micro) group-hover:translate-x-0.5" aria-hidden />

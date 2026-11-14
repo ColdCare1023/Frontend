@@ -20,7 +20,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           type="button"
           aria-label={`${t('idiomas.cambiar')}: ${t(`idiomas.${actual}`)}`}
           className={cn(
-            'flex h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:bg-cream-200/70 data-[state=open]:text-foreground sm:h-9 sm:pointer-coarse:h-11',
+            'flex h-11 min-w-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted transition-colors duration-(--duration-micro) hover:bg-neutral-200/70 hover:text-foreground data-[state=open]:bg-neutral-200/70 data-[state=open]:text-foreground sm:h-9 sm:pointer-coarse:h-11',
             className,
           )}
         >

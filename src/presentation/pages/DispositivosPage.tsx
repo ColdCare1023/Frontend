@@ -843,7 +843,7 @@ export function DispositivosPage() {
               {credencialRotada?.token}
             </code>
             {credencialRotada?.mensaje_broker && (
-              <p role="alert" className="rounded-(--radius-field) bg-honey-100 px-3 py-2 text-[13px] text-honey-700">
+              <p role="alert" className="rounded-(--radius-field) bg-warning-100 px-3 py-2 text-[13px] text-warning-700">
                 {credencialRotada.mensaje_broker}
               </p>
             )}
@@ -1150,7 +1150,7 @@ export function DispositivosPage() {
 function Aviso({ tono, title, children }: { tono: 'warn' | 'critical'; title?: string; children: React.ReactNode }) {
   const Icono = tono === 'critical' ? ShieldAlert : TriangleAlert
   return (
-    <li title={title} className={cn('flex items-start gap-1.5', tono === 'critical' ? 'text-critical' : 'text-honey-700')}>
+    <li title={title} className={cn('flex items-start gap-1.5', tono === 'critical' ? 'text-critical' : 'text-warning-700')}>
       <Icono aria-hidden className="mt-px size-3.5 shrink-0" />
       <span>{children}</span>
     </li>

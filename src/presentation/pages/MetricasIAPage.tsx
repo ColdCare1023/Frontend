@@ -51,7 +51,7 @@ function DetallePlegable({
 }) {
   return (
     <details className="group border-b border-border">
-      <summary className="-mx-2 flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-lg px-2 py-3 text-left outline-none transition-colors duration-(--duration-micro) hover:bg-cream-200/45 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary className="-mx-2 flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-lg px-2 py-3 text-left outline-none transition-colors duration-(--duration-micro) hover:bg-neutral-200/45 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-foreground">{titulo}</span>
           <span className="mt-0.5 block text-xs leading-relaxed text-muted">{descripcion}</span>
@@ -124,7 +124,7 @@ export function MetricasIAPage() {
         {/* Sin origen verificable, el valor es ilustrativo: se dice antes que
             la cifra, no debajo. */}
         {!evaluacionVerificada && (
-          <div role="status" className="flex items-start gap-2.5 border-b border-honey-600/20 bg-honey-100 px-4 py-3 text-honey-700 sm:px-5">
+          <div role="status" className="flex items-start gap-2.5 border-b border-warning-600/20 bg-warning-100 px-4 py-3 text-warning-700 sm:px-5">
             <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
             <p className="text-[13px] leading-5 font-medium">{t('metricasIA.avisoDatosNoReportables')}</p>
           </div>
@@ -144,7 +144,7 @@ export function MetricasIAPage() {
               data-testid="veredicto-umbral"
               className={cn(
                 'mt-4 flex items-start gap-2.5 rounded-[10px] px-3.5 py-3 text-[13px] leading-5 ring-1 ring-inset',
-                cumpleUmbral ? 'bg-success-100 text-success-700 ring-success-600/20' : 'bg-honey-100 text-honey-700 ring-honey-600/25',
+                cumpleUmbral ? 'bg-success-100 text-success-700 ring-success-600/20' : 'bg-warning-100 text-warning-700 ring-warning-600/25',
               )}
             >
               {/* WCAG 1.4.1: cumplir e incumplir usan iconos distintos. */}
@@ -287,7 +287,7 @@ export function MetricasIAPage() {
                     {etiquetaVariable(variable)}
                   </span>
                   <div
-                    className="h-2 overflow-hidden rounded-full bg-cream-200"
+                    className="h-2 overflow-hidden rounded-full bg-neutral-200"
                     role="img"
                     aria-label={t('metricasIA.barraImportancia', {
                       variable: etiquetaVariable(variable),

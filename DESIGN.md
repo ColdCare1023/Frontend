@@ -11,7 +11,12 @@ ColdCare is a thermal-supervision instrument for pharmacy teams. The web app kee
 - Accent pink `#FF7AA2`: elevated-temperature signals.
 - Deep navy `#0F172A`, cool background `#F4F7FB`, white surfaces `#FFFFFF`.
 - Inter Variable throughout; tabular numerals for readings and times.
-- Shared status tones: normal `#07546A`, warning `#A8385E`, critical `#982C50`, with pale tints and clear text labels.
+- Status tones (always paired with a text label and icon, never color alone): `success-*` (normal `#07546A`), `warning-*` (`#8A4B06`), `danger-*` (`#A4233F`); `critical*` for the solid critical alert.
+- Color is reserved for state and action. Structure uses neutrals: `background`, `surface`, `surface-raised`, `surface-sunken`, `border`, and the `neutral-50…400` scale.
+- Text levels: `foreground` (primary), `subtle` (secondary), `muted` (supporting), `faint` (metadata).
+- Brand scale `brand-*` (ColdCare blue); interactive elements use `primary`.
+- Dark theme: same token names, navy surfaces in small lightness steps (background `#070B14` → surface `#0E1522` → raised `#141D2E`), never pure black.
+- Legacy names `cream`, `ink`, `pine`, `honey`, `clay` and `glacier` were removed; do not reintroduce them.
 - Shared radii: controls 10px, cards 12px, dialogs 16px. Motion uses 160/240ms and `cubic-bezier(0.16, 1, 0.3, 1)`.
 
 ## Composition

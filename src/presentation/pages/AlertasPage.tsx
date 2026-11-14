@@ -126,8 +126,8 @@ function FechaYHora({ iso }: { iso: string | null }) {
 // navegadores); en la ficha móvil, la fila es una caja y lo lleva ella.
 const FILO_RIESGO: Record<string, { fila: string; celda: string }> = {
   excursion_critica: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-critical-solid)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-critical-solid)]' },
-  riesgo_preventivo: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-honey-600)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-honey-600)]' },
-  normal: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-glacier-600)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-glacier-600)]' },
+  riesgo_preventivo: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-warning-600)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-warning-600)]' },
+  normal: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-success-600)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-success-600)]' },
 }
 
 export function AlertasPage() {
@@ -327,7 +327,7 @@ export function AlertasPage() {
                         <FechaYHora iso={alerta.created_at} />
                       </TableCell>
                       <TableCell data-label={t('historial.dispositivo')} className={cn('py-4 whitespace-nowrap', RELLENO)}>
-                        <span className="nums text-[13px] text-ink-700">
+                        <span className="nums text-[13px] text-subtle">
                           {alerta.device_id}
                         </span>
                       </TableCell>
