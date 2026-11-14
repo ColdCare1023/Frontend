@@ -78,8 +78,11 @@ function Metrica({
         {desactualizado && !fallo && valor != null && <Antiguedad segundos={segundos} />}
       </dt>
       {fallo || valor == null ? (
-        <dd role={fallo ? 'alert' : 'status'} className="mt-1 text-meta font-medium text-warning-700">
-          {fallo ? t('dashboard.fallaSensor') : t('dashboard.sinLecturaDisponible')}
+        <dd className="mt-1 text-meta font-medium text-warning-700">
+          {/* El rol va en un span: un <dd> con role deja de ser dd y rompe el <dl> (axe definition-list). */}
+          <span role={fallo ? 'alert' : 'status'}>
+            {fallo ? t('dashboard.fallaSensor') : t('dashboard.sinLecturaDisponible')}
+          </span>
         </dd>
       ) : (
         <dd className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
@@ -224,11 +227,12 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
             )}
             {t('dashboard.puerta')}
           </dt>
-          <dd
-            className={clsx('mt-1 text-title', puerta.abiertaAhora ? 'text-warning-700' : 'text-foreground')}
-            role={puerta.aperturaProlongada ? 'alert' : undefined}
-            data-testid={puerta.abiertaAhora ? 'puerta-advertencia' : undefined}
-          >
+          <dd className={clsx('mt-1 text-title', puerta.abiertaAhora ? 'text-warning-700' : 'text-foreground')}>
+            {/* Rol y testid en un span interno: un <dd> con role rompe el <dl> (axe definition-list). */}
+            <span
+              role={puerta.aperturaProlongada ? 'alert' : undefined}
+              data-testid={puerta.abiertaAhora ? 'puerta-advertencia' : undefined}
+            >
             {puerta.sinSensor
               ? t('dashboard.puertaSinDato')
               : puerta.abiertaAhora
@@ -260,6 +264,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
                 {t('dashboard.puertaSuperaUmbral', { segundos: puerta.umbral })}
               </span>
             )}
+            </span>
           </dd>
           {!puerta.sinSensor && (
             <>
