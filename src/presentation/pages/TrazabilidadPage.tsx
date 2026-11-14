@@ -270,10 +270,13 @@ export function TrazabilidadPage() {
                     </div>
                   </div>
                 </CeldaRegistro>
+                {/* Bajo 640 px hora, equipo y resumen comparten esta línea: hasta 2 líneas en vez de cortarse. */}
                 <CeldaRegistro area="b" className="codigo truncate text-body text-subtle max-sm:text-meta max-sm:text-muted">
-                  <span className="nums sm:hidden">{hora(r.timestamp)} · </span>
-                  {r.device_id ?? '—'}
-                  {resumen && <span className="sm:hidden"> · {resumen}</span>}
+                  <span className="max-sm:line-clamp-2 max-sm:whitespace-normal max-sm:[overflow-wrap:anywhere]">
+                    <span className="nums sm:hidden">{hora(r.timestamp)} · </span>
+                    {r.device_id ?? '—'}
+                    {resumen && <span className="sm:hidden"> · {resumen}</span>}
+                  </span>
                 </CeldaRegistro>
                 {mostrarSellos && (
                   <CeldaRegistro area="oculta" className="codigo text-meta text-faint">

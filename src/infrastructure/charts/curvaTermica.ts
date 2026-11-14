@@ -3,7 +3,7 @@ import type { EChartsCoreOption } from 'echarts/core'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
 import { fechaHora, hora as formatearHora } from '@/lib/formato'
-import { temaGrafica, type TemaGrafica } from './temaColdCare'
+import { colorToken, temaGrafica, type TemaGrafica } from './temaColdCare'
 
 /**
  * Sin una lectura en este lapso el nodo se considera SIN_DATOS (HU-33): la
@@ -240,16 +240,33 @@ function construirCurvaPorEquipo(
   colores: ColoresGrafica,
   ventana?: { desde: number; hasta: number },
 ): EChartsCoreOption {
-  // Cada equipo con un tono que no se confunde con el anterior: cian, rosa, violeta, ámbar.
-  const paleta = [colores.primary, colores.accent, colores.secondary, colores.warn]
+  // Navy, pizarra, teal y gris, con un trazo distinto por equipo para no
+  // depender solo del color (WCAG 1.4.1); todos ≥ 3:1 sobre la franja. Antes el segundo equipo iba en el
+  // rosa de la marca y el cuarto en ámbar, que se lee como «preventivo»
+  // (DIRECTION §3: el rosa no aparece en datos).
+  const paleta = [
+    { color: colores.primary, tipo: 'solid' },
+    { color: colorToken('nodata-700', '#4A5A73'), tipo: 'dashed' },
+    { color: colorToken('banda-borde', '#2F93A8'), tipo: 'solid' },
+    { color: colores.muted, tipo: 'dotted' },
+  ] as const
+  // La leyenda repite el trazo: guiones o puntos en vez de la barra continua.
+  const ICONO_TRAZO = {
+    solid: 'roundRect',
+    dashed: 'path://M0,0h5v3h-5z M8,0h5v3h-5z M16,0h5v3h-5z',
+    dotted: 'path://M0,0h3v3h-3z M6,0h3v3h-3z M12,0h3v3h-3z M18,0h3v3h-3z',
+  } as const
   const visible = ventana ? serie.filter((l) => Date.parse(l.timestamp) >= ventana.desde) : serie
+  // Orden alfabético: el mismo trazo para el mismo equipo aquí, en el rail
+  // «Por equipo» y en la mini curva de Reportes.
+  const ordenados = [...equipos].sort((a, b) => a.localeCompare(b))
   return {
     ...baseCurva(colores, ventana),
-    legend: leyenda(colores, { data: equipos }),
-    series: equipos.map((equipo, indice) => {
+    legend: leyenda(colores, { data: ordenados.map((name, indice) => ({ name, icon: ICONO_TRAZO[paleta[indice % paleta.length].tipo] })) }),
+    series: ordenados.map((equipo, indice) => {
       const propias = visible.filter((l) => l.device_id === equipo)
       const umbral = umbralHueco(propias)
-      const color = paleta[indice % paleta.length]
+      const { color, tipo } = paleta[indice % paleta.length]
       return {
         name: equipo,
         type: 'line',
@@ -259,7 +276,7 @@ function construirCurvaPorEquipo(
         connectNulls: false,
         sampling: 'lttb',
         data: puntos(propias, (l) => l.temperatura_interna, umbral),
-        lineStyle: { width: 1.75, color },
+        lineStyle: { width: 1.75, color, type: tipo },
         itemStyle: { color },
         ...(indice === 0 ? marcasRango(colores, etiquetas) : {}),
         markPoint: {

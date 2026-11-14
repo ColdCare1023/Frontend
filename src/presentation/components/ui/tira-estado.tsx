@@ -34,18 +34,30 @@ export function TiraEstado({
   segmentos,
   etiqueta,
   guia,
+  apilarGuia = false,
   className,
 }: {
   segmentos: readonly SegmentoTira[]
   etiqueta: string
   guia?: React.ReactNode
+  /**
+   * Bajo 1440 px la guía ocupa su propia fila y los segmentos se reparten la
+   * siguiente. Sin esto, entre 640 y 1439 px la guía y los segmentos no caben
+   * en una fila y el último segmento queda huérfano en otra, con medio borde.
+   */
+  apilarGuia?: boolean
   className?: string
 }) {
   return (
     <section aria-label={etiqueta} className={cn('superficie overflow-hidden', className)}>
       <div className="-mt-px -ml-px flex flex-wrap">
         {guia && (
-          <p className="flex min-h-16 min-w-0 basis-full items-center border-t border-l border-border px-4 py-3 text-body text-subtle sm:basis-auto sm:max-w-sm">
+          <p
+            className={cn(
+              'flex min-h-16 min-w-0 basis-full items-center border-t border-l border-border px-4 py-3 text-body text-subtle',
+              apilarGuia ? 'min-[1440px]:basis-auto min-[1440px]:max-w-sm' : 'sm:basis-auto sm:max-w-sm',
+            )}
+          >
             {guia}
           </p>
         )}
@@ -55,7 +67,8 @@ export function TiraEstado({
               key={clave}
               data-tono={tono}
               className={cn(
-                'flex min-h-16 min-w-0 flex-[1_1_8rem] flex-col justify-center border-t border-l border-border px-4 py-2.5 sm:flex-none',
+                'flex min-h-16 min-w-0 flex-[1_1_8rem] flex-col justify-center border-t border-l border-border px-4 py-2.5',
+                apilarGuia ? 'min-[1440px]:flex-none' : 'sm:flex-none',
                 claseSegmento,
               )}
             >

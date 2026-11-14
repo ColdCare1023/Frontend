@@ -12,7 +12,7 @@ import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSiz
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
-import { BotonCopiar, ChipsFiltro, Dato, PlantillaBandeja, TarjetaRail, type Chip } from '../components/registros/piezas'
+import { BotonCopiar, BotonMasFiltros, ChipsFiltro, Dato, PlantillaBandeja, TarjetaRail, type Chip } from '../components/registros/piezas'
 import { CeldaRegistro, EncabezadoRegistro, TablaRegistros } from '../components/registros/TablaRegistros'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -34,6 +34,8 @@ const VARIANTE_RESULTADO: Record<string, 'ok' | 'critical' | 'warn'> = {
 }
 
 const fechaDe = (r: RegistroAuditoria) => r.created_at
+/** Un UUID se abrevia a 8 caracteres; un id corto se muestra entero, sin «…». */
+const abreviarId = (id: string) => (id.length > 10 ? `${id.slice(0, 8)}…` : id)
 const claveRegistro = (r: RegistroAuditoria) => r.id
 const humanizar = (clave: string) => clave.replaceAll('_', ' ').replace(/^\p{L}/u, (l) => l.toLocaleUpperCase())
 
@@ -48,6 +50,7 @@ export function AuditoriaPage() {
   const [resultado, setResultado] = useState<FiltroResultado>('todas')
   const [categoria, setCategoria] = useState<CategoriaAuditoria | null>(null)
   const [expandida, setExpandida] = useState<string | null>(null)
+  const [masFiltros, setMasFiltros] = useState(false)
 
   // Base del histograma: la última carga SIN periodo, para que no se reduzca
   // a una barra al filtrar un día.
@@ -190,48 +193,63 @@ export function AuditoriaPage() {
   const barra = (
     <>
       {/* HU-50 criterio 1: filtrar por periodo, usuario o tipo de acción. */}
+      {/* Rejilla de 3 columnas desde 1024 px: acción, usuario y resultado en
+          la primera fila; periodo y acciones en la segunda (antes «Resultado»
+          quedaba a media fila). Bajo 640 px solo se ve la acción y «Filtros». */}
       <form
         role="search"
         aria-label={t('auditoria.filtro.etiqueta')}
-        className="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:px-4"
+        className="grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4 lg:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault()
           consultarCon(filtros)
         }}
       >
-        <div className="w-full sm:w-52">
+        <div className="min-w-0">
           <Label htmlFor="fa-accion" className="text-meta text-muted">{t('auditoria.accion')}</Label>
-          <div className="relative">
-            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-            <Input id="fa-accion" className="h-9 pl-9 pointer-coarse:h-11" value={filtros.accion ?? ''} onChange={(e) => actualizarFiltro('accion', e.target.value)} placeholder={t('auditoria.accionPlaceholder')} aria-describedby="fa-accion-ayuda" />
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
+              <Input id="fa-accion" className="h-9 pl-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.accion ?? ''} onChange={(e) => actualizarFiltro('accion', e.target.value)} placeholder={t('auditoria.accionPlaceholder')} aria-describedby="fa-accion-ayuda" />
+            </div>
+            <BotonMasFiltros
+              abierto={masFiltros}
+              onCambiar={setMasFiltros}
+              controla="auditoria-mas-filtros"
+              activos={(aplicados.usuario_id ? 1 : 0) + (resultado !== 'todas' ? 1 : 0) + (aplicados.desde || aplicados.hasta ? 1 : 0)}
+              texto={t('auditoria.filtro.mas')}
+              textoActivos={(count) => t('auditoria.filtro.masActivos', { count })}
+            />
           </div>
           <p id="fa-accion-ayuda" className="sr-only">{t('auditoria.ayudaAccion')}</p>
         </div>
-        <div className="w-full sm:w-40">
-          <Label htmlFor="fa-usuario" className="text-meta text-muted">{t('auditoria.usuario')}</Label>
-          <Input id="fa-usuario" className="h-9 pointer-coarse:h-11" value={filtros.usuario_id ?? ''} onChange={(e) => actualizarFiltro('usuario_id', e.target.value)} placeholder={t('auditoria.usuarioPlaceholder')} />
+        <div id="auditoria-mas-filtros" className={cn('grid grid-cols-1 gap-x-3 gap-y-2 min-[480px]:grid-cols-2 sm:contents', !masFiltros && 'max-sm:hidden')}>
+          <div className="min-w-0">
+            <Label htmlFor="fa-usuario" className="text-meta text-muted">{t('auditoria.usuario')}</Label>
+            <Input id="fa-usuario" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.usuario_id ?? ''} onChange={(e) => actualizarFiltro('usuario_id', e.target.value)} placeholder={t('auditoria.usuarioPlaceholder')} />
+          </div>
+          <div className="min-w-0">
+            <Label htmlFor="fa-resultado" className="text-meta text-muted">{t('auditoria.filtroResultado.etiqueta')}</Label>
+            <NativeSelect id="fa-resultado" className="h-9 max-sm:h-11 pointer-coarse:h-11" aria-describedby="fa-resultado-ayuda" value={resultado} onChange={(e) => setResultado(e.target.value as FiltroResultado)}>
+              <option value="todas">{t('auditoria.filtroResultado.todas')}</option>
+              <option value="fallidas">{t('auditoria.filtroResultado.fallidas')}</option>
+              <option value="bloqueos">{t('auditoria.filtroResultado.bloqueos')}</option>
+            </NativeSelect>
+            <p id="fa-resultado-ayuda" className="sr-only">{t('auditoria.filtroResultado.ayuda')}</p>
+          </div>
+          <div className="min-w-0">
+            <Label htmlFor="fa-desde" className="text-meta text-muted">{t('historial.desde')}</Label>
+            <SelectorFecha id="fa-desde" conHora valor={filtros.desde ?? ''} onCambiar={(valor) => actualizarFiltro('desde', valor)} />
+          </div>
+          <div className="min-w-0">
+            <Label htmlFor="fa-hasta" className="text-meta text-muted">{t('historial.hasta')}</Label>
+            <SelectorFecha id="fa-hasta" conHora valor={filtros.hasta ?? ''} onCambiar={(valor) => actualizarFiltro('hasta', valor)} />
+          </div>
         </div>
-        <div className="w-full sm:w-44">
-          <Label htmlFor="fa-resultado" className="text-meta text-muted">{t('auditoria.filtroResultado.etiqueta')}</Label>
-          <NativeSelect id="fa-resultado" className="h-9 pointer-coarse:h-11" aria-describedby="fa-resultado-ayuda" value={resultado} onChange={(e) => setResultado(e.target.value as FiltroResultado)}>
-            <option value="todas">{t('auditoria.filtroResultado.todas')}</option>
-            <option value="fallidas">{t('auditoria.filtroResultado.fallidas')}</option>
-            <option value="bloqueos">{t('auditoria.filtroResultado.bloqueos')}</option>
-          </NativeSelect>
-          <p id="fa-resultado-ayuda" className="sr-only">{t('auditoria.filtroResultado.ayuda')}</p>
-        </div>
-        <div className="w-full min-[480px]:w-[calc(50%-6px)] sm:w-52">
-          <Label htmlFor="fa-desde" className="text-meta text-muted">{t('historial.desde')}</Label>
-          <SelectorFecha id="fa-desde" conHora valor={filtros.desde ?? ''} onCambiar={(valor) => actualizarFiltro('desde', valor)} />
-        </div>
-        <div className="w-full min-[480px]:w-[calc(50%-6px)] sm:w-52">
-          <Label htmlFor="fa-hasta" className="text-meta text-muted">{t('historial.hasta')}</Label>
-          <SelectorFecha id="fa-hasta" conHora valor={filtros.hasta ?? ''} onCambiar={(valor) => actualizarFiltro('hasta', valor)} />
-        </div>
-        <div className="flex flex-1 items-center gap-2">
-          <Button type="submit" size="sm" className="h-9 pointer-coarse:h-11">{t('historial.aplicar')}</Button>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <Button type="submit" size="sm">{t('historial.aplicar')}</Button>
           {hayFiltros && (
-            <Button type="button" variant="ghost" size="sm" className="h-9 text-muted pointer-coarse:h-11" onClick={limpiar}>
+            <Button type="button" variant="ghost" size="sm" className="text-muted" onClick={limpiar}>
               <FilterX aria-hidden />
               {t('historial.limpiar')}
             </Button>
@@ -315,7 +333,9 @@ export function AuditoriaPage() {
                     <div className="min-w-0">
                       <p className="truncate text-body text-foreground">{nombreAccion(r.accion, t)}</p>
                       {/* Recurso e IP siguen visibles: sin ellos la entrada no sirve como evidencia. */}
-                      <p className="codigo truncate text-meta text-faint">
+                      {/* Bajo 640 px la hora se suma a esta línea y la insignia le quita
+                          ancho: hasta 3 líneas para que el recurso y la IP no se corten. */}
+                      <p className="codigo text-meta text-faint [overflow-wrap:anywhere] max-sm:line-clamp-3 sm:truncate">
                         <span className="nums sm:hidden">{hora(r.created_at)} · </span>
                         <span>{r.recurso}</span> · <span>{r.ip_origen ?? '—'}</span>
                       </p>
@@ -328,7 +348,7 @@ export function AuditoriaPage() {
                   </Badge>
                 </CeldaRegistro>
                 <CeldaRegistro area="oculta" className="codigo truncate text-meta text-muted">
-                  {r.usuario_id ? `${r.usuario_id.slice(0, 8)}…` : <span className="text-faint">{t('auditoria.sinUsuario')}</span>}
+                  {r.usuario_id ? abreviarId(r.usuario_id) : <span className="text-faint">{t('auditoria.sinUsuario')}</span>}
                 </CeldaRegistro>
               </>
             )
@@ -393,6 +413,7 @@ export function AuditoriaPage() {
       {registros.length > 0 && (
         <TiraEstado
           etiqueta={t('auditoria.resumen')}
+          apilarGuia
           guia={guia}
           segmentos={[
             { clave: 'eventos', etiqueta: t('auditoria.totalEventos'), valor: registros.length },
