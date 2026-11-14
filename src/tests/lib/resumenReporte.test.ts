@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { conteoAlertas, submuestrear, tiempoEnRango } from '@/lib/resumenReporte'
+import { conteoAlertas, curvaPorEquipo, submuestrear, tiempoEnRango } from '@/lib/resumenReporte'
 
 const BASE = Date.parse('2026-07-01T00:00:00Z')
 const MIN = 60_000
@@ -96,5 +96,37 @@ describe('submuestrear y conteoAlertas', () => {
       { nivel_riesgo: 'riesgo_preventivo', estado: 'pendiente' },
     ] as AlertaTermica[]
     expect(conteoAlertas(alertas)).toEqual({ criticas: 1, preventivas: 2, pendientes: 2 })
+  })
+})
+
+describe('curvaPorEquipo (mini curva de Reportes)', () => {
+  it('separa los equipos sobre un eje común y no mezcla sus valores en un tramo', () => {
+    const lecturas = [...serie(0, 600, () => 3, 'FARM-02-CDL'), ...serie(0, 600, () => 7, 'FARM-01-CDL')]
+    const { series, tramos } = curvaPorEquipo(lecturas, 240)
+    expect(series.map((s) => s.equipo)).toEqual(['FARM-01-CDL', 'FARM-02-CDL'])
+    expect(tramos).toBeLessThanOrEqual(240)
+    for (const s of series) {
+      expect(s.tramos).toHaveLength(tramos)
+      const valores = s.tramos.filter((t) => t !== null)
+      // Cada tramo de un equipo solo contiene sus lecturas: nunca el rango 3–7 de los dos.
+      expect(Math.max(...valores.map((t) => t!.max)) - Math.min(...valores.map((t) => t!.min))).toBe(0)
+    }
+  })
+
+  it('conserva el pico de una excursión y deja hueco donde un equipo no tiene lecturas', () => {
+    const lecturas = [
+      ...serie(0, 300, (m) => (m === 150 ? 9.6 : 5), 'FARM-01-CDL'),
+      ...serie(0, 100, () => 4, 'FARM-02-CDL'),
+      ...serie(200, 300, () => 4, 'FARM-02-CDL'),
+    ]
+    const { series } = curvaPorEquipo(lecturas, 30)
+    const farm1 = series.find((s) => s.equipo === 'FARM-01-CDL')!
+    const farm2 = series.find((s) => s.equipo === 'FARM-02-CDL')!
+    expect(Math.max(...farm1.tramos.map((t) => t?.max ?? 0))).toBe(9.6)
+    expect(farm2.tramos.some((t) => t === null)).toBe(true)
+  })
+
+  it('sin temperaturas válidas no devuelve series', () => {
+    expect(curvaPorEquipo(serie(0, 60, () => null)).series).toEqual([])
   })
 })

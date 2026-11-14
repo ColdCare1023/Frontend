@@ -104,10 +104,21 @@ export function UsuariosPage() {
           <TiraEstado
             className="mb-3 xl:mb-4"
             etiqueta={t('usuarios.resumen')}
+            apilarGuia
             guia={pendientes > 0 ? t('usuarios.guiaPendientes', { count: pendientes }) : t('usuarios.guiaTodoEnOrden')}
             segmentos={[
               { clave: 'activas', etiqueta: t('usuarios.conAcceso'), valor: activos.length },
-              { clave: 'admins', etiqueta: t('usuarios.administradores'), valor: administradoresActivos },
+              {
+                clave: 'admins',
+                // A 375 px «Administradores activos» se cortaba: etiqueta corta solo en móvil.
+                etiqueta: (
+                  <>
+                    <span className="sm:hidden">{t('usuarios.administradoresCorto')}</span>
+                    <span className="max-sm:hidden">{t('usuarios.administradores')}</span>
+                  </>
+                ),
+                valor: administradoresActivos,
+              },
               { clave: 'pendientes', etiqueta: t('usuarios.pendientePassword'), valor: pendientes, tono: pendientes > 0 ? 'aviso' : 'neutro' },
               { clave: 'inactivas', etiqueta: t('usuarios.sinAcceso'), valor: usuarios.length - activos.length },
             ]}
@@ -118,7 +129,7 @@ export function UsuariosPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[48%]">{t('usuarios.nombre')}</TableHead>
-                    <TableHead className="w-[22%] sm:max-2xl:hidden">{t('usuarios.rol')}</TableHead>
+                    <TableHead className="w-[22%] max-2xl:hidden">{t('usuarios.rol')}</TableHead>
                     <TableHead className="w-[18%]">{t('usuarios.estado')}</TableHead>
                     <TableHead className="w-[12%] text-right">{t('comunes.acciones')}</TableHead>
                   </TableRow>
@@ -138,12 +149,13 @@ export function UsuariosPage() {
                               <span className="block truncate text-meta text-muted max-sm:break-all max-sm:whitespace-normal" title={usuario.email}>
                                 {usuario.email}
                               </span>
-                              {/* Entre sm y 2xl el rol baja aquí: con su columna la tabla no cabía y se desplazaba. */}
-                              <span className="hidden truncate text-meta text-subtle sm:block 2xl:hidden">{t(`roles.${usuario.rol}`)}</span>
+                              {/* Bajo 2xl el rol baja aquí: con su columna la tabla no cabía y se
+                                  desplazaba, y en móvil la ficha ocupaba una fila más. */}
+                              <span className="block truncate text-meta text-subtle 2xl:hidden">{t(`roles.${usuario.rol}`)}</span>
                             </span>
                           </span>
                         </TableCell>
-                        <TableCell data-label={t('usuarios.rol')} className="text-body text-subtle sm:whitespace-nowrap sm:max-2xl:hidden">
+                        <TableCell data-label={t('usuarios.rol')} className="text-body text-subtle sm:whitespace-nowrap max-2xl:hidden max-sm:hidden!">
                           {t(`roles.${usuario.rol}`)}
                         </TableCell>
                         <TableCell data-label={t('usuarios.estado')}>
@@ -161,7 +173,8 @@ export function UsuariosPage() {
                             <Badge variant="ok" dot>{t('usuarios.activo')}</Badge>
                           )}
                         </TableCell>
-                        <TableCell className="mobile-full mobile-actions text-right">
+                        {/* En móvil, estado y opciones comparten la última fila de la ficha. */}
+                        <TableCell className="mobile-actions text-right max-sm:self-end max-sm:justify-self-end">
                           {usuario.is_active && usuario.id === sesion?.id && (
                             // HU-41 (P8): un administrador no modifica su propia cuenta.
                             <span className="inline-flex h-11 items-center text-meta text-muted sm:h-9 sm:pointer-coarse:h-11">{t('usuarios.tuCuenta')}</span>

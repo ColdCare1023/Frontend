@@ -165,7 +165,8 @@ export function ImportanciaVariables({ metricas: m, className }: { metricas: Met
       ) : (
         <ul className="mt-3">
           {importancias.map(([variable, peso]) => (
-            <li key={variable} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-1.5 sm:grid-cols-[minmax(0,11rem)_1fr_auto]">
+            // 13rem: «Estado de conexión del equipo» y «Frecuencia de desviaciones» caben enteras.
+            <li key={variable} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-1.5 sm:grid-cols-[minmax(0,13rem)_1fr_auto]">
               <span className="truncate text-body text-foreground" title={etiqueta(variable)}>{etiqueta(variable)}</span>
               <div
                 role="img"

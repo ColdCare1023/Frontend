@@ -146,6 +146,62 @@ export function submuestrear(
   return { buckets, desde, hasta }
 }
 
+export interface TramoEquipo {
+  min: number
+  max: number
+  promedio: number
+}
+
+export interface SerieEquipo {
+  equipo: string
+  /** Un tramo por intervalo del eje común; `null` = sin lecturas (hueco). */
+  tramos: (TramoEquipo | null)[]
+}
+
+/**
+ * Tramos de la mini curva **por equipo** sobre un eje de tiempo común. Con
+ * «Todos los equipos», mezclar dos equipos en un mismo tramo pintaba de
+ * 3 a 7 °C en cada columna y la curva parecía un código de barras: cada
+ * equipo tiene su propia línea (promedio del tramo) y conserva mínimo y
+ * máximo para marcar lo que sale de 2–8 °C.
+ */
+export function curvaPorEquipo(
+  lecturas: readonly LecturaTermica[],
+  n = 240,
+): { series: SerieEquipo[]; tramos: number; desde: number; hasta: number } {
+  const validas = lecturas
+    .map((l) => ({ equipo: l.device_id, t: Date.parse(l.timestamp), v: l.temperatura_interna }))
+    .filter((p): p is { equipo: string; t: number; v: number } => Number.isFinite(p.t) && typeof p.v === 'number' && Number.isFinite(p.v))
+  if (validas.length === 0) return { series: [], tramos: 0, desde: 0, hasta: 0 }
+  let desde = Infinity
+  let hasta = -Infinity
+  const porEquipo = new Map<string, { t: number; v: number }[]>()
+  for (const p of validas) {
+    desde = Math.min(desde, p.t)
+    hasta = Math.max(hasta, p.t)
+    const lista = porEquipo.get(p.equipo)
+    if (lista) lista.push(p)
+    else porEquipo.set(p.equipo, [p])
+  }
+  const masLarga = Math.max(...[...porEquipo.values()].map((l) => l.length))
+  const tramos = Math.max(1, Math.min(n, masLarga))
+  const ancho = (hasta - desde) / tramos || 1
+  const series = [...porEquipo.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([equipo, puntos]) => {
+      const acumulado: ({ min: number; max: number; suma: number; n: number } | null)[] = Array.from({ length: tramos }, () => null)
+      for (const p of puntos) {
+        const i = Math.min(tramos - 1, Math.floor((p.t - desde) / ancho))
+        const a = acumulado[i]
+        acumulado[i] = a
+          ? { min: Math.min(a.min, p.v), max: Math.max(a.max, p.v), suma: a.suma + p.v, n: a.n + 1 }
+          : { min: p.v, max: p.v, suma: p.v, n: 1 }
+      }
+      return { equipo, tramos: acumulado.map((a) => (a ? { min: a.min, max: a.max, promedio: a.suma / a.n } : null)) }
+    })
+  return { series, tramos, desde, hasta }
+}
+
 export interface ConteoAlertas {
   criticas: number
   preventivas: number

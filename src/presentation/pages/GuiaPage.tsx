@@ -133,24 +133,26 @@ export function GuiaPage() {
                 <div className="mt-4">
                   <ContenidoPaso paso={id} rol={rol} />
                 </div>
-                <footer className="mt-5 grid grid-cols-2 gap-2 border-t border-border pt-4 sm:flex sm:items-center sm:justify-between">
+                {/* Bajo 640 px los botones van apilados a todo el ancho: a media
+                    columna «Siguiente: Temperatura y estados» se cortaba. */}
+                <footer className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
                   {anterior && activo ? (
-                    <Button variant="ghost" className="max-sm:h-11" onClick={() => cambiar(anterior, 'boton')}>
+                    <Button variant="ghost" className="max-sm:h-11 max-sm:w-full" onClick={() => cambiar(anterior, 'boton')}>
                       <ChevronLeft />
                       {t('guia.anterior')}
                     </Button>
                   ) : (
-                    <span />
+                    <span aria-hidden className="max-sm:hidden" />
                   )}
                   {siguiente ? (
-                    <Button className="max-sm:h-11 sm:ml-auto" onClick={() => cambiar(siguiente, 'boton')}>
+                    <Button className="max-sm:h-11 max-sm:w-full sm:ml-auto" onClick={() => cambiar(siguiente, 'boton')}>
                       <span className="truncate">{t('guia.siguientePaso', { titulo: t(ETIQUETA_PASO[siguiente]) })}</span>
                       <ArrowRight />
                     </Button>
                   ) : (
                     <Link
                       to="/dashboard"
-                      className="coldcare-primary-action inline-flex h-10 items-center justify-center gap-2 rounded-(--radius-field) px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-sm:h-11 sm:ml-auto"
+                      className="coldcare-primary-action inline-flex h-10 items-center justify-center gap-2 rounded-(--radius-field) px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-sm:h-11 max-sm:w-full sm:ml-auto"
                     >
                       {t('guia.irMonitoreo')}
                       <ArrowRight aria-hidden className="size-4" />
