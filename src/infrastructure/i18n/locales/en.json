@@ -2188,5 +2188,22 @@
     "errorReenvioNoEnviado": "We could not send the new code, and the previous one no longer works. Request it again in a minute.",
     "demoCodigo": "Demo code:",
     "demoUsar": "Use code"
+  },
+  "copiarCodigo": {
+    "volver": "Back to ColdCare",
+    "etiqueta": "Verification code",
+    "titulo": "Your ColdCare code",
+    "subtitulo": "Copy it and paste it on the ColdCare screen that asked for it.",
+    "codigoLector": "Code: {{digitos}}",
+    "copiar": "Copy code",
+    "copiado": "Code copied",
+    "errorCopiar": "Your browser blocked copying. Select the code and copy it manually.",
+    "pista": "Go back to the ColdCare tab and paste it",
+    "seguridad": "Don't share this code with anyone.",
+    "invalido": {
+      "titulo": "This link doesn't include a valid code",
+      "mensaje": "Open it again from the ColdCare email, or type the code shown in the message.",
+      "irLogin": "Back to ColdCare"
+    }
   }
 }
