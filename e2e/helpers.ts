@@ -24,3 +24,13 @@ export async function cerrarSesion(page: Page) {
   await page.getByRole('button', { name: /^Menú de usuario/ }).click()
   await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click()
 }
+
+/** Abre el detalle de un equipo (`/dispositivos/:id`), opcionalmente en una pestaña. */
+export async function abrirEquipo(page: Page, id: string, tab?: string) {
+  await irA(page, `/dispositivos/${id}${tab ? `?tab=${tab}` : ''}`)
+}
+
+/** Abre el menú «Opciones» de un equipo en la lista de dispositivos. */
+export async function abrirOpcionesEquipo(page: Page, id: string) {
+  await page.getByRole('button', { name: `Opciones: ${id}`, exact: true }).click()
+}

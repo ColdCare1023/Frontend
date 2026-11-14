@@ -162,7 +162,9 @@ export function AppLayout() {
                 <div className="mx-auto w-full max-w-(--ancho-contenido-max)">
                   {/* Una sola entrada por ruta (MOTION 4.1): CSS, sin motion. Un
                       error de render de la página no tumba el riel ni la cabecera. */}
-                  <div key={pathname} className="pagina-entra">
+                  {/* La clave es la sección (`/dispositivos`), no la ruta completa:
+                      lista ↔ detalle comparten layout y su flota no se remonta. */}
+                  <div key={`/${pathname.split('/')[1] ?? ''}`} className="pagina-entra">
                     <ErrorBoundary
                       fallback={(reintentar) => (
                         <EstadoError mensaje={t('app.errorSeccion')}>

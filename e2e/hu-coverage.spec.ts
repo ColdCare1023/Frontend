@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { irA, abrirOpciones } from './helpers'
+import { irA, abrirOpcionesEquipo } from './helpers'
 
 async function entrarComoAdmin(page: import('@playwright/test').Page) {
   await page.goto('/login')
@@ -30,8 +30,10 @@ test('HU-26 presenta inconsistencia simulada con detalle verificable', async ({ 
 test('HU-44 permite revocar credencial MQTT con confirmación y sin exponer secreto', async ({ page }) => {
   await entrarComoAdmin(page)
   await irA(page, '/dispositivos')
-  await abrirOpciones(page, 'FARM-01-CDL')
-  await page.getByRole('menuitem', { name: 'Revocar credencial', exact: true }).click()
+  await abrirOpcionesEquipo(page, 'FARM-01-CDL')
+  await page.getByRole('menuitem', { name: 'Seguridad y credencial' }).click()
+  // La revocación vive en la zona de riesgo de la pestaña Seguridad.
+  await page.getByRole('button', { name: 'Revocar credencial…' }).click()
   // FE-003: confirmación con motivo obligatorio, que queda en la auditoría.
   // Acción destructiva: el diálogo es un alertdialog.
   const dialogo = page.getByRole('alertdialog')
