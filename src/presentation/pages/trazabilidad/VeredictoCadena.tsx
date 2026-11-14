@@ -3,7 +3,7 @@ import { Loader2, Shield, ShieldAlert, ShieldCheck, ShieldHalf } from 'lucide-re
 
 import type { DetalleInconsistencia, EstadoCadena, RegistroTrazabilidad, VerificacionIntegridad } from '@/domain/entities/RegistroTrazabilidad'
 import { primerCaracterDistinto } from '@/lib/compararSellos'
-import { fechaHora } from '@/lib/formato'
+import { fechaCorta, fechaHora, hora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { BotonCopiar, Dato } from '../../components/registros/piezas'
 import { Button } from '../../components/ui/button'
@@ -13,7 +13,9 @@ import { etiquetaEvento } from './iconosEvento'
 type Estado = 'sin_verificar' | 'integra' | 'ruptura_aislada' | 'ruptura_detectada' | 'comprometida'
 
 const PRESENTACION: Record<Estado, { icono: typeof Shield; color: string; borde: string }> = {
-  sin_verificar: { icono: Shield, color: 'text-muted', borde: 'border-l-border-strong' },
+  // Sin verificar no es un estado de alarma, pero el título no va en gris:
+  // se leía como texto deshabilitado. Solo el escudo queda neutro.
+  sin_verificar: { icono: Shield, color: 'text-foreground', borde: 'border-l-border-strong' },
   integra: { icono: ShieldCheck, color: 'text-success-700', borde: 'border-l-success-600' },
   ruptura_aislada: { icono: ShieldHalf, color: 'text-warning-700', borde: 'border-l-warning-600' },
   ruptura_detectada: { icono: ShieldAlert, color: 'text-critical', borde: 'border-l-critical' },
@@ -75,9 +77,19 @@ export function VeredictoCadena({
 
   // «Última verificación por equipo»: la constancia más reciente de la lista.
   const ultimaPorEquipo = registros.find((r) => r.tipo_evento === 'VERIFICACION_INTEGRIDAD')
-  const textoUltima = ultimaPorEquipo
-    ? `${ultimaPorEquipo.device_id ?? (ultimaPorEquipo.payload?.device_id as string | undefined) ?? '—'} · ${fechaHora(ultimaPorEquipo.timestamp)} · ${t(ultimaPorEquipo.payload?.integra === false ? 'trazabilidad.segmento.resultadoRoto' : 'trazabilidad.segmento.resultadoIntegro')}`
-    : t('trazabilidad.datos.ninguna')
+  // Cada dato: valor en `text-body` y, si hace falta, una segunda línea en
+  // `text-meta` (antes la última columna iba entera en 12 px y las fechas
+  // partían «7/11/2026, / 1:14:44 p. m.» donde caía el corte).
+  const textoUltima = ultimaPorEquipo ? (
+    <>
+      <span className="codigo block">{ultimaPorEquipo.device_id ?? (ultimaPorEquipo.payload?.device_id as string | undefined) ?? '—'}</span>
+      <span className="nums block text-meta text-muted">
+        {`${fechaHora(ultimaPorEquipo.timestamp)} · ${t(ultimaPorEquipo.payload?.integra === false ? 'trazabilidad.segmento.resultadoRoto' : 'trazabilidad.segmento.resultadoIntegro')}`}
+      </span>
+    </>
+  ) : (
+    t('trazabilidad.datos.ninguna')
+  )
   const posteriores = verificacion?.registros_posteriores_afectados ?? 0
   const textoBoton = verificando
     ? t('trazabilidad.verificando')
@@ -92,7 +104,7 @@ export function VeredictoCadena({
       className={cn('superficie border-l-[3px] p-4 xl:p-5', borde)}
     >
       <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-        <Icono key={`icono-${estado}`} aria-hidden className={cn('cambio-texto mt-0.5 size-6 shrink-0', color)} />
+        <Icono key={`icono-${estado}`} aria-hidden className={cn('cambio-texto mt-0.5 size-6 shrink-0', estado === 'sin_verificar' ? 'text-subtle' : color)} />
         <div className="min-w-0 flex-1 basis-64" role={alerta ? 'alert' : 'status'}>
           <h2 id="veredicto-titulo" key={verificando ? 'verificando' : estado} className={cn('cambio-texto text-page', verificando ? 'text-foreground' : color)}>
             {titulo}
@@ -156,22 +168,22 @@ export function VeredictoCadena({
             {estado === 'ruptura_aislada' ? (
               <>
                 <Dato etiqueta={t('trazabilidad.totalRupturas')} className="nums">{verificacion?.total_rupturas ?? 1}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.integraDesde')} className="nums">{fechaHora(verificacion?.integra_desde)}</Dato>
+                <Dato etiqueta={t('trazabilidad.datos.integraDesde')} className="nums"><FechaEnDosLineas iso={verificacion?.integra_desde} /></Dato>
                 <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
               </>
             ) : estado === 'integra' ? (
               <>
                 <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums">{fechaHora(registros[0]?.timestamp)}</Dato>
+                <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
               </>
             ) : (
               <>
                 <Dato etiqueta={t('trazabilidad.datos.registros')} className="nums">{registros.length >= 200 ? '200+' : registros.length}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.primero')} className="nums">{fechaHora(registros.at(-1)?.timestamp)}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums">{fechaHora(registros[0]?.timestamp)}</Dato>
+                <Dato etiqueta={t('trazabilidad.datos.primero')} className="nums"><FechaEnDosLineas iso={registros.at(-1)?.timestamp} /></Dato>
+                <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
               </>
             )}
-            <Dato etiqueta={t('trazabilidad.datos.ultimaVerificacionEquipo')} className="text-meta">{textoUltima}</Dato>
+            <Dato etiqueta={t('trazabilidad.datos.ultimaVerificacionEquipo')}>{textoUltima}</Dato>
           </dl>
           {verificacion && (
             <Detalles className="mt-2">
@@ -181,6 +193,17 @@ export function VeredictoCadena({
         </>
       )}
     </section>
+  )
+}
+
+/** Fecha en `text-body` y hora debajo en `text-meta`: el corte siempre cae en el mismo sitio. */
+function FechaEnDosLineas({ iso }: { iso: string | null | undefined }) {
+  if (!iso) return <>—</>
+  return (
+    <>
+      <span className="block">{fechaCorta(iso)}</span>
+      <span className="block text-meta text-muted">{hora(iso)}</span>
+    </>
   )
 }
 

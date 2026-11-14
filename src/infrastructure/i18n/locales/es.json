@@ -412,7 +412,8 @@
       "enRango": "En rango",
       "minima": "Mínima",
       "maxima": "Máxima",
-      "excursiones": "Excursiones"
+      "excursiones": "Excursiones",
+      "minMax": "Mín – máx"
     },
     "filtro": {
       "etiqueta": "Filtrar el historial",
@@ -422,7 +423,10 @@
       "chipEquipo": "Equipo: {{valor}}",
       "chipRiesgo": "Riesgo: {{valor}}",
       "chipPeriodo": "Periodo: {{valor}}",
-      "panelTitulo": "Filtrar el historial"
+      "panelTitulo": "Filtrar el historial",
+      "mas": "Filtros",
+      "masActivos_one": "Filtros ({{count}})",
+      "masActivos_other": "Filtros ({{count}})"
     },
     "curva": {
       "titulo": "Curva del periodo",
@@ -902,7 +906,7 @@
     "truncadoTitulo": "Reporte incompleto: se alcanzó el límite de {{limite}} registros por tipo.",
     "truncadoDetalle": "Faltan registros de: {{colecciones}}. Acorta el periodo o filtra por un equipo para obtenerlo completo. Los archivos CSV y JSON llevan «parcial» en el nombre.",
     "descargarCsv": "Descargar hoja de cálculo (CSV)",
-    "descargarJson": "Descargar datos para revisión técnica (JSON)",
+    "descargarJson": "Descargar datos técnicos (JSON)",
     "notaFormatos": "El archivo CSV facilita la revisión e impresión. El JSON conserva los datos técnicos, incluidos los sellos de verificación.",
     "resumen": "Resumen del periodo",
     "lecturas": "Lecturas",
@@ -960,7 +964,8 @@
     "sinLecturasDetalle": "Prueba con un periodo más amplio o revisa el código del equipo.",
     "usar30": "Usar 30 días",
     "generadoAnuncio": "Reporte generado: {{lecturas}} lecturas, {{alertas}} alertas y {{registros}} registros de trazabilidad.",
-    "descargas": "Descargas"
+    "descargas": "Descargas",
+    "curvaLeyenda": "Equipos en la curva"
   },
   "auditoria": {
     "titulo": "Bitácora de auditoría",
@@ -1081,7 +1086,10 @@
       "etiqueta": "Filtrar la bitácora",
       "resultados_one": "{{count}} acción",
       "resultados_other": "{{count}} acciones",
-      "panelTitulo": "Filtrar la bitácora"
+      "panelTitulo": "Filtrar la bitácora",
+      "mas": "Filtros",
+      "masActivos_one": "Filtros ({{count}})",
+      "masActivos_other": "Filtros ({{count}})"
     },
     "actividad": {
       "titulo": "Actividad de 14 días",
@@ -1232,7 +1240,8 @@
     "crearOtro": "Crear otro",
     "listo": "Listo",
     "grupoCuenta": "Cuenta",
-    "grupoRiesgo": "Zona de riesgo"
+    "grupoRiesgo": "Zona de riesgo",
+    "administradoresCorto": "Admins activos"
   },
   "privacidad": {
     "titulo": "Aviso de privacidad",

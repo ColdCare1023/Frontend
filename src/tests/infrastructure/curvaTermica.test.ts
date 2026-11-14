@@ -9,6 +9,7 @@ import {
   tramosFueraDeRango,
   umbralHueco,
 } from '@/infrastructure/charts/curvaTermica'
+import { temaGrafica } from '@/infrastructure/charts/temaColdCare'
 
 const BASE = Date.parse('2026-10-24T13:00:00Z')
 const ETIQUETAS = {
@@ -127,6 +128,21 @@ describe('curva térmica', () => {
     expect(series.map((s) => s.name)).toEqual(['FARM-01', 'FARM-02'])
     expect(series[0].data.map(([, valor]) => valor)).toEqual([5.2, 5.2, 5.2, 5.2])
     expect(series[1].data.map(([, valor]) => valor)).toEqual([3.8, 3.8, 3.8, 3.8])
+  })
+
+  it('con varios equipos no usa el rosa de marca y distingue cada línea por su trazo', () => {
+    const intercaladas = Array.from({ length: 8 }, (_, i) => ({
+      ...lectura(i * 120, 5),
+      device_id: i % 2 === 0 ? 'FARM-01' : 'FARM-02',
+    }))
+    const series = construirOpcionCurvaTermica(intercaladas, ETIQUETAS, undefined, 'light').series as Array<{
+      lineStyle: { color: string; type: string }
+    }>
+    expect(series.map((s) => s.lineStyle.type)).toEqual(['solid', 'dashed'])
+    // Navy y gris de la paleta de gráficas; el rosa de marca (#FF7AA2) no aparece en datos.
+    const tema = temaGrafica('light')
+    expect(series.map((s) => s.lineStyle.color)).toEqual([tema.primary, tema.secondary])
+    expect(series.map((s) => s.lineStyle.color.toUpperCase())).not.toContain('#FF7AA2')
   })
 
   it('con ventana, el eje termina en «ahora» y descarta lo anterior al inicio', () => {

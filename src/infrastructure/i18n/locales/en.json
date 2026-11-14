@@ -412,7 +412,8 @@
       "enRango": "In range",
       "minima": "Minimum",
       "maxima": "Maximum",
-      "excursiones": "Excursions"
+      "excursiones": "Excursions",
+      "minMax": "Min – max"
     },
     "filtro": {
       "etiqueta": "Filter history",
@@ -422,7 +423,10 @@
       "chipEquipo": "Device: {{valor}}",
       "chipRiesgo": "Risk: {{valor}}",
       "chipPeriodo": "Period: {{valor}}",
-      "panelTitulo": "Filter history"
+      "panelTitulo": "Filter history",
+      "mas": "Filters",
+      "masActivos_one": "Filters ({{count}})",
+      "masActivos_other": "Filters ({{count}})"
     },
     "curva": {
       "titulo": "Period curve",
@@ -902,7 +906,7 @@
     "truncadoTitulo": "Incomplete report: the limit of {{limite}} records per type was reached.",
     "truncadoDetalle": "Records are missing from: {{colecciones}}. Shorten the period or filter by one unit to get the full report. CSV and JSON files carry “parcial” in their name.",
     "descargarCsv": "Download spreadsheet (CSV)",
-    "descargarJson": "Download data for technical review (JSON)",
+    "descargarJson": "Download technical data (JSON)",
     "notaFormatos": "CSV is easy to review and print. JSON retains technical data, including verification seals.",
     "resumen": "Period summary",
     "lecturas": "Readings",
@@ -960,7 +964,8 @@
     "sinLecturasDetalle": "Try a wider period or check the device code.",
     "usar30": "Use 30 days",
     "generadoAnuncio": "Report generated: {{lecturas}} readings, {{alertas}} alerts and {{registros}} traceability records.",
-    "descargas": "Downloads"
+    "descargas": "Downloads",
+    "curvaLeyenda": "Devices in the curve"
   },
   "auditoria": {
     "titulo": "Audit log",
@@ -1081,7 +1086,10 @@
       "etiqueta": "Filter the log",
       "resultados_one": "{{count}} action",
       "resultados_other": "{{count}} actions",
-      "panelTitulo": "Filter the log"
+      "panelTitulo": "Filter the log",
+      "mas": "Filters",
+      "masActivos_one": "Filters ({{count}})",
+      "masActivos_other": "Filters ({{count}})"
     },
     "actividad": {
       "titulo": "14-day activity",
@@ -1232,7 +1240,8 @@
     "crearOtro": "Create another",
     "listo": "Done",
     "grupoCuenta": "Account",
-    "grupoRiesgo": "Danger zone"
+    "grupoRiesgo": "Danger zone",
+    "administradoresCorto": "Active admins"
   },
   "privacidad": {
     "titulo": "Privacy notice",

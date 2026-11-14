@@ -133,15 +133,15 @@ export function CurvaMiniReporte({ lecturas, clave }: { lecturas: readonly Lectu
         </svg>
       </div>
       {curvas.length > 1 && (
-        <ul aria-hidden className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-micro text-faint">
+        <ul aria-label={t('reportes.curvaLeyenda')} className="mt-2 flex flex-wrap gap-x-4 gap-y-1 pl-4 text-meta text-muted">
           {curvas.map((curva, indice) => {
             const trazo = TRAZOS[indice % TRAZOS.length]
             return (
-              <li key={curva.device_id} className="codigo inline-flex items-center gap-1.5">
-                <svg viewBox="0 0 16 4" className="h-1 w-4" aria-hidden>
+              <li key={curva.device_id} className="inline-flex items-center gap-1.5">
+                <svg aria-hidden viewBox="0 0 16 4" className="h-1 w-4 overflow-visible">
                   <line x1={0} x2={16} y1={2} y2={2} strokeWidth={1.5} strokeDasharray={trazo.guiones} className={trazo.clase} />
                 </svg>
-                {curva.device_id}
+                <span className="codigo">{curva.device_id}</span>
               </li>
             )
           })}
