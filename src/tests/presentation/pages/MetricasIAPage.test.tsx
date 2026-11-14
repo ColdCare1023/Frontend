@@ -1,10 +1,24 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { useAuthStore } from '@/application/stores/authStore'
+import type { Rol } from '@/domain/value-objects/Rol'
 
 const useModeloIA = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useModeloIA', () => ({ useModeloIA }))
+// HU-46: el versionado se prueba aparte (VersionesModelo.test.tsx); aquí, quién lo ve.
+const useVersionesModelo = vi.hoisted(() =>
+  vi.fn(() => ({ versiones: [], cargando: false, error: false, consultar: vi.fn(), registrar: vi.fn(), activar: vi.fn() })),
+)
+vi.mock('@/application/hooks/useVersionesModelo', () => ({ useVersionesModelo }))
 
 import { MetricasIAPage } from '@/presentation/pages/MetricasIAPage'
+
+function sesion(rol: Rol) {
+  useAuthStore.setState({ usuario: { id: 'u-1', email: `${rol}@upc.pe`, rol, expiraEn: Date.now() + 3_600_000 }, autenticado: true })
+}
+
+afterEach(() => useAuthStore.setState({ usuario: null, autenticado: false }))
 
 function metricas(over: Record<string, unknown> = {}) {
   return {
@@ -92,5 +106,37 @@ describe('MetricasIAPage', () => {
     expect(screen.getByText('4,032')).toBeInTheDocument()
     expect(screen.getByText(/20,160/)).toBeInTheDocument()
     expect(screen.queryByText(/muestras de entrenamiento/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('MetricasIAPage — HU-46: versiones del modelo según el rol', () => {
+  beforeEach(() => useModeloIA.mockReset())
+
+  it('el administrador gestiona las versiones', () => {
+    sesion('administrador')
+    montar()
+    expect(screen.getByRole('heading', { name: 'Versiones del modelo' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar versión' })).toBeInTheDocument()
+  })
+
+  it('el auditor las consulta en solo lectura', () => {
+    sesion('auditor')
+    montar()
+    expect(screen.getByRole('heading', { name: 'Versiones del modelo' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registrar versión' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Solo lectura/)).toBeInTheDocument()
+  })
+
+  it('el Químico Farmacéutico no ve la sección (el backend le respondería 403)', () => {
+    sesion('farmaceutico')
+    montar()
+    expect(screen.queryByRole('heading', { name: 'Versiones del modelo' })).not.toBeInTheDocument()
+    expect(useVersionesModelo).not.toHaveBeenCalled()
+  })
+
+  it('sin modelo cargado (503) el administrador sigue pudiendo registrar y activar', () => {
+    sesion('administrador')
+    montar({ datos: null, noEntrenado: true })
+    expect(screen.getByRole('heading', { name: 'Versiones del modelo' })).toBeInTheDocument()
   })
 })

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Thermometer } from 'lucide-react'
+import { FlaskConical, Thermometer } from 'lucide-react'
 
 import type { EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
@@ -93,14 +93,27 @@ export function PanelEvidencia({
                     {evidencia.excursion_confirmada ? t('dashboard.excursionConfirmada') : t('historial.sinExcursion')}
                   </p>
                 </section>
-                {evidencia.datos_simulados && (
+                {/* HU-47: «Ejemplo simulado» es solo de la demo. Con datos reales,
+                    el modelo experimental se rotula como no aprobado. */}
+                {evidencia.datos_simulados ? (
                   <p className="rounded-(--radius-field) bg-warning-100 px-3 py-2 text-meta text-warning-700">
                     {t('historial.evidenciaDemo')}
                   </p>
+                ) : (
+                  evidencia.ia_experimental && (
+                    <p className="flex items-start gap-2 rounded-(--radius-field) bg-warning-100 px-3 py-2 text-meta text-warning-700">
+                      <FlaskConical aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+                      <span>
+                        <strong className="font-semibold">{t('historial.modeloExperimental')}</strong> {t('historial.modeloExperimentalAyuda')}
+                      </span>
+                    </p>
+                  )
                 )}
                 {evidencia.probabilities && (
                   <section>
-                    <h3 className="mb-2 text-body font-semibold text-foreground">{t('historial.probabilidadesEjemplo')}</h3>
+                    <h3 className="mb-2 text-body font-semibold text-foreground">
+                      {t(evidencia.datos_simulados ? 'historial.probabilidadesEjemplo' : 'historial.probabilidadesModelo')}
+                    </h3>
                     <div className="space-y-2.5">
                       {Object.entries(evidencia.probabilities).map(([clase, probabilidad]) => (
                         <div key={clase} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-meta">
@@ -118,7 +131,9 @@ export function PanelEvidencia({
                   </section>
                 )}
                 <section>
-                  <h3 className="mb-2 text-body font-semibold text-foreground">{t('historial.variablesEntrada')}</h3>
+                  <h3 className="mb-2 text-body font-semibold text-foreground">
+                    {t(evidencia.datos_simulados ? 'historial.variablesEntrada' : 'historial.variablesEntradaModelo')}
+                  </h3>
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                     {Object.entries(evidencia.feature_vector).map(([nombre, valor]) => (
                       <Dato key={nombre} etiqueta={t(`metricasIA.variables.${nombre}`, { defaultValue: nombre.replaceAll('_', ' ') })} className="nums text-meta font-medium">
@@ -145,6 +160,23 @@ export function PanelEvidencia({
                     </Dato>
                     <Dato etiqueta={t('historial.politicaOperativa')}>
                       {evidencia.operating_policy ? t(`historial.politica.${evidencia.operating_policy}`) : '—'}
+                    </Dato>
+                    {/* HU-47 esc. 2: cruce con el versionado operativo (HU-46). */}
+                    <Dato etiqueta={t('historial.versionAprobadaAlClasificar')}>
+                      <span data-testid="version-aprobada-al-clasificar" className={cn(evidencia.version_activa_y_aprobada === false && 'font-medium text-warning-700')}>
+                        {evidencia.version_activa_y_aprobada == null
+                          ? t('historial.versionAprobadaSinDato')
+                          : evidencia.version_activa_y_aprobada
+                            ? t('comunes.si')
+                            : t('comunes.no')}
+                      </span>
+                      {evidencia.version_activa_y_aprobada === false && (
+                        <span className="block text-meta text-muted">
+                          {evidencia.version_activa_en_ese_momento
+                            ? t('historial.versionActivaEraOtra', { version: evidencia.version_activa_en_ese_momento })
+                            : t('historial.sinVersionActivaRegistrada')}
+                        </span>
+                      )}
                     </Dato>
                   </dl>
                 </section>

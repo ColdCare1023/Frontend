@@ -74,6 +74,8 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
         inicial={{
           nombre: dispositivo.responsable_nombre ?? '',
           email: dispositivo.responsable_email ?? '',
+          // HU-53 (SMS) está fuera del alcance: el teléfono ya no se pide ni se
+          // muestra, pero el que exista se reenvía igual para no borrarlo al guardar.
           telefono: dispositivo.responsable_telefono ?? '',
         }}
         guardar={async (f) => {
@@ -89,7 +91,6 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
             <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
               <Dato etiqueta={t('dispositivos.responsableNombre')}>{dispositivo.responsable_nombre || '—'}</Dato>
               <Dato etiqueta={t('dispositivos.responsableEmail')}>{dispositivo.responsable_email || '—'}</Dato>
-              <Dato etiqueta={t('dispositivos.responsableTelefono')}><span className="nums">{dispositivo.responsable_telefono || '—'}</span></Dato>
             </dl>
           </>
         }
@@ -102,10 +103,6 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
             <div>
               <Label htmlFor="r-email">{t('dispositivos.responsableEmail')}</Label>
               <Input id="r-email" type="email" value={f.email} onChange={(e) => set({ ...f, email: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="r-telefono">{t('dispositivos.responsableTelefono')}</Label>
-              <Input id="r-telefono" type="tel" placeholder="+51999999999" value={f.telefono} onChange={(e) => set({ ...f, telefono: e.target.value })} />
             </div>
             <p className="text-meta text-faint">{t('dispositivos.responsableAviso')}</p>
           </>

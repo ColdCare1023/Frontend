@@ -2,7 +2,9 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useAuthStore } from '@/application/stores/authStore'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import type { Rol } from '@/domain/value-objects/Rol'
 
 const useMonitoreoTermico = vi.hoisted(() => vi.fn())
 // HU-13: estado del nodo según el backend. Por defecto vacío, igual que cuando
@@ -407,5 +409,37 @@ describe('DashboardPage — bento P5c', () => {
   it('Simulador: oculto fuera de la demostración', () => {
     renderizar(lectura())
     expect(screen.queryByRole('button', { name: /Probar estados del dashboard/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('DashboardPage — HU-30: calibración para el Químico Farmacéutico', () => {
+  beforeEach(() => {
+    useMonitoreoTermico.mockReset()
+    equiposOperativos.lista = [
+      { id: 'FARM-01-CDL', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', fecha_proxima_calibracion: '2020-01-01' },
+    ]
+  })
+
+  function sesion(rol: Rol) {
+    useAuthStore.setState({ usuario: { id: 'u-1', email: `${rol}@upc.pe`, rol, expiraEn: Date.now() + 3_600_000 }, autenticado: true })
+  }
+
+  it('la curva avisa de la calibración vencida del equipo en pantalla', () => {
+    renderizar(lectura())
+    expect(screen.getByRole('note')).toHaveTextContent(/La calibración del sensor venció el 1\/1\/2020/)
+  })
+
+  it.each([
+    ['farmaceutico', true],
+    ['administrador', true],
+    ['tecnico', false],
+    ['auditor', false],
+  ] as const)('%s: «Registrar calibración» en la ficha del equipo = %s', (rol, visible) => {
+    sesion(rol)
+    renderizar(lectura())
+    fireEvent.click(screen.getAllByRole('button', { name: /^Detalles/ })[0])
+    const panel = screen.getByRole('dialog')
+    expect(within(panel).queryAllByRole('button', { name: 'Registrar calibración' })).toHaveLength(visible ? 1 : 0)
+    useAuthStore.setState({ usuario: null, autenticado: false })
   })
 })

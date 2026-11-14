@@ -1,11 +1,12 @@
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { OctagonAlert, TriangleAlert } from 'lucide-react'
+import { CalendarX2, OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { anotarCalibracionVencida } from '@/infrastructure/charts/calibracionCurva'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { fechaHora, hora as formatearHora } from '@/lib/formato'
+import { fechaDia, fechaHora, hora as formatearHora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { GraficaDiferida } from '../../components/GraficaDiferida'
 import { Paginacion } from '../../components/Paginacion'
@@ -93,6 +94,8 @@ export const CeldaCurva = memo(function CeldaCurva({
   horasVentana,
   onCambiarVentana,
   ventana,
+  calibracionVencidaDesde = null,
+  vencimientoCalibracion = null,
 }: {
   serie: LecturaTermica[]
   ultimaPresente: boolean
@@ -101,6 +104,9 @@ export const CeldaCurva = memo(function CeldaCurva({
   horasVentana: number
   onCambiarVentana: (horas: number) => void
   ventana: string
+  /** HU-30 esc. 3: desde cuándo (ms) el sensor en pantalla tiene la calibración vencida. */
+  calibracionVencidaDesde?: number | null
+  vencimientoCalibracion?: string | null
 }) {
   const { t } = useTranslation()
   // Cuarto de minuto en curso: la ventana termina en «ahora» y avanza cada 15 s.
@@ -153,9 +159,15 @@ export const CeldaCurva = memo(function CeldaCurva({
       ].join('')
     }
     const tooltip = (base as { tooltip?: Record<string, unknown> }).tooltip ?? {}
-    return { ...base, tooltip: { ...tooltip, formatter } }
+    const conTooltip = { ...base, tooltip: { ...tooltip, formatter } }
+    if (calibracionVencidaDesde === null) return conTooltip
+    return anotarCalibracionVencida(
+      conTooltip,
+      [{ desde: Math.max(calibracionVencidaDesde, hasta - horasVentana * 60 * 60 * 1000), hasta, etiqueta: t('dashboard.graficaCalibracionVencida') }],
+      tema,
+    )
     // Con el tema cambian los colores del canvas (tokens CSS): se reconstruye.
-  }, [serie, t, horasVentana, marcaVentana, tema])
+  }, [serie, t, horasVentana, marcaVentana, tema, calibracionVencidaDesde])
 
   const titulo = t('dashboard.graficaEtiqueta', { n: serie.length })
 
@@ -226,6 +238,12 @@ export const CeldaCurva = memo(function CeldaCurva({
           ]}
         />
       </div>
+      {calibracionVencidaDesde !== null && (
+        <p role="note" className="mt-2 flex items-start gap-1.5 text-meta font-medium text-warning-700">
+          <CalendarX2 aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+          {t('dashboard.curvaCalibracionVencida', { fecha: fechaDia(vencimientoCalibracion) })}
+        </p>
+      )}
       {resumen && (
         <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-meta text-muted">
           {(

@@ -216,6 +216,25 @@ export function estadoCalibracion(dispositivo: Dispositivo, hoy: Date = new Date
 }
 
 /**
+ * HU-30 esc. 3: instante (00:00 local del día siguiente a `fecha_proxima_calibracion`)
+ * desde el que el certificado vigente ya no cubre las lecturas, o null si la
+ * calibración no está vencida hoy. Solo se conoce el certificado actual: con
+ * uno renovado no se puede afirmar nada de periodos anteriores, así que no se marca.
+ */
+export function inicioCalibracionVencida(dispositivo: Dispositivo, hoy: Date = new Date()): number | null {
+  if (estadoCalibracion(dispositivo, hoy) !== 'vencida' || !dispositivo.fecha_proxima_calibracion) return null
+  const [anio, mes, dia] = dispositivo.fecha_proxima_calibracion.slice(0, 10).split('-').map(Number)
+  return new Date(anio, mes - 1, dia + 1).getTime()
+}
+
+/** HU-30 esc. 3: la lectura se capturó con el certificado de calibración ya vencido. */
+export function capturadaConCalibracionVencida(timestamp: string, inicioVencida: number | null): boolean {
+  if (inicioVencida === null) return false
+  const ms = Date.parse(timestamp)
+  return Number.isFinite(ms) && ms >= inicioVencida
+}
+
+/**
  * FE-006: mismo patrón que el backend (BE-017) y el firmware. Un identificador
  * fuera de él podría alterar las rutas de la API que lo interpolan.
  */

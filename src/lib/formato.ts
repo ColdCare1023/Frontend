@@ -60,6 +60,19 @@ export function fechaCorta(iso: string | null | undefined): string {
   return fecha.toLocaleDateString(localeActual())
 }
 
+/**
+ * Fecha de calendario sin hora (`yyyy-MM-dd`, p. ej. el vencimiento de un
+ * certificado): se muestra el mismo día, sin el desplazamiento de zona horaria
+ * que sufre `new Date('2027-05-12')` (medianoche UTC = día anterior en Lima).
+ */
+export function fechaDia(valor: string | null | undefined): string {
+  if (!valor) return '—'
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor.slice(0, 10))
+  if (!partes) return fechaCorta(valor)
+  const fecha = new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]))
+  return Number.isNaN(fecha.getTime()) ? '—' : fecha.toLocaleDateString(localeActual())
+}
+
 /** HU-35: duración de una apertura de puerta en "M:SS" — formato de reloj,
  * no traducible por diseño (igual que "3:20" en cualquier reproductor), así
  * que no depende de `i18n` a diferencia del resto de este módulo. */

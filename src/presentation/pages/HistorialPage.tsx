@@ -1,14 +1,19 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, OctagonAlert, Search, ThermometerSun, Timer, Wifi, WifiOff, Hash, Inbox, Brain } from 'lucide-react'
+import { CalendarX2, CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, OctagonAlert, Search, ThermometerSun, Timer, Wifi, WifiOff, Hash, Inbox, Brain } from 'lucide-react'
 
+import { useCalibracionEquipos } from '@/application/hooks/useCalibracion'
 import { useHistorial, type FiltrosHistorial } from '@/application/hooks/useHistorial'
 import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
+import { useAuthStore } from '@/application/stores/authStore'
+import { capturadaConCalibracionVencida, inicioCalibracionVencida } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
+import { tienePermiso } from '@/domain/value-objects/Rol'
+import { anotarCalibracionVencida } from '@/infrastructure/charts/calibracionCurva'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { duracionBreve, duracionPeriodo, fechaCorta, fechaHora, hora } from '@/lib/formato'
+import { duracionBreve, duracionPeriodo, fechaCorta, fechaDia, fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
 import { resumenPeriodo, resumenPorDia, type ExcursionEquipo } from '@/lib/resumenTermico'
 import { cn } from '@/lib/utils'
@@ -56,6 +61,12 @@ export function HistorialPage() {
   const { t } = useTranslation()
   const [inicio] = useState(filtrosDeUrl)
   const { lecturas, cargando, errorCarga, consultar } = useHistorial(inicio)
+  // HU-47 / HU-18: la evidencia de la inferencia es solo de QF y auditor
+  // (require_roles(FARMACEUTICO, AUDITOR)); al técnico no se le ofrece un 403.
+  const rol = useAuthStore((s) => s.usuario?.rol)
+  const puedeVerEvidencia = rol !== undefined && tienePermiso(rol, ['farmaceutico', 'auditor'])
+  // HU-30 esc. 3: equipos con la calibración vencida y desde cuándo.
+  const { equipos: equiposCalibracion } = useCalibracionEquipos()
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   const [filtros, setFiltros] = useState<FiltrosHistorial>(inicio)
@@ -157,21 +168,45 @@ export function HistorialPage() {
     [lecturas, tamanoPagina],
   )
 
+  // HU-30 esc. 3: solo los equipos de la consulta cuya calibración está vencida.
+  const calibracionVencida = useMemo(() => {
+    const vistos = new Set(lecturas.map((l) => l.device_id))
+    const mapa = new Map<string, { desde: number; fecha: string }>()
+    for (const equipo of equiposCalibracion) {
+      const desde = vistos.has(equipo.id) ? inicioCalibracionVencida(equipo) : null
+      if (desde !== null) mapa.set(equipo.id, { desde, fecha: equipo.fecha_proxima_calibracion ?? '' })
+    }
+    return mapa
+  }, [equiposCalibracion, lecturas])
+  const vencidaDe = useCallback(
+    (lectura: LecturaTermica) => capturadaConCalibracionVencida(lectura.timestamp, calibracionVencida.get(lectura.device_id)?.desde ?? null),
+    [calibracionVencida],
+  )
+
   // HU-36 criterio 1: la gráfica necesita orden cronológico ascendente.
   const tema = useTemaResuelto()
   const serieGrafica = useMemo(() => [...lecturas].reverse(), [lecturas])
-  const opcionHistorial = useMemo(
-    () =>
-      construirOpcionCurvaTermica(serieGrafica, {
-        interna: t('dashboard.tempInterna'),
-        ambiental: t('dashboard.tempAmbiental'),
-        rangoEsperado: t('dashboard.rangoEsperadoCorto'),
-        ahora: t('dashboard.ejeAhora'),
-        excursion: t('dashboard.graficaExcursion'),
-        sinDatos: t('dashboard.graficaSinDatos'),
-      }, undefined, tema),
-    [serieGrafica, t, tema],
-  )
+  const opcionHistorial = useMemo(() => {
+    const base = construirOpcionCurvaTermica(serieGrafica, {
+      interna: t('dashboard.tempInterna'),
+      ambiental: t('dashboard.tempAmbiental'),
+      rangoEsperado: t('dashboard.rangoEsperadoCorto'),
+      ahora: t('dashboard.ejeAhora'),
+      excursion: t('dashboard.graficaExcursion'),
+      sinDatos: t('dashboard.graficaSinDatos'),
+    }, undefined, tema)
+    if (calibracionVencida.size === 0) return base
+    // El tramo va de la primera lectura con el certificado vencido a la última del equipo.
+    const tramos = [...calibracionVencida].flatMap(([equipo, { desde }]) => {
+      const tiempos = serieGrafica.filter((l) => l.device_id === equipo).map((l) => Date.parse(l.timestamp)).filter((ms) => ms >= desde)
+      if (tiempos.length === 0) return []
+      const etiqueta = calibracionVencida.size > 1 || variosEquipos
+        ? `${t('dashboard.graficaCalibracionVencida')} · ${equipo}`
+        : t('dashboard.graficaCalibracionVencida')
+      return [{ desde: Math.max(desde, Date.parse(serieGrafica[0].timestamp)), hasta: Math.max(...tiempos), etiqueta }]
+    })
+    return anotarCalibracionVencida(base, tramos, tema)
+  }, [serieGrafica, t, tema, calibracionVencida, variosEquipos])
 
   const masLarga = resumen.excursiones[0]
   const guia = masLarga ? (
@@ -358,6 +393,11 @@ export function HistorialPage() {
             {/* HU-34: el riesgo EFECTIVO, no la clase cruda de la IA. */}
             <CeldaRegistro area="b">
               <RiskBadge nivel={lectura.riesgo_efectivo} />
+              {vencidaDe(lectura) && (
+                <span role="img" aria-label={t('historial.calibracionVencidaFila')} title={t('historial.calibracionVencidaFila')} className="ml-2 inline-flex align-middle text-warning-700">
+                  <CalendarX2 aria-hidden className="size-3.5" />
+                </span>
+              )}
               {lectura.apertura_refrigerador && (
                 <span className="ml-2 text-meta text-warning-700 sm:hidden">{t('dashboard.puertaAbierta')}</span>
               )}
@@ -386,7 +426,13 @@ export function HistorialPage() {
             )}
           </>
         )}
-        renderDetalle={(lectura) => <DetalleLectura lectura={lectura} onVerOrigen={() => void abrirEvidencia(lectura)} />}
+        renderDetalle={(lectura) => (
+          <DetalleLectura
+            lectura={lectura}
+            calibracionVencida={vencidaDe(lectura)}
+            onVerOrigen={puedeVerEvidencia ? () => void abrirEvidencia(lectura) : undefined}
+          />
+        )}
       />
       <div className="border-t border-border px-3 sm:px-4">
         <Paginacion total={lecturas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
@@ -416,6 +462,16 @@ export function HistorialPage() {
             { clave: 'minmax', etiqueta: t('historial.resumen.minMax'), valor: `${cifra(resumen.min)} – ${cifra(resumen.max)} °C`, className: 'lg:hidden' },
           ]}
         />
+      )}
+      {conDatos && calibracionVencida.size > 0 && (
+        <div role="note" aria-label={t('historial.calibracionVencidaTitulo')} className="flex items-start gap-2 rounded-(--radius-field) bg-warning-100 px-3 py-2 text-meta text-warning-700">
+          <CalendarX2 aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <ul className="space-y-0.5">
+            {[...calibracionVencida].map(([equipo, { fecha }]) => (
+              <li key={equipo}>{t('historial.calibracionVencidaAviso', { equipo, fecha: fechaDia(fecha) })}</li>
+            ))}
+          </ul>
+        </div>
       )}
       {lecturas.length >= LIMITE_LECTURAS && (
         <p role="status" className="flex items-center gap-1.5 text-meta text-faint">
@@ -463,7 +519,16 @@ export function HistorialPage() {
 }
 
 /** Detalle de una lectura: los campos técnicos que no caben en la fila. */
-function DetalleLectura({ lectura, onVerOrigen }: { lectura: LecturaTermica; onVerOrigen: () => void }) {
+function DetalleLectura({
+  lectura,
+  calibracionVencida,
+  onVerOrigen,
+}: {
+  lectura: LecturaTermica
+  calibracionVencida: boolean
+  /** Sin permiso para la evidencia (técnico), no se ofrece el botón. */
+  onVerOrigen?: () => void
+}) {
   const { t } = useTranslation()
   const retraso =
     lectura.received_at && (lectura.captured_at ?? lectura.timestamp)
@@ -506,12 +571,19 @@ function DetalleLectura({ lectura, onVerOrigen }: { lectura: LecturaTermica; onV
           {lectura.id && <BotonCopiar valor={lectura.id} campo={t('historial.idLectura')} />}
         </Dato>
         <Dato etiqueta={t('historial.fecha')} className="nums">{fechaCorta(lectura.timestamp)} {hora(lectura.timestamp)}</Dato>
+        {calibracionVencida && (
+          <Dato etiqueta={t('historial.calibracionSensor')} icono={CalendarX2} className="font-medium text-warning-700">
+            {t('historial.calibracionVencidaFila')}
+          </Dato>
+        )}
       </dl>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={onVerOrigen}>
-          {t('historial.verEvidencia')}
-        </Button>
-      </div>
+      {onVerOrigen && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={onVerOrigen}>
+            {t('historial.verEvidencia')}
+          </Button>
+        </div>
+      )}
     </>
   )
 }

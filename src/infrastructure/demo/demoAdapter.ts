@@ -25,6 +25,7 @@ import {
   METRICAS_IA_DEMO,
 } from './datosDemo'
 import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
+import { activarVersionDemo, listarVersionesDemo, registrarVersionDemo, versionActivaEnDemo } from './versionesModeloDemo'
 
 // Flujos que tienen estado propio del adapter durante la sesión demo.
 const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>()
@@ -839,6 +840,33 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'get' && url === '/api/ia/modelo') {
     return responder(config, METRICAS_IA_DEMO)
   }
+  /* ── Versionado operativo del modelo (HU-46) ───────────────────── */
+  if (metodo === 'get' && url === '/api/ia/modelo/versiones') {
+    return responder(config, listarVersionesDemo())
+  }
+  if (metodo === 'post' && url === '/api/ia/modelo/versiones') {
+    const resultado = registrarVersionDemo(cuerpoJson(config), actorDemo(config))
+    if (!resultado.data) fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida')
+    registrarAuditoriaDemo('REGISTRAR_VERSION_MODELO_IA', `ia/modelo/versiones/${resultado.data.version}`, actorDemo(config), 'exitoso', {
+      version: resultado.data.version,
+      model_hash: resultado.data.model_hash,
+    })
+    return responder(config, resultado.data, resultado.status)
+  }
+  const activarVersion = /^\/api\/ia\/modelo\/versiones\/([^/]+)\/activar$/.exec(url)
+  if (metodo === 'post' && activarVersion) {
+    const version = decodeURIComponent(activarVersion[1])
+    const recurso = `ia/modelo/versiones/${version}/activar`
+    const resultado = activarVersionDemo(version)
+    if (!resultado.data) {
+      // HU-46 esc. 2: el rechazo también queda en la bitácora; la activa no cambia.
+      registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA_RECHAZADO', recurso, actorDemo(config), 'fallido',
+        resultado.status === 404 ? { motivo: 'version_no_registrada' } : { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos ?? [] })
+      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo activar la versión')
+    }
+    registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA', recurso, actorDemo(config), 'exitoso', { version })
+    return responder(config, resultado.data)
+  }
   const detalleInferencia = /^\/api\/ia\/inferencia\/([^/]+)$/.exec(url)
   if (metodo === 'get' && detalleInferencia) {
     const lectura = estadoDemo.lecturas.find((item) => item.id === detalleInferencia[1])
@@ -851,6 +879,9 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         : clase === 'excursion_critica'
           ? { excursion_critica: 0.88, riesgo_preventivo: 0.09, normal: 0.03 }
           : null
+    // HU-47 esc. 2: se cruza con el versionado demo (HU-46) en el momento de la inferencia.
+    const huboInferencia = lectura.estado_inferencia === 'completada' && Boolean(lectura.modelo_version)
+    const versionVigente = huboInferencia ? versionActivaEnDemo(lectura.timestamp) : null
     // B-13: misma forma que InferenciaLecturaResponse del backend.
     return responder(config, {
       lectura_id: lectura.id,
@@ -866,7 +897,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       clasificacion_final: clase,
       confianza: null,
       origen_clasificacion: lectura.origen_clasificacion ?? null,
-      version_era_activa_y_aprobada_en_ese_momento: null,
+      version_era_activa_y_aprobada_en_ese_momento: huboInferencia ? versionVigente === lectura.modelo_version : null,
+      version_activa_en_ese_momento: versionVigente,
       estado_inferencia: lectura.estado_inferencia,
       excursion_confirmada: lectura.excursion_confirmada,
       riesgo_efectivo: lectura.riesgo_efectivo,
