@@ -188,6 +188,27 @@ export function ReportesPage() {
             ))}
           </dl>
 
+          {reporte.truncado && (
+            <div role="alert" className="mt-4 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] text-critical">
+              <p className="font-semibold">
+                {t('reportes.truncadoTitulo', {
+                  limite: (reporte.limite_por_coleccion ?? 0).toLocaleString('es-PE'),
+                })}
+              </p>
+              <p className="mt-1">
+                {t('reportes.truncadoDetalle', {
+                  colecciones: [
+                    reporte.lecturas_truncadas && t('reportes.lecturas'),
+                    reporte.alertas_truncadas && t('reportes.alertas'),
+                    reporte.trazabilidad_truncada && t('reportes.registrosTrazabilidad'),
+                  ]
+                    .filter(Boolean)
+                    .join(', '),
+                })}
+              </p>
+            </div>
+          )}
+
           {/* Los tres formatos que exige RF-13. El reporte es apoyo para
               revisión: no reemplaza registros ni documentos oficiales. */}
           <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap sm:items-center">

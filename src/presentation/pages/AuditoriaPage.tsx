@@ -8,7 +8,7 @@ import { rangoPagina } from '@/lib/paginacion'
 import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { CompactWorkspace } from '../components/CompactWorkspace'
-import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
+import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
@@ -29,7 +29,7 @@ const FILTROS_INICIALES: FiltrosAuditoria = {}
 
 export function AuditoriaPage() {
   const { t } = useTranslation()
-  const { registros, cargando, consultar } = useAuditoria()
+  const { registros, cargando, errorCarga, consultar } = useAuditoria()
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   // La lista completa puede tener miles de filas; solo se pinta la página
@@ -153,6 +153,12 @@ export function AuditoriaPage() {
       <div>
         {cargando && registros.length === 0 ? (
           <EstadoCarga />
+        ) : errorCarga ? (
+          <EstadoError mensaje={t('comunes.errorCargar')}>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar(filtros)}>
+              {t('comunes.reintentar')}
+            </Button>
+          </EstadoError>
         ) : registros.length === 0 ? (
           <EstadoVacio icono={ScrollText} titulo={t('auditoria.sinRegistros')} />
         ) : (

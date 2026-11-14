@@ -38,7 +38,7 @@ import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSiz
 import { Paginacion } from '../components/Paginacion'
 import { BadgeConectividad } from '../components/BadgeConectividad'
 import { ActionMenu } from '../components/ActionMenu'
-import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
+import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -85,6 +85,8 @@ export function DispositivosPage() {
   const {
     dispositivos,
     cargando,
+    errorCarga,
+    consultar,
     darDeBaja,
     registrarCalibracion,
     actualizarInstalacion,
@@ -424,6 +426,12 @@ export function DispositivosPage() {
 
       {cargando ? (
         <EstadoCarga />
+      ) : errorCarga ? (
+        <EstadoError mensaje={t('comunes.errorCargar')}>
+          <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar()}>
+            {t('comunes.reintentar')}
+          </Button>
+        </EstadoError>
       ) : dispositivos.length === 0 ? (
         <EstadoVacio icono={HardDrive} titulo={t('dispositivos.sinDispositivos')} />
       ) : (

@@ -53,6 +53,16 @@ function montar(dispositivos: Dispositivo[], extra: Record<string, unknown> = {}
 describe('DispositivosPage (HU-43, RF-18)', () => {
   beforeEach(() => useDispositivos.mockReset())
 
+  it('un fallo de carga se muestra como error, no como «no hay dispositivos»', async () => {
+    const consultar = vi.fn()
+    montar([], { errorCarga: true, consultar })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no pudimos cargar/i)
+    expect(screen.queryByText(/no hay dispositivos/i)).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /volver a intentar/i }))
+    expect(consultar).toHaveBeenCalled()
+  })
+
   it('muestra el device_id y su versión de firmware', async () => {
     montar([dispositivo()])
 

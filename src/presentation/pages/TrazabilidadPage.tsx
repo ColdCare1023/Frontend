@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils'
 import { rangoPagina } from '@/lib/paginacion'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { CompactWorkspace } from '../components/CompactWorkspace'
-import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
+import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
@@ -67,6 +67,7 @@ export function TrazabilidadPage() {
   const {
     registros,
     cargando,
+    errorCarga,
     consultar,
     verificacion,
     verificando,
@@ -305,6 +306,12 @@ export function TrazabilidadPage() {
 
         {cargando && registros.length === 0 ? (
           <EstadoCarga />
+        ) : errorCarga ? (
+          <EstadoError mensaje={t('comunes.errorCargar')}>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar(tipoEvento || undefined)}>
+              {t('comunes.reintentar')}
+            </Button>
+          </EstadoError>
         ) : registros.length === 0 ? (
           <EstadoVacio icono={Link2} titulo={t('trazabilidad.sinRegistros')} />
         ) : (

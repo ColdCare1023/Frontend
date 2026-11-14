@@ -77,6 +77,36 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
     expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent(/Sin conexión desde las/)
   })
 
+  it('el equipo mostrado por defecto no cambia solo cuando otro nodo reporta después', () => {
+    const equipo = (id: string, ultimo: string) => ({
+      id,
+      estado_conectividad: 'online',
+      estado_operativo: 'OPERATIVO',
+      ultimo_reporte_en: ultimo,
+    })
+    equiposOperativos.lista = [equipo('FARM-A', '2026-07-25T12:00:30Z'), equipo('FARM-B', '2026-07-25T12:00:00Z')]
+    const vista = renderizar(lectura({ device_id: 'FARM-A' }))
+    expect(useMonitoreoTermico.mock.lastCall?.[1]).toBe('FARM-A')
+
+    // Sondeo siguiente: ahora el último en reportar es B.
+    equiposOperativos.lista = [equipo('FARM-A', '2026-07-25T12:00:30Z'), equipo('FARM-B', '2026-07-25T12:00:45Z')]
+    vista.rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
+    expect(useMonitoreoTermico.mock.lastCall?.[1]).toBe('FARM-A')
+
+    // Un sondeo fallido deja la lista vacía: tampoco se suelta el equipo.
+    equiposOperativos.lista = []
+    vista.rerender(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
+    expect(useMonitoreoTermico.mock.lastCall?.[1]).toBe('FARM-A')
+  })
+
   it('muestra el dispositivo en línea junto a su identificador', () => {
     renderizar(lectura({ estado_conectividad: 'online' }))
 

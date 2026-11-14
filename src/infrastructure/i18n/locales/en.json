@@ -446,6 +446,8 @@
     "codigoEquipoEjemplo": "E.g. FARM-01-CDL",
     "generar": "Generate report",
     "generando": "Generating…",
+    "truncadoTitulo": "Incomplete report: the limit of {{limite}} records per type was reached.",
+    "truncadoDetalle": "Records are missing from: {{colecciones}}. Shorten the period or filter by one unit to get the full report. CSV and JSON files carry “parcial” in their name.",
     "descargarCsv": "Download spreadsheet (CSV)",
     "descargarJson": "Download data for technical review (JSON)",
     "notaFormatos": "CSV is easy to review and print. JSON retains technical data, including verification seals.",
@@ -717,6 +719,7 @@
     "desafioReenviado": "Challenge resent: the node will reconnect and must prove the new credential."
   },
   "comunes": {
+    "errorCargar": "We couldn't load the data. Try again.",
     "error": "Something went wrong. Please try again.",
     "errorPantallaTitulo": "This screen could not be displayed",
     "errorPantallaDetalle": "Reload to try again. If the problem continues, contact your administrator.",

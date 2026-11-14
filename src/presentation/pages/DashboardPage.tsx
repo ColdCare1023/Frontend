@@ -721,7 +721,16 @@ export function DashboardPage() {
   // el que reportó más recientemente; con más de uno, se elige en el selector.
   const { equipos } = useEstadoOperativo(true)
   const [equipoElegido, setEquipoElegido] = useState<string | null>(null)
-  const deviceId = equipoElegido ?? equipoMasReciente(equipos)
+  // El equipo por defecto se fija la primera vez que se conoce. Recalcularlo
+  // en cada sondeo hacía que el dashboard saltara de refrigerador solo cada
+  // vez que otro nodo reportaba después. Solo se vuelve a elegir si el fijado
+  // desaparece de la lista; una lista vacía (sondeo fallido) no lo suelta.
+  const [equipoPorDefecto, setEquipoPorDefecto] = useState<string | null>(null)
+  const masReciente = equipoMasReciente(equipos)
+  const sigueListado =
+    equipoPorDefecto !== null && (equipos.length === 0 || equipos.some((equipo) => equipo.id === equipoPorDefecto))
+  if (!sigueListado && masReciente !== equipoPorDefecto) setEquipoPorDefecto(masReciente)
+  const deviceId = equipoElegido ?? (sigueListado ? equipoPorDefecto : masReciente)
   const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana, deviceId)
   const estadoIoTPrincipal =
     equipos.find((equipo) => equipo.id === deviceId) ??

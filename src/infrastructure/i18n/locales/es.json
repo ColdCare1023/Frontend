@@ -446,6 +446,8 @@
     "codigoEquipoEjemplo": "Ej.: FARM-01-CDL",
     "generar": "Generar reporte",
     "generando": "Generando…",
+    "truncadoTitulo": "Reporte incompleto: se alcanzó el límite de {{limite}} registros por tipo.",
+    "truncadoDetalle": "Faltan registros de: {{colecciones}}. Acorta el periodo o filtra por un equipo para obtenerlo completo. Los archivos CSV y JSON llevan «parcial» en el nombre.",
     "descargarCsv": "Descargar hoja de cálculo (CSV)",
     "descargarJson": "Descargar datos para revisión técnica (JSON)",
     "notaFormatos": "El archivo CSV facilita la revisión e impresión. El JSON conserva los datos técnicos, incluidos los sellos de verificación.",
@@ -717,6 +719,7 @@
     "desafioReenviado": "Desafío reenviado: el nodo se reconectará y deberá probar la credencial nueva."
   },
   "comunes": {
+    "errorCargar": "No pudimos cargar los datos. Intenta de nuevo.",
     "error": "Ocurrió un error. Intenta de nuevo.",
     "errorPantallaTitulo": "No se pudo mostrar esta pantalla",
     "errorPantallaDetalle": "Recarga para intentarlo de nuevo. Si el problema continúa, contacta al administrador.",

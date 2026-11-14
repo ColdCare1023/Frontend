@@ -11,7 +11,7 @@ import { rangoPagina } from '@/lib/paginacion'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { ActionMenu } from '../components/ActionMenu'
-import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
+import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -32,7 +32,7 @@ const FORM_INICIAL = { nombre: '', email: '', telefono: '', password: '', rol: '
 
 export function UsuariosPage() {
   const { t } = useTranslation()
-  const { usuarios, cargando, crear, desactivar, cambiarRol, asignarTemporal } = useUsuarios()
+  const { usuarios, cargando, errorCarga, reintentar, crear, desactivar, cambiarRol, asignarTemporal } = useUsuarios()
   const sesion = useAuthStore((s) => s.usuario)
   // HU-41: nunca puede quedar el sistema sin un administrador activo.
   const administradoresActivos = useMemo(
@@ -173,6 +173,12 @@ export function UsuariosPage() {
 
       {cargando ? (
         <EstadoCarga />
+      ) : errorCarga ? (
+        <EstadoError mensaje={t('comunes.errorCargar')}>
+          <Button variant="secondary" size="sm" className="mt-3" onClick={() => void reintentar()}>
+            {t('comunes.reintentar')}
+          </Button>
+        </EstadoError>
       ) : usuarios.length === 0 ? (
         <EstadoVacio icono={Users} titulo={t('usuarios.sinUsuarios')} />
       ) : (
