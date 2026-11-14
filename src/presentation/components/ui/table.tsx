@@ -79,7 +79,7 @@ export function Table({ className, titulo, cargando, mobileLayout = 'scroll', ch
 }
 
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead role="rowgroup" className={cn('border-b border-border bg-surface-sunken', className)} {...props} />
+  return <thead role="rowgroup" className={cn('border-b border-border bg-surface-sunken/80', className)} {...props} />
 }
 
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
@@ -90,7 +90,7 @@ export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTable
   return (
     <tr
       role="row"
-      className={cn('transition-colors duration-(--duration-micro) hover:bg-cream-200/45', className)}
+      className={cn('transition-colors duration-(--duration-micro) hover:bg-secondary/[0.04]', className)}
       {...props}
     />
   )
@@ -106,7 +106,7 @@ export function TableHead({
       role="columnheader"
       scope={scope}
       className={cn(
-        'h-10 px-3 py-2 text-left align-middle text-xs leading-4 font-medium tracking-[0.01em] text-muted sm:px-4',
+        'h-11 px-3 py-2 text-left align-middle text-[12px] leading-4 font-semibold tracking-[0.01em] text-faint sm:px-5',
         className,
       )}
       {...props}
@@ -115,7 +115,7 @@ export function TableHead({
 }
 
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td role="cell" className={cn('px-3 py-3 align-middle text-foreground sm:px-4', className)} {...props} />
+  return <td role="cell" className={cn('px-3 py-3.5 align-middle text-foreground sm:px-5', className)} {...props} />
 }
 
 export function TableEmpty({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {

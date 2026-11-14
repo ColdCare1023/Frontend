@@ -6,7 +6,6 @@ import {
   FlaskConical,
   Link2,
   OctagonAlert,
-  ScanSearch,
   ShieldAlert,
   ShieldCheck,
   ShieldHalf,
@@ -53,6 +52,16 @@ const TIPOS_EVENTO = [
   'AUDITORIA',
   'CONECTIVIDAD',
 ]
+
+/** El punto de cada tipo de registro: acompaña a su nombre, nunca lo reemplaza. */
+const PUNTO_EVENTO: Record<string, string> = {
+  LECTURA_TERMICA: 'bg-secondary',
+  ALERTA_TERMICA: 'bg-honey-600',
+  ACCION_CORRECTIVA: 'bg-primary',
+  REPORTE_BPA: 'bg-pine-500',
+  AUDITORIA: 'bg-faint',
+  CONECTIVIDAD: 'bg-accent',
+}
 
 type Traductor = ReturnType<typeof useTranslation>['t']
 
@@ -179,9 +188,8 @@ export function TrazabilidadPage() {
       )}
 
       {/* ── HU-37: verificación acotada a un dispositivo y periodo ──── */}
-      <Card className="p-4 sm:px-5">
-        <h2 id="segmento-titulo" className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <ScanSearch className="size-4 text-primary" aria-hidden />
+      <Card className="p-5 sm:px-6">
+        <h2 id="segmento-titulo" className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
           {t('trazabilidad.verificarSegmento')}
         </h2>
         <form
@@ -352,11 +360,12 @@ export function TrazabilidadPage() {
                         {fechaHora(registro.timestamp)}
                       </TableCell>
                       <TableCell data-label={t('trazabilidad.evento')}>
-                        <Badge variant="neutral" className="max-w-full max-sm:rounded-lg max-sm:whitespace-normal">
+                        <span className="inline-flex max-w-full items-center gap-2 text-[13px] text-foreground">
+                          <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', PUNTO_EVENTO[registro.tipo_evento] ?? 'bg-faint')} />
                           {etiquetaEvento(registro.tipo_evento, t)}
-                        </Badge>
+                        </span>
                       </TableCell>
-                      <TableCell data-label={t('historial.dispositivo')} className="text-[13px] text-muted">
+                      <TableCell data-label={t('historial.dispositivo')} className="nums text-[13px] font-medium text-muted">
                         {registro.device_id ?? '—'}
                       </TableCell>
                       {mostrarSellos && (
@@ -433,21 +442,24 @@ function ResultadoVerificacion({
   const conDetalle = !integra && !rupturaAislada && detalle
 
   return (
-    <Card className="p-4 sm:px-5">
-      <div role="status" className="flex items-start gap-3">
+    <Card
+      className="tarjeta-lectura relative overflow-hidden p-5 sm:px-6"
+      data-riesgo={integra ? 'normal' : rupturaAislada ? 'riesgo_preventivo' : 'excursion_critica'}
+    >
+      <div role="status" className="flex items-start gap-4">
         <span
           aria-hidden
           className={cn(
-            'flex size-9 shrink-0 items-center justify-center rounded-lg',
+            'flex size-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-current/20',
             integra ? 'bg-success-100 text-success-700' : rupturaAislada ? 'bg-honey-100 text-honey-700' : 'bg-critical-tint text-critical',
           )}
         >
-          <Icono className="size-5" />
+          <Icono className="size-[22px]" />
         </span>
         <div className="min-w-0 pt-0.5">
           <p
             className={cn(
-              'text-[15px] leading-6 font-semibold',
+              'text-[18px] leading-6 font-semibold tracking-[-0.015em]',
               integra ? 'text-success-700' : rupturaAislada ? 'text-honey-700' : 'text-critical',
             )}
           >
@@ -457,7 +469,7 @@ function ResultadoVerificacion({
                 ? t('trazabilidad.rupturaAislada')
                 : t('trazabilidad.cadenaRota')}
           </p>
-          <p className="mt-0.5 text-[13px] leading-5 text-muted">
+          <p className="mt-1 text-[14px] leading-5 text-muted">
             {integra
               ? t('trazabilidad.cadenaIntegraDetalle', { n: verificacion.total_registros })
               : rupturaAislada
@@ -473,7 +485,7 @@ function ResultadoVerificacion({
       </div>
 
       {conDetalle ? (
-        <div data-testid="detalle-inconsistencia" className="mt-4 border-t border-border pt-3 sm:pl-12">
+        <div data-testid="detalle-inconsistencia" className="mt-4 border-t border-border pt-3 sm:pl-15">
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 min-[420px]:grid-cols-2 lg:grid-cols-3">
             <Dato etiqueta={t('trazabilidad.evento')}>{etiquetaEvento(detalle.tipo_evento, t)}</Dato>
             <Dato etiqueta={t('trazabilidad.fecha')} className="nums">{fechaHora(detalle.timestamp)}</Dato>
@@ -553,7 +565,7 @@ function ResultadoSegmento({ resultado }: { resultado: VerificacionSegmento }) {
             <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
               <span className="nums shrink-0 text-muted sm:w-48">{fechaHora(r.timestamp)}</span>
               <span className="min-w-0 flex-1 font-medium">{etiquetaEvento(r.tipo_evento, t)}</span>
-              <Badge variant={r.integro ? 'ok' : 'critical'}>
+              <Badge dot variant={r.integro ? 'ok' : 'critical'}>
                 {r.integro ? t('trazabilidad.integro') : t('trazabilidad.corrupto')}
               </Badge>
             </li>

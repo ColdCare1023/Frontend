@@ -148,6 +148,13 @@ describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
     expect(screen.getByText('Sin clasificación IA')).toBeInTheDocument()
   })
 
+  it('HU-54: sin datos recientes no presenta el equipo como Normal', () => {
+    renderizar(lectura({ riesgo_efectivo: 'normal' }))
+
+    expect(screen.getByText('Sin datos recientes')).toBeInTheDocument()
+    expect(screen.queryByText('Normal')).not.toBeInTheDocument()
+  })
+
   it('no lo rotula si el modelo sí clasificó', () => {
     renderizar(lectura())
 

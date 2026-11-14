@@ -51,12 +51,12 @@ export function RestablecerContrasenaPage() {
         <div className="mb-7">
           <Link
             to="/login"
-            className="mb-5 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+            className="mb-5 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-marca-texto hover:underline focus-visible:outline-2 focus-visible:outline-primary"
           >
             <ArrowLeft className="size-3.5" aria-hidden />
             <span>{t('recuperarContrasena.volverLogin')}</span>
           </Link>
-          <h2 className="text-[28px] leading-[34px] font-bold tracking-tight text-foreground sm:text-[32px] sm:leading-10">
+          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
             {t('restablecerContrasena.titulo')}
           </h2>
           <p className="mt-2 text-base leading-6 text-muted">{t('restablecerContrasena.subtitulo')}</p>
@@ -77,7 +77,7 @@ export function RestablecerContrasenaPage() {
             </div>
             <Link
               to="/recuperar-contrasena"
-              className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all"
+              className="flex h-12 w-full items-center justify-center rounded-[10px] coldcare-primary-action px-4 text-[15px] font-semibold shadow-(--shadow-card) transition-all"
             >
               {t('restablecerContrasena.solicitarNuevo')}
             </Link>
@@ -97,7 +97,7 @@ export function RestablecerContrasenaPage() {
             </div>
             <Link
               to="/login"
-              className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all"
+              className="flex h-12 w-full items-center justify-center rounded-[10px] coldcare-primary-action px-4 text-[15px] font-semibold shadow-(--shadow-card) transition-all"
             >
               {t('restablecerContrasena.irLogin')}
             </Link>
@@ -119,7 +119,7 @@ export function RestablecerContrasenaPage() {
             <button
               type="submit"
               disabled={cargando}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] coldcare-primary-action px-4 text-[15px] font-semibold shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
             >
               {cargando ? (
                 <>

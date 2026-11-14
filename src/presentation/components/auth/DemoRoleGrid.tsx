@@ -56,7 +56,7 @@ export function DemoRoleGrid({
     <div className={cn('space-y-3', className)}>
       {!hideHeader && (
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-faint">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
             {t('demo.accesoRapido')}
           </span>
           <span className="text-xs text-faint">{t('demo.accesoDetalle')}</span>
@@ -68,7 +68,7 @@ export function DemoRoleGrid({
         <div
           role="status"
           aria-live="polite"
-          className="flex items-center gap-2 rounded-(--radius-field) bg-primary-tint px-3 py-2 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20 animate-fade"
+          className="flex items-center gap-2 rounded-(--radius-field) bg-secondary-tint px-3 py-2 text-xs font-medium text-marca-texto ring-1 ring-inset ring-secondary/20 animate-fade"
         >
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
           <span>{t('demo.entrandoComo', { rol: rolActivo })}</span>
@@ -96,21 +96,21 @@ export function DemoRoleGrid({
               onClick={() => void manejarClick(email, titulo)}
               data-demo-role={rol}
               className={cn(
-                'group relative flex min-h-[56px] cursor-pointer items-center gap-2.5 rounded-(--radius-field) border border-border bg-surface px-3 py-2.5 text-left shadow-(--shadow-card)',
-                'transition-[border-color,background-color,transform] duration-(--duration-micro) ease-(--ease-ui) hover:border-border-strong hover:bg-cream-200/50 active:scale-[0.985] motion-reduce:active:scale-100',
+                'group relative flex min-h-[60px] cursor-pointer items-center gap-3 rounded-[12px] border border-border bg-surface px-3.5 py-3 text-left shadow-(--shadow-card)',
+                'transition-[border-color,background-color,transform] duration-(--duration-micro) ease-(--ease-ui) hover:border-secondary/40 hover:bg-secondary/[0.05] active:scale-[0.985] motion-reduce:active:scale-100',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                estaCargandoEsteRol && 'border-primary/40 bg-primary-tint',
+                estaCargandoEsteRol && 'border-secondary/50 bg-secondary-tint',
               )}
             >
               <span
                 aria-hidden
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary ring-1 ring-inset ring-primary/15"
+                className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-secondary-tint text-marca-texto ring-1 ring-inset ring-secondary/20 transition-colors duration-(--duration-micro) group-hover:ring-secondary/40"
               >
                 {estaCargandoEsteRol ? <Loader2 className="size-4 animate-spin" /> : <Icono className="size-4" />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13px] leading-snug font-semibold text-foreground">{titulo}</span>
+                <span className="block text-[14px] leading-snug font-semibold tracking-[-0.01em] text-foreground">{titulo}</span>
                 {descripcion && <span className="mt-0.5 block text-xs leading-tight text-muted">{descripcion}</span>}
               </span>
               <ChevronRight

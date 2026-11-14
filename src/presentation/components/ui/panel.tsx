@@ -2,14 +2,14 @@ import { cn } from '@/lib/utils'
 import { Card } from './card'
 
 /**
- * Sección de pantalla con cabecera fija: icono, título, descripción y
- * acciones a la derecha; el contenido ocupa todo el ancho debajo. Sustituye a
+ * Sección de pantalla con cabecera fija: título, descripción y acciones a la
+ * derecha (el `icono` se acepta pero ya no se dibuja: era adorno); el contenido ocupa todo el ancho debajo. Sustituye a
  * los bloques sueltos para que cada pantalla se lea por secciones claras.
  */
 export function Panel({
   titulo,
   descripcion,
-  icono: Icono,
+  icono: _icono,
   acciones,
   nivel = 2,
   id,
@@ -34,11 +34,6 @@ export function Panel({
       <section aria-labelledby={idTitulo} id={id}>
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-border px-4 py-3.5 sm:px-5">
           <div className="flex min-w-0 items-start gap-3">
-            {Icono && (
-              <span aria-hidden className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-tint text-primary ring-1 ring-inset ring-primary/15">
-                <Icono className="size-4" />
-              </span>
-            )}
             <div className="min-w-0">
               <Titulo id={idTitulo} className="text-[15px] leading-6 font-semibold tracking-tight text-foreground">
                 {titulo}

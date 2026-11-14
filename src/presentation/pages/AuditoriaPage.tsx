@@ -11,6 +11,7 @@ import { CompactWorkspace } from '../components/CompactWorkspace'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
+import { CifrasResumen } from './compartido/CifrasResumen'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -57,7 +58,7 @@ export function AuditoriaPage() {
       return `"${text.replaceAll('"', '""')}"`
     }
     const rows = registros.map((r) => [r.created_at, r.usuario_id, r.accion, r.recurso, r.resultado, r.ip_origen])
-    const blob = new Blob([`\uFEFF${[columnas, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
+    const blob = new Blob([`\uFEFF${[columnas, ...rows, [t('auditoria.alcancePanel')]].map((row) => row.map(csvCell).join(',')).join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
     const href = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = href
@@ -66,6 +67,7 @@ export function AuditoriaPage() {
     URL.revokeObjectURL(href)
   }
   const bloqueos = registros.filter((r) => r.accion === 'BLOQUEO_TEMPORAL').length
+  const fallidos = registros.filter((r) => r.resultado && r.resultado !== 'exitoso').length
 
   return (
     <CompactWorkspace>
@@ -75,6 +77,18 @@ export function AuditoriaPage() {
           {t('auditoria.exportar')}
         </Button>
       </PageHeader>
+
+      {registros.length > 0 && (
+        <CifrasResumen
+          className="mb-0"
+          etiqueta={t('auditoria.resumen')}
+          cifras={[
+            { clave: 'eventos', etiqueta: t('auditoria.totalEventos'), valor: registros.length, tono: 'vivo' },
+            { clave: 'fallidos', etiqueta: t('auditoria.fallidos'), valor: fallidos, tono: fallidos > 0 ? 'critico' : 'neutro' },
+            { clave: 'bloqueos', etiqueta: t('auditoria.bloqueos'), valor: bloqueos, tono: bloqueos > 0 ? 'aviso' : 'neutro' },
+          ]}
+        />
+      )}
 
       {bloqueos > 0 && (
         <p
@@ -86,10 +100,13 @@ export function AuditoriaPage() {
         </p>
       )}
 
+      {/* HU-50 esc. 4: alcance de lo que se presenta. */}
+      <p className="mb-4 text-[13px] leading-5 text-muted">{t('auditoria.alcancePanel')}</p>
+
       {/* HU-50 criterio 1: filtrar por periodo, usuario o tipo de acción. */}
       <Card className="p-4 sm:px-5">
         <h2 id="titulo-filtros-auditoria" className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <SlidersHorizontal className="size-4 text-primary" aria-hidden />
+          <SlidersHorizontal className="size-4 text-marca-texto" aria-hidden />
           {t('auditoria.filtros')}
         </h2>
         <form
@@ -186,19 +203,17 @@ export function AuditoriaPage() {
                       {fechaHora(registro.created_at)}
                     </TableCell>
                     <TableCell data-label={t('auditoria.accion')}>
-                      {/* En móvil la fila se apila en dos columnas estrechas: la
-                          píldora se parte en líneas en vez de cortarse. */}
-                      <Badge variant="neutral" className="max-w-full max-sm:rounded-lg max-sm:whitespace-normal">
+                      <span className="text-[13px] text-foreground">
                         {t(`auditoria.eventos.${registro.accion}`, {
                           defaultValue: registro.accion
                             .toLocaleLowerCase()
                             .replaceAll('_', ' ')
                             .replace(/^\p{L}/u, (letra) => letra.toLocaleUpperCase()),
                         })}
-                      </Badge>
+                      </span>
                     </TableCell>
                     <TableCell data-label={t('auditoria.resultado')}>
-                      <Badge variant={registro.resultado === 'exitoso' ? 'ok' : registro.resultado ? 'critical' : 'neutral'}>
+                      <Badge dot className="capitalize" variant={registro.resultado === 'exitoso' ? 'ok' : registro.resultado ? 'critical' : 'neutral'}>
                         {registro.resultado ?? '—'}
                       </Badge>
                     </TableCell>

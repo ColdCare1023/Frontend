@@ -69,7 +69,7 @@ export function CambiarPasswordPage() {
     <AuthShell brandPanel={<ColdCareBrandPanel />}>
       <div className="flex flex-col">
         <div className="mb-6">
-          <h2 className="text-[28px] leading-[34px] font-bold tracking-tight text-foreground sm:text-[32px] sm:leading-10">
+          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
             {t('cambiarPassword.titulo')}
           </h2>
           <p className="mt-2 text-base leading-6 text-muted">{t('cambiarPassword.subtitulo')}</p>
@@ -109,7 +109,7 @@ export function CambiarPasswordPage() {
           <button
             type="submit"
             disabled={cargando}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] coldcare-primary-action px-4 text-[15px] font-semibold shadow-(--shadow-card) transition-all duration-200 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
           >
             {cargando ? (
               <>
@@ -130,7 +130,7 @@ export function CambiarPasswordPage() {
                 logout()
                 void navigate('/login', { replace: true })
               }}
-              className="font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm cursor-pointer"
+              className="font-semibold text-marca-texto hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm cursor-pointer"
             >
               {t('cambiarPassword.salir')}
             </button>
@@ -138,7 +138,7 @@ export function CambiarPasswordPage() {
             <button
               type="button"
               onClick={() => void navigate(-1)}
-              className="font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm cursor-pointer"
+              className="font-semibold text-marca-texto hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm cursor-pointer"
             >
               {t('usuarios.cancelar')}
             </button>

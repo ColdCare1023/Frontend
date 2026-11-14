@@ -251,49 +251,48 @@
 }
 
 /*
- * Tema oscuro: negro neutro (sin tinte azul), referencia «Darkmatter» y
- * «Charcoal Ink» de 21st.dev. Profundidad por capas de gris —fondo #000,
- * superficie #0A0A0A, elevada #111— con bordes finos; el color queda para
- * los estados y los datos. Mismo nombre de token, otro valor: ninguna
- * pantalla necesita clases `dark:`.
+ * Tema oscuro: el azul noche de la landing, casi negro. Profundidad por capas
+ * —fondo #05080F, superficie #0A0F1A, elevada #0F1626— con bordes finos; el
+ * cian de marca queda para lo vivo, lo que está en rango y las gráficas. Mismo
+ * nombre de token, otro valor: ninguna pantalla necesita clases `dark:`.
  */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-cream-50: #0a0a0a;
-  --color-cream-100: #050505;
-  --color-cream-200: #1a1a1a;
-  --color-cream-300: #242424;
-  --color-cream-400: #333333;
+  --color-cream-50: #0b111d;
+  --color-cream-100: #070b14;
+  --color-cream-200: #131b2b;
+  --color-cream-300: #1c2638;
+  --color-cream-400: #2b374d;
 
-  --color-ink-900: #ededed;
-  --color-ink-700: #c7c7c7;
-  --color-ink-500: #a1a1a1;
-  --color-ink-400: #8f8f8f;
+  --color-ink-900: #eef2f8;
+  --color-ink-700: #c9d1de;
+  --color-ink-500: #a3adbd;
+  --color-ink-400: #8a95a8;
 
-  --color-pine-900: #ededed;
+  --color-pine-900: #eef2f8;
   --color-pine-800: #d4d4d4;
   --color-pine-700: #c2d4ff;
   --color-pine-600: #8fb0ff;
   --color-pine-500: #6e9bff;
-  --color-pine-300: #333333;
-  --color-pine-200: #1e3a5f;
-  --color-pine-100: #1a1a1a;
+  --color-pine-300: #2b374d;
+  --color-pine-200: #13305e;
+  --color-pine-100: #131b2b;
 
-  --color-secondary: #5cd6e8;
-  --color-secondary-hover: #84e1ef;
-  --color-secondary-tint: #0d2226;
+  --color-secondary: #00d1ff;
+  --color-secondary-hover: #5ee2ff;
+  --color-secondary-tint: #062634;
   --color-accent: #ff8fb1;
   --color-accent-hover: #ffa9c3;
   --color-accent-tint: #2a1520;
 
-  --color-success-700: #4fd1a5;
-  --color-success-600: #2fb889;
-  --color-success-100: #0d1f1a;
-  --color-glacier-700: #4fd1a5;
-  --color-glacier-600: #2fb889;
-  --color-glacier-200: #1b4034;
-  --color-glacier-100: #0d1f1a;
+  --color-success-700: #4fdcff;
+  --color-success-600: #00b8e6;
+  --color-success-100: #062634;
+  --color-glacier-700: #4fdcff;
+  --color-glacier-600: #00b8e6;
+  --color-glacier-200: #0b4357;
+  --color-glacier-100: #062634;
 
   --color-honey-700: #f5b94f;
   --color-honey-600: #e4a23a;
@@ -306,61 +305,53 @@
   --color-clay-200: #4d1c25;
   --color-clay-50: #1a0a0e;
 
-  --color-background: #000000;
-  --color-surface: #0a0a0a;
-  --color-surface-raised: #111111;
-  --color-surface-sunken: #050505;
-  --color-border: #1f1f1f;
-  --color-border-strong: #2e2e2e;
-  --color-foreground: #ededed;
-  --color-muted: #a1a1a1;
-  --color-faint: #8f8f8f;
-  --color-border-field: #616161;
+  --color-background: #05080f;
+  --color-surface: #0a0f1a;
+  --color-surface-raised: #0f1626;
+  --color-surface-sunken: #060a12;
+  --color-border: #182132;
+  --color-border-strong: #243046;
+  --color-foreground: #eef2f8;
+  --color-muted: #a3adbd;
+  --color-faint: #8a95a8;
+  --color-border-field: #4a5872;
   /* Acción principal blanca sobre negro (estilo Vercel/Linear). */
-  --color-primary: #ededed;
+  --color-primary: #f1f5fa;
   --color-primary-hover: #ffffff;
-  --color-primary-tint: #1a1a1a;
-  --color-primary-end: #d4d4d4;
-  --color-on-primary: #0a0a0a;
+  --color-primary-tint: #121a2a;
+  --color-primary-end: #d6deea;
+  --color-on-primary: #05080f;
   --color-critical: #ff7a87;
   --color-critical-tint: #2a0f14;
   --color-critical-strong: #1a0306;
   --color-critical-solid: #ff6b76;
   --color-on-critical: #1a0306;
-  --color-overlay: #000000;
-  --color-ring: #5cd6e8;
-  --color-riel: #000000;
-  --color-marca-texto: #5cd6e8;
-  --color-grafica-1: #6e9bff;
-  --color-grafica-2: #5cd6e8;
+  --color-overlay: #02040a;
+  --color-ring: #00d1ff;
+  --color-riel: #070b14;
+  --color-marca-texto: #00d1ff;
+  --color-grafica-1: #00d1ff;
+  --color-grafica-2: #a78bfa;
 
-  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.35);
   --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.06), 0 18px 44px -12px rgb(0 0 0 / 0.95);
   --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.08), 0 22px 48px -16px rgb(0 0 0 / 0.95);
 
-  /* Motor de cristal líquido (@zakisheriff/liquid-glass) afinado al negro. */
-  --lg-fill: rgb(18 18 20 / 0.5);
-  --lg-blur: 16px;
-  --lg-saturate: 1.7;
-  --lg-brightness: 1;
-  --lg-edge: rgb(255 255 255 / 0.1);
-  --lg-shadow: 0 16px 40px -16px rgb(0 0 0 / 0.8), 0 1px 2px rgb(0 0 0 / 0.4);
-  --lg-rim-opacity: 0.7;
 
   /* Liquid glass sobre negro: base grafito translúcida, filo especular frío. */
-  --cristal-base: rgb(18 18 20 / 0.58);
+  --cristal-base: #070b14;
   --cristal-borde: rgb(255 255 255 / 0.09);
   --cristal-filo: rgb(255 255 255 / 0.14);
   --cristal-sombra: 0 18px 40px -16px rgb(0 0 0 / 0.75);
-  --tarjeta-cristal: linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.015));
-  --tarjeta-borde: rgb(255 255 255 / 0.075);
-  --ambiente-1: rgb(92 214 232 / 0.11);
-  --ambiente-2: rgb(110 155 255 / 0.10);
-  --ambiente-3: rgb(79 209 165 / 0.06);
+  --tarjeta-cristal: linear-gradient(180deg, #0e1524, #0a0f1a 64%);
+  --tarjeta-borde: rgb(148 163 184 / 0.13);
+  --ambiente-1: rgb(0 209 255 / 0.09);
+  --ambiente-2: rgb(11 92 255 / 0.10);
+  --ambiente-3: rgb(0 209 255 / 0.04);
 
   /* Spotlight y brillo: luz blanca, nunca tinte de color. */
-  --spot-relleno: rgb(255 255 255 / 0.045);
-  --spot-borde: rgb(255 255 255 / 0.3);
+  --spot-relleno: rgb(0 209 255 / 0.05);
+  --spot-borde: rgb(0 209 255 / 0.32);
   --brillo: rgb(255 255 255 / 0.75);
   --punto: rgb(255 255 255 / 0.09);
 }
@@ -381,8 +372,6 @@
   }
 
   :root {
-    --lg-fill: rgb(255 255 255 / 0.6);
-    --lg-blur: 16px;
     --cristal-base: rgb(255 255 255 / 0.62);
     --cristal-borde: rgb(15 23 42 / 0.08);
     --cristal-filo: rgb(255 255 255 / 0.95);
@@ -407,7 +396,7 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 
   .lucide {
@@ -571,80 +560,35 @@
     background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent);
   }
 
-  /* ── Liquid glass ─────────────────────────────────────────
-     Cristal esmerilado: desenfoque + saturación del fondo, filo especular
-     arriba, sombra corta. `cristal-liquido` añade refracción real (filtro SVG
-     #liquido, solo Chromium) en una capa propia; en Safari/Firefox esa capa se
-     ignora y queda el esmerilado. Patrón «Liquid Glass» de 21st.dev. */
+  /* El riel y el cajón: superficie sólida con filo superior; sin desenfoque. */
   .cristal {
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0)), var(--cristal-base);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    backdrop-filter: blur(22px) saturate(180%);
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.02), rgb(255 255 255 / 0)), var(--cristal-base);
     border-color: var(--cristal-borde);
-    box-shadow:
-      inset 0 1px 0 var(--cristal-filo),
-      inset 0 0 0 1px rgb(255 255 255 / 0.015),
-      var(--cristal-sombra);
-  }
-  .cristal-liquido {
-    isolation: isolate;
-  }
-  .cristal-liquido::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    pointer-events: none;
-    -webkit-backdrop-filter: url(#liquido);
-    backdrop-filter: url(#liquido);
+    box-shadow: inset -1px 0 0 rgb(255 255 255 / 0.015);
   }
   /* Tarjeta de vidrio: translúcida sin desenfoque (rinde con muchas en pantalla). */
   .tarjeta-cristal {
     background: var(--tarjeta-cristal);
     border-color: var(--tarjeta-borde);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.12);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.05),
+      0 1px 2px rgb(0 0 0 / 0.3),
+      0 18px 40px -28px rgb(0 0 0 / 0.9);
   }
   [data-theme='light'] .tarjeta-cristal {
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -16px rgb(15 23 42 / 0.18);
   }
 
-  /* Luz ambiental detrás del contenido: tres focos muy tenues que derivan
-     lento; el negro sigue siendo negro, pero el cristal tiene qué refractar. */
+  /* Luz ambiental detrás del contenido: dos focos fijos muy tenues, como el
+     resplandor cian de la landing. Sin filtro ni animación: no cuesta nada. */
   .ambiente {
     position: fixed;
     inset: 0;
     z-index: -1;
-    overflow: hidden;
     pointer-events: none;
-  }
-  .ambiente::before,
-  .ambiente::after {
-    content: '';
-    position: absolute;
-    width: 62vmax;
-    height: 62vmax;
-    border-radius: 9999px;
-    filter: blur(70px);
-    will-change: transform;
-  }
-  .ambiente::before {
-    top: -26vmax;
-    left: -12vmax;
-    background: radial-gradient(circle, var(--ambiente-1), transparent 65%);
-    animation: derivar-a 46s ease-in-out infinite alternate;
-  }
-  .ambiente::after {
-    top: -18vmax;
-    right: -20vmax;
-    background: radial-gradient(circle, var(--ambiente-2), transparent 65%), radial-gradient(circle at 30% 80%, var(--ambiente-3), transparent 55%);
-    animation: derivar-b 58s ease-in-out infinite alternate;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .ambiente::before,
-    .ambiente::after {
-      animation: none;
-    }
+    background:
+      radial-gradient(70vmax 46vmax at 8% -18%, var(--ambiente-1), transparent 62%),
+      radial-gradient(60vmax 40vmax at 104% -10%, var(--ambiente-2), transparent 60%);
   }
 
   /* Superficie con luz que sigue al puntero y borde iluminado («Spotlight Card»,
@@ -682,25 +626,6 @@
     }
   }
 
-  /* Haz que recorre el borde de la lectura en vivo («Border Beam», 21st.dev). */
-  .haz-borde {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    pointer-events: none;
-    background: conic-gradient(from var(--angulo-haz), transparent 0deg 290deg, var(--color-secondary) 340deg, transparent 360deg);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-    animation: girar-haz 7s linear infinite;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .haz-borde {
-      display: none;
-    }
-  }
-
   /* Textura de puntos con desvanecido radial («Dot Grid», 21st.dev). */
   .rejilla-puntos {
     background-image: radial-gradient(var(--punto) 1px, transparent 1px);
@@ -721,31 +646,73 @@
   .escalonado > * > :nth-child(6) { animation-delay: 225ms; }
   .escalonado > * > :nth-child(n + 7) { animation-delay: 270ms; }
 
+  /* La lectura principal: un resplandor del color del estado, como el campo de la landing. */
+  .tarjeta-lectura {
+    --resplandor: rgb(148 163 184 / 0.07);
+    isolation: isolate;
+  }
+  .tarjeta-lectura::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(620px 300px at 14% -8%, var(--resplandor), transparent 70%),
+      radial-gradient(420px 220px at 100% 120%, rgb(11 92 255 / 0.05), transparent 70%);
+    transition: background 0.6s var(--ease-out-soft);
+  }
+  .tarjeta-lectura[data-riesgo='normal'] { --resplandor: rgb(0 209 255 / 0.16); }
+  .tarjeta-lectura[data-riesgo='riesgo_preventivo'] { --resplandor: rgb(247 144 9 / 0.18); }
+  .tarjeta-lectura[data-riesgo='excursion_critica'] { --resplandor: rgb(217 45 32 / 0.24); }
+  [data-theme='light'] .tarjeta-lectura[data-riesgo='normal'] { --resplandor: rgb(0 209 255 / 0.14); }
+
+  /* Regla 0–10 °C: pista fina, zona segura en cian y una marca con halo del color del estado. */
+  .regla-rango__pista {
+    position: relative;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-cream-200);
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.25);
+  }
+  .regla-rango__zona {
+    position: absolute;
+    inset: 0 20%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgb(0 209 255 / 0.35), rgb(0 209 255 / 0.6), rgb(0 209 255 / 0.35));
+    box-shadow: 0 0 14px rgb(0 209 255 / 0.25);
+  }
+  .regla-rango__marca {
+    position: absolute;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: var(--marca);
+    border: 3px solid var(--color-surface);
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12), 0 0 16px var(--marca);
+    transform: translate(-50%, -50%);
+    transition: left 0.6s var(--ease-out-soft);
+  }
+  .regla-rango__cotas {
+    position: relative;
+    height: 16px;
+    margin-top: 8px;
+    font-size: 11.5px;
+    line-height: 16px;
+    color: var(--color-faint);
+  }
+  .regla-rango__cotas > span {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+  }
+  .regla-rango__cotas > span:first-child { left: 0; transform: none; }
+  .regla-rango__cotas > span:last-child { right: 0; transform: none; }
+
   .isoterma {
     stroke-dasharray: 900;
     animation: trazar-isoterma 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-}
-
-@keyframes derivar-a {
-  to {
-    transform: translate3d(14vmax, 10vmax, 0) scale(1.08);
-  }
-}
-@keyframes derivar-b {
-  to {
-    transform: translate3d(-12vmax, 14vmax, 0) scale(0.94);
-  }
-}
-
-@property --angulo-haz {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-@keyframes girar-haz {
-  to {
-    --angulo-haz: 360deg;
   }
 }
 

@@ -13,6 +13,7 @@ import { Paginacion } from '../components/Paginacion'
 import { ActionMenu } from '../components/ActionMenu'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
+import { CifrasResumen } from './compartido/CifrasResumen'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog'
@@ -29,6 +30,12 @@ import {
 type MensajeDialogo = { tipo: 'ok' | 'error'; texto: string } | null
 
 const FORM_INICIAL = { nombre: '', email: '', telefono: '', password: '', rol: 'tecnico' as Rol }
+
+/** «Farmacéutica Demo» → «FD»: las dos primeras iniciales del nombre. */
+function iniciales(nombre: string): string {
+  const partes = nombre.trim().split(/\s+/).filter(Boolean)
+  return (partes.slice(0, 2).map((p) => p.charAt(0)).join('') || '?').toUpperCase()
+}
 
 export function UsuariosPage() {
   const { t } = useTranslation()
@@ -183,6 +190,14 @@ export function UsuariosPage() {
         <EstadoVacio icono={Users} titulo={t('usuarios.sinUsuarios')} />
       ) : (
         <div>
+          <CifrasResumen
+            etiqueta={t('usuarios.resumen')}
+            cifras={[
+              { clave: 'activas', etiqueta: t('usuarios.conAcceso'), valor: usuarios.filter((u) => u.is_active).length, tono: 'vivo' },
+              { clave: 'admins', etiqueta: t('usuarios.administradores'), valor: administradoresActivos },
+              { clave: 'inactivas', etiqueta: t('usuarios.sinAcceso'), valor: usuarios.filter((u) => !u.is_active).length },
+            ]}
+          />
           <Table mobileLayout="stack" titulo={t('usuarios.titulo')}>
             <TableHeader>
               <TableRow>
@@ -199,9 +214,27 @@ export function UsuariosPage() {
                 const ultimoAdmin = usuario.rol === 'administrador' && administradoresActivos <= 1
                 return (
                   <TableRow key={usuario.id}>
-                    <TableCell data-label={t('usuarios.nombre')} className="mobile-full font-semibold">{usuario.nombre}</TableCell>
+                    <TableCell data-label={t('usuarios.nombre')} className="mobile-full">
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span
+                          aria-hidden
+                          className={
+                            usuario.is_active
+                              ? 'flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-tint text-[13px] font-semibold text-secondary ring-1 ring-inset ring-secondary/20'
+                              : 'flex size-9 shrink-0 items-center justify-center rounded-full bg-cream-200 text-[13px] font-semibold text-faint ring-1 ring-inset ring-border'
+                          }
+                        >
+                          {iniciales(usuario.nombre)}
+                        </span>
+                        <span className="min-w-0 font-semibold tracking-[-0.01em]">{usuario.nombre}</span>
+                      </span>
+                    </TableCell>
                     <TableCell data-label={t('usuarios.email')} className="mobile-full break-all text-muted">{usuario.email}</TableCell>
-                    <TableCell data-label={t('usuarios.rol')} className="sm:whitespace-nowrap">{t(`roles.${usuario.rol}`)}</TableCell>
+                    <TableCell data-label={t('usuarios.rol')} className="sm:whitespace-nowrap">
+                      <span className="text-[13px] text-ink-700">
+                        {t(`roles.${usuario.rol}`)}
+                      </span>
+                    </TableCell>
                     <TableCell data-label={t('usuarios.estado')}>
                       {usuario.is_active ? (
                         <Badge variant="ok" dot>{t('usuarios.activo')}</Badge>

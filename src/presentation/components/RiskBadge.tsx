@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2, OctagonAlert } from 'lucide-react'
 
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
+import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 
 /**
@@ -29,7 +30,7 @@ export function RiskBadge({ nivel }: { nivel: NivelRiesgo | null }) {
   const { variante, icono: Icono } = PRESENTACION[nivel]
   return (
     <Badge variant={variante}>
-      <Icono className="size-3.5 shrink-0" aria-hidden />
+      <Icono className={cn('size-3.5 shrink-0', nivel === 'normal' && 'text-success-600')} aria-hidden />
       {t(`riesgo.${nivel}`)}
       <span className="sr-only"> — {t(`riesgo.detalle.${nivel}`)}</span>
     </Badge>

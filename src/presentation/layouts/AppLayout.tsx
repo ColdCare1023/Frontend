@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
@@ -38,7 +38,6 @@ import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '../comp
 import { Tooltip, TooltipProvider } from '../components/ui/tooltip'
 import { NotchToaster } from '../components/notificaciones/notch'
 import { ANCHO_COLAPSADO, ANCHO_EXPANDIDO, guardarColapsado, leerColapsado } from './preferenciaSidebar'
-import { useCristalLiquido } from '../efectos/cristalLiquido'
 
 interface ItemNav {
   ruta: string
@@ -88,24 +87,7 @@ const SECCIONES: SeccionNav[] = [
 ]
 
 const RESORTE = { type: 'spring', stiffness: 380, damping: 35, mass: 0.75 } as const
-const ENTRADA_PAGINA = { duration: 0.6, ease: [0.22, 1, 0.36, 1] } as const
-
-function BadgeDemo({ className }: { className?: string }) {
-  const { t } = useTranslation()
-  if (!MODO_DEMO) return null
-  return (
-    <span
-      title={t('demo.descripcionBadge')}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full bg-secondary-tint px-2.5 py-1 text-xs font-semibold text-glacier-700 ring-1 ring-inset ring-glacier-200',
-        className,
-      )}
-    >
-      <FlaskConical className="size-3" aria-hidden />
-      {t('demo.badge')}
-    </span>
-  )
-}
+const ENTRADA_PAGINA = { duration: 0.24, ease: [0.22, 1, 0.36, 1] } as const
 
 /**
  * FE-002: aviso persistente en TODAS las pantallas y tamaños (la insignia de
@@ -118,11 +100,12 @@ function AvisoDatosSimulados() {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 border-b border-honey-600/20 bg-honey-100 px-4 py-1.5 text-xs leading-5 text-honey-700 sm:px-6 lg:px-8"
+      className="flex items-center justify-center gap-2 border-b border-honey-600/15 bg-honey-100/70 px-4 py-1.5 text-center text-[12px] leading-5 text-honey-700 sm:px-6 lg:px-10"
     >
       <FlaskConical aria-hidden className="size-3.5 shrink-0" />
       <p>
-        <strong className="font-semibold">{t('demo.avisoTitulo')}.</strong> {t('demo.avisoDetalle')}
+        {/* En el teléfono basta el título: el detalle completo sigue para el lector de pantalla. */}
+        <strong className="font-semibold">{t('demo.avisoTitulo')}.</strong> <span className="max-sm:sr-only">{t('demo.avisoDetalle')}</span>
       </p>
     </div>
   )
@@ -153,7 +136,7 @@ function NavegacionPrincipal({
   if (!usuario) return null
 
   return (
-    <nav aria-label={etiquetaNav} className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-2 [@media(max-height:760px)]:space-y-3">
+    <nav aria-label={etiquetaNav} className="min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden px-3 py-3 [@media(max-height:760px)]:space-y-3">
       {SECCIONES.map((seccion) => {
         const visibles = seccion.items.filter((item) => tienePermiso(usuario.rol, item.roles))
         if (visibles.length === 0) return null
@@ -164,7 +147,7 @@ function NavegacionPrincipal({
               <p
                 id={idTitulo}
                 className={cn(
-                  'truncate px-[15px] text-[11px] leading-5 font-semibold uppercase tracking-[0.12em] text-faint transition-opacity duration-(--duration-ui)',
+                  'truncate px-3 text-[11px] leading-5 font-semibold uppercase tracking-[0.14em] text-faint/80 transition-opacity duration-(--duration-ui)',
                   colapsado && 'opacity-0',
                 )}
               >
@@ -187,8 +170,8 @@ function NavegacionPrincipal({
                       onClick={alNavegar}
                       className={({ isActive }) =>
                         cn(
-                          'group relative flex h-11 items-center gap-3 rounded-lg px-[15px] text-[13.5px] font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:h-9 lg:pointer-coarse:h-11 lg:[@media(max-height:700px)]:h-8',
-                          isActive ? 'text-foreground' : 'text-muted hover:bg-cream-200/60 hover:text-foreground',
+                          'group relative flex h-11 items-center gap-3 rounded-[10px] px-3 text-[14px] font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:h-10 lg:pointer-coarse:h-11 lg:[@media(max-height:700px)]:h-8',
+                          isActive ? 'text-foreground' : 'text-muted hover:bg-cream-200/70 hover:text-foreground',
                         )
                       }
                     >
@@ -199,15 +182,15 @@ function NavegacionPrincipal({
                               layoutId={`nav-activo-${sufijoId}`}
                               transition={reducir ? { duration: 0 } : RESORTE}
                               aria-hidden
-                              className="absolute inset-0 rounded-lg bg-primary-tint ring-1 ring-inset ring-primary/15"
+                              className="absolute inset-0 rounded-[10px] bg-[linear-gradient(90deg,rgb(0_209_255/0.14),rgb(0_209_255/0.03))] ring-1 ring-inset ring-secondary/15"
                             >
-                              <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-primary" />
+                              <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-secondary shadow-[0_0_12px_rgb(0_209_255/0.7)]" />
                             </motion.span>
                           )}
                           <item.icono
                             className={cn(
                               'relative size-[18px] shrink-0 transition-colors duration-(--duration-micro)',
-                              isActive ? 'text-primary' : 'text-faint group-hover:text-foreground',
+                              isActive ? 'text-secondary' : 'text-faint group-hover:text-foreground',
                             )}
                           />
                           <span
@@ -291,8 +274,6 @@ export function AppLayout() {
   const usuario = useAuthStore((s) => s.usuario)
   const [drawerAbierto, setDrawerAbierto] = useState(false)
   const [colapsado, setColapsado] = useState(leerColapsado)
-  const refCabecera = useRef<HTMLElement>(null)
-  useCristalLiquido(refCabecera, { intensidad: 0.7, bisel: 12 })
   const { pathname } = useLocation()
   const seccionActual = SECCIONES.find((seccion) =>
     seccion.items.some((item) => pathname === item.ruta || pathname.startsWith(`${item.ruta}/`)),
@@ -341,7 +322,7 @@ export function AppLayout() {
           data-state={colapsado ? 'colapsado' : 'expandido'}
           className="cristal sticky top-0 hidden h-dvh shrink-0 flex-col overflow-hidden border-r lg:flex"
         >
-          <div className="flex h-14 shrink-0 items-center px-4">
+          <div className="flex h-16 shrink-0 items-center border-b border-border px-4">
             <ColdCareBrand
               subtitulo={t('app.subtitulo')}
               className={cn('[&_p]:transition-opacity [&_p]:duration-(--duration-ui) [&_svg]:size-9', colapsado && '[&_p]:opacity-0')}
@@ -401,13 +382,8 @@ export function AppLayout() {
             <AvisoDatosSimulados />
             <AvisosTiempoReal />
             <NotchToaster />
-            <header
-              ref={refCabecera}
-              data-liquid-glass=""
-              // `lg-glass` fija position: relative; la cabecera sigue siendo sticky.
-              style={{ position: 'sticky' }}
-              className="lg-glass lg-glass--host top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--lg-edge)] px-3 sm:px-6 lg:px-8"
-            >
+            {/* Barra limpia con un filo inferior: sin el aro de vidrio que parecía un recuadro. */}
+            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md backdrop-saturate-150 sm:px-6 lg:px-10">
               <DialogPrimitive.Trigger
                 aria-label={t('nav.abrirMenu')}
                 className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground lg:hidden"
@@ -418,7 +394,7 @@ export function AppLayout() {
               <ColdCareBrand className="lg:hidden [&_svg]:size-8 max-[399px]:[&>div]:hidden" />
 
               <div className="hidden min-w-0 items-center gap-3 lg:flex">
-                <p className="flex min-w-0 items-center gap-1.5 text-sm">
+                <p className="flex min-w-0 items-center gap-1.5 text-[14px]">
                   {seccionActual && (
                     <>
                       <span className="truncate text-faint">{t(seccionActual.claveI18n)}</span>
@@ -434,7 +410,6 @@ export function AppLayout() {
               </div>
 
               <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
-                <BadgeDemo className="mr-1.5 hidden sm:inline-flex" />
                 <LanguageSwitcher />
                 <ThemeSwitcher />
                 <span aria-hidden className="mx-1 hidden h-5 w-px bg-border sm:block" />
@@ -446,21 +421,19 @@ export function AppLayout() {
               id="contenido-principal"
               tabIndex={-1}
               aria-label={t('nav.contenidoPrincipal')}
-              className="min-w-0 flex-1 overflow-x-clip px-4 py-5 focus:outline-none sm:px-6 sm:py-6 lg:px-8 lg:py-7"
+              className="min-w-0 flex-1 overflow-x-clip px-4 py-6 focus:outline-none sm:px-6 sm:py-8 lg:px-10 lg:py-9"
             >
               {/* Tope de ancho: en monitores muy anchos el contenido no se estira sin fin */}
               <div className="mx-auto w-full max-w-[1560px]">
                 {/* La página entra con un fundido; sus secciones suben escalonadas
                     (index.css). Con movimiento reducido aparece sin transición. */}
-                {/* Despliegue tipo «iPhone Duo»: la pantalla abre desde su borde
-                    izquierdo y pasa de desenfocada a nítida (coreografía del
-                    pliegue de jal-co/iphone-duo, acortada a 0.6 s). */}
+                {/* Cambio de pantalla corto: fundido y un leve ascenso, solo opacidad y
+                    transform (sin desenfoque, que cuesta en equipos modestos). */}
                 <motion.div
                   key={pathname}
                   className="escalonado"
-                  style={{ transformOrigin: 'left center' }}
-                  initial={reducir ? false : { opacity: 0, rotateY: -7, filter: 'blur(8px)', transformPerspective: 1800 }}
-                  animate={{ opacity: 1, rotateY: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                  initial={reducir ? false : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={ENTRADA_PAGINA}
                 >
                   <Outlet />

@@ -74,19 +74,19 @@ export function useDispositivos() {
   )
 
   // HU-30: certificado de calibración del sensor. B-12: contrato de
-  // CalibracionRequest — el backend calcula la próxima fecha a partir de la
-  // vigencia en meses; no acepta una fecha de vencimiento ni un margen.
+  // HU-30: CalibracionRequest con la fecha del certificado y el margen de aviso.
   const registrarCalibracion = useCallback(
     async (
       deviceId: string,
       fechaCalibracion: string,
       numeroCertificado: string,
       observaciones: string | undefined,
-      mesesVigencia: number,
+      fechaVencimiento: string,
+      margenAvisoDias: number,
     ): Promise<'ok' | 'error'> => {
       try {
         await apiClient.patch(rutaApi`/api/dispositivos/${deviceId}/calibracion`, cuerpoCalibracion(
-          fechaCalibracion, numeroCertificado, observaciones, mesesVigencia,
+          fechaCalibracion, numeroCertificado, observaciones, fechaVencimiento, margenAvisoDias,
         ))
         await consultar()
         return 'ok'
@@ -281,12 +281,14 @@ export function cuerpoAlta(payload: { device_id: string; nombre: string; ubicaci
 
 /** B-12: cuerpo exacto de `PATCH /api/dispositivos/{id}/calibracion`. */
 export function cuerpoCalibracion(
-  fechaCalibracion: string, numeroCertificado: string, observaciones: string | undefined, mesesVigencia: number,
+  fechaCalibracion: string, numeroCertificado: string, observaciones: string | undefined,
+  fechaVencimiento: string, margenAvisoDias: number,
 ) {
   return {
     fecha_calibracion: fechaCalibracion,
     numero_certificado: numeroCertificado,
     observaciones: observaciones || undefined,
-    meses_vigencia: mesesVigencia,
+    fecha_vencimiento: fechaVencimiento,
+    margen_aviso_dias: margenAvisoDias,
   }
 }

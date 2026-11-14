@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChartSpline, DoorClosed, DoorOpen, FilterX, SearchX, ShieldQuestion } from 'lucide-react'
+import { ChartSpline, FilterX, SearchX } from 'lucide-react'
 
 import { useHistorial, type FiltrosHistorial } from '@/application/hooks/useHistorial'
 import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
@@ -46,10 +46,16 @@ function FechaYHora({ iso }: { iso: string | null }) {
   if (!iso || Number.isNaN(new Date(iso).getTime())) return <>{fechaHora(iso)}</>
   return (
     <>
-      <span className="block whitespace-nowrap">{fechaCorta(iso)}</span>
-      <span className="block whitespace-nowrap text-muted">{hora(iso)}</span>
+      <span className="block whitespace-nowrap font-medium text-foreground">{fechaCorta(iso)}</span>
+      <span className="mt-0.5 block whitespace-nowrap text-[12px] text-faint">{hora(iso)}</span>
     </>
   )
+}
+
+/** La cifra solo toma color cuando la lectura pide atención; la columna de riesgo lo dice en texto. */
+const CIFRA_RIESGO: Record<string, string> = {
+  riesgo_preventivo: 'text-honey-700',
+  excursion_critica: 'text-critical',
 }
 
 export function HistorialPage() {
@@ -131,7 +137,7 @@ export function HistorialPage() {
       <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('historial.titulo')} descripcion={t('historial.descripcion')} />
 
       {/* ── Filtros: una sola barra (apilada en móvil) ─────────── */}
-      <Card className="p-3 sm:p-4">
+      <Card className="p-4 sm:p-5">
         <p id="titulo-filtros-historial" className="sr-only">
           {t('historial.filtros')}
         </p>
@@ -193,7 +199,7 @@ export function HistorialPage() {
             <Button type="submit" className="flex-1 sm:flex-none">
               {t('historial.aplicar')}
             </Button>
-            <Button variant="ghost" onClick={limpiar}>
+            <Button variant="ghost" className="text-muted hover:text-foreground" onClick={limpiar}>
               <FilterX aria-hidden />
               {t('historial.limpiar')}
             </Button>
@@ -212,11 +218,17 @@ export function HistorialPage() {
 
       {/* ── HU-36 criterio 1: la misma consulta alimenta la gráfica ──── */}
       {lecturas.length > 0 && !errorCarga && (
-        <Panel id="historial-grafica" icono={ChartSpline} titulo={t('dashboard.curvaTermica')} cuerpoClassName="p-3 sm:p-4">
+        <Panel
+          id="historial-grafica"
+          icono={ChartSpline}
+          titulo={t('dashboard.curvaTermica')}
+          descripcion={`${t('dashboard.ultimasLecturas', { n: serieGrafica.length })} · ${t('dashboard.rangoConservacion')}`}
+          cuerpoClassName="p-3 sm:p-5"
+        >
           <div aria-busy={cargando || undefined}>
             <EChartWrapper
               option={opcionHistorial}
-              height="200px"
+              height="clamp(220px, 28vh, 280px)"
               ariaLabel={t('dashboard.graficaEtiqueta', { n: serieGrafica.length })}
               ariaDescribedBy="historial-datos-tabla"
             />
@@ -233,7 +245,7 @@ export function HistorialPage() {
             </Button>
           </EstadoError>
         ) : !cargando && lecturas.length === 0 ? (
-          <EstadoVacio icono={SearchX} titulo={t('historial.sinResultados')} />
+          <EstadoVacio icono={SearchX} titulo={t(filtros.desde || filtros.hasta ? 'historial.sinDatosRango' : 'historial.sinResultados')} />
         ) : (
           <>
             <Table mobileLayout="stack" className="min-w-0" titulo={t('historial.titulo')} cargando={cargando}>
@@ -260,11 +272,16 @@ export function HistorialPage() {
                       <TableCell data-label={t('historial.fecha')} className={cn('nums text-[13px] leading-5', RELLENO)}>
                         <FechaYHora iso={lectura.timestamp} />
                       </TableCell>
-                      <TableCell data-label={t('historial.codigoEquipo')} className={cn('whitespace-nowrap text-[13px] font-medium', RELLENO)}>
-                        {lectura.device_id}
+                      <TableCell data-label={t('historial.codigoEquipo')} className={cn('whitespace-nowrap', RELLENO)}>
+                        <span className="nums text-[13px] text-ink-700">
+                          {lectura.device_id}
+                        </span>
                       </TableCell>
-                      <TableCell data-label={t('historial.tempInterna')} className={cn('nums whitespace-nowrap text-right text-[15px] font-semibold', RELLENO)}>
-                        {lectura.temperatura_interna?.toFixed(1) ?? '—'} °C
+                      <TableCell data-label={t('historial.tempInterna')} className={cn('nums whitespace-nowrap text-right', RELLENO)}>
+                        <span className="inline-flex items-baseline gap-1">
+                          <span className={cn('text-[16px] font-semibold tracking-[-0.02em] text-foreground', lectura.riesgo_efectivo && CIFRA_RIESGO[lectura.riesgo_efectivo])}>{lectura.temperatura_interna?.toFixed(1) ?? '—'}</span>
+                          <span className="text-[12px] font-medium text-muted">°C</span>
+                        </span>
                       </TableCell>
                       {/* En móvil el riesgo encabeza la ficha de cada lectura, a lo ancho. */}
                       <TableCell data-label={t('historial.riesgo')} className={cn('mobile-full max-sm:order-first', RELLENO)}>
@@ -281,19 +298,20 @@ export function HistorialPage() {
                       <TableCell data-label={t('historial.puerta')} className={cn('text-center', RELLENO)}>
                         {/* HU-35 criterio 4: si el dato de puerta no está disponible, null no es
                             "cerrada" — se marca aparte para no fingir un dato. */}
-                        <span className="inline-flex w-full justify-start sm:justify-center">
+                        {/* En texto: un icono de puerta solo no se entiende de un vistazo. */}
+                        <span className="inline-flex w-full justify-start text-[13px] sm:justify-center">
                           {lectura.apertura_refrigerador === null ? (
-                            <ShieldQuestion role="img" className="size-4 text-faint" aria-label={t('dashboard.puertaSinSensor')} />
+                            <span role="img" className="text-faint" title={t('dashboard.puertaSinSensor')} aria-label={t('dashboard.puertaSinSensor')}>—</span>
                           ) : lectura.apertura_refrigerador ? (
-                            <DoorOpen role="img" className="size-4 text-honey-700" aria-label={t('dashboard.puertaAbierta')} />
+                            <span className="font-medium text-honey-700">{t('dashboard.puertaAbierta')}</span>
                           ) : (
-                            <DoorClosed role="img" className="size-4 text-faint" aria-label={t('dashboard.puertaCerrada')} />
+                            <span className="text-muted">{t('dashboard.puertaCerrada')}</span>
                           )}
                         </span>
                       </TableCell>
                       <TableCell data-label={t('historial.evidenciaModelo')} className={cn('text-right', RELLENO)}>
                         {/* Discreto en la tabla; en la ficha táctil conserva el borde de botón. */}
-                        <Button variant="ghost" size="sm" className="max-sm:border max-sm:border-border-strong" disabled={!lectura.id} onClick={() => void abrirEvidencia(lectura)}>
+                        <Button variant="ghost" size="sm" className="text-muted hover:text-marca-texto max-sm:border max-sm:border-border-strong" disabled={!lectura.id} onClick={() => void abrirEvidencia(lectura)}>
                           {t('historial.verEvidencia')}
                         </Button>
                       </TableCell>
@@ -324,6 +342,9 @@ export function HistorialPage() {
                 <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.versionModelo')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.model_version ?? '—'}</dd></div>
                 <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.estadoInferencia')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.inference_status ? t(`historial.inferencia.${evidencia.inference_status}`) : '—'}</dd></div>
                 <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.fechaInferencia')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.inference_at ? fechaHora(evidencia.inference_at) : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.horizonteModelo')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.horizon_min != null ? `${evidencia.horizon_min} min` : '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.esquemaCaracteristicas')}</dt><dd className="nums mt-1 text-sm font-semibold">{evidencia.feature_schema_version ?? '—'}</dd></div>
+                <div className="rounded-lg border border-border bg-surface-sunken p-3"><dt className="text-xs text-muted">{t('historial.politicaOperativa')}</dt><dd className="mt-1 text-sm font-semibold">{evidencia.operating_policy ? t(`historial.politica.${evidencia.operating_policy}`) : '—'}</dd></div>
               </dl>
               <div>
                 <h3 className="mb-2 text-sm font-semibold">{t('historial.variablesEntrada')}</h3>

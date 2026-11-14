@@ -3,16 +3,31 @@
     "schemas": {
       "AccionCorrectivaCreateRequest": {
         "additionalProperties": false,
+        "description": "HU-27: decisión adoptada, acción ejecutada (`descripcion`) y justificación.",
         "properties": {
+          "decision": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Decision",
+            "type": "string"
+          },
           "descripcion": {
             "maxLength": 2000,
             "minLength": 1,
             "title": "Descripcion",
             "type": "string"
+          },
+          "justificacion": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Justificacion",
+            "type": "string"
           }
         },
         "required": [
-          "descripcion"
+          "decision",
+          "descripcion",
+          "justificacion"
         ],
         "title": "AccionCorrectivaCreateRequest",
         "type": "object"
@@ -72,6 +87,17 @@
             ],
             "title": "Created At"
           },
+          "decision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision"
+          },
           "descripcion": {
             "title": "Descripcion",
             "type": "string"
@@ -87,6 +113,17 @@
               }
             ],
             "title": "Id"
+          },
+          "justificacion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justificacion"
           },
           "motivo_rectificacion": {
             "anyOf": [
@@ -183,6 +220,17 @@
             "title": "Device Id",
             "type": "string"
           },
+          "duracion_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duracion S"
+          },
           "episodio_abierto": {
             "default": true,
             "title": "Episodio Abierto",
@@ -192,6 +240,11 @@
             "default": "pendiente",
             "title": "Estado",
             "type": "string"
+          },
+          "historica": {
+            "default": false,
+            "title": "Historica",
+            "type": "boolean"
           },
           "id": {
             "anyOf": [
@@ -204,6 +257,18 @@
               }
             ],
             "title": "Id"
+          },
+          "iniciada_en": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iniciada En"
           },
           "lectura_inicial_id": {
             "anyOf": [
@@ -235,6 +300,23 @@
           },
           "nivel_riesgo": {
             "$ref": "#/components/schemas/NivelRiesgo"
+          },
+          "notificacion_intentos": {
+            "default": 0,
+            "title": "Notificacion Intentos",
+            "type": "integer"
+          },
+          "notificada_en": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notificada En"
           },
           "reading_id": {
             "format": "uuid",
@@ -279,6 +361,17 @@
               }
             ],
             "title": "Revisada Por Nombre"
+          },
+          "temperatura_pico": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperatura Pico"
           },
           "ultima_actualizacion": {
             "anyOf": [
@@ -439,12 +532,37 @@
             "title": "Fecha Calibracion",
             "type": "string"
           },
-          "meses_vigencia": {
-            "default": 12,
-            "maximum": 60.0,
+          "fecha_vencimiento": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fecha Vencimiento"
+          },
+          "margen_aviso_dias": {
+            "default": 30,
+            "maximum": 365.0,
             "minimum": 1.0,
-            "title": "Meses Vigencia",
+            "title": "Margen Aviso Dias",
             "type": "integer"
+          },
+          "meses_vigencia": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meses Vigencia"
           },
           "numero_certificado": {
             "maxLength": 100,
@@ -1231,6 +1349,11 @@
             "title": "Intervalo Reporte Segundos",
             "type": "integer"
           },
+          "margen_aviso_calibracion_dias": {
+            "default": 30,
+            "title": "Margen Aviso Calibracion Dias",
+            "type": "integer"
+          },
           "motivo_baja": {
             "anyOf": [
               {
@@ -1625,6 +1748,11 @@
             "title": "Intervalo Reporte Segundos",
             "type": "integer"
           },
+          "margen_aviso_calibracion_dias": {
+            "default": 30,
+            "title": "Margen Aviso Calibracion Dias",
+            "type": "integer"
+          },
           "motivo_baja": {
             "anyOf": [
               {
@@ -1880,6 +2008,11 @@
           },
           "intervalo_reporte_segundos": {
             "title": "Intervalo Reporte Segundos",
+            "type": "integer"
+          },
+          "margen_aviso_calibracion_dias": {
+            "default": 30,
+            "title": "Margen Aviso Calibracion Dias",
             "type": "integer"
           },
           "nombre": {
@@ -2346,7 +2479,9 @@
             "enum": [
               "sin_datos",
               "monitoreo_suspendido",
-              "excursion_no_verificada"
+              "excursion_no_verificada",
+              "sensor_fault",
+              "colision_clave"
             ],
             "title": "Tipo",
             "type": "string"
@@ -2424,6 +2559,28 @@
             "title": "Excursion Confirmada",
             "type": "boolean"
           },
+          "feature_schema_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feature Schema Version"
+          },
+          "horizonte_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Horizonte Min"
+          },
           "ia_experimental": {
             "default": false,
             "title": "Ia Experimental",
@@ -2462,6 +2619,17 @@
               }
             ],
             "title": "Origen Clasificacion"
+          },
+          "politica_operativa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Politica Operativa"
           },
           "probabilidades_por_clase": {
             "anyOf": [
@@ -3576,6 +3744,18 @@
           },
           "rol": {
             "$ref": "#/components/schemas/Rol"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "pattern": "^\\+[1-9]\\d{7,14}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
           }
         },
         "required": [
@@ -3637,6 +3817,17 @@
           },
           "rol": {
             "$ref": "#/components/schemas/Rol"
+          },
+          "telefono": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telefono"
           }
         },
         "required": [
@@ -5058,11 +5249,17 @@
             "name": "dias_preaviso",
             "required": false,
             "schema": {
-              "default": 30,
-              "maximum": 365,
-              "minimum": 1,
-              "title": "Dias Preaviso",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "maximum": 365,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dias Preaviso"
             }
           }
         ],

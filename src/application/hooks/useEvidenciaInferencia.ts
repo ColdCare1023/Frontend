@@ -9,6 +9,9 @@ export interface EvidenciaInferencia {
   model_class: string | null
   probabilities: Record<string, number> | null
   feature_vector: Record<string, number | boolean | null>
+  horizon_min?: number | null
+  feature_schema_version?: string | null
+  operating_policy?: string | null
   excursion_confirmada: boolean
   effective_risk: string | null
   datos_simulados?: boolean
@@ -30,6 +33,9 @@ export interface InferenciaLecturaApi {
   excursion_confirmada: boolean
   riesgo_efectivo: string | null
   ia_experimental: boolean
+  horizonte_min?: number | null
+  feature_schema_version?: string | null
+  politica_operativa?: string | null
 }
 
 export function aEvidencia(api: InferenciaLecturaApi): EvidenciaInferencia {
@@ -44,6 +50,9 @@ export function aEvidencia(api: InferenciaLecturaApi): EvidenciaInferencia {
     excursion_confirmada: api.excursion_confirmada,
     effective_risk: api.riesgo_efectivo,
     datos_simulados: api.ia_experimental,
+    horizon_min: api.horizonte_min ?? null,
+    feature_schema_version: api.feature_schema_version ?? null,
+    operating_policy: api.politica_operativa ?? null,
   }
 }
 

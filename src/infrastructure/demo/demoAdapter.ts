@@ -261,17 +261,6 @@ function tokenDemo(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** Igual que `_sumar_meses` del backend: un día inexistente se ancla al último del mes. */
-function sumarMesesISO(fecha: string, meses: number): string {
-  const [anio, mes, dia] = fecha.split('-').map(Number)
-  const total = mes - 1 + meses
-  const anioDestino = anio + Math.floor(total / 12)
-  const mesDestino = (total % 12) + 1
-  const ultimoDia = new Date(Date.UTC(anioDestino, mesDestino, 0)).getUTCDate()
-  const dd = String(Math.min(dia, ultimoDia)).padStart(2, '0')
-  return `${anioDestino}-${String(mesDestino).padStart(2, '0')}-${dd}`
-}
-
 function esperar(ms: number): Promise<void> {
   return new Promise((resolver) => setTimeout(resolver, ms))
 }
@@ -553,7 +542,9 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       id: `ac-vivo-${Date.now()}`,
       alert_id: accion[1],
       usuario_id: 'u-01',
+      decision: String(cuerpoJson(config).decision ?? ''),
       descripcion: String(cuerpoJson(config).descripcion ?? ''),
+      justificacion: String(cuerpoJson(config).justificacion ?? ''),
       created_at: new Date().toISOString(),
       corrige_accion_id: null,
     }
@@ -1084,21 +1075,22 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const cuerpo = cuerpoJson(config)
     const fecha = String(cuerpo.fecha_calibracion ?? '')
     const certificado = String(cuerpo.numero_certificado ?? '')
-    // B-12: mismo contrato que CalibracionRequest (meses_vigencia 1–60).
-    const meses = Number(cuerpo.meses_vigencia ?? 12)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !certificado.trim() || !Number.isInteger(meses) || meses < 1 || meses > 60) {
-      fallar(config, 422, 'La fecha, el certificado y una vigencia de 1 a 60 meses son obligatorios')
+    // HU-30: mismo contrato que CalibracionRequest (fecha del certificado y margen).
+    const vencimiento = String(cuerpo.fecha_vencimiento ?? '')
+    const margen = Number(cuerpo.margen_aviso_dias ?? 30)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !certificado.trim() || !(vencimiento > fecha) || !Number.isInteger(margen) || margen < 1 || margen > 365) {
+      fallar(config, 422, 'La fecha, el certificado, el vencimiento y el margen de aviso son obligatorios')
     }
-    const proxima = sumarMesesISO(fecha, meses)
     cambiarCampoDispositivo(dispositivo, deviceId, 'fecha_ultima_calibracion', fecha, config)
     cambiarCampoDispositivo(dispositivo, deviceId, 'numero_certificado_calibracion', certificado, config)
     cambiarCampoDispositivo(
       dispositivo,
       deviceId,
       'fecha_proxima_calibracion',
-      proxima,
+      vencimiento,
       config,
     )
+    dispositivo.margen_aviso_calibracion_dias = margen
     if (cuerpo.observaciones !== undefined) {
       cambiarCampoDispositivo(
         dispositivo,

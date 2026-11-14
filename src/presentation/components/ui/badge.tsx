@@ -3,17 +3,18 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 /**
- * Píldora de estado. Normal y aviso usan tinte con borde interior; lo crítico
- * es sólido para que resalte sin depender del color: los tres llevan además
- * texto e icono en cada uso (RiskBadge, BadgeConectividad).
+ * Estado. Solo lo que pide atención es píldora: el aviso lleva tinte y lo
+ * crítico es sólido. Lo normal y lo neutro van como texto con un punto, para
+ * que una tabla llena de «Normal» o «Activo» no compita con lo que importa.
+ * Todos llevan texto (y punto o icono), nunca solo color.
  */
 const badgeVariants = cva(
   'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs leading-5 font-medium ring-1 ring-inset',
   {
     variants: {
       variant: {
-        neutral: 'bg-cream-200 text-ink-700 ring-border',
-        ok: 'bg-success-100 text-success-700 ring-success-600/25',
+        neutral: 'bg-transparent px-0 text-muted ring-transparent',
+        ok: 'bg-transparent px-0 text-ink-700 ring-transparent',
         warn: 'bg-honey-100 text-honey-700 ring-honey-600/30',
         critical: 'bg-critical-solid font-semibold text-on-critical ring-transparent',
         outline: 'bg-transparent text-muted ring-border-strong',
@@ -29,10 +30,18 @@ interface BadgeProps
   dot?: boolean
 }
 
+const PUNTO: Record<NonNullable<BadgeProps['variant']>, string> = {
+  neutral: 'bg-faint',
+  ok: 'bg-success-600',
+  warn: 'bg-current',
+  critical: 'bg-current',
+  outline: 'bg-current',
+}
+
 export function Badge({ className, variant, dot = false, children, ...props }: BadgeProps) {
   return (
     <span className={cn(badgeVariants({ variant }), className)} {...props}>
-      {dot && <span className="size-1.5 rounded-full bg-current" aria-hidden />}
+      {dot && <span className={cn('size-1.5 shrink-0 rounded-full', PUNTO[variant ?? 'neutral'])} aria-hidden />}
       {children}
     </span>
   )

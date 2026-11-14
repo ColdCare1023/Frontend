@@ -32,6 +32,14 @@ function lectura(segundos: number, temperatura: number, excursion = false): Lect
 type Serie = { data: Array<[number, number | null]>; markPoint?: { data: unknown[] }; markArea?: { data: unknown[] } }
 
 describe('curva térmica', () => {
+  it('HU-31: marca en verde el rango 2-8 °C y en rojo lo que queda fuera', () => {
+    const opcion = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 6)], ETIQUETAS)
+    const zonas = (opcion.series as Serie[]).flatMap((s) => (s.markArea?.data ?? []) as Array<Array<{ yAxis?: number | string }>>)
+    expect(zonas.map(([desde, hasta]) => [desde.yAxis, hasta.yAxis])).toEqual(
+      expect.arrayContaining([[2, 8], [8, 200], [-200, 2]]),
+    )
+  })
+
   it('agrupa lecturas consecutivas en un solo episodio de excursión', () => {
     const serie = [lectura(0, 5), lectura(30, 9, true), lectura(60, 10, true), lectura(90, 5), lectura(120, 11, true)]
     const episodios = episodiosDeExcursion(serie)

@@ -53,12 +53,12 @@ export function RecuperarContrasenaPage() {
           <div className="mb-7">
             <Link
               to="/login"
-              className="mb-5 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+              className="mb-5 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-marca-texto hover:underline focus-visible:outline-2 focus-visible:outline-primary"
             >
               <ArrowLeft className="size-3.5" aria-hidden />
               <span>{t('recuperarContrasena.volverLogin')}</span>
             </Link>
-            <h2 className="text-[28px] leading-[34px] font-bold tracking-tight text-foreground sm:text-[32px] sm:leading-10">
+            <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
               {t('recuperarContrasena.titulo')}
             </h2>
             <p className="mt-2 text-base leading-6 text-muted">
@@ -93,7 +93,7 @@ export function RecuperarContrasenaPage() {
               <div className="pt-2 flex flex-col gap-3">
                 <Link
                   to="/login"
-                  className="flex h-11 w-full items-center justify-center rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) hover:shadow-(--shadow-card) transition-all"
+                  className="flex h-12 w-full items-center justify-center rounded-[10px] coldcare-primary-action px-4 text-[15px] font-semibold shadow-(--shadow-card) hover:shadow-(--shadow-card) transition-all"
                 >
                   {t('recuperarContrasena.volverLogin')}
                 </Link>
@@ -103,7 +103,7 @@ export function RecuperarContrasenaPage() {
                     setEnviado(false)
                     setEmail('')
                   }}
-                  className="text-xs font-semibold text-primary hover:underline self-center py-1 cursor-pointer"
+                  className="text-xs font-semibold text-marca-texto hover:underline self-center py-1 cursor-pointer"
                 >
                   {t('recuperarContrasena.enviarOtro')}
                 </button>
@@ -144,7 +144,7 @@ export function RecuperarContrasenaPage() {
               <button
                 type="submit"
                 disabled={cargando}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl coldcare-primary-action px-4 text-sm font-semibold shadow-(--shadow-card) transition-all duration-200 hover:shadow-(--shadow-card) active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] coldcare-primary-action px-4 text-[15px] font-semibold shadow-(--shadow-card) transition-all duration-200 hover:shadow-(--shadow-card) active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 cursor-pointer"
               >
                 {cargando ? (
                   <>
@@ -166,7 +166,7 @@ export function RecuperarContrasenaPage() {
         <div className="pt-6 text-center text-xs text-muted">
           <Link
             to="/login"
-            className="font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm"
+            className="font-semibold text-marca-texto hover:underline focus-visible:outline-2 focus-visible:outline-primary rounded-sm"
           >
             ← {t('recuperarContrasena.volverLogin')}
           </Link>

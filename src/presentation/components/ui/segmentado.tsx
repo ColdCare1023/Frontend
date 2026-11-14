@@ -1,8 +1,7 @@
-import { useId, useRef } from 'react'
+import { useId } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 
 import { cn } from '@/lib/utils'
-import { useCristalLiquido } from '@/presentation/efectos/cristalLiquido'
 
 interface OpcionSegmento<T> {
   valor: T
@@ -31,16 +30,13 @@ export function Segmentado<T extends string | number>({
 }) {
   const id = useId()
   const reducir = useReducedMotion()
-  const refGrupo = useRef<HTMLDivElement>(null)
-  useCristalLiquido(refGrupo, { intensidad: 0.6, bisel: 8 })
 
   return (
+    // Carril sólido con un filo interior: sin el filtro de refracción, que se recalculaba en cada cambio.
     <div
-      ref={refGrupo}
       role="group"
       aria-label={etiqueta}
-      data-liquid-glass=""
-      className={cn('lg-glass relative inline-flex items-center gap-0.5 rounded-xl p-0.5', className)}
+      className={cn('relative inline-flex items-center gap-0.5 rounded-xl bg-surface-sunken p-1 ring-1 ring-inset ring-border', className)}
     >
       {opciones.map((opcion) => {
         const activo = opcion.valor === valor
@@ -61,7 +57,7 @@ export function Segmentado<T extends string | number>({
                 layoutId={`segmento-${id}`}
                 aria-hidden
                 transition={reducir ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 40, mass: 0.7 }}
-                className="absolute inset-0 rounded-lg bg-surface-raised shadow-(--shadow-card) ring-1 ring-inset ring-border"
+                className="absolute inset-0 rounded-lg bg-surface-raised shadow-[0_1px_2px_rgb(0_0_0/0.25),0_4px_12px_-6px_rgb(0_0_0/0.4)] ring-1 ring-inset ring-border-strong"
               />
             )}
             <span className="relative">{opcion.etiqueta}</span>

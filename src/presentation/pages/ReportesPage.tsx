@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bell, CalendarRange, ClipboardList, Download, FileDown, FileSearch, FileText, Link2 } from 'lucide-react'
+import { Bell, ClipboardList, Download, FileDown, FileSearch, FileText, Link2 } from 'lucide-react'
 
 import { useReportesBPA, MAX_DIAS_RANGO_REPORTE, diasDeRango } from '@/application/hooks/useReportesBPA'
 import { fechaCorta, fechaISOlocal } from '@/lib/formato'
 import { cn } from '@/lib/utils'
-import { CompactWorkspace } from '../components/CompactWorkspace'
 import { EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
@@ -20,12 +19,6 @@ function hoyISO(desplazamientoDias = 0): string {
   fecha.setDate(fecha.getDate() + desplazamientoDias)
   return fechaISOlocal(fecha)
 }
-
-const CONTENIDO_REPORTE = [
-  [ClipboardList, 'reportes.incluyeLecturas'],
-  [Bell, 'reportes.incluyeAlertas'],
-  [Link2, 'reportes.incluyeTrazabilidad'],
-] as const
 
 export function ReportesPage() {
   const { t } = useTranslation()
@@ -63,18 +56,18 @@ export function ReportesPage() {
             : t('reportes.errorGenerar')
 
   return (
-    <CompactWorkspace>
+    // Mismo marco que el resto de pantallas: título a tamaño completo y secciones con aire.
+    <div className="space-y-4">
       <PageHeader eyebrow={t('nav.seccionCumplimiento')} titulo={t('reportes.titulo')} descripcion={t('reportes.descripcion')} />
 
       {/* ── Periodo, equipo y generación en una sola barra ──── */}
-      <Card className="p-4 sm:px-5">
-        <h2 id="reportes-rango-titulo" className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <CalendarRange className="size-4 text-primary" aria-hidden />
+      <Card className="p-4 sm:p-5">
+        <h2 id="reportes-rango-titulo" className="text-[15px] font-semibold tracking-tight text-foreground">
           {t('reportes.rango')}
         </h2>
         <form
           aria-labelledby="reportes-rango-titulo"
-          className="mt-3 grid grid-cols-1 items-end gap-3 min-[420px]:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto]"
+          className="mt-4 grid grid-cols-1 items-end gap-3 min-[420px]:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto]"
           onSubmit={(e) => {
             e.preventDefault()
             if (rangoInvalido) return
@@ -137,27 +130,7 @@ export function ReportesPage() {
 
       {/* ── Resumen y descargas ─────────────────────────────── */}
       {reporte === null ? (
-        <EstadoVacio icono={FileSearch} titulo={t('reportes.sinReporte')} detalle={t('reportes.sinReporteDetalle')}>
-          <ul className="mt-3 flex flex-wrap justify-center gap-2">
-            {CONTENIDO_REPORTE.map(([Icono, clave]) => (
-              <li
-                key={clave}
-                className="inline-flex min-h-8 items-center gap-2 rounded-full border border-border bg-surface px-3 text-xs font-medium text-foreground"
-              >
-                <Icono className="size-3.5 shrink-0 text-primary" aria-hidden />
-                {t(clave)}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 flex flex-wrap items-center justify-center gap-1.5 text-xs text-muted">
-            <span className="mr-1">{t('reportes.formatosDisponibles')}</span>
-            {['PDF', 'CSV', 'JSON'].map((formato) => (
-              <span key={formato} className="rounded-md bg-primary-tint px-2 py-0.5 text-[11px] font-semibold tracking-wide text-primary">
-                {formato}
-              </span>
-            ))}
-          </p>
-        </EstadoVacio>
+        <EstadoVacio icono={FileSearch} titulo={t('reportes.sinReporte')} detalle={t('reportes.sinReporteDetalle')} />
       ) : (
         <Panel
           id="reportes-resumen"
@@ -170,20 +143,23 @@ export function ReportesPage() {
             </span>
           }
         >
-          <dl className="grid grid-cols-1 divide-y divide-border min-[420px]:grid-cols-3 min-[420px]:divide-x min-[420px]:divide-y-0">
+          <dl className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
             {(
               [
-                ['reportes.lecturas', reporte.lecturas.length],
-                ['reportes.alertas', reporte.alertas.length],
-                ['reportes.registrosTrazabilidad', reporte.registros_trazabilidad.length],
+                ['reportes.lecturas', reporte.lecturas.length, ClipboardList],
+                ['reportes.alertas', reporte.alertas.length, Bell],
+                ['reportes.registrosTrazabilidad', reporte.registros_trazabilidad.length, Link2],
               ] as const
-            ).map(([clave, cantidad]) => (
+            ).map(([clave, cantidad, Icono]) => (
               <div
                 key={clave}
-                className="flex min-w-0 items-baseline justify-between gap-3 py-2.5 first:pt-0 last:pb-0 min-[420px]:flex-col min-[420px]:justify-start min-[420px]:gap-1 min-[420px]:px-4 min-[420px]:py-0 min-[420px]:first:pl-0 min-[420px]:last:pr-0"
+                className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-surface-sunken/70 px-4 py-3.5 ring-1 ring-inset ring-border min-[420px]:flex-col min-[420px]:items-start min-[420px]:justify-start min-[420px]:gap-2"
               >
-                <dt className="text-xs text-muted">{t(clave)}</dt>
-                <dd className="nums text-2xl leading-8 font-semibold tracking-tight text-foreground">{cantidad}</dd>
+                <dt className="flex items-center gap-2 text-[13px] font-medium text-muted">
+                  <Icono aria-hidden className="size-3.5 text-secondary" />
+                  {t(clave)}
+                </dt>
+                <dd className="nums text-[30px] leading-9 font-semibold tracking-[-0.03em] text-foreground">{cantidad}</dd>
               </div>
             ))}
           </dl>
@@ -211,7 +187,7 @@ export function ReportesPage() {
 
           {/* Los tres formatos que exige RF-13. El reporte es apoyo para
               revisión: no reemplaza registros ni documentos oficiales. */}
-          <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="mt-5 flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:flex-wrap sm:items-center">
             <Button
               size="sm"
               className="w-full sm:w-auto"
@@ -235,6 +211,6 @@ export function ReportesPage() {
           </Detalles>
         </Panel>
       )}
-    </CompactWorkspace>
+    </div>
   )
 }
