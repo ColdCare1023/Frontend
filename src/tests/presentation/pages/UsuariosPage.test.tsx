@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -68,9 +68,12 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
       }),
     ])
 
-    expect(screen.getByText('Activo Uno')).toBeInTheDocument()
-    expect(screen.getByText('Baja Dos')).toBeInTheDocument()
-    expect(screen.getAllByText(/inactivo|desactivad|baja/i).length).toBeGreaterThan(0)
+    const tabla = screen.getByRole('table')
+    expect(within(tabla).getByText('Activo Uno')).toBeInTheDocument()
+    expect(within(tabla).getByText('Baja Dos')).toBeInTheDocument()
+    expect(within(tabla).getAllByText(/inactivo|desactivad|baja/i).length).toBeGreaterThan(0)
+    // El motivo ya no queda solo para el lector de pantalla: se ve.
+    expect(within(tabla).getByText(/renuncia/i)).toBeVisible()
   })
 
   it('ofrece dar de alta un usuario nuevo', () => {
@@ -78,22 +81,96 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
     expect(screen.getAllByText(/nuevo usuario|crear usuario/i).length).toBeGreaterThan(0)
   })
 
-  it('envía el celular al crear la cuenta y lo omite si se deja vacío', async () => {
+  async function abrirYLlenar(u: ReturnType<typeof userEvent.setup>, password = 'Clave-Segura-2026x') {
+    await u.click(screen.getAllByRole('button', { name: /nuevo usuario/i })[0])
+    await u.type(screen.getByLabelText('Nombre completo'), 'Ana Prueba')
+    await u.type(screen.getByLabelText('Correo electrónico'), 'ana@prueba.pe')
+    await u.type(screen.getByLabelText(/contraseña provisional/i), password)
+  }
+
+  it('envía el celular al crear la cuenta', async () => {
     const crear = vi.fn().mockResolvedValue('ok')
     montar([usuario()], { crear })
     const u = userEvent.setup()
 
-    await u.click(screen.getAllByRole('button', { name: /nuevo usuario/i })[0])
-    await u.type(screen.getByLabelText('Nombre completo'), 'Ana Prueba')
-    await u.type(screen.getByLabelText('Correo electrónico'), 'ana@prueba.pe')
+    await abrirYLlenar(u)
+    await u.click(screen.getByRole('button', { name: /datos opcionales/i }))
     await u.type(screen.getByLabelText('Celular (opcional)'), '+51999888777')
-    await u.type(screen.getByLabelText('Contraseña'), 'Clave-Segura-2026!x')
     await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
-    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026!x', 'tecnico', '+51999888777')
+    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026x', 'tecnico', '+51999888777')
+  })
 
-    await u.clear(screen.getByLabelText('Celular (opcional)'))
+  it('omite el celular si se deja vacío', async () => {
+    const crear = vi.fn().mockResolvedValue('ok')
+    montar([usuario()], { crear })
+    const u = userEvent.setup()
+
+    await abrirYLlenar(u)
     await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
-    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026!x', 'tecnico', undefined)
+    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026x', 'tecnico', undefined)
+  })
+
+  it('valida la política de contraseña antes de enviar', async () => {
+    const crear = vi.fn()
+    montar([usuario()], { crear })
+    const u = userEvent.setup()
+
+    await abrirYLlenar(u, 'corta1')
+    await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
+    expect(crear).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/contraseña provisional/i)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText(/al menos 10 caracteres\./i)).toBeInTheDocument()
+  })
+
+  it('«Generar» crea una contraseña que cumple la política y la muestra', async () => {
+    montar([usuario()])
+    const u = userEvent.setup()
+    await u.click(screen.getAllByRole('button', { name: /nuevo usuario/i })[0])
+    await u.click(screen.getByRole('button', { name: /^generar$/i }))
+    const campo = screen.getByLabelText(/contraseña provisional/i) as HTMLInputElement
+    expect(campo).toHaveAttribute('type', 'text')
+    expect(campo.value).toMatch(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{16}$/)
+  })
+
+  it.each([
+    [true, /enviamos a ana@prueba\.pe un código de activación/i, false],
+    [false, /el servidor no tiene el correo configurado/i, true],
+    [undefined, /si el correo está habilitado/i, true],
+  ])('tras crear explica la activación (codigo_activacion_emitido=%s)', async (emitido, texto, muestraProvisional) => {
+    const crear = vi.fn().mockResolvedValue({ estado: 'ok', usuario: null, activacion: emitido ?? null })
+    montar([usuario()], { crear })
+    const u = userEvent.setup()
+
+    await abrirYLlenar(u)
+    await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
+    const panel = screen.getByRole('dialog')
+    expect(await within(panel).findByText('Usuario creado correctamente.')).toBeInTheDocument()
+    expect(within(panel).getByText(texto)).toBeInTheDocument()
+    expect(within(panel).queryByText('Clave-Segura-2026x') !== null).toBe(muestraProvisional)
+    expect(within(panel).getByRole('button', { name: 'Listo' })).toBeInTheDocument()
+  })
+
+  it('un correo duplicado se marca en su campo y recibe el foco', async () => {
+    const crear = vi.fn().mockResolvedValue('duplicado')
+    montar([usuario()], { crear })
+    const u = userEvent.setup()
+
+    await abrirYLlenar(u)
+    await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
+    const email = screen.getByLabelText('Correo electrónico')
+    expect(email).toHaveAttribute('aria-invalid', 'true')
+    expect(email).toHaveFocus()
+    expect(screen.getByText(/ya existe un usuario con ese correo/i)).toBeInTheDocument()
+  })
+
+  it('marca «Contraseña pendiente» y la cuenta en el rail', () => {
+    montar([usuario(), usuario({ id: 'u-9', nombre: 'Nueva Persona', email: 'n@upc.pe', debe_cambiar_password: true })])
+    const tabla = screen.getByRole('table')
+    expect(within(tabla).getByText('Contraseña pendiente')).toBeInTheDocument()
+    const riel = screen.getByRole('complementary', { name: /contexto de las cuentas/i })
+    expect(within(riel).getByText('Nueva Persona')).toBeInTheDocument()
+    const farmaceuticos = riel.querySelector('[data-rol="farmaceutico"]')
+    expect(farmaceuticos).toHaveTextContent('2')
   })
 })
 

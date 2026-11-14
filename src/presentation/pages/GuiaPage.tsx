@@ -1,366 +1,172 @@
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
-import {
-  ArrowRight,
-  Bell,
-  BellRing,
-  BookOpen,
-  ChevronDown,
-  CircleAlert,
-  CircleCheck,
-  CircleDot,
-  CircleHelp,
-  Compass,
-  FileText,
-  History,
-  Info,
-  LayoutGrid,
-  Link2,
-  ListChecks,
-  Monitor,
-  ScrollText,
-  ShieldCheck,
-  SlidersHorizontal,
-  Thermometer,
-  Users,
-  type LucideIcon,
-} from 'lucide-react'
+import { Link, useLocation, useSearchParams } from 'react-router'
+import { ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
-import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
-import { CompactWorkspace } from '../components/CompactWorkspace'
+import { cn } from '@/lib/utils'
 import { PageHeader } from '../components/PageHeader'
-import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
 import { Detalles } from '../components/ui/detalles'
-import { Panel } from '../components/ui/panel'
+import { StepperInteractivo } from '../components/ui/stepper'
+import { useCoincideMedia } from '../hooks/useCoincideMedia'
+import { prefiereMovimientoReducido } from '../motion/tokens'
+import { ContenidoPaso } from './guia/ContenidoPaso'
+import { ANCLAS_ANTIGUAS, ETIQUETA_PASO, PASOS, TITULO_PASO, esPaso, type PasoId } from './guia/contenidoGuia'
 
-type GrupoId = 'vigilar' | 'consultar' | 'administrar'
-
-interface Seccion {
-  ruta: string
-  icono: LucideIcon
-  tituloKey: string
-  descripcionKey: string
-  grupo: GrupoId
-  roles: Rol[]
+function PreguntasFrecuentes({ className }: { className?: string }) {
+  const { t } = useTranslation()
+  return (
+    <section id="guia-preguntas" aria-labelledby="guia-preguntas-titulo" className={cn('superficie p-4 xl:p-5', className)}>
+      <h2 id="guia-preguntas-titulo" tabIndex={-1} className="text-title text-foreground outline-none scroll-mt-24">
+        {t('guia.preguntasTitulo')}
+      </h2>
+      <div className="mt-1 divide-y divide-border">
+        {(['alerta', 'integridad', 'metricas'] as const).map((p) => (
+          <Detalles key={p} titulo={t(`guia.preguntas.${p}.titulo`)} className="py-1">
+            <p className="max-w-[68ch] pb-3 text-meta text-muted">{t(`guia.preguntas.${p}.respuesta`)}</p>
+          </Detalles>
+        ))}
+      </div>
+    </section>
+  )
 }
 
-const SECCIONES: Seccion[] = [
-  {
-    ruta: '/dashboard',
-    icono: Monitor,
-    tituloKey: 'guia.pantallas.monitoreo.titulo',
-    descripcionKey: 'guia.pantallas.monitoreo.descripcion',
-    grupo: 'vigilar',
-    roles: ['farmaceutico', 'tecnico', 'auditor'],
-  },
-  {
-    ruta: '/alertas',
-    icono: Bell,
-    tituloKey: 'guia.pantallas.alertas.titulo',
-    descripcionKey: 'guia.pantallas.alertas.descripcion',
-    grupo: 'vigilar',
-    roles: ['farmaceutico', 'tecnico', 'auditor'],
-  },
-  {
-    ruta: '/historial',
-    icono: History,
-    tituloKey: 'guia.pantallas.historial.titulo',
-    descripcionKey: 'guia.pantallas.historial.descripcion',
-    grupo: 'consultar',
-    roles: ['farmaceutico', 'tecnico', 'auditor'],
-  },
-  {
-    ruta: '/trazabilidad',
-    icono: Link2,
-    tituloKey: 'guia.pantallas.integridad.titulo',
-    descripcionKey: 'guia.pantallas.integridad.descripcion',
-    grupo: 'consultar',
-    roles: ['farmaceutico', 'tecnico', 'auditor'],
-  },
-  {
-    ruta: '/reportes',
-    icono: FileText,
-    tituloKey: 'guia.pantallas.reportes.titulo',
-    descripcionKey: 'guia.pantallas.reportes.descripcion',
-    grupo: 'consultar',
-    roles: ['farmaceutico', 'auditor'],
-  },
-  {
-    ruta: '/metricas-ia',
-    icono: ListChecks,
-    tituloKey: 'guia.pantallas.metricas.titulo',
-    descripcionKey: 'guia.pantallas.metricas.descripcion',
-    grupo: 'consultar',
-    roles: ['farmaceutico', 'auditor'],
-  },
-  {
-    ruta: '/auditoria',
-    icono: ScrollText,
-    tituloKey: 'guia.pantallas.auditoria.titulo',
-    descripcionKey: 'guia.pantallas.auditoria.descripcion',
-    grupo: 'consultar',
-    roles: ['auditor'],
-  },
-  {
-    ruta: '/usuarios',
-    icono: Users,
-    tituloKey: 'guia.pantallas.usuarios.titulo',
-    descripcionKey: 'guia.pantallas.usuarios.descripcion',
-    grupo: 'administrar',
-    roles: [],
-  },
-  {
-    ruta: '/dispositivos',
-    icono: SlidersHorizontal,
-    tituloKey: 'guia.pantallas.dispositivos.titulo',
-    descripcionKey: 'guia.pantallas.dispositivos.descripcion',
-    grupo: 'administrar',
-    roles: [],
-  },
-]
-
-const GRUPOS: GrupoId[] = ['vigilar', 'consultar', 'administrar']
-
-const CONCEPTOS = ['rango', 'preventivo', 'excursion', 'integridad', 'bpa'] as const
-
-/** Índice de la guía: cada entrada apunta al título (h2) de su sección. */
-const INDICE = [
-  { destino: 'inicio', ancla: 'guia-inicio-titulo', icono: Compass },
-  { destino: 'estados', ancla: 'guia-estados-titulo', icono: Thermometer },
-  { destino: 'alertas', ancla: 'guia-alerta-titulo', icono: BellRing },
-  { destino: 'pantallas', ancla: 'guia-pantallas-titulo', icono: LayoutGrid },
-  { destino: 'dudas', ancla: 'guia-preguntas-titulo', icono: CircleHelp },
-] as const
-
-const ESTADOS = [
-  { clave: 'normal', icono: CircleCheck, tono: 'bg-success-100 text-success-700 ring-success-600/25' },
-  { clave: 'preventivo', icono: CircleDot, tono: 'bg-warning-100 text-warning-700 ring-warning-600/30' },
-  { clave: 'critico', icono: CircleAlert, tono: 'bg-critical-solid text-on-critical ring-transparent' },
-] as const
-
-// Los títulos de sección son destino del índice: la cabecera fija (56 px) no
-// debe taparlos al saltar.
-const ANCLA_SECCION = '[&_h2]:scroll-mt-24'
-
+/**
+ * Guía como stepper (H7): cinco pasos en un `tablist` a la izquierda (5/12)
+ * y el paso actual a la derecha (7/12). El paso vive en `?paso=` para poder
+ * compartirlo; los anclajes antiguos (`#guia-alerta-titulo`) se traducen.
+ */
 export function GuiaPage() {
   const { t } = useTranslation()
-  const usuario = useAuthStore((s) => s.usuario)
-  const rol = usuario?.rol
-  const visibles = SECCIONES.filter((s) => (rol ? tienePermiso(rol, s.roles) : false))
-  const grupos = GRUPOS.map((grupo) => ({
-    grupo,
-    secciones: visibles.filter((seccion) => seccion.grupo === grupo),
-  })).filter(({ secciones }) => secciones.length > 0)
+  const rol = useAuthStore((s) => s.usuario?.rol)
+  const [params, setParams] = useSearchParams()
+  const { hash } = useLocation()
+  const esLg = useCoincideMedia('(min-width: 64rem)')
+  const ancla = hash.replace(/^#/, '')
+  const paso: PasoId = esPaso(params.get('paso')) ? (params.get('paso') as PasoId) : (ANCLAS_ANTIGUAS[ancla] ?? 'inicio')
+  const [animar, setAnimar] = useState<{ dir: 1 | -1 } | null>(null)
+  const enfocarTitulo = useRef(false)
+
+  const cambiar = (id: string, origen: 'puntero' | 'teclado' | 'boton') => {
+    if (!esPaso(id) || id === paso) return
+    const dir = PASOS.indexOf(id) > PASOS.indexOf(paso) ? 1 : -1
+    setAnimar(origen === 'teclado' ? null : { dir })
+    enfocarTitulo.current = origen === 'boton'
+    setParams({ paso: id }, { replace: true })
+  }
+
+  // «Anterior/Siguiente» llevan el foco al título del paso nuevo.
+  useEffect(() => {
+    if (!enfocarTitulo.current) return
+    enfocarTitulo.current = false
+    const titulo = document.getElementById(`guia-titulo-${paso}`)
+    titulo?.focus({ preventScroll: true })
+    titulo?.scrollIntoView?.({ block: 'start', behavior: prefiereMovimientoReducido() ? 'auto' : 'smooth' })
+  }, [paso])
+
+  // `#guia-preguntas-titulo` sigue llevando a las dudas frecuentes.
+  useEffect(() => {
+    if (ancla !== 'guia-preguntas-titulo') return
+    document.getElementById(ancla)?.focus()
+  }, [ancla])
+
+  const indice = PASOS.indexOf(paso)
+  const anterior = indice > 0 ? PASOS[indice - 1] : null
+  const siguiente = indice < PASOS.length - 1 ? PASOS[indice + 1] : null
 
   return (
-    <CompactWorkspace>
+    <div>
       <PageHeader
-        eyebrow={t('guia.eyebrow')}
         titulo={t('guia.titulo')}
         descripcion={t('guia.descripcion')}
+        meta={rol ? t('guia.metaRol', { rol: t(`roles.${rol}`) }) : undefined}
       />
-
-      <nav aria-label={t('guia.navegacion')}>
-        <ul className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap">
-          {INDICE.map(({ destino, ancla, icono: Icono }) => (
-            <li key={destino}>
-              <a
-                href={`#${ancla}`}
-                className="inline-flex min-h-11 w-full items-center gap-2 rounded-full border border-border bg-surface px-3.5 text-[13px] font-medium text-muted transition-colors duration-(--duration-micro) hover:border-secondary/40 hover:bg-secondary/[0.06] hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-9 sm:w-auto sm:pointer-coarse:min-h-11"
-              >
-                <Icono aria-hidden className="size-4 shrink-0 text-marca-texto" />
-                {t(`guia.nav.${destino}`)}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {/* ── 1. Rutina de la jornada ─────────────────────────── */}
-      <Panel
-        id="guia-inicio"
-        icono={Compass}
-        titulo={t('guia.inicioTitulo')}
-        descripcion={t('guia.inicioDescripcion')}
-        acciones={<Badge variant="outline">{t('guia.inicioEyebrow')}</Badge>}
-        className={ANCLA_SECCION}
-      >
-        <ol className="grid gap-5 md:grid-cols-3 md:gap-6">
-          {(
-            [
-              ['monitoreo', Monitor],
-              ['alerta', Bell],
-              ['historial', History],
-            ] as const
-          ).map(([paso, Icono], index) => (
-            <li key={paso} className="flex gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-tint text-marca-texto ring-1 ring-inset ring-secondary/20">
-                <Icono aria-hidden className="size-4" />
-              </span>
-              <div className="min-w-0 pt-0.5">
-                <p className="text-sm font-semibold text-foreground">
-                  <span className="nums mr-1.5 text-muted">{index + 1}.</span>
-                  {t(`guia.pasos.${paso}.titulo`)}
-                </p>
-                <p className="mt-1 text-[13px] leading-5 text-muted">{t(`guia.pasos.${paso}.descripcion`)}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </Panel>
-
-      {/* ── 2. Estados de la temperatura ────────────────────── */}
-      <Panel
-        id="guia-estados"
-        icono={Thermometer}
-        titulo={t('guia.estadosTitulo')}
-        descripcion={t('guia.estadosDescripcion')}
-        className={ANCLA_SECCION}
-      >
-        <ul className="grid gap-3 md:grid-cols-3">
-          {ESTADOS.map(({ clave, icono: Icono, tono }) => (
-            <li key={clave} className="flex gap-3 rounded-[12px] border border-border bg-surface-sunken/60 p-4">
-              <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ${tono}`}>
-                <Icono aria-hidden className="size-5" />
-              </span>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-foreground">{t(`guia.estados.${clave}.titulo`)}</h3>
-                <p className="mt-1 text-[13px] leading-5 text-muted">{t(`guia.estados.${clave}.descripcion`)}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-5 border-t border-border pt-3 text-xs leading-5 text-muted">{t('guia.rangoNota')}</p>
-      </Panel>
-
-      {/* ── 3. Ante un aviso ────────────────────────────────── */}
-      <Panel
-        id="guia-alerta"
-        icono={BellRing}
-        titulo={t('guia.alertaTitulo')}
-        descripcion={t('guia.alertaDescripcion')}
-        acciones={<Badge variant="outline">{t('guia.alertaEyebrow')}</Badge>}
-        className={ANCLA_SECCION}
-      >
-        <ol className="grid gap-5 md:grid-cols-3 md:gap-6">
-          {(['revisar', 'actuar', 'registrar'] as const).map((paso, index) => (
-            <li key={paso} className="flex gap-3">
-              <span className="nums flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-tint text-[13px] font-semibold text-marca-texto ring-1 ring-inset ring-secondary/20">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <div className="min-w-0 pt-0.5">
-                <h3 className="text-sm font-semibold text-foreground">{t(`guia.alertaPasos.${paso}.titulo`)}</h3>
-                <p className="mt-1 text-[13px] leading-5 text-muted">{t(`guia.alertaPasos.${paso}.descripcion`)}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-        {/* Permisos por rol y el ejemplo: a un clic, sin cargar la sección. */}
-        <Detalles className="mt-4 border-t border-border pt-2">
-          <div className="space-y-4 pb-1">
-            <p className="flex max-w-[72ch] items-start gap-2 text-[13px] leading-5 text-muted">
-              <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-marca-texto" />
-              {t('guia.alertaPermisos')}
-            </p>
-            <div className="max-w-[72ch]">
-              <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-                <Info aria-hidden className="size-4 shrink-0 text-marca-texto" />
-                {t('guia.ejemploTitulo')}
+      <div className="grid items-start gap-3 lg:grid-cols-12 xl:gap-4">
+        <div className="min-w-0 space-y-3 lg:col-span-5 xl:space-y-4">
+          <nav aria-label={t('guia.navegacion')} className={cn('superficie', esLg ? 'p-2' : 'p-3')}>
+            <StepperInteractivo
+              idBase="guia"
+              etiqueta={t('guia.navegacion')}
+              orientacion={esLg ? 'vertical' : 'horizontal'}
+              pasos={PASOS.map((id) => ({ id, titulo: t(ETIQUETA_PASO[id]), resumen: t(`guia.resumenPasos.${id}`) }))}
+              valor={paso}
+              onCambiar={cambiar}
+            />
+            {!esLg && (
+              <p className="nums mt-1 text-center text-meta text-muted sm:hidden">
+                {t('guia.pasoDe', { actual: indice + 1, total: PASOS.length })} · {t(ETIQUETA_PASO[paso])}
               </p>
-              <p className="mt-1 pl-6 text-[13px] leading-5 text-muted">{t('guia.ejemplo')}</p>
-            </div>
-          </div>
-        </Detalles>
-      </Panel>
-
-      {/* ── 4. Pantallas disponibles para el rol ────────────── */}
-      <Panel
-        id="guia-pantallas"
-        icono={LayoutGrid}
-        titulo={t('guia.pantallasTitulo')}
-        descripcion={t('guia.pantallasDescripcion')}
-        className={ANCLA_SECCION}
-      >
-        <div className="space-y-5">
-          {grupos.map(({ grupo, secciones }) => (
-            <div key={grupo}>
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">{t(`guia.grupos.${grupo}`)}</h3>
-              <ul className="mt-2 grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
-                {secciones.map((seccion) => {
-                  const Icono = seccion.icono
-                  return (
-                    <li key={seccion.ruta} className="min-w-0">
-                      <Link
-                        to={seccion.ruta}
-                        className="group -mx-1 flex h-full items-start gap-3 rounded-lg p-3 transition-colors duration-(--duration-micro) hover:bg-secondary/[0.05] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      >
-                        <Icono aria-hidden className="mt-0.5 size-[18px] shrink-0 text-marca-texto" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-semibold text-foreground underline-offset-4 group-hover:underline">
-                            {t(seccion.tituloKey)}
-                          </span>
-                          <span className="mt-0.5 block text-[13px] leading-5 text-muted">{t(seccion.descripcionKey)}</span>
-                        </span>
-                        <ArrowRight
-                          aria-hidden
-                          className="mt-0.5 size-4 shrink-0 text-faint transition-transform duration-(--duration-ui) group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none"
-                        />
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
+            )}
+          </nav>
+          {esLg && <PreguntasFrecuentes />}
         </div>
-      </Panel>
 
-      {/* ── 5. Palabras útiles y dudas frecuentes ───────────── */}
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        <Panel id="guia-conceptos" icono={BookOpen} titulo={t('guia.conceptosTitulo')} className={ANCLA_SECCION}>
-          <Detalles titulo={t('guia.conceptosAyuda')}>
-            <dl className="divide-y divide-border">
-              {CONCEPTOS.map((concepto) => (
-                <div key={concepto} className="py-3 first:pt-1 last:pb-1">
-                  <dt className="text-sm font-semibold text-foreground">{t(`guia.conceptos.${concepto}.titulo`)}</dt>
-                  <dd className="mt-1 text-[13px] leading-5 text-muted">{t(`guia.conceptos.${concepto}.descripcion`)}</dd>
-                </div>
-              ))}
-            </dl>
-          </Detalles>
-        </Panel>
-
-        <Panel
-          id="guia-preguntas"
-          icono={CircleHelp}
-          titulo={t('guia.preguntasTitulo')}
-          className={ANCLA_SECCION}
-          cuerpoClassName="px-4 py-1 sm:px-5 sm:py-1"
-        >
-          <div className="divide-y divide-border">
-            {(['alerta', 'integridad', 'metricas'] as const).map((pregunta) => (
-              <details key={pregunta} className="group">
-                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-3 text-sm font-medium text-foreground outline-none transition-colors duration-(--duration-micro) hover:text-marca-texto focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                  {t(`guia.preguntas.${pregunta}.titulo`)}
-                  <ChevronDown
-                    aria-hidden
-                    className="size-4 shrink-0 text-muted transition-transform duration-(--duration-ui) group-open:rotate-180 motion-reduce:transition-none"
-                  />
-                </summary>
-                <p className="max-w-[72ch] pb-4 pr-7 text-[13px] leading-5 text-muted">
-                  {t(`guia.preguntas.${pregunta}.respuesta`)}
+        <div className="min-w-0 lg:col-span-7">
+          {PASOS.map((id, i) => {
+            const activo = id === paso
+            return (
+              <section
+                key={id}
+                role="tabpanel"
+                id={`guia-panel-${id}`}
+                aria-labelledby={`guia-titulo-${id}`}
+                hidden={!activo}
+                className={cn('superficie p-4 sm:p-5 xl:p-6', activo && animar && 'panel-eje-x')}
+                style={activo && animar ? ({ '--dir': animar.dir } as React.CSSProperties) : undefined}
+              >
+                <p className="eyebrow">
+                  {id === 'inicio'
+                    ? t('guia.inicioEyebrow')
+                    : id === 'alertas'
+                      ? t('guia.alertaEyebrow')
+                      : t('guia.pasoDe', { actual: i + 1, total: PASOS.length })}
                 </p>
-              </details>
-            ))}
-          </div>
-        </Panel>
+                <h2 id={`guia-titulo-${id}`} tabIndex={-1} className="mt-1 text-title text-foreground outline-none scroll-mt-24">
+                  {t(TITULO_PASO[id])}
+                </h2>
+                {id !== 'conceptos' && (
+                  <p className="mt-1 max-w-[68ch] text-body text-muted">
+                    {t(id === 'inicio' ? 'guia.inicioDescripcion' : id === 'estados' ? 'guia.estadosDescripcion' : id === 'alertas' ? 'guia.alertaDescripcion' : 'guia.pantallasDescripcion')}
+                  </p>
+                )}
+                <div className="mt-4">
+                  <ContenidoPaso paso={id} rol={rol} />
+                </div>
+                <footer className="mt-5 grid grid-cols-2 gap-2 border-t border-border pt-4 sm:flex sm:items-center sm:justify-between">
+                  {anterior && activo ? (
+                    <Button variant="ghost" className="max-sm:h-11" onClick={() => cambiar(anterior, 'boton')}>
+                      <ChevronLeft />
+                      {t('guia.anterior')}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
+                  {siguiente ? (
+                    <Button className="max-sm:h-11 sm:ml-auto" onClick={() => cambiar(siguiente, 'boton')}>
+                      <span className="truncate">{t('guia.siguientePaso', { titulo: t(ETIQUETA_PASO[siguiente]) })}</span>
+                      <ArrowRight />
+                    </Button>
+                  ) : (
+                    <Link
+                      to="/dashboard"
+                      className="coldcare-primary-action inline-flex h-10 items-center justify-center gap-2 rounded-(--radius-field) px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-sm:h-11 sm:ml-auto"
+                    >
+                      {t('guia.irMonitoreo')}
+                      <ArrowRight aria-hidden className="size-4" />
+                    </Link>
+                  )}
+                </footer>
+              </section>
+            )
+          })}
+        </div>
+        {!esLg && <PreguntasFrecuentes />}
       </div>
-
-      <p className="flex items-start gap-2 text-xs leading-relaxed text-muted">
-        <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-marca-texto" />
+      <p className="mt-4 flex items-start gap-2 text-meta text-muted">
+        <ShieldCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />
         {t('guia.nota')}
       </p>
-    </CompactWorkspace>
+    </div>
   )
 }

@@ -330,6 +330,21 @@
       transform: translateY(calc(60% * var(--dir, 1) * var(--mov, 1)));
     }
   }
+  /* Revelado de izquierda a derecha por clip-path (MOTION 4.11). */
+  @keyframes revelar-x {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+  /* Resalte de la fila recién creada (MOTION 4.4). */
+  @keyframes fila-resalte {
+    from {
+      background-color: var(--color-primary-tint);
+    }
+  }
   @keyframes anillo-estado {
     from {
       opacity: 0.5;
@@ -591,8 +606,12 @@
     .pagina-entra,
     .pulso-vivo,
     .animate-ping,
-    .esqueleto::after {
+    .esqueleto::after,
+    .revelar-x {
       animation: none !important;
+    }
+    .fila-resaltada {
+      animation: fila-entra var(--duration-reveal) var(--ease-out) both !important;
     }
   }
 }
@@ -701,6 +720,36 @@
     animation: var(--animate-pagina);
   }
 
+  /* Lista → detalle de un equipo (SPEC P5b §9, eje compartido X): entra
+     12 px desde la derecha; con movimiento reducido (--mov 0) solo funde. */
+  .vista-entra-x {
+    animation: vista-entra-x var(--duration-reveal) var(--ease-out) both;
+  }
+  @keyframes vista-entra-x {
+    from {
+      opacity: 0;
+      transform: translateX(calc(12px * var(--mov, 1)));
+    }
+  }
+
+  /* Bento del monitoreo (MOTION 4.12): una vez por sesión, solo transform;
+     la opacidad la aporta .pagina-entra, así no hay doble entrada. */
+  .bento-entra > * {
+    animation: celda-sube var(--duration-ui) var(--ease-out) both;
+    animation-delay: calc(min(var(--i, 0), 3) * var(--stagger));
+  }
+  .bento-entra > :nth-child(2),
+  .bento-entra > :nth-child(3) {
+    --i: 1;
+  }
+  .bento-entra > :nth-child(4),
+  .bento-entra > :nth-child(5) {
+    --i: 2;
+  }
+  .bento-entra > :nth-child(n + 6) {
+    --i: 3;
+  }
+
   /* Filas que llegan después de la carga inicial (MOTION 4.4). */
   [data-nueva] {
     animation: var(--animate-fila);
@@ -712,6 +761,28 @@
     display: inline-block;
     animation: var(--animate-cifra);
     animation-delay: calc(var(--i, 0) * 25ms);
+  }
+
+  /* Barra y curva de Reportes al llegar un reporte (un solo momento). */
+  .revelar-x {
+    animation: revelar-x var(--duration-reveal) var(--ease-out) both;
+  }
+
+  /* Fila nueva tras un alta: entra y se resalta una vez. */
+  .fila-resaltada {
+    animation:
+      fila-entra var(--duration-reveal) var(--ease-out) both,
+      fila-resalte 1200ms linear 200ms both;
+  }
+
+  /* Esqueleto que solo aparece si la espera supera 150 ms (MOTION 4.13). */
+  .esqueleto-diferido {
+    animation: fade var(--duration-pop) var(--ease-out) 150ms both;
+  }
+
+  /* Panel que entra por el eje X compartido (Guía, alta de usuario). */
+  .panel-eje-x {
+    animation: var(--animate-pestana);
   }
 
   /* Punto «En vivo»: el único bucle decorativo. */
@@ -885,4 +956,108 @@
   .coldcare-data-stack .mobile-full, .coldcare-data-stack td[colspan] { grid-column: 1 / -1; }
   .coldcare-data-stack td[colspan] { padding: 20px 0; }
   .coldcare-data-stack td.mobile-actions > div { display: flex; flex-wrap: wrap; justify-content: flex-start; }
+}
+
+/*
+ * Alertas (P5a). Resalte de una entrada nueva de la cronología: solo color de
+ * fondo, 1200 ms lineal tras 200 ms (excepción de pintura, MOTION 3.1); se
+ * mantiene con movimiento reducido porque no desplaza nada. La fila que sale
+ * de su pestaña (revisada en Pendientes) se funde tras mostrar «Revisada».
+ */
+@keyframes resalte-entrada {
+  from {
+    background-color: var(--resalte, var(--color-success-100));
+  }
+}
+@keyframes fila-sale {
+  to {
+    opacity: 0;
+  }
+}
+@layer utilities {
+  .resalte-entrada {
+    animation: resalte-entrada 1200ms linear 200ms both;
+  }
+  [data-saliendo] {
+    animation: fila-sale var(--duration-pop) var(--ease-out) 600ms both;
+  }
+}
+@keyframes celda-sube {
+  from {
+    transform: translateY(calc(6px * var(--mov, 1)));
+  }
+}
+
+/* ── Registros (Historial, Bitácora, Integridad) ─────────────────────────
+   Detalle de fila: excepción documentada de alto con grid-template-rows
+   (MOTION §3.1). Al cerrar se desmonta sin animación: la salida es más
+   rápida que la entrada. */
+@layer utilities {
+  .fila-detalle {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows var(--duration-reveal) var(--ease-out),
+      opacity var(--duration-pop) var(--ease-out);
+  }
+  @starting-style {
+    .fila-detalle { grid-template-rows: 0fr; opacity: 0; }
+  }
+
+  /* Un momento por página: la curva del periodo se revela de izquierda a
+     derecha la primera vez que llega con datos (MOTION 4.11). */
+  .revelar-grafica { animation: revelar-grafica var(--duration-panel) var(--ease-out) both; }
+
+  /* Text swap: solo opacidad (regla transform/opacity). */
+  .cambio-texto { animation: cambio-texto var(--duration-pop) var(--ease-out) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .revelar-grafica { animation: none; }
+    .fila-detalle { transition: opacity 120ms linear; }
+    @starting-style {
+      .fila-detalle { grid-template-rows: 1fr; opacity: 0; }
+    }
+    .cambio-texto { animation-duration: 120ms; animation-timing-function: linear; }
+  }
+}
+
+@keyframes revelar-grafica {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+@keyframes cambio-texto {
+  from { opacity: 0; }
+}
+
+/* Lista móvil compacta: sustituye a las fichas apiladas de 8 campos. Cada
+   fila es una rejilla de 4 áreas (a/b a la izquierda, c la cifra, d el
+   control). La cabecera de día y el detalle ocupan el ancho completo. */
+@media (max-width: 639px) {
+  .coldcare-data-list .coldcare-table-region { overflow-x: visible; }
+  .coldcare-data-list table, .coldcare-data-list tbody { display: block; min-width: 0; }
+  .coldcare-data-list thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .coldcare-data-list tr[data-fila] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 44px;
+    grid-template-areas: "a c d" "b c d";
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: center;
+    min-height: 56px;
+    padding: 8px 0 8px 16px;
+  }
+  .coldcare-data-list td { display: block; padding: 0; min-width: 0; }
+  .coldcare-data-list tr[data-fila] > td:first-child { box-shadow: none; }
+  .coldcare-data-list td[data-area="a"] { grid-area: a; }
+  .coldcare-data-list td[data-area="b"] { grid-area: b; }
+  .coldcare-data-list td[data-area="c"] { grid-area: c; }
+  .coldcare-data-list td[data-area="d"] { grid-area: d; }
+  .coldcare-data-list td[data-area="oculta"] { display: none; }
+  .coldcare-data-list tr[data-grupo],
+  .coldcare-data-list tr[data-grupo] > th,
+  .coldcare-data-list tr[data-detalle],
+  .coldcare-data-list tr[data-detalle] > td { display: block; }
+  .coldcare-data-list tr[data-fila][data-expandida] { box-shadow: inset 2px 0 0 var(--color-primary); }
+  .coldcare-data-list tr[data-fila][data-marca="corrupta"] { box-shadow: inset 3px 0 0 var(--color-critical); }
 }

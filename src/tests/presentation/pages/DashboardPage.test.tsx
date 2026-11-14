@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -151,8 +151,11 @@ describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
   it('HU-54: sin datos recientes no presenta el equipo como Normal', () => {
     renderizar(lectura({ riesgo_efectivo: 'normal' }))
 
-    expect(screen.getByText('Sin datos recientes')).toBeInTheDocument()
-    expect(screen.queryByText('Normal')).not.toBeInTheDocument()
+    // Lecturas recientes, ahora siempre visibles, pueden rotular «Normal» una
+    // lectura HISTÓRICA; lo que no puede decirlo es la lectura actual.
+    const celda = within(screen.getByTestId('celda-lectura'))
+    expect(celda.getByText('Sin datos recientes')).toBeInTheDocument()
+    expect(celda.queryByText('Normal')).not.toBeInTheDocument()
   })
 
   it('no lo rotula si el modelo sí clasificó', () => {
@@ -299,5 +302,110 @@ describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
     expect(screen.getAllByText(/no disponible/i).length).toBeGreaterThan(0)
     expect(screen.queryAllByText(/puerta: abierta/i)).toHaveLength(0)
     expect(screen.queryAllByText(/puerta: cerrada/i)).toHaveLength(0)
+  })
+})
+
+describe('DashboardPage — bento P5c', () => {
+  beforeEach(() => {
+    useMonitoreoTermico.mockReset()
+    equiposOperativos.lista = []
+  })
+
+  it('cifra: data-valor en ASCII y texto para lector de pantalla', () => {
+    renderizar(lectura({ temperatura_interna: 4.5 }))
+    const valor = screen.getByTestId('valor-actual')
+    expect(valor).toHaveAttribute('data-valor', '4.5')
+    expect(valor).toHaveTextContent('4.5')
+    expect(valor).toHaveTextContent('°C')
+  })
+
+  it('Lecturas recientes y Estado de equipos visibles sin incidencias', () => {
+    equiposOperativos.lista = [
+      { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', ultimo_reporte_en: '2026-07-25T12:34:56Z' },
+    ]
+    renderizar(lectura())
+    expect(screen.getByRole('heading', { name: 'Lecturas recientes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Estado operativo de equipos' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mostrar Vacunas en el monitoreo' })).toBeInTheDocument()
+    // La cinta de 24 h resume la disponibilidad en un nombre accesible.
+    expect(screen.getByRole('img', { name: /Últimas 24 h de Vacunas/ })).toBeInTheDocument()
+  })
+
+  it('Estado de equipos: el botón de fila cambia el equipo de useMonitoreoTermico', () => {
+    equiposOperativos.lista = [
+      { id: 'FARM-A', nombre: 'A', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', ultimo_reporte_en: '2026-07-25T12:00:30Z' },
+      { id: 'FARM-B', nombre: 'B', estado_conectividad: 'offline', estado_operativo: 'SIN_DATOS', ultimo_reporte_en: '2026-07-25T12:00:00Z' },
+    ]
+    renderizar(lectura({ device_id: 'FARM-A' }))
+    expect(useMonitoreoTermico.mock.lastCall?.[1]).toBe('FARM-A')
+    // Problemas primero: B (sin datos) va arriba aunque no esté seleccionado.
+    const filas = screen.getAllByRole('button', { name: /^Mostrar .* en el monitoreo$/ })
+    expect(filas[0]).toHaveAccessibleName('Mostrar B en el monitoreo')
+    fireEvent.click(filas[0])
+    expect(useMonitoreoTermico.mock.lastCall?.[1]).toBe('FARM-B')
+  })
+
+  it('HU-30: calibración vencida y por vencer en la celda Equipo', () => {
+    equiposOperativos.lista = [
+      { id: 'FARM-01-CDL', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', fecha_proxima_calibracion: '2020-01-01' },
+    ]
+    renderizar(lectura())
+    expect(screen.getByText(/^Vencida el/)).toBeInTheDocument()
+  })
+
+  it('HU-48: anillo con n/max, pérdidas y brecha visible sin abrir el panel', () => {
+    equiposOperativos.lista = [
+      {
+        id: 'FARM-01-CDL',
+        nombre: 'Vacunas',
+        estado_conectividad: 'offline',
+        estado_operativo: 'OPERATIVO',
+        buffer_littlefs: {
+          pendientes: 120,
+          limite: 30000,
+          desde: '2026-07-25T11:00:00Z',
+          hasta: '2026-07-25T12:00:00Z',
+          perdidas: 3,
+          brechas: [{ desde: '2026-07-25T10:00:00Z', hasta: '2026-07-25T10:15:00Z', muestras_perdidas: 3 }],
+        },
+      },
+    ]
+    renderizar(lectura())
+    expect(screen.getByRole('img', { name: /Buffer local: 120 de 30,000|Buffer local: 120 de 30.000|Buffer local: 120 de 30000/ })).toBeInTheDocument()
+    expect(screen.getByText(/Se perdieron 3 lecturas/)).toBeInTheDocument()
+  })
+
+  it('Curva: vista Lista paginada con 5 filas', () => {
+    const serie = Array.from({ length: 7 }, (_, i) =>
+      lectura({ id: `l-${i}`, timestamp: new Date(Date.UTC(2026, 6, 25, 12, i)).toISOString(), temperatura_interna: 4 + i / 10 }),
+    )
+    useMonitoreoTermico.mockReturnValue({ ultima: serie.at(-1), serie, sseConectado: true, estadoHistorial: 'completo' })
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
+    fireEvent.click(within(screen.getByRole('group', { name: 'Vista de la curva' })).getByRole('button', { name: 'Lista' }))
+    const tabla = screen.getByRole('table')
+    // Cabecera + 5 filas; la más reciente primero.
+    expect(within(tabla).getAllByRole('row')).toHaveLength(6)
+    expect(within(tabla).getAllByRole('row')[1]).toHaveTextContent('4.6')
+  })
+
+  it('Panel de detalle: ficha técnica completa sin enlace a Dispositivos para no administradores', async () => {
+    equiposOperativos.lista = [
+      { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', firmware_version: '2.1.0' },
+    ]
+    renderizar(lectura())
+    fireEvent.click(screen.getByRole('button', { name: 'Detalles de Vacunas' }))
+    const panel = await screen.findByRole('dialog')
+    expect(within(panel).getByText('Ficha técnica')).toBeInTheDocument()
+    expect(within(panel).getByText('2.1.0')).toBeInTheDocument()
+    expect(within(panel).queryByRole('link', { name: 'Gestionar en Dispositivos' })).not.toBeInTheDocument()
+  })
+
+  it('Simulador: oculto fuera de la demostración', () => {
+    renderizar(lectura())
+    expect(screen.queryByRole('button', { name: /Probar estados del dashboard/ })).not.toBeInTheDocument()
   })
 })

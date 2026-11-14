@@ -1,135 +1,53 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
-import { BellOff, CheckCheck, ClipboardPen, History, PencilLine } from 'lucide-react'
 
 import { useAlertas, type FiltroEstado } from '@/application/hooks/useAlertas'
+import { useAtendidasRecientes } from '@/application/hooks/useAtendidasRecientes'
 import { useIncidentesOperativos } from '@/application/hooks/useIncidentesOperativos'
 import { useAuthStore } from '@/application/stores/authStore'
-import {
-  estadoNotificacion,
-  type AccionCorrectiva,
-  type AlertaTermica,
-  type EstadoNotificacion,
-} from '@/domain/entities/AlertaTermica'
-import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
+import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
+import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { tienePermiso } from '@/domain/value-objects/Rol'
-import { duracionBreve, fechaCorta, fechaHora, hora } from '@/lib/formato'
+import { construirCinta24h } from '@/lib/cinta24h'
+import { hora } from '@/lib/formato'
+import { ordenEsTriage, ordenarAlertas } from '@/lib/ordenAlertas'
 import { rangoPagina } from '@/lib/paginacion'
-import { cn } from '@/lib/utils'
+import { useIdsNuevos } from '@/presentation/hooks/useIdsNuevos'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
-import { ActionMenu } from '../components/ActionMenu'
-import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
+import { EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
-import { RiskBadge } from '../components/RiskBadge'
-import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Detalles } from '../components/ui/detalles'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog'
-import { Label, Textarea } from '../components/ui/input'
 import { Segmentado } from '../components/ui/segmentado'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableEmpty,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '../components/ui/table'
+import { TooltipProvider } from '../components/ui/tooltip'
+import { AtendidasRecientes } from './alertas/AtendidasRecientes'
+import { AvisoAlertas, type Aviso } from './alertas/AvisoAlertas'
+import { Cinta24hAlertas } from './alertas/Cinta24hAlertas'
+import { FilaAlerta } from './alertas/FilaAlerta'
+import { IncidentesOperativos } from './alertas/IncidentesOperativos'
+import { PanelAlerta } from './alertas/PanelAlerta'
+import { TiraEstadoAlertas } from './alertas/TiraEstadoAlertas'
+import { cuantasAtendidas, resumirBandeja } from './alertas/logica'
+import { FilasCargando } from './alertas/FilasCargando'
+import { useAhora } from './alertas/useAhora'
+import type { BorradorAccion, PestanaPanel } from './alertas/tipos'
+import { VacioAlertas } from './alertas/VacioAlertas'
 
-// HU-23: los tabs de filtro siguen la máquina de estados, no un booleano.
+// HU-23: los filtros siguen la máquina de estados, no un booleano.
 const FILTROS: FiltroEstado[] = ['pendiente', 'reconocida', 'atendida', 'todas']
 
-const VARIANTE_NOTIFICACION: Record<EstadoNotificacion, 'ok' | 'warn' | 'critical' | 'neutral'> = {
-  notificada: 'ok',
-  reintentando: 'warn',
-  no_entregada: 'critical',
-  pendiente: 'neutral',
-}
-
-/** Evidencia de la excursión y estado del correo de una alerta, en dos líneas discretas. */
-function EvidenciaAlerta({ alerta }: { alerta: AlertaTermica }) {
-  const { t } = useTranslation()
-  const notificacion = estadoNotificacion(alerta)
-  const hayEvidencia = alerta.temperatura_pico != null || alerta.duracion_s != null || alerta.historica
-  if (!hayEvidencia && notificacion === null) return null
-  return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-      {alerta.historica && (
-        <Badge variant="warn" title={t('alertas.historicaAyuda')}>
-          {t('alertas.historica')}
-        </Badge>
-      )}
-      {alerta.temperatura_pico != null && (
-        <span className="nums">
-          {t('alertas.pico')} {alerta.temperatura_pico.toFixed(2)} °C
-        </span>
-      )}
-      {alerta.duracion_s != null && (
-        <span className="nums">
-          {t('alertas.duracion')} {duracionBreve(alerta.duracion_s)}
-        </span>
-      )}
-      {notificacion !== null && (
-        <Badge
-          dot
-          variant={VARIANTE_NOTIFICACION[notificacion]}
-          title={t(`alertas.notificacion.${notificacion}Ayuda`, {
-            fecha: fechaHora(alerta.notificada_en),
-            intentos: alerta.notificacion_intentos ?? 0,
-          })}
-        >
-          {t(`alertas.notificacion.${notificacion}`)}
-        </Badge>
-      )}
-    </div>
-  )
-}
-
-// El riesgo ya va en color en su propia columna: el estado se lee como texto.
-const VARIANTE_POR_ESTADO: Record<EstadoAlerta, 'neutral' | 'ok'> = {
-  pendiente: 'neutral',
-  reconocida: 'neutral',
-  atendida: 'ok',
-}
-
-const VACIO_POR_FILTRO: Record<FiltroEstado, string> = {
-  pendiente: 'alertas.sinPendientes',
-  reconocida: 'alertas.sinRevisadas',
-  atendida: 'alertas.sinAtendidas',
-  todas: 'alertas.sinAlertas',
-}
-
-// Fecha, equipo, riesgo, estado y opciones tienen ancho propio y el mensaje
-// se queda con el resto. Bajo 1280 px el relleno lateral se ciñe para que las
-// seis columnas quepan sin desplazar la tabla.
-const RELLENO = 'sm:px-2 xl:px-4'
-
-/** Fecha arriba y hora debajo: ninguna de las dos se parte al estrechar la columna. */
-function FechaYHora({ iso }: { iso: string | null }) {
-  if (!iso || Number.isNaN(new Date(iso).getTime())) return <>{fechaHora(iso)}</>
-  return (
-    <>
-      <span className="block whitespace-nowrap font-medium text-foreground">{fechaCorta(iso)}</span>
-      <span className="mt-0.5 block whitespace-nowrap text-[12px] text-faint">{hora(iso)}</span>
-    </>
-  )
+interface EstadoPanel {
+  alerta: AlertaTermica
+  pestana: PestanaPanel
 }
 
 /**
- * Filo izquierdo de cada fila con el color del riesgo: se lee la gravedad al recorrer la lista.
- * Acompaña a la píldora (que lleva forma y texto), nunca la sustituye.
+ * Alertas (`/alertas`), plantilla Bandeja (DIRECTION §13.3): tira de estado,
+ * la lista con los filtros en su superficie, el rail de contexto (incidentes
+ * operativos y cinta 24 h) y «Atendidas recientemente» cuando hay pocas filas.
+ * El foco es la primera fila: la pendiente más grave y más antigua.
  */
-// En la tabla el filo va en la primera celda (una fila de tabla no pinta sombras en todos los
-// navegadores); en la ficha móvil, la fila es una caja y lo lleva ella.
-const FILO_RIESGO: Record<string, { fila: string; celda: string }> = {
-  excursion_critica: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-critical-solid)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-critical-solid)]' },
-  riesgo_preventivo: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-warning-600)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-warning-600)]' },
-  normal: { fila: 'max-sm:shadow-[inset_3px_0_0_var(--color-success-600)]', celda: 'sm:shadow-[inset_3px_0_0_var(--color-success-600)]' },
-}
-
 export function AlertasPage() {
   const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
@@ -137,6 +55,9 @@ export function AlertasPage() {
     alertas,
     cargando,
     errorCarga,
+    errorRefresco = false,
+    actualizadoEn = null,
+    limiteAlcanzado = false,
     reintentar,
     filtro,
     setFiltro,
@@ -145,565 +66,334 @@ export function AlertasPage() {
     obtenerCicloAtencion,
     rectificarAccion,
   } = useAlertas()
+  const incidentesConsulta = useIncidentesOperativos()
+  const atendidas = useAtendidasRecientes()
+  const recargarAtendidas = atendidas.recargar
+  const resumenVivo = useEstadoVivoStore((s) => s.alertas)
+  const cargaViva = useEstadoVivoStore((s) => s.carga)
+  const conectado = useEstadoVivoStore((s) => s.conectado)
+  const ahora = useAhora()
+  // La cinta se recalcula con los datos o cada 5 min, no con cada minuto.
+  const ahoraCinta = Math.floor(ahora / 300_000) * 300_000
+
+  // ── RBAC (sin cambios): HU-23/HU-41 ─────────────────────────────────────
+  // Reconocer es exclusivo del farmacéutico (como `require_roles` en el
+  // backend); registrar la acción, farmacéutico y técnico; el administrador
+  // entra por `tienePermiso`. El auditor es de solo lectura: solo Cronología.
+  const puedeReconocer = usuario !== null && tienePermiso(usuario.rol, ['farmaceutico'])
+  const puedeRegistrarAccion = usuario !== null && tienePermiso(usuario.rol, ['farmaceutico', 'tecnico'])
+  // HU-28: rectifica su autor técnico o un farmacéutico; nunca el auditor; solo la vigente.
+  const puedeRectificar = useCallback(
+    (accion: AccionCorrectiva) =>
+      usuario !== null &&
+      accion.vigente !== false &&
+      (tienePermiso(usuario.rol, ['farmaceutico']) || (accion.usuario_id === usuario.id && tienePermiso(usuario.rol, ['tecnico']))),
+    [usuario],
+  )
+
+  // ── Lista ordenada y paginada ───────────────────────────────────────────
+  const [aviso, setAviso] = useState<Aviso | null>(null)
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
-  // Solo se pinta la página visible: estas listas crecen sin techo.
-  const visibles = useMemo(() => alertas.slice(...rangoPagina(pagina, tamanoPagina)), [alertas, pagina, tamanoPagina])
+  const ordenadas = useMemo(() => ordenarAlertas(alertas, filtro), [alertas, filtro])
+  const visibles = useMemo(() => ordenadas.slice(...rangoPagina(pagina, tamanoPagina)), [ordenadas, pagina, tamanoPagina])
+  const nuevos = useIdsNuevos(ordenadas.map((a) => a.id), !cargando, filtro)
 
-  const [alertaSeleccionada, setAlertaSeleccionada] = useState<AlertaTermica | null>(null)
-  const [descripcionAccion, setDescripcionAccion] = useState('')
-  const [decisionAccion, setDecisionAccion] = useState('')
-  const [justificacionAccion, setJustificacionAccion] = useState('')
-  // HU-27: decisión, acción y justificación son obligatorias.
-  const accionCompleta = [decisionAccion, descripcionAccion, justificacionAccion].every((campo) => campo.trim().length > 0)
-  const [guardandoAccion, setGuardandoAccion] = useState(false)
-  const [mensajeExito, setMensajeExito] = useState(false)
-  // HU-27 Escenario 2: la alerta pudo cambiar de estado entre que se cargó
-  // la lista y este click (otro usuario la atendió primero).
-  const [conflictoAccion, setConflictoAccion] = useState(false)
-  const [conflictoReconocer, setConflictoReconocer] = useState<string | null>(null)
+  const cambiarFiltro = useCallback(
+    (siguiente: FiltroEstado) => {
+      setPagina(1)
+      setAviso(null)
+      setFiltro(siguiente)
+    },
+    [setFiltro],
+  )
 
-  // HU-23 criterio 4: cronología de atención de la alerta seleccionada.
-  const [alertaDetalle, setAlertaDetalle] = useState<AlertaTermica | null>(null)
-  const [ciclo, setCiclo] = useState<AccionCorrectiva[]>([])
-  const [cargandoCiclo, setCargandoCiclo] = useState(false)
-  const [errorCiclo, setErrorCiclo] = useState(false)
+  // ── Contexto: tira, incidentes, cinta y atendidas ──────────────────────
+  const pendientesVivo = resumenVivo?.pendientes
+  const revisadasVivo = resumenVivo?.revisadas
+  const estadoResumen: 'cargando' | 'listo' | 'error' =
+    resumenVivo && pendientesVivo && revisadasVivo ? 'listo' : cargaViva === 'cargando' ? 'cargando' : 'error'
+  const resumen = useMemo(
+    () =>
+      pendientesVivo && revisadasVivo
+        ? resumirBandeja(pendientesVivo, revisadasVivo, atendidas.alertas, atendidas.limite, ahora)
+        : null,
+    [pendientesVivo, revisadasVivo, atendidas.alertas, atendidas.limite, ahora],
+  )
+  const incidentes = incidentesConsulta.incidentes
+  const incidentesActivos =
+    incidentesConsulta.errorCarga || incidentesConsulta.cargando ? null : incidentes.filter((i) => i.estado === 'activo').length
+  const cintas = useMemo(
+    () =>
+      construirCinta24h(
+        [...(pendientesVivo ?? []), ...(revisadasVivo ?? []), ...atendidas.alertas],
+        incidentes,
+        ahoraCinta,
+      ),
+    [pendientesVivo, revisadasVivo, atendidas.alertas, incidentes, ahoraCinta],
+  )
+  const ultimaAtendida = resumen?.ultimaAtendida ?? atendidas.alertas[0] ?? null
 
-  // HU-28: rectificación en línea dentro de la cronología.
-  const [accionARectificar, setAccionARectificar] = useState<AccionCorrectiva | null>(null)
-  const [textoRectificacion, setTextoRectificacion] = useState('')
-  const [motivoRectificacion, setMotivoRectificacion] = useState('')
-  const [guardandoRectificacion, setGuardandoRectificacion] = useState(false)
-  const [errorRectificacion, setErrorRectificacion] = useState<'conflicto' | 'prohibido' | 'error' | null>(null)
+  // ── Región viva única ──────────────────────────────────────────────────
+  const [anuncio, setAnuncio] = useState('')
+  const [revisando, setRevisando] = useState<ReadonlySet<string>>(new Set())
 
-  const verDetalle = async (alerta: AlertaTermica) => {
-    setAccionARectificar(null)
-    setAlertaDetalle(alerta)
-    setCiclo([])
-    setErrorCiclo(false)
-    setCargandoCiclo(true)
-    try {
-      setCiclo(await obtenerCicloAtencion(alerta.id))
-    } catch {
-      setErrorCiclo(true)
-    } finally {
-      setCargandoCiclo(false)
-    }
-  }
-
-  // HU-23/HU-41: reconocer (PENDIENTE -> RECONOCIDA) es exclusivo del
-  // farmacéutico, igual que ya exige `require_roles(Rol.FARMACEUTICO)` en el
-  // backend. Registrar una acción correctiva la permiten farmacéutico y
-  // técnico. AUDITOR no aparece en ninguna de las dos listas: es de solo
-  // lectura, así que ambos botones quedan ocultos para ese rol.
-  const puedeReconocer = usuario !== null && tienePermiso(usuario.rol, ['farmaceutico'])
-  const puedeRegistrarAccion =
-    usuario !== null && tienePermiso(usuario.rol, ['farmaceutico', 'tecnico'])
-
-  const guardarAccion = async () => {
-    if (!alertaSeleccionada || !accionCompleta) return
-    setGuardandoAccion(true)
-    setConflictoAccion(false)
-    try {
-      const resultado = await registrarAccionCorrectiva(alertaSeleccionada.id, {
-        decision: decisionAccion.trim(),
-        descripcion: descripcionAccion.trim(),
-        justificacion: justificacionAccion.trim(),
-      })
-      if (resultado === 'ok') {
-        setMensajeExito(true)
-        setTimeout(() => {
-          setAlertaSeleccionada(null)
-          setDescripcionAccion('')
-          setDecisionAccion('')
-          setJustificacionAccion('')
-          setMensajeExito(false)
-        }, 1200)
-      } else if (resultado === 'conflicto') {
-        // HU-27 Escenario 2: otro usuario ya atendió esta alerta. La lista
-        // ya se refrescó (dentro del hook); aquí solo se informa por qué
-        // este envío en particular no se aplicó.
-        setConflictoAccion(true)
+  const revisar = useCallback(
+    async (alerta: AlertaTermica) => {
+      setAviso(null)
+      setRevisando((previo) => new Set(previo).add(alerta.id))
+      try {
+        const resultado = await reconocerAlerta(alerta.id)
+        if (resultado === 'ok') setAnuncio(t('alertas.anuncio.revisada', { equipo: alerta.device_id }))
+        else if (resultado === 'conflicto') setAviso({ tipo: 'conflicto' })
+        else setAviso({ tipo: 'errorRevisar', equipo: alerta.device_id })
+      } finally {
+        setRevisando((previo) => {
+          const siguiente = new Set(previo)
+          siguiente.delete(alerta.id)
+          return siguiente
+        })
       }
-    } finally {
-      setGuardandoAccion(false)
-    }
-  }
+    },
+    [reconocerAlerta, t],
+  )
 
-  // HU-28 (P5): rectifica su autor o un farmacéutico (el administrador por
-  // acceso implícito). El auditor nunca. Solo la versión vigente.
-  const puedeRectificar = (accion: AccionCorrectiva) =>
-    usuario !== null &&
-    accion.vigente !== false &&
-    (tienePermiso(usuario.rol, ['farmaceutico']) ||
-      (accion.usuario_id === usuario.id && tienePermiso(usuario.rol, ['tecnico'])))
-
-  const abrirRectificacion = (accion: AccionCorrectiva) => {
-    setAccionARectificar(accion)
-    setTextoRectificacion(accion.descripcion)
-    setMotivoRectificacion('')
-    setErrorRectificacion(null)
-  }
-
-  const guardarRectificacion = async () => {
-    if (!accionARectificar || !alertaDetalle) return
-    setGuardandoRectificacion(true)
-    setErrorRectificacion(null)
-    try {
-      const resultado = await rectificarAccion(
-        accionARectificar.id,
-        textoRectificacion.trim(),
-        motivoRectificacion.trim(),
+  // Anuncio agrupado de alertas que llegan por SSE (máximo uno cada 10 s).
+  const ultimoAnuncioSse = useRef(0)
+  useEffect(() => {
+    if (nuevos.size === 0) return
+    const marca = Date.now()
+    if (marca - ultimoAnuncioSse.current < 10_000) return
+    ultimoAnuncioSse.current = marca
+    const llegadas = ordenadas.filter((a) => nuevos.has(a.id))
+    if (llegadas.length === 1) {
+      const [una] = llegadas
+      setAnuncio(
+        t('alertas.anuncio.nueva', { count: 1, riesgo: t(`riesgo.${una.nivel_riesgo}`), equipo: una.device_id }),
       )
-      if (resultado === 'ok') {
-        await verDetalle(alertaDetalle)
-      } else {
-        setErrorRectificacion(resultado)
-        // Otro usuario la rectificó antes: la cronología cambió.
-        if (resultado === 'conflicto') setCiclo(await obtenerCicloAtencion(alertaDetalle.id))
-      }
-    } finally {
-      setGuardandoRectificacion(false)
+    } else if (llegadas.length > 1) {
+      setAnuncio(t('alertas.anuncio.nueva', { count: llegadas.length }))
     }
-  }
+  }, [nuevos, ordenadas, t])
 
-  const fechaDeAccion = (id: string | null | undefined) =>
-    fechaHora(ciclo.find((a) => a.id === id)?.created_at ?? null)
+  // ── Panel lateral ──────────────────────────────────────────────────────
+  const [panel, setPanel] = useState<EstadoPanel | null>(null)
+  const disparador = useRef<HTMLElement | null>(null)
+  const borradores = useRef(new Map<string, BorradorAccion>())
+  const listaRef = useRef<HTMLDivElement>(null)
 
-  const reconocer = async (alertaId: string) => {
-    setConflictoReconocer(null)
-    const resultado = await reconocerAlerta(alertaId)
-    if (resultado === 'conflicto') setConflictoReconocer(alertaId)
-  }
+  const abrirPanel = useCallback((alerta: AlertaTermica, pestana: PestanaPanel, origen: HTMLElement) => {
+    disparador.current = origen
+    setPanel({ alerta, pestana })
+  }, [])
+  const abrirCronologia = useCallback(
+    (alerta: AlertaTermica, origen: HTMLElement) => abrirPanel(alerta, 'cronologia', origen),
+    [abrirPanel],
+  )
+  const cerrarPanel = useCallback(() => setPanel(null), [])
+
+  // La alerta del panel se lee de la lista (para ver su estado al día) y, si
+  // sale del filtro, se conserva la última instantánea.
+  const enLista = panel ? alertas.find((a) => a.id === panel.alerta.id) : undefined
+  const alertaPanel = enLista ?? panel?.alerta ?? null
+  useEffect(() => {
+    if (enLista && panel && enLista !== panel.alerta) setPanel({ ...panel, alerta: enLista })
+  }, [enLista, panel])
+
+  const devolverFoco = useCallback(() => {
+    const origen = disparador.current
+    if (origen?.isConnected) {
+      origen.focus()
+      return
+    }
+    // La fila salió de la lista: primera acción de la primera fila, o el filtro activo.
+    const destino =
+      listaRef.current?.querySelector<HTMLElement>('tbody button') ??
+      listaRef.current?.querySelector<HTMLElement>('[data-accion-vacio]') ??
+      listaRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    destino?.focus()
+  }, [])
+
+  const registrar = useCallback(
+    async (alertaId: string, datos: BorradorAccion) => {
+      const resultado = await registrarAccionCorrectiva(alertaId, datos)
+      if (resultado === 'ok') {
+        setAnuncio(t('alertas.accionRegistrada'))
+        void recargarAtendidas()
+      }
+      return resultado
+    },
+    [registrarAccionCorrectiva, recargarAtendidas, t],
+  )
+
+  // ── Conteos de los filtros (solo visibles a ≥640, anunciados aparte) ───
+  const conteos: Partial<Record<FiltroEstado, number>> =
+    estadoResumen === 'listo' && resumen ? { pendiente: resumen.pendientes, reconocida: resumen.revisadas } : {}
+
+  const horaDatos = actualizadoEn ? hora(new Date(actualizadoEn).toISOString()) : null
+  const meta = horaDatos
+    ? conectado === false
+      ? t('alertas.sinConexionVivo', { hora: horaDatos })
+      : t('alertas.actualizado', { hora: horaDatos })
+    : undefined
+  const mostrarAtendidas = !cargando && !errorCarga && ordenEsTriage(filtro) ? cuantasAtendidas(visibles.length) : 0
 
   return (
-    <div className="space-y-4">
-      <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')} />
+    <TooltipProvider delayDuration={250} skipDelayDuration={300}>
+      <div className="mx-auto w-full max-w-(--ancho-contenido-max)">
+        <PageHeader titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')} meta={meta} />
 
-      {/* ── Estado de seguimiento ───────────────────────────── */}
-      <div>
-        <Segmentado
-          etiqueta={t('alertas.filtroEstado')}
-          valor={filtro}
-          onCambiar={setFiltro}
-          opciones={FILTROS.map((opcion) => ({ valor: opcion, etiqueta: t(`alertas.filtro.${opcion}`) }))}
-          className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
-          botonClassName="px-1.5 text-xs sm:px-3.5 sm:text-[13px]"
+        <TiraEstadoAlertas
+          resumen={resumen}
+          incidentesActivos={incidentesActivos}
+          estado={estadoResumen}
+          atendidasDisponibles={atendidas.estado !== 'error'}
+          ahora={ahora}
         />
-      </div>
 
-      {/* ── Lista de alertas: la tarea principal de la pantalla ── */}
-      <div>
-        {errorCarga ? (
-          <EstadoError mensaje={t('alertas.errorCargar')}>
-            <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
-              {t('comunes.reintentar')}
-            </Button>
-          </EstadoError>
-        ) : !cargando && alertas.length === 0 ? (
-          <EstadoVacio icono={BellOff} titulo={t(VACIO_POR_FILTRO[filtro])} />
-        ) : (
-          <>
-            <Table mobileLayout="stack" className="min-w-0" titulo={t('alertas.titulo')} cargando={cargando}>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className={cn('h-11 w-36', RELLENO)}>{t('alertas.fecha')}</TableHead>
-                  <TableHead className={cn('h-11 w-28', RELLENO)}>{t('historial.dispositivo')}</TableHead>
-                  <TableHead className={cn('h-11 w-44', RELLENO)}>{t('historial.riesgo')}</TableHead>
-                  <TableHead className={cn('h-11', RELLENO)}>{t('alertas.mensaje')}</TableHead>
-                  <TableHead className={cn('h-11 w-28', RELLENO)}>{t('alertas.estado')}</TableHead>
-                  <TableHead className={cn('h-11 w-32 text-right', RELLENO)}>{t('alertas.acciones')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cargando ? (
-                  <TableEmpty colSpan={6}>
-                    <EstadoCarga className="py-0" />
-                  </TableEmpty>
-                ) : (
-                  visibles.map((alerta) => (
-                    <TableRow key={alerta.id} className={cn(alerta.nivel_riesgo && FILO_RIESGO[alerta.nivel_riesgo]?.fila)}>
-                      <TableCell data-label={t('alertas.fecha')} className={cn('nums py-4 text-[13px] leading-5', RELLENO, alerta.nivel_riesgo && FILO_RIESGO[alerta.nivel_riesgo]?.celda)}>
-                        <FechaYHora iso={alerta.created_at} />
-                      </TableCell>
-                      <TableCell data-label={t('historial.dispositivo')} className={cn('py-4 whitespace-nowrap', RELLENO)}>
-                        <span className="nums text-[13px] text-subtle">
-                          {alerta.device_id}
-                        </span>
-                      </TableCell>
-                      {/* En móvil cada alerta es una ficha: el riesgo la encabeza a lo
-                          ancho y el mensaje ocupa su propia fila. */}
-                      <TableCell data-label={t('historial.riesgo')} className={cn('mobile-full py-4 max-sm:order-first', RELLENO)}>
-                        <RiskBadge nivel={alerta.nivel_riesgo} />
-                      </TableCell>
-                      <TableCell data-label={t('alertas.mensaje')} className={cn('mobile-full py-4 text-[14px] leading-[22px] text-balance', RELLENO)}>
-                        {alerta.mensaje}
-                        <EvidenciaAlerta alerta={alerta} />
-                        {conflictoReconocer === alerta.id && (
-                          <p role="alert" className="mt-1.5 text-xs leading-4 text-critical">
-                            {t('alertas.conflictoEstado')}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell data-label={t('alertas.estado')} className={cn('py-4', RELLENO)}>
-                        <Badge dot variant={VARIANTE_POR_ESTADO[alerta.estado]}>
-                          {t(`alertas.estadoAlerta.${alerta.estado}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell data-label={t('alertas.acciones')} className={cn('mobile-actions py-4 text-right', RELLENO)}>
-                        <div className="flex justify-end">
-                          <ActionMenu label={`${t('alertas.acciones')}: ${alerta.device_id}`}>
-                            {alerta.estado === 'pendiente' && puedeReconocer && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => void reconocer(alerta.id)}
-                                title={t('alertas.marcarRevisada')}
-                              >
-                                <CheckCheck />
-                                {t('alertas.marcarRevisada')}
-                              </Button>
-                            )}
-                            {alerta.estado !== 'atendida' && puedeRegistrarAccion && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setAlertaSeleccionada(alerta)}
-                                title={t('alertas.registrarAccion')}
-                              >
-                                <ClipboardPen />
-                                {t('alertas.accionCorrectiva')}
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => void verDetalle(alerta)}
-                              aria-label={`${t('alertas.verDetalle')}: ${alerta.device_id}`}
-                            >
-                              <History />
-                              {t('alertas.verDetalle')}
-                            </Button>
-                          </ActionMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            <Paginacion total={alertas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
-          </>
-        )}
-      </div>
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-12 xl:gap-4">
+          <div className="min-w-0 space-y-3 xl:col-span-8 2xl:col-span-9">
+            <AvisoAlertas
+              aviso={aviso}
+              onCerrar={() => setAviso(null)}
+              errorRefresco={errorRefresco}
+              horaDatos={horaDatos}
+              onReintentar={reintentar}
+            />
 
-      <IncidentesOperativos />
-
-      {/* ── Diálogo de acción correctiva ────────────────────── */}
-      <Dialog
-        open={alertaSeleccionada !== null}
-        onOpenChange={(abierto) => {
-          if (!abierto) {
-            setAlertaSeleccionada(null)
-            setDescripcionAccion('')
-            setMensajeExito(false)
-            setConflictoAccion(false)
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogTitle>{t('alertas.registrarAccion')}</DialogTitle>
-          <DialogDescription>{alertaSeleccionada?.mensaje}</DialogDescription>
-          <div className="mt-4 space-y-3">
-            <div>
-              <Label htmlFor="accion-decision">{t('alertas.etiquetaDecision')}</Label>
-              <Textarea
-                id="accion-decision"
-                value={decisionAccion}
-                onChange={(e) => setDecisionAccion(e.target.value)}
-                placeholder={t('alertas.decisionPlaceholder')}
-                maxLength={2000}
-                rows={2}
-              />
-            </div>
-            <div>
-              <Label htmlFor="accion-descripcion">{t('alertas.etiquetaAccion')}</Label>
-              <Textarea
-                id="accion-descripcion"
-                value={descripcionAccion}
-                onChange={(e) => setDescripcionAccion(e.target.value)}
-                placeholder={t('alertas.descripcionAccionPlaceholder')}
-                maxLength={2000}
-                aria-describedby="accion-ayuda"
-              />
-              <p id="accion-ayuda" className="mt-1 text-xs text-faint">
-                {t('alertas.descripcionAccionAyuda')}
-              </p>
-            </div>
-            <div>
-              <Label htmlFor="accion-justificacion">{t('alertas.etiquetaJustificacion')}</Label>
-              <Textarea
-                id="accion-justificacion"
-                value={justificacionAccion}
-                onChange={(e) => setJustificacionAccion(e.target.value)}
-                placeholder={t('alertas.justificacionPlaceholder')}
-                maxLength={2000}
-                rows={2}
-              />
-            </div>
-            {mensajeExito && (
-              <p
-                role="status"
-                className="rounded-(--radius-field) bg-success-100 px-3 py-2 text-[13px] text-success-700"
-              >
-                {t('alertas.accionRegistrada')}
-              </p>
-            )}
-            {conflictoAccion && (
-              <p
-                role="alert"
-                className="rounded-(--radius-field) bg-critical-tint px-3 py-2 text-[13px] text-critical"
-              >
-                {t('alertas.conflictoEstado')}
-              </p>
-            )}
-            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-              <Button
-                variant="ghost"
-                onClick={() => setAlertaSeleccionada(null)}
-                disabled={guardandoAccion}
-              >
-                {t('comunes.cancelar')}
-              </Button>
-              <Button
-                onClick={() => void guardarAccion()}
-                disabled={guardandoAccion || !accionCompleta}
-              >
-                {guardandoAccion ? t('alertas.guardando') : t('alertas.guardarAccion')}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── HU-23 criterio 4: cronología de atención (solo lectura) ──────── */}
-      <Dialog open={alertaDetalle !== null} onOpenChange={(abierto) => !abierto && setAlertaDetalle(null)}>
-        <DialogContent>
-          <DialogTitle>{t('alertas.cicloAtencion')}</DialogTitle>
-          <DialogDescription>{alertaDetalle?.mensaje}</DialogDescription>
-          {alertaDetalle && (
-            <>
-            <dl className="mt-5 grid grid-cols-1 gap-4 border-y border-border py-4 text-sm min-[420px]:grid-cols-2">
-              <div>
-                <dt className="text-xs text-muted">{t('historial.dispositivo')}</dt>
-                <dd className="nums mt-1 font-medium">{alertaDetalle.device_id}</dd>
+            <div ref={listaRef} className="superficie overflow-hidden">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border p-2 sm:min-h-12 sm:px-3 sm:py-1.5">
+                <Segmentado
+                  etiqueta={t('alertas.filtroEstado')}
+                  valor={filtro}
+                  onCambiar={cambiarFiltro}
+                  opciones={FILTROS.map((opcion) => ({
+                    valor: opcion,
+                    etiqueta: t(`alertas.filtro.${opcion}`),
+                    conteo: conteos[opcion] ?? null,
+                    descripcionConteo:
+                      conteos[opcion] != null ? t('alertas.filtroConteo', { count: conteos[opcion] }) : undefined,
+                  }))}
+                  className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
+                  botonClassName="px-1.5 text-xs sm:px-3 sm:text-[13px]"
+                />
+                <p className="hidden pr-1 text-meta text-faint sm:block">
+                  {ordenEsTriage(filtro) ? t('alertas.ordenUrgencia') : t('alertas.ordenReciente')}
+                </p>
               </div>
-              <div>
-                <dt className="text-xs text-muted">{t('historial.riesgo')}</dt>
-                <dd className="mt-1"><RiskBadge nivel={alertaDetalle.nivel_riesgo} /></dd>
-              </div>
-              {alertaDetalle.iniciada_en && (
-                <div>
-                  <dt className="text-xs text-muted">{t('alertas.inicioExcursion')}</dt>
-                  <dd className="nums mt-1">{fechaHora(alertaDetalle.iniciada_en)}</dd>
-                </div>
-              )}
-            </dl>
-            <EvidenciaAlerta alerta={alertaDetalle} />
-            </>
-          )}
-          <ol className="mt-3 max-h-96 space-y-5 overflow-y-auto border-l border-border pl-4 [&>li]:relative [&>li]:before:absolute [&>li]:before:-left-[21px] [&>li]:before:top-1 [&>li]:before:size-2 [&>li]:before:rounded-full [&>li]:before:bg-primary">
-            {alertaDetalle?.created_at && (
-              <li>
-                <p className="text-[13px] font-medium">{t('alertas.eventoCreada')}</p>
-                <p className="nums text-xs text-faint">{fechaHora(alertaDetalle.created_at)}</p>
-              </li>
-            )}
-            {alertaDetalle?.reconocida_en && (
-              <li>
-                <p className="text-[13px] font-medium">{t('alertas.eventoReconocida')}</p>
-                <p className="nums text-xs text-faint">{fechaHora(alertaDetalle.reconocida_en)}</p>
-                {alertaDetalle.revisada_por && (
-                  <p className="nums text-xs text-muted">
-                    {t('alertas.responsable')}: {alertaDetalle.revisada_por_nombre ?? alertaDetalle.revisada_por}
-                  </p>
-                )}
-              </li>
-            )}
-            {cargandoCiclo ? (
-              <li className="text-sm text-muted">{t('app.cargando')}</li>
-            ) : errorCiclo ? (
-              <li role="alert" className="text-sm text-critical">{t('comunes.error')}</li>
-            ) : (
-              ciclo.map((accion) => (
-                <li key={accion.id}>
-                  <p className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
-                    {accion.corrige_accion_id ? t('alertas.eventoRectificada') : t('alertas.eventoAtendida')}
-                    {accion.vigente === false && <Badge variant="outline">{t('alertas.rectificada')}</Badge>}
-                  </p>
-                  <p className="nums text-xs text-faint">{fechaHora(accion.created_at)}</p>
-                  <p className="nums text-xs text-muted">
-                    {t('alertas.responsable')}: {accion.usuario_nombre ?? accion.usuario_id}
-                  </p>
-                  {accion.corrige_accion_id && (
-                    <p className="text-xs text-muted">
-                      {t('alertas.rectificaA', { fecha: fechaDeAccion(accion.corrige_accion_id) })}
-                    </p>
-                  )}
-                  <p className={cn('mt-1 text-[13px]', accion.vigente === false ? 'text-muted' : 'text-foreground')}>
-                    {accion.descripcion}
-                  </p>
-                  {accion.decision && (
-                    <p className="mt-1 text-xs text-muted">
-                      {t('alertas.etiquetaDecision')}: {accion.decision}
-                    </p>
-                  )}
-                  {accion.justificacion && (
-                    <p className="mt-1 text-xs text-muted">
-                      {t('alertas.etiquetaJustificacion')}: {accion.justificacion}
-                    </p>
-                  )}
-                  {accion.motivo_rectificacion && (
-                    <p className="mt-1 text-xs text-muted">
-                      {t('alertas.motivo')}: {accion.motivo_rectificacion}
-                    </p>
-                  )}
-                  {puedeRectificar(accion) && accionARectificar?.id !== accion.id && (
-                    <Button size="sm" variant="ghost" className="mt-1" onClick={() => abrirRectificacion(accion)}>
-                      <PencilLine />
-                      {t('alertas.rectificar')}
+
+              {errorCarga ? (
+                <div className="p-3">
+                  <EstadoError mensaje={t('alertas.errorCargar')}>
+                    <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
+                      {t('comunes.reintentar')}
                     </Button>
-                  )}
-                  {accionARectificar?.id === accion.id && (
-                    <div className="mt-2 space-y-2 rounded-(--radius-field) border border-border p-3">
-                      <p className="text-xs text-muted">{t('alertas.rectificarAyuda')}</p>
-                      <div>
-                        <Label htmlFor="rectificacion-texto">{t('alertas.nuevaDescripcion')}</Label>
-                        <Textarea
-                          id="rectificacion-texto"
-                          value={textoRectificacion}
-                          onChange={(e) => setTextoRectificacion(e.target.value)}
-                          maxLength={2000}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="rectificacion-motivo">{t('alertas.motivoRectificacion')}</Label>
-                        <Textarea
-                          id="rectificacion-motivo"
-                          value={motivoRectificacion}
-                          onChange={(e) => setMotivoRectificacion(e.target.value)}
-                          maxLength={500}
-                          aria-describedby="rectificacion-motivo-ayuda"
-                        />
-                        <p id="rectificacion-motivo-ayuda" className="mt-1 text-xs text-faint">
-                          {t('alertas.motivoRectificacionAyuda')}
-                        </p>
-                      </div>
-                      {errorRectificacion && (
-                        <p role="alert" className="text-xs text-critical">
-                          {t(`alertas.errorRectificacion.${errorRectificacion}`)}
-                        </p>
+                  </EstadoError>
+                </div>
+              ) : !cargando && ordenadas.length === 0 ? (
+                <VacioAlertas
+                  filtro={filtro}
+                  revisadas={resumen?.revisadas ?? 0}
+                  ultimaAtendida={ultimaAtendida}
+                  incidentesActivos={incidentesActivos ?? 0}
+                  onFiltro={cambiarFiltro}
+                />
+              ) : (
+                <>
+                  <div key={filtro} className="animate-(--animate-fade)">
+                    <Table
+                      variante="embebida"
+                      mobileLayout="stack"
+                      className="min-w-0"
+                      titulo={t('alertas.titulo')}
+                      cargando={cargando}
+                    >
+                      <TableHeader className="bg-surface-sunken">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="h-9 pr-3 pl-4 font-medium text-muted sm:pr-3 sm:pl-4">{t('alertas.columnaAlerta')}</TableHead>
+                          <TableHead className="hidden h-9 w-36 px-3 font-medium text-muted sm:px-3 md:table-cell">
+                            {t('alertas.columnaExcursion')}
+                          </TableHead>
+                          <TableHead className="h-9 w-px pr-4 pl-3 text-right font-medium text-muted sm:pr-4 sm:pl-3">{t('alertas.acciones')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cargando ? (
+                          <FilasCargando puedeReconocer={puedeReconocer} puedeRegistrar={puedeRegistrarAccion} />
+                        ) : (
+                          visibles.map((alerta, indice) => (
+                            <FilaAlerta
+                              key={alerta.id}
+                              alerta={alerta}
+                              filtro={filtro}
+                              puedeReconocer={puedeReconocer}
+                              puedeRegistrar={puedeRegistrarAccion}
+                              seleccionada={panel?.alerta.id === alerta.id}
+                              revisando={revisando.has(alerta.id)}
+                              nueva={nuevos.has(alerta.id)}
+                              indice={indice}
+                              onRevisar={revisar}
+                              onAbrir={abrirPanel}
+                            />
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {!cargando && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 [&>*]:mt-0">
+                      <Paginacion total={ordenadas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+                      {limiteAlcanzado && (
+                        <p className="text-meta text-faint">{t('alertas.limiteResultados', { limite: 200 })}</p>
                       )}
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setAccionARectificar(null)}
-                          disabled={guardandoRectificacion}
-                        >
-                          {t('comunes.cancelar')}
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => void guardarRectificacion()}
-                          disabled={
-                            guardandoRectificacion ||
-                            textoRectificacion.trim().length === 0 ||
-                            motivoRectificacion.trim().length < 10
-                          }
-                        >
-                          {guardandoRectificacion ? t('alertas.guardando') : t('alertas.guardarRectificacion')}
-                        </Button>
-                      </div>
                     </div>
                   )}
-                </li>
-              ))
-            )}
-            {!cargandoCiclo && !errorCiclo && ciclo.length === 0 && (
-              <li className="text-sm text-muted">{t('alertas.sinAcciones')}</li>
-            )}
-          </ol>
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <Link to="/historial" onClick={() => setAlertaDetalle(null)} className="text-sm font-medium text-primary underline decoration-primary/40 underline-offset-4 transition-colors duration-(--duration-micro) hover:decoration-primary">
-              {t('nav.historial')}
-            </Link>
-            <Button variant="ghost" onClick={() => setAlertaDetalle(null)}>
-              {t('comunes.cerrar')}
-            </Button>
+                </>
+              )}
+            </div>
+
+            <AtendidasRecientes
+              alertas={atendidas.alertas}
+              cantidad={mostrarAtendidas}
+              ahora={ahora}
+              onVerAtendidas={() => cambiarFiltro('atendida')}
+              onCronologia={abrirCronologia}
+              conAccion={ordenadas.length > 0}
+            />
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
 
-/**
- * HU-54 / A-3: incidentes SIN_DATOS como alerta OPERATIVA, distinta de las
- * térmicas: el nodo dejó de reportar, no hay temperatura que clasificar.
- * Sección secundaria y discreta, debajo de la lista principal; la explicación
- * larga queda plegada.
- */
-function IncidentesOperativos() {
-  const { t } = useTranslation()
-  const { incidentes, cargando, errorCarga } = useIncidentesOperativos()
-  // Sin incidentes (o si el historial no responde) no se muestra; el estado
-  // operativo en vivo sigue en el dashboard.
-  if (cargando || errorCarga || incidentes.length === 0) return null
+          <aside
+            aria-label={t('alertas.rail.region')}
+            className="grid grid-cols-1 content-start gap-3 md:grid-cols-2 xl:sticky xl:top-[calc(var(--alto-cabecera)+24px)] xl:col-span-4 xl:grid-cols-1 xl:gap-4 xl:self-start 2xl:col-span-3"
+          >
+            <IncidentesOperativos
+              incidentes={incidentes}
+              cargando={incidentesConsulta.cargando}
+              errorCarga={incidentesConsulta.errorCarga}
+              onReintentar={() => void incidentesConsulta.consultar()}
+              ahora={ahora}
+            />
+            <Cinta24hAlertas cintas={cintas} cargando={estadoResumen === 'cargando' && atendidas.estado === 'cargando'} />
+          </aside>
+        </div>
 
-  return (
-    <section aria-labelledby="incidentes-operativos-titulo" className="tarjeta-cristal mt-8 rounded-(--radius-card) border">
-      <h2 id="incidentes-operativos-titulo" className="flex items-center gap-3 border-b border-border px-4 py-3.5 text-[15px] leading-6 font-semibold tracking-tight text-foreground sm:px-5">
-        {t('alertas.incidentesOperativos')}
-      </h2>
-      <ul className="divide-y divide-border">
-        {incidentes.map((incidente) => (
-          <li key={incidente.id} className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1.5 px-4 py-4 text-sm transition-colors duration-(--duration-micro) hover:bg-secondary/[0.03] sm:px-5">
-            <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <span className="nums text-[13px] font-semibold text-foreground">{incidente.device_id}</span>
-                <Badge dot variant={incidente.estado === 'activo' ? 'critical' : 'ok'}>
-                  {t(`alertas.incidenteEstado.${incidente.estado}`)}
-                </Badge>
-                <span className="text-xs text-muted">{t(`alertas.incidenteTipo.${incidente.tipo ?? 'sin_datos'}`)}</span>
-              </p>
-              <p className="mt-1 text-xs leading-5 text-muted">
-                {(incidente.tipo ?? 'sin_datos') === 'sin_datos'
-                  ? t('alertas.incidenteDetectado', {
-                      fecha: fechaHora(incidente.detectado_en),
-                      segundos: incidente.umbral_silencio_segundos,
-                    })
-                  : t('alertas.incidenteAbierto', { fecha: fechaHora(incidente.detectado_en) })}
-                {incidente.tipo === 'excursion_no_verificada' && incidente.detalle?.temperatura_interna != null && (
-                  <> · {t('alertas.incidenteTemperatura', { temperatura: incidente.detalle.temperatura_interna.toFixed(2) })}</>
-                )}
-                {incidente.ultimo_reporte_en && <> · {t('alertas.incidenteUltimoReporte', { fecha: fechaHora(incidente.ultimo_reporte_en) })}</>}
-              </p>
-            </div>
-            <div className="text-xs leading-5 text-muted sm:text-right">
-              {incidente.recuperado_en && <p>{t('alertas.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })}</p>}
-              <p>
-                {incidente.notificado_en
-                  ? t('alertas.incidenteNotificado', { fecha: fechaHora(incidente.notificado_en) })
-                  : t('alertas.incidenteSinAviso')}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <Detalles className="border-t border-border px-4 py-1 sm:px-5">
-        <p className="max-w-[72ch] pb-2 text-[13px] leading-5 text-muted">{t('alertas.incidentesOperativosDetalle')}</p>
-      </Detalles>
-    </section>
+        <p role="status" aria-live="polite" className="sr-only">
+          {anuncio}
+        </p>
+
+        <PanelAlerta
+          alerta={alertaPanel}
+          pestanaInicial={panel?.pestana ?? 'cronologia'}
+          puedeRegistrar={puedeRegistrarAccion}
+          puedeRectificar={puedeRectificar}
+          borradores={borradores.current}
+          onCerrar={cerrarPanel}
+          onDevolverFoco={devolverFoco}
+          registrarAccion={registrar}
+          obtenerCiclo={obtenerCicloAtencion}
+          rectificarAccion={rectificarAccion}
+        />
+      </div>
+    </TooltipProvider>
   )
 }

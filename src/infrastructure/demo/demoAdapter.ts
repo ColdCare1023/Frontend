@@ -768,6 +768,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'get' && url === '/api/trazabilidad') {
     let registros = [...estadoDemo.trazabilidad].reverse()
     if (params.tipo_evento) registros = registros.filter((r) => r.tipo_evento === params.tipo_evento)
+    if (params.device_id) registros = registros.filter((r) => r.device_id === params.device_id)
     return responder(config, registros.slice(0, Number(params.limite ?? 200)))
   }
   const aislar = /^\/api\/trazabilidad\/corrupcion\/([^/]+)\/aislar$/.exec(url)
@@ -785,13 +786,28 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const desde = params.fecha_desde ?? new Date(0).toISOString()
     const hasta = params.fecha_hasta ?? new Date().toISOString()
     const enRango = (ts: string | null) => ts !== null && ts >= desde && ts <= hasta
+    // Igual que el backend: filtra por equipo y corta cada colección en el
+    // límite, declarándolo en las banderas de truncado.
+    const equipo = params.device_id
+    const delEquipo = (id: string | null | undefined) => !equipo || id === equipo
+    const LIMITE = 10000
+    const lecturas = estadoDemo.lecturas.filter((l) => enRango(l.timestamp) && delEquipo(l.device_id))
+    const alertas = estadoDemo.alertas.filter((a) => enRango(a.created_at) && delEquipo(a.device_id))
+    const registros = estadoDemo.trazabilidad.filter(
+      (r) => enRango(r.timestamp) && delEquipo((r as { device_id?: string | null }).device_id),
+    )
     return responder(config, {
-      device_id: params.device_id ?? null,
+      device_id: equipo ?? null,
       fecha_desde: desde,
       fecha_hasta: hasta,
-      lecturas: estadoDemo.lecturas.filter((l) => enRango(l.timestamp)),
-      alertas: estadoDemo.alertas.filter((a) => enRango(a.created_at)),
-      registros_trazabilidad: estadoDemo.trazabilidad.filter((r) => enRango(r.timestamp)),
+      lecturas: lecturas.slice(0, LIMITE),
+      alertas: alertas.slice(0, LIMITE),
+      registros_trazabilidad: registros.slice(0, LIMITE),
+      truncado: lecturas.length > LIMITE || alertas.length > LIMITE || registros.length > LIMITE,
+      lecturas_truncadas: lecturas.length > LIMITE,
+      alertas_truncadas: alertas.length > LIMITE,
+      trazabilidad_truncada: registros.length > LIMITE,
+      limite_por_coleccion: LIMITE,
     })
   }
 
@@ -1277,6 +1293,12 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     if (estadoDemo.usuarios.some((u) => u.email === email)) {
       fallar(config, 409, 'Ya existe un usuario con ese correo')
     }
+    // Misma política que `PasswordNueva` del backend.
+    const password = String(cuerpo.password ?? '')
+    if (password.length < 10 || !/\p{L}/u.test(password) || !/\d/.test(password)) {
+      fallar(config, 422, 'La contraseña debe tener al menos 10 caracteres, con letras y números')
+    }
+    const telefono = typeof cuerpo.telefono === 'string' && cuerpo.telefono ? `${cuerpo.telefono.slice(0, 3)}••••••${cuerpo.telefono.slice(-3)}` : null
     const nuevo = {
       id: `u-vivo-${Date.now()}`,
       nombre: String(cuerpo.nombre ?? ''),
@@ -1285,9 +1307,12 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       is_active: true,
       motivo_desactivacion: null,
       desactivado_en: null,
+      debe_cambiar_password: true,
+      telefono,
     }
     estadoDemo.usuarios.unshift(nuevo)
-    return responder(config, nuevo, 201)
+    // La demo «envía» el correo de activación: el alta lo informa.
+    return responder(config, { ...nuevo, codigo_activacion_emitido: true }, 201)
   }
   const desactivarUsuario = /^\/api\/usuarios\/([^/]+)\/desactivar$/.exec(url)
   if (metodo === 'patch' && desactivarUsuario) {

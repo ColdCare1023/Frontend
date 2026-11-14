@@ -25,7 +25,12 @@ export function useIndicador(contenedor: RefObject<HTMLElement | null>, clave: u
     if (!raiz) return
     const medir = () => {
       const activo = raiz.querySelector<HTMLElement>('[data-activo]')
-      if (!activo) return
+      // Sin opción activa (p. ej. un periodo que no coincide con ningún
+      // atajo), el indicador se oculta en vez de quedarse en la anterior.
+      if (!activo) {
+        setMedida((previa) => (previa.ancho === 0 ? previa : { ...previa, ancho: 0 }))
+        return
+      }
       const siguiente = { izquierda: activo.offsetLeft, ancho: activo.offsetWidth, total: raiz.offsetWidth }
       setMedida((previa) =>
         previa.izquierda === siguiente.izquierda && previa.ancho === siguiente.ancho && previa.total === siguiente.total

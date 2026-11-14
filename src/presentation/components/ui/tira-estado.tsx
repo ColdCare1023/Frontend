@@ -11,6 +11,8 @@ export interface SegmentoTira {
   /** El tono acompaña al valor con un icono de forma propia; nunca solo color. */
   tono?: TonoSegmento
   detalle?: React.ReactNode
+  /** Clases del segmento (p. ej. ocultarlo bajo cierto ancho). */
+  className?: string
 }
 
 const VALOR: Record<TonoSegmento, string> = {
@@ -48,11 +50,14 @@ export function TiraEstado({
           </p>
         )}
         <dl className="contents">
-          {segmentos.map(({ clave, etiqueta: texto, valor, tono = 'neutro', detalle }) => (
+          {segmentos.map(({ clave, etiqueta: texto, valor, tono = 'neutro', detalle, className: claseSegmento }) => (
             <div
               key={clave}
               data-tono={tono}
-              className="flex min-h-16 min-w-0 flex-[1_1_8rem] flex-col justify-center border-t border-l border-border px-4 py-2.5 sm:flex-none"
+              className={cn(
+                'flex min-h-16 min-w-0 flex-[1_1_8rem] flex-col justify-center border-t border-l border-border px-4 py-2.5 sm:flex-none',
+                claseSegmento,
+              )}
             >
               <dt className="truncate text-meta font-medium text-muted">{texto}</dt>
               <dd className={cn('nums flex items-center gap-1.5 text-page', VALOR[tono])}>

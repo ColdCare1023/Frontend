@@ -227,7 +227,87 @@
     "iaExperimentalDetalle": "Clase del modelo legado, entrenado con datos simulados: no abre alertas preventivas.",
     "sinClasificacionIa": "Sin clasificación IA",
     "sinClasificacionIaDetalle": "El estado Normal lo determina solo la regla de rango 2-8 °C; el modelo no clasificó esta lectura.",
-    "excursionNoVerificada": "Excursión crítica de origen no verificado: {{temperatura}} °C ({{fecha}}). Compruebe el refrigerador con el termómetro de respaldo."
+    "excursionNoVerificada": "Excursión crítica de origen no verificado: {{temperatura}} °C ({{fecha}}). Compruebe el refrigerador con el termómetro de respaldo.",
+    "encabezadoMeta_one": "{{count}} equipo monitoreado",
+    "encabezadoMeta_other": "{{count}} equipos monitoreados",
+    "lineaEstado": {
+      "todoEnOrden": "Todo en orden: sin alertas pendientes y {{reportando}} de {{total}} equipos reportando.",
+      "equipoSinDatos": "{{equipo}} sin datos desde las {{hora}}",
+      "equiposSinDatos_one": "{{count}} de {{total}} equipos sin datos",
+      "equiposSinDatos_other": "{{count}} de {{total}} equipos sin datos",
+      "equipoFalla": "{{equipo}}: falla de sensor",
+      "calibracionVencida": "Calibración vencida: {{equipo}}",
+      "calibracionPorVencer": "Calibración por vencer: {{equipo}}",
+      "revisarAlertas": "Revisar alertas",
+      "verEquipo": "Ver equipo",
+      "alertasNoDisponibles": "No pudimos comprobar las alertas pendientes."
+    },
+    "haceSegundos": "hace {{s}} s",
+    "extremosVentana": "Mín. {{min}} · Máx. {{max}} · {{ventana}}",
+    "reglaEtiqueta": "{{valor}} °C en la escala de 0 a 10 °C; rango esperado de 2 a 8 °C. Mínima {{min}} °C y máxima {{max}} °C en {{ventana}}.",
+    "reglaSinValor": "Sin lectura para ubicar en la escala de 0 a 10 °C.",
+    "ventanaFrase": {
+      "1": "la última hora",
+      "24": "las últimas 24 h",
+      "168": "los últimos 7 días"
+    },
+    "condicionesTitulo": "Condiciones",
+    "ambienteCorto": "Ambiente",
+    "humedadCorta": "Humedad",
+    "aperturasVentana_one": "{{count}} apertura en {{ventana}}",
+    "aperturasVentana_other": "{{count}} aperturas en {{ventana}}",
+    "detalles": "Detalles",
+    "bufferTitulo": "Buffer local",
+    "bufferSincronizado": "Sincronizado {{hora}}",
+    "bufferAnillo": "Buffer local: {{n}} de {{max}} lecturas pendientes",
+    "calibracionTitulo": "Calibración",
+    "calibracionVigenteHasta": "Vigente hasta {{fecha}}",
+    "calibracionVencidaCorta": "Vencida el {{fecha}}",
+    "calibracionPorVencerCorta": "Vence el {{fecha}}",
+    "calibracionSinRegistro": "Sin registrar",
+    "ultimoReporteCorto": "Último reporte {{hora}}",
+    "vistaCurva": "Vista de la curva",
+    "vistaGrafica": "Gráfica",
+    "vistaLista": "Lista",
+    "resumenCurva": "En {{ventana}}: mínima {{min}} °C, máxima {{max}} °C, promedio {{prom}} °C y {{fuera}} lecturas fuera de 2–8 °C.",
+    "curvaSinLecturas": "Sin lecturas en {{ventana}}.",
+    "equiposResumen_one": "{{count}} equipo · {{problemas}} con incidencias",
+    "equiposResumen_other": "{{count}} equipos · {{problemas}} con incidencias",
+    "cinta": {
+      "operativo": "Con datos",
+      "sin_datos": "Sin datos",
+      "perdida": "Lecturas perdidas",
+      "falla_sensor": "Falla de sensor",
+      "suspendido": "Monitoreo suspendido",
+      "sin_registro": "Sin registrar"
+    },
+    "cintaEtiqueta": "Últimas 24 h de {{equipo}}: {{porcentaje}} % con datos.{{detalle}}",
+    "cintaTramo": "{{estado}} de {{desde}} a {{hasta}}.",
+    "cintaTooltip": "{{desde}}–{{hasta}} · {{estado}}",
+    "cintaInicio": "−24 h",
+    "cintaMedio": "−12 h",
+    "disponibilidad": "{{porcentaje}} % con datos",
+    "mostrarEnMonitoreo": "Mostrar {{equipo}} en el monitoreo",
+    "verDetallesEquipo": "Detalles de {{equipo}}",
+    "sinIncidentes7d": "Sin incidentes recientes.",
+    "alertasTitulo": "Alertas pendientes",
+    "todoEnOrden": "Todo en orden",
+    "todoEnOrdenDetalle": "No hay alertas sin atender.",
+    "ultimaAtendida": "Última atendida: {{fecha}} · {{equipo}}",
+    "verTodasAlertas": "Ver todas las alertas",
+    "alertaPico": "Pico {{temp}} °C",
+    "alertaReconocida": "Reconocida",
+    "alertasError": "No pudimos cargar las alertas.",
+    "recientesVacio": "Aún no hay lecturas en {{ventana}}.",
+    "simular": "Simular",
+    "simularEtiqueta": "Probar estados del dashboard (demostración)",
+    "demoEtiqueta": "Demostración",
+    "detalleEquipoDescripcion": "Estado operativo, buffer local e incidentes. No incluye el riesgo térmico.",
+    "seccionEstado": "Estado",
+    "seccionConexion": "Conexión",
+    "seccionIncidentes": "Incidentes recientes",
+    "seccionFicha": "Ficha técnica",
+    "gestionarEnDispositivos": "Gestionar en Dispositivos"
   },
   "demo": {
     "accesoRapido": "Acceso de demostración",
@@ -290,7 +370,7 @@
       "aprobada": "Versión aprobada",
       "sin_aprobacion_registrada": "Sin aprobación registrada"
     },
-    "verEvidencia": "Ver origen",
+    "verEvidencia": "Ver origen del riesgo",
     "evidenciaTitulo": "Cómo se obtuvo este riesgo",
     "idLectura": "Código de lectura",
     "evidenciaNoDisponible": "No hay evidencia de clasificación disponible para esta lectura.",
@@ -310,6 +390,96 @@
       "omitida": "Omitida",
       "fallida": "Fallida",
       "modelo_no_disponible": "Modelo no disponible"
+    },
+    "meta": "{{n}} lecturas · {{desde}} – {{hasta}}",
+    "guia": {
+      "enRango": "Todo el periodo se mantuvo en 2–8 °C.",
+      "excursiones_one": "{{count}} excursión en el periodo: duró {{duracion}} en {{equipo}}.",
+      "excursiones_other": "{{count}} excursiones en el periodo; la más larga duró {{duracion}} en {{equipo}}.",
+      "brechas_one": "Sin excursiones; hay {{count}} brecha sin datos.",
+      "brechas_other": "Sin excursiones; hay {{count}} brechas sin datos."
+    },
+    "resumen": {
+      "etiqueta": "Resumen del periodo",
+      "lecturas": "Lecturas",
+      "enRango": "En rango",
+      "minima": "Mínima",
+      "maxima": "Máxima",
+      "excursiones": "Excursiones"
+    },
+    "filtro": {
+      "etiqueta": "Filtrar el historial",
+      "equipo": "Equipo",
+      "resultados_one": "{{count}} lectura",
+      "resultados_other": "{{count}} lecturas",
+      "chipEquipo": "Equipo: {{valor}}",
+      "chipRiesgo": "Riesgo: {{valor}}",
+      "chipPeriodo": "Periodo: {{valor}}",
+      "panelTitulo": "Filtrar el historial"
+    },
+    "curva": {
+      "titulo": "Curva del periodo",
+      "meta": "{{equipo}} · {{n}} lecturas · rango 2–8 °C",
+      "equipo": "Equipo de la curva"
+    },
+    "dia": {
+      "resumen": "{{n}} lecturas · mín {{min}} · máx {{max}} °C",
+      "excursiones_one": "{{count}} excursión",
+      "excursiones_other": "{{count}} excursiones"
+    },
+    "columnas": {
+      "hora": "Hora",
+      "detalle": "Detalle"
+    },
+    "fila": {
+      "verDetalle": "Ver detalle de la lectura de las {{hora}}, {{equipo}}",
+      "ocultarDetalle": "Ocultar detalle de la lectura de las {{hora}}, {{equipo}}"
+    },
+    "detalle": {
+      "conexion": "Conexión",
+      "calidadHora": "Hora del equipo",
+      "calidad": {
+        "synced": "Sincronizada",
+        "backfilled": "Recuperada del buffer",
+        "unsynced": "Sin sincronizar"
+      },
+      "recibida": "Recibida",
+      "retraso": "{{s}} s después de capturarse",
+      "secuencia": "Secuencia y arranque",
+      "origen": "Origen de la clasificación",
+      "origenes": {
+        "random_forest": "Modelo de IA",
+        "salvaguarda_determinista": "Regla de seguridad",
+        "dato_insuficiente": "Datos insuficientes",
+        "fallo_sensor": "Falla de sensor"
+      },
+      "puertaAbiertaDuracion": "Abierta {{duracion}}"
+    },
+    "rail": {
+      "etiqueta": "Contexto del periodo",
+      "porEquipo": "Por equipo",
+      "porEquipoMeta": "Última lectura, mínima y máxima del periodo",
+      "porEquipoValor": "mín {{min}} · prom {{prom}} · máx {{max}} °C",
+      "porEquipoRegla": "{{equipo}}: última {{ultima}} °C; mínima {{min}} °C; máxima {{max}} °C; rango 2–8 °C",
+      "enRango": "{{pct}} en rango",
+      "excursiones": "Excursiones del periodo",
+      "sinExcursiones": "Sin excursiones: todo el periodo en 2–8 °C.",
+      "excursionValor": "{{duracion}} · máx {{max}} °C",
+      "verEnTabla": "Ver en la tabla",
+      "masExcursiones": "y {{n}} más",
+      "brechas": "Brechas sin datos",
+      "sinBrechas": "Registro continuo, sin brechas.",
+      "brechaMayor": "Mayor: {{duracion}} ({{fecha}})",
+      "brechasTotal_one": "{{count}} brecha en {{equipo}}",
+      "brechasTotal_other": "{{count}} brechas en {{equipo}}"
+    },
+    "vacio": {
+      "filtrosTitulo": "Sin lecturas para estos filtros",
+      "filtrosDetalle": "Prueba con otro periodo o quita un filtro.",
+      "ultimaLectura": "Última lectura registrada: {{fecha}}",
+      "sinDatosTitulo": "Aún no hay lecturas registradas",
+      "sinDatosDetalle": "Las lecturas aparecerán cuando un equipo transmita.",
+      "irMonitoreo": "Ir a Monitoreo"
     }
   },
   "alertas": {
@@ -410,7 +580,110 @@
       "reintentandoAyuda": "El proveedor de correo falló; el sistema reintenta ({{intentos}} intento(s)).",
       "no_entregadaAyuda": "Se agotaron los intentos: avise por otro medio.",
       "pendienteAyuda": "Aún no se intentó el envío."
-    }
+    },
+    "actualizado": "Actualizado {{hora}}",
+    "sinConexionVivo": "Sin conexión en vivo · actualizado {{hora}}",
+    "resumen": {
+      "titulo": "Resumen de alertas",
+      "criticasAbiertas": "Críticas abiertas",
+      "incidentesActivos": "Incidentes activos",
+      "atendidas7d": "Atendidas en 7 días",
+      "atencionMedia": "Atención media (7 días)",
+      "noDisponible": "No disponible"
+    },
+    "guia": {
+      "criticas_one": "1 excursión crítica sin atender desde {{fecha}}",
+      "criticas_other": "{{count}} excursiones críticas sin atender; la más antigua desde {{fecha}}",
+      "pendientes_one": "1 alerta pendiente desde {{fecha}}",
+      "pendientes_other": "{{count}} alertas pendientes; la más antigua desde {{fecha}}",
+      "incidentes_one": "Sin alertas pendientes · 1 equipo con incidente operativo activo",
+      "incidentes_other": "Sin alertas pendientes · {{count}} equipos con incidente operativo activo",
+      "revisadas_one": "Sin pendientes · 1 alerta revisada espera su acción correctiva",
+      "revisadas_other": "Sin pendientes · {{count}} alertas revisadas esperan su acción correctiva",
+      "enOrden": "Todo en orden · última alerta atendida {{hace}}",
+      "enOrdenSinHistorial": "Todo en orden · sin alertas abiertas",
+      "error": "No pudimos calcular el resumen; la lista sigue disponible."
+    },
+    "filtroConteo_one": "1 alerta",
+    "filtroConteo_other": "{{count}} alertas",
+    "ordenUrgencia": "Más urgentes primero",
+    "ordenReciente": "Más recientes primero",
+    "columnaAlerta": "Alerta",
+    "columnaExcursion": "Excursión",
+    "revisar": "Revisar",
+    "revisarA": "Revisar alerta de {{equipo}} del {{fecha}}",
+    "revisando": "Revisando…",
+    "revisadaOk": "Revisada",
+    "registrarAccionCorta": "Registrar acción",
+    "registrarAccionA": "Registrar acción correctiva para la alerta de {{equipo}} del {{fecha}}",
+    "cronologiaA": "Ver cronología de atención: {{equipo}}, {{fecha}}",
+    "sinPico": "Sin pico registrado",
+    "errorRevisar": "No se pudo marcar la alerta de {{equipo}} como revisada. Inténtalo de nuevo.",
+    "refrescoError": "No se pudo actualizar la lista. Se muestran los datos de las {{hora}}.",
+    "limiteResultados": "Se muestran las {{limite}} alertas más recientes de este filtro. Para periodos anteriores usa Reportes.",
+    "cerrarAviso": "Cerrar aviso",
+    "anuncio": {
+      "revisada": "Alerta de {{equipo}} marcada como revisada.",
+      "nueva_one": "Nueva alerta: {{riesgo}} en {{equipo}}.",
+      "nueva_other": "{{count}} alertas nuevas."
+    },
+    "panel": {
+      "secciones": "Secciones de la alerta",
+      "tabCronologia": "Cronología",
+      "evidencia": "Evidencia de la excursión",
+      "reglaPico": "Pico de {{valor}} frente al rango 2–8 °C",
+      "sinEvidencia": "Esta alerta es anterior al registro de evidencia (pico, duración e inicio).",
+      "camposObligatorios": "Los tres campos son obligatorios y quedan en el registro.",
+      "faltan": "Falta completar: {{campos}}.",
+      "atajo": "Ctrl + Enter para guardar",
+      "registrada": "Registrada",
+      "errorGuardar": "No se pudo guardar la acción. Tu texto se conserva; inténtalo de nuevo.",
+      "verCronologia": "Ver cronología",
+      "verHistorial": "Ver en Historial",
+      "cargandoCronologia": "Cargando cronología…",
+      "contador": "{{actual}} de {{max}} caracteres",
+      "motivoCorto": "El motivo necesita al menos 10 caracteres.",
+      "descripcionVacia": "La descripción corregida no puede quedar vacía.",
+      "rectificacionGuardada": "Rectificación guardada.",
+      "inicio": "Inicio"
+    },
+    "vacio": {
+      "enOrdenTitulo": "Todo en orden",
+      "enOrdenDetalle": "No hay alertas pendientes de revisión.",
+      "ultimaAtendida": "Última atendida: {{equipo}} · {{fecha}}",
+      "verAtendidas": "Ver atendidas",
+      "verRevisadas_one": "Ver 1 revisada sin acción",
+      "verRevisadas_other": "Ver {{count}} revisadas sin acción",
+      "verPendientes": "Ver pendientes",
+      "verTodas": "Ver todas",
+      "irMonitoreo": "Ir a Monitoreo",
+      "todasDetalle": "Cuando un equipo salga del rango 2–8 °C, la alerta aparecerá aquí.",
+      "incidentes_one": "1 equipo tiene un incidente operativo activo (no es una alerta térmica).",
+      "incidentes_other": "{{count}} equipos tienen un incidente operativo activo (no son alertas térmicas)."
+    },
+    "rail": {
+      "region": "Contexto operativo",
+      "ultimas24h": "Últimas 24 h",
+      "ayuda24h": "Construida con alertas e incidentes; la curva completa está en Historial.",
+      "sinEventos24h": "Sin alertas ni incidentes en las últimas 24 h.",
+      "leyendaCritica": "Crítica",
+      "leyendaPreventiva": "Preventiva",
+      "leyendaSinDatos": "Sin datos",
+      "leyendaSinEventos": "Sin eventos",
+      "ejeInicio": "−24 h",
+      "ejeFin": "Ahora",
+      "resumenCinta": "{{equipo}}: {{criticas}} tramos críticos, {{preventivos}} preventivos y {{sinDatos}} sin datos en 24 h",
+      "incidentesActivos_one": "1 activo",
+      "incidentesActivos_other": "{{count}} activos",
+      "incidentesVacio": "Sin incidentes operativos recientes.",
+      "incidentesError": "No pudimos cargar los incidentes operativos.",
+      "verTodos": "Ver los {{count}}",
+      "verMenos": "Ver menos",
+      "queSon": "¿Qué son?",
+      "atendidasRecientes": "Atendidas recientemente",
+      "atendidaHace": "Atendida {{hace}}"
+    },
+    "incidenteActivoDesde": "Activo desde {{hace}}"
   },
   "trazabilidad": {
     "titulo": "Integridad del historial",
@@ -472,7 +745,116 @@
       "ACCION_CORRECTIVA": "Acción registrada",
       "REPORTE_BPA": "Reporte generado",
       "AUDITORIA": "Acción de usuario",
-      "CONECTIVIDAD": "Cambio de conexión"
+      "CONECTIVIDAD": "Cambio de conexión",
+      "ACCION_CORRECTIVA_RECTIFICADA": "Acción rectificada",
+      "ALERTA_CERRADA": "Alerta cerrada",
+      "ALTA_DISPOSITIVO": "Equipo registrado",
+      "BAJA_HARDWARE": "Equipo dado de baja",
+      "CALIBRACION_SENSORES": "Calibración de sensores",
+      "CHECKLIST_BPA": "Checklist BPA",
+      "AUDIT_LOG": "Acción de usuario",
+      "ACEPTACION_PRIVACIDAD": "Aviso de privacidad aceptado",
+      "RECHAZO_PRIVACIDAD": "Aviso de privacidad rechazado",
+      "DESACTIVACION_USUARIO": "Usuario desactivado",
+      "EMISION_CREDENCIAL_DISPOSITIVO": "Credencial emitida",
+      "ROTACION_CREDENCIAL_DISPOSITIVO": "Credencial rotada",
+      "REVOCACION_CREDENCIAL_DISPOSITIVO": "Credencial revocada",
+      "BROKER_CONSOLA_CONFIRMADA": "Operación del broker confirmada",
+      "BROKER_OPERACION_PENDIENTE": "Operación del broker pendiente",
+      "FIRMWARE_ACTUALIZADO": "Firmware actualizado",
+      "FIRMWARE_OTA_ENVIADA": "Actualización de firmware enviada",
+      "FIRMWARE_OTA_NO_APLICADA": "Actualización de firmware no aplicada",
+      "FIRMWARE_PREPARACION": "Firmware en preparación",
+      "FIRMWARE_ROLLBACK": "Firmware revertido",
+      "INSTALACION_DISPOSITIVO_ACTUALIZADA": "Ubicación actualizada",
+      "RESPONSABLE_DISPOSITIVO_ACTUALIZADO": "Responsable actualizado",
+      "MODELO_IA_VERSION_REGISTRADA": "Versión del modelo registrada",
+      "MODELO_IA_VERSION_ACTIVADA": "Versión del modelo activada",
+      "REGISTRO_AISLADO_CORRUPCION": "Registro aislado por corrupción",
+      "CORRUPCION_CADENA_DETECTADA": "Corrupción de la cadena detectada",
+      "VERIFICACION_INTEGRIDAD": "Verificación de integridad",
+      "DISPOSITIVO_OFFLINE": "Equipo sin conexión",
+      "SIN_DATOS": "Equipo sin datos",
+      "FALLA_SENSOR": "Falla de sensor",
+      "MONITOREO_SUSPENDIDO": "Monitoreo suspendido",
+      "RELOJ_NODO_ADELANTADO": "Reloj del equipo adelantado",
+      "SALTO_RELOJ_NODO": "Salto en el reloj del equipo",
+      "COLISION_CLAVE_DETECTADA": "Colisión de clave detectada"
+    },
+    "meta": "{{n}} registros · {{desde}} – {{hasta}}",
+    "simularDemo": "Simular inconsistencia (demo)",
+    "rail": "Verificación y contexto",
+    "errorVerificar": "No se pudo completar la verificación. Intenta de nuevo.",
+    "limiteVerificaciones": "Alcanzaste el límite de verificaciones por minuto. Espera un momento.",
+    "diferencia": "Los sellos difieren desde el carácter {{n}}.",
+    "veredicto": {
+      "etiqueta": "Estado de la cadena",
+      "sinVerificar": "Sin alertas de integridad",
+      "sinVerificarDetalle": "No hay inconsistencias registradas. Revisa la cadena completa para obtener un resultado actual.",
+      "comprometidaAccion": "Revisa la integridad para ubicar el registro afectado.",
+      "verificandoTitulo": "Verificando la cadena…",
+      "verificada": "Verificada {{tiempo}}",
+      "revisarDeNuevo": "Revisar de nuevo",
+      "verEnTabla": "Ver registro en la tabla",
+      "fueraDeLista": "El registro afectado no está entre los {{n}} registros cargados.",
+      "verTodosLosTipos": "Ver todos los tipos",
+      "aislado": "Registro aislado. Revisa de nuevo para confirmar el estado de la cadena.",
+      "estadoNoDisponible": "No pudimos consultar el estado de la cadena."
+    },
+    "datos": {
+      "registros": "Registros cargados",
+      "verificados": "Registros verificados",
+      "primero": "Primer registro",
+      "ultimo": "Último registro",
+      "ultimaVerificacionEquipo": "Última verificación por equipo",
+      "ninguna": "Ninguna registrada",
+      "integraDesde": "Íntegra desde"
+    },
+    "segmento": {
+      "ultima": "Última: {{device}} · {{fecha}} · {{resultado}}",
+      "queRevisa": "Qué revisa esta verificación",
+      "resultadoIntegro": "sin cambios",
+      "resultadoRoto": "con cambios"
+    },
+    "composicion": {
+      "titulo": "Composición de la cadena",
+      "filtrar": "Ver solo «{{tipo}}»"
+    },
+    "filtro": {
+      "etiqueta": "Filtrar registros",
+      "equipo": "Equipo",
+      "resultados_one": "{{count}} registro",
+      "resultados_other": "{{count}} registros",
+      "chipTipo": "Tipo: {{valor}}",
+      "chipEquipo": "Equipo: {{valor}}"
+    },
+    "dia": {
+      "resumen_one": "{{count}} registro",
+      "resumen_other": "{{count}} registros"
+    },
+    "columnas": {
+      "cadena": "Cadena",
+      "hora": "Hora"
+    },
+    "fila": {
+      "verDetalle": "Ver detalle de «{{evento}}» de las {{hora}}",
+      "ocultarDetalle": "Ocultar detalle de «{{evento}}» de las {{hora}}"
+    },
+    "detalle": {
+      "contenido": "Contenido del registro",
+      "sinContenido": "Sin contenido adicional",
+      "usuario": "Usuario",
+      "codigoEvento": "Código del evento",
+      "verificarEquipoDia": "Verificar este equipo ese día",
+      "enlace": "Enlaza con el sello del registro anterior"
+    },
+    "resumenPayload": {
+      "lectura": "{{temp}} °C · {{riesgo}}",
+      "verificacion": "{{device}} · {{resultado}} · {{n}} bloques"
+    },
+    "vacio": {
+      "filtrosTitulo": "Sin registros para este filtro",
+      "filtrosDetalle": "Elige otro tipo de evento o quita el filtro de equipo."
     }
   },
   "reportes": {
@@ -508,7 +890,45 @@
     "incluyeLecturas": "Lecturas del periodo",
     "incluyeAlertas": "Alertas registradas",
     "incluyeTrazabilidad": "Registros de trazabilidad",
-    "formatosDisponibles": "Formatos disponibles"
+    "formatosDisponibles": "Formatos disponibles",
+    "presets": {
+      "etiqueta": "Periodo rápido",
+      "dias7": "7 días",
+      "dias30": "30 días",
+      "mes": "Este mes"
+    },
+    "cambiarPeriodo": "Cambiar periodo",
+    "todosLosEquipos": "Todos los equipos",
+    "queIncluye": "Qué incluye",
+    "vistaDesactualizada": "La vista previa muestra {{periodo}}. Genera el reporte para ver el periodo editado.",
+    "tiempoEnRango": "Tiempo en 2–8 °C",
+    "tramos": {
+      "enRango": "En rango",
+      "fuera": "Fuera de rango",
+      "sinDatos": "Sin datos"
+    },
+    "tramoValor": "{{tramo}} {{porcentaje}} · {{duracion}}",
+    "barraTiempoAria": "Tiempo en 2–8 °C: {{enRango}}. Fuera de rango: {{fuera}}. Sin datos: {{sinDatos}}.",
+    "calculoParcial": "Calculado solo con los datos recibidos: {{desde}} – {{hasta}}.",
+    "curvaTitulo": "Temperatura interna",
+    "curvaResumen": "Mín. {{minimo}} · Prom. {{promedio}} · Máx. {{maximo}}",
+    "curvaAria": "Temperatura interna del periodo: mínima {{minimo}}, promedio {{promedio}}, máxima {{maximo}}.",
+    "alertasDesglose": {
+      "criticas_one": "{{count}} crítica",
+      "criticas_other": "{{count}} críticas",
+      "preventivas_one": "{{count}} preventiva",
+      "preventivas_other": "{{count}} preventivas",
+      "pendientes_one": "{{count}} pendiente",
+      "pendientes_other": "{{count}} pendientes"
+    },
+    "porEquipo": "Por equipo",
+    "masEquipos_one": "y {{count}} equipo más",
+    "masEquipos_other": "y {{count}} equipos más",
+    "sinLecturas": "No hay lecturas en este periodo.",
+    "sinLecturasDetalle": "Prueba con un periodo más amplio o revisa el código del equipo.",
+    "usar30": "Usar 30 días",
+    "generadoAnuncio": "Reporte generado: {{lecturas}} lecturas, {{alertas}} alertas y {{registros}} registros de trazabilidad.",
+    "descargas": "Descargas"
   },
   "auditoria": {
     "titulo": "Bitácora de auditoría",
@@ -540,7 +960,150 @@
       "LOGIN_EXITOSO": "Inicio de sesión correcto",
       "BLOQUEO_TEMPORAL": "Bloqueo temporal",
       "RBAC_DENEGADO": "Acceso denegado por rol",
-      "USUARIO_CREADO": "Usuario creado"
+      "USUARIO_CREADO": "Usuario creado",
+      "ACCION_CORRECTIVA_REGISTRADA": "Acción correctiva registrada",
+      "LOGOUT": "Cierre de sesión",
+      "LOGIN_GOOGLE_FALLIDO": "Inicio con Google fallido",
+      "UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO": "Límite de intentos superado",
+      "PASSWORD_CAMBIADA": "Contraseña cambiada",
+      "RECUPERACION_PASSWORD_SOLICITADA": "Recuperación de contraseña solicitada",
+      "PASSWORD_RESTABLECIDA_CON_ENLACE": "Contraseña restablecida con enlace",
+      "RESTABLECER_PASSWORD_USUARIO": "Contraseña temporal emitida",
+      "CREAR_USUARIO": "Usuario creado",
+      "DESACTIVAR_USUARIO": "Usuario desactivado",
+      "REACTIVAR_USUARIO": "Usuario reactivado",
+      "CAMBIAR_ROL_USUARIO": "Rol de usuario cambiado",
+      "BIENVENIDA_NOTIFICADA": "Bienvenida enviada",
+      "REVISAR_ALERTA": "Alerta revisada",
+      "REGISTRAR_ACCION_CORRECTIVA": "Acción correctiva registrada",
+      "RECTIFICAR_ACCION_CORRECTIVA": "Acción correctiva rectificada",
+      "EXPORTAR_REPORTE_BPA": "Reporte BPA exportado",
+      "EXPORTAR_REPORTE_BPA_PDF": "Reporte BPA exportado en PDF",
+      "CHECKLIST_BPA_REGISTRADO": "Checklist BPA registrado",
+      "ALTA_DISPOSITIVO": "Equipo registrado",
+      "BAJA_DISPOSITIVO": "Equipo dado de baja",
+      "CALIBRACION_REGISTRADA": "Calibración registrada",
+      "ACTUALIZAR_INSTALACION_DISPOSITIVO": "Ubicación del equipo actualizada",
+      "ACTUALIZAR_RESPONSABLE_DISPOSITIVO": "Responsable del equipo actualizado",
+      "ROTAR_CREDENCIAL_DISPOSITIVO": "Credencial del equipo rotada",
+      "REVOCAR_CREDENCIAL_DISPOSITIVO": "Credencial del equipo revocada",
+      "CREDENCIAL_POSESION_VERIFICADA": "Posesión de credencial verificada",
+      "DESAFIO_POSESION_REENVIADO": "Desafío de posesión reenviado",
+      "BROKER_CONSOLA_CONFIRMADA": "Operación del broker confirmada",
+      "BROKER_OPERACION_PENDIENTE": "Operación del broker pendiente",
+      "INTERVALO_REPORTE_ACTUALIZADO": "Intervalo de reporte actualizado",
+      "DISPOSITIVO_ONLINE": "Equipo en línea",
+      "SIN_DATOS_DETECTADO": "Equipo sin datos",
+      "MONITOREO_SUSPENDIDO_DETECTADO": "Monitoreo suspendido",
+      "EXCURSION_NO_VERIFICADA_DETECTADA": "Excursión sin verificar detectada",
+      "LECTURA_RECHAZADA_TIMESTAMP": "Lectura rechazada por hora",
+      "LECTURA_RECHAZADA_ESQUEMA": "Lectura rechazada por formato",
+      "LECTURA_RECHAZADA_CREDENCIAL_REVOCADA": "Lectura rechazada: credencial revocada",
+      "LECTURA_SIMULADA_RECHAZADA": "Lectura simulada rechazada",
+      "LECTURA_MANUAL_REGISTRADA": "Lectura manual registrada",
+      "LECTURA_CONFLICTO": "Lectura en conflicto",
+      "LECTURA_RETENIDA_ROTACION_COMPROMISO": "Lectura retenida por rotación de credencial",
+      "TELEMETRIA_RETENIDA_ROTACION_COMPROMISO": "Telemetría retenida por rotación de credencial",
+      "EVENTO_RETENIDO_ROTACION_COMPROMISO": "Evento retenido por rotación de credencial",
+      "EVENTO_CREDENCIAL_REVOCADA": "Evento con credencial revocada",
+      "EVENTO_DISPOSITIVO_DADO_DE_BAJA": "Evento de equipo dado de baja",
+      "LWT_OBSOLETO_IGNORADO": "Aviso de desconexión obsoleto ignorado",
+      "REGISTRAR_VERSION_MODELO_IA": "Versión del modelo registrada",
+      "ACTIVAR_VERSION_MODELO_IA": "Versión del modelo activada",
+      "ACTIVAR_VERSION_MODELO_IA_RECHAZADO": "Activación del modelo rechazada",
+      "MODELO_RECHAZADO": "Modelo rechazado",
+      "INTENTO_MODIFICAR_INFERENCIA": "Intento de modificar una inferencia",
+      "CADENA_CORRUPCION_AISLADA": "Registro corrupto aislado",
+      "RETENCION_INTENTOS_SUPRIMIDOS": "Intentos suprimidos por retención"
+    },
+    "meta": "{{n}} acciones · {{desde}} – {{hasta}}",
+    "buscarAccion": "Buscar acción",
+    "usuariosDistintos": "Usuarios distintos",
+    "sinUsuario": "Sin sesión",
+    "guia": {
+      "sinFallos": "Sin intentos fallidos ni denegados en las acciones cargadas.",
+      "fallidos_one": "{{count}} acción fallida o denegada; revisa su origen en el detalle.",
+      "fallidos_other": "{{count}} acciones fallidas o denegadas; revisa su origen en el detalle."
+    },
+    "resultados": {
+      "exitoso": "Exitoso",
+      "fallido": "Fallido",
+      "denegado": "Denegado",
+      "bloqueado": "Bloqueado"
+    },
+    "filtroResultado": {
+      "etiqueta": "Resultado",
+      "todas": "Todas",
+      "fallidas": "Fallidas o denegadas",
+      "bloqueos": "Bloqueos",
+      "ayuda": "Filtra solo las acciones ya cargadas."
+    },
+    "chip": {
+      "accion": "Acción: {{valor}}",
+      "usuario": "Usuario: {{valor}}",
+      "periodo": "Periodo: {{valor}}",
+      "resultado": "Resultado: {{valor}}",
+      "categoria": "Categoría: {{valor}}"
+    },
+    "filtro": {
+      "etiqueta": "Filtrar la bitácora",
+      "resultados_one": "{{count}} acción",
+      "resultados_other": "{{count}} acciones",
+      "panelTitulo": "Filtrar la bitácora"
+    },
+    "actividad": {
+      "titulo": "Actividad de 14 días",
+      "exitosas": "Exitosas",
+      "fallidas": "Fallidas o denegadas",
+      "barra": "{{dia}}: {{total}} acciones, {{fallidas}} fallidas o denegadas. Filtrar este día.",
+      "base": "Según las {{n}} acciones cargadas"
+    },
+    "dia": {
+      "resumen_one": "{{count}} acción",
+      "resumen_other": "{{count}} acciones",
+      "fallidas_one": "{{count}} fallida",
+      "fallidas_other": "{{count}} fallidas"
+    },
+    "columnas": {
+      "hora": "Hora"
+    },
+    "fila": {
+      "verDetalle": "Ver detalle de «{{accion}}» de las {{hora}}",
+      "ocultarDetalle": "Ocultar detalle de «{{accion}}» de las {{hora}}"
+    },
+    "detalle": {
+      "codigo": "Código de la acción",
+      "usuarioCompleto": "Usuario (ID completo)",
+      "contenido": "Detalle registrado",
+      "sinContenido": "Sin detalle adicional",
+      "idRegistro": "ID del registro",
+      "fechaUtc": "Fecha (UTC)",
+      "filtrarUsuario": "Ver solo este usuario",
+      "filtrarAccion": "Ver solo esta acción"
+    },
+    "rail": {
+      "etiqueta": "Contexto de la bitácora",
+      "categorias": "Por categoría",
+      "origenes": "Orígenes más frecuentes",
+      "origenValor_one": "{{count}} acción",
+      "origenValor_other": "{{count}} acciones",
+      "alcance": "Alcance"
+    },
+    "categorias": {
+      "acceso": "Acceso y credenciales",
+      "usuarios": "Usuarios",
+      "equipos": "Equipos",
+      "alertas": "Alertas y acciones",
+      "reportes": "Reportes",
+      "ia": "Modelo de IA",
+      "integridad": "Integridad",
+      "otros": "Otras"
+    },
+    "vacio": {
+      "filtrosTitulo": "Sin acciones para estos filtros",
+      "filtrosDetalle": "Prueba con otro periodo o quita un filtro.",
+      "sinDatosDetalle": "Las acciones de acceso, usuarios y equipos aparecerán aquí.",
+      "actualizar": "Actualizar"
     }
   },
   "usuarios": {
@@ -557,7 +1120,7 @@
     "nombre": "Nombre completo",
     "email": "Correo electrónico",
     "telefono": "Celular (opcional)",
-    "telefonoAyuda": "Formato internacional, p. ej. +51999888777. Recibirá un SMS de bienvenida.",
+    "telefonoAyuda": "Formato internacional, p. ej. +51999888777.",
     "password": "Contraseña",
     "rol": "Rol",
     "crear": "Crear usuario",
@@ -594,7 +1157,50 @@
     "reactivarConfirmar": "{{nombre}} volverá a tener acceso con una contraseña temporal.",
     "copiar": "Copiar",
     "copiado": "Copiado",
-    "confirmar": "Confirmar"
+    "confirmar": "Confirmar",
+    "meta_one": "{{count}} cuenta",
+    "meta_other": "{{count}} cuentas",
+    "guiaPendientes_one": "{{count}} persona aún no elige su contraseña.",
+    "guiaPendientes_other": "{{count}} personas aún no eligen su contraseña.",
+    "guiaTodoEnOrden": "Todas las cuentas activas tienen contraseña propia.",
+    "pendientePassword": "Contraseña pendiente",
+    "motivoFecha": "{{motivo}} · {{fecha}}",
+    "rielEtiqueta": "Contexto de las cuentas",
+    "rielPorRol": "Cuentas activas por rol",
+    "rielPendientes": "Contraseña pendiente",
+    "rielPendientesVacio": "Ninguna cuenta pendiente.",
+    "rielPendientesAyuda": "Si su código venció, puede pedir uno nuevo en «¿Olvidaste tu contraseña?». También puedes restablecer su contraseña.",
+    "rielSinAccesoVacio": "Ninguna cuenta desactivada.",
+    "nuevoDescripcion": "Recibirá un correo para activar su cuenta y elegir su contraseña.",
+    "emailAyuda": "Será su usuario. Ahí recibirá el código de activación.",
+    "rolAyuda": {
+      "administrador": "Gestiona usuarios, equipos y toda la información.",
+      "farmaceutico": "Atiende alertas, registra acciones y genera reportes.",
+      "tecnico": "Revisa el monitoreo, las alertas y el historial de los equipos.",
+      "auditor": "Solo consulta: reportes, métricas y bitácora."
+    },
+    "passwordProvisional": "Contraseña provisional",
+    "passwordProvisionalAyuda": "Al menos 10 caracteres, con letras y números. Solo hace falta si el correo no llega: al activar su cuenta, la persona elige la suya.",
+    "generarPassword": "Generar",
+    "passwordGenerada": "Contraseña generada y visible.",
+    "datosOpcionales": "Datos opcionales",
+    "errorPolitica": "La contraseña no cumple la política: al menos 10 caracteres, con letras y números.",
+    "exito": {
+      "titulo": "Cuenta creada para {{nombre}}",
+      "pasoCorreo": "Correo enviado",
+      "pasoPasswordProvisional": "Contraseña provisional",
+      "pasoCodigo": "Escribe el código",
+      "pasoElegir": "Elige su contraseña",
+      "vence48": "Vence en 48 h",
+      "conCorreo": "Enviamos a {{email}} un código de activación. Vence en 48 horas.",
+      "sinCorreo": "El servidor no tiene el correo configurado. Entrega la contraseña provisional por un canal seguro; deberá cambiarla al ingresar.",
+      "desconocido": "Si el correo está habilitado, {{email}} recibirá un código de activación válido por 48 horas. Si no le llega, entrégale la contraseña provisional.",
+      "codigoVencido": "Si el código vence, puede pedir uno nuevo en «¿Olvidaste tu contraseña?»."
+    },
+    "crearOtro": "Crear otro",
+    "listo": "Listo",
+    "grupoCuenta": "Cuenta",
+    "grupoRiesgo": "Zona de riesgo"
   },
   "privacidad": {
     "titulo": "Aviso de privacidad",
@@ -770,7 +1376,214 @@
     "desafioReenviado": "Desafío reenviado: el nodo se reconectará y deberá probar la credencial nueva.",
     "grupoEquipo": "Equipo",
     "grupoSeguridad": "Seguridad",
-    "grupoDemo": "Demostración"
+    "grupoDemo": "Demostración",
+    "bufferLocal": "Buffer local",
+    "periodoCola": "Periodo en cola",
+    "telemetria": "Telemetría",
+    "lista": {
+      "etiqueta": "Equipos de medición",
+      "columnaEquipo": "Equipo",
+      "columnaLectura": "Lectura actual",
+      "filtrar": "Filtrar equipos",
+      "filtroTodos": "Todos ({{n}})",
+      "filtroAtencion": "Con atención ({{n}})",
+      "filtroBaja": "Dados de baja ({{n}})",
+      "buscar": "Buscar equipos",
+      "buscarMarcador": "Código, nombre o ubicación",
+      "conteoUno": "{{n}} equipo",
+      "conteoVarios": "{{n}} equipos",
+      "sinResultados": "Ningún equipo coincide con el filtro.",
+      "limpiarFiltros": "Limpiar filtros",
+      "vacioDetalle": "Registra el primer nodo ESP32 para empezar a vigilar su refrigerador.",
+      "pasosTitulo": "Cómo se incorpora un equipo",
+      "paso1": "Registra el código único del nodo.",
+      "paso2": "Copia su token: se muestra una sola vez.",
+      "paso3": "Crea el usuario en la consola del broker y confírmalo aquí.",
+      "sinLectura": "Sin lectura todavía",
+      "lecturaDe": "Lectura de las {{hora}}",
+      "dadoDeBajaEl": "Dado de baja el {{fecha}}",
+      "reemplazaA": "Reemplazo: {{id}}",
+      "fueraDeServicio": "Fuera de servicio"
+    },
+    "estadoEquipo": {
+      "normal": "En rango",
+      "preventivo": "Riesgo preventivo",
+      "critico": "Excursión crítica",
+      "sin_datos": "Sin datos",
+      "sin_datos_desde": "Sin datos desde {{hora}}",
+      "sin_conexion": "Sin conexión",
+      "falla_sensor": "Falla de sensor",
+      "retenida": "Telemetría retenida",
+      "esperando": "Esperando primer reporte",
+      "baja": "Dado de baja"
+    },
+    "accionFila": {
+      "confirmar": "Confirmar",
+      "confirmarA": "Confirmar en la consola: {{id}}",
+      "confirmando": "Confirmando…",
+      "reenviar": "Reenviar",
+      "reenviarA": "Reenviar desafío: {{id}}",
+      "reenviando": "Reenviando…",
+      "calibrar": "Calibrar",
+      "calibrarA": "Registrar calibración: {{id}}"
+    },
+    "menu": {
+      "grupoIrA": "Ir a",
+      "calibracion": "Calibración",
+      "ubicacion": "Ubicación y responsable",
+      "configuracion": "Configuración y cambios",
+      "seguridad": "Seguridad y credencial"
+    },
+    "tira": {
+      "enLinea": "{{n}} en línea",
+      "deBaja": "{{n}} de baja",
+      "calibracion": "Calibración",
+      "porAtender": "por atender",
+      "consola": "Consola",
+      "pendientes": "pendientes",
+      "fraseNormal": "Todos los equipos reportan con normalidad · {{n}} en línea",
+      "fraseRetenida": "{{id}}: telemetría retenida hasta confirmar la consola",
+      "fraseSinDatos": "{{n}} de {{total}} equipos sin datos desde las {{hora}}",
+      "fraseSinDatosSinHora": "{{n}} de {{total}} equipos sin datos",
+      "fraseFallaUno": "{{id}} tiene una falla de sensor",
+      "fraseFallaVarios": "{{n}} equipos con falla de sensor",
+      "fraseCalibracion": "Calibración vencida en {{id}}",
+      "fraseConsolaUno": "1 operación pendiente en la consola del broker",
+      "fraseConsolaVarios": "{{n}} operaciones pendientes en la consola del broker"
+    },
+    "rail": {
+      "etiqueta": "Contexto de los equipos",
+      "calibraciones": "Próximas calibraciones",
+      "venceEn": "en {{dias}} días",
+      "venceHoy": "vence hoy",
+      "vencioHace": "venció hace {{dias}} días",
+      "sinCertificado": "Sin certificado",
+      "buffer": "Buffer local (LittleFS)",
+      "bufferPendientes": "{{n}} / {{max}} pendientes",
+      "sinEstadoNodo": "Sin estado del nodo",
+      "sincronizado": "Sincronizado {{fecha}}",
+      "sinActivos": "No hay equipos activos."
+    },
+    "detalle": {
+      "volver": "Equipos",
+      "secciones": "Secciones del equipo",
+      "noEncontradoTitulo": "No encontramos el equipo {{id}}",
+      "noEncontradoDetalle": "Revisa el código o vuelve a la lista de equipos.",
+      "volverLista": "Volver a equipos",
+      "fueraDeServicio": "Equipo fuera de servicio: se muestra su último dato.",
+      "guia": {
+        "normal": "Temperatura dentro de 2–8 °C · reporta cada {{s}} s",
+        "sin_datos": "Sin datos desde {{hora}} · el nodo guarda {{n}} lecturas en su buffer",
+        "sin_conexion": "Sin conexión desde {{hora}}",
+        "retenida": "Telemetría retenida: confirma la consola y espera la prueba de posesión.",
+        "falla_sensor": "Falla de sensor: revisa el {{sensor}}.",
+        "critico": "Fuera de 2–8 °C: revisa la alerta pendiente.",
+        "preventivo": "Cerca del límite de 2–8 °C.",
+        "esperando": "Esperando el primer reporte del nodo.",
+        "baja": "Dado de baja el {{fecha}}."
+      }
+    },
+    "tabs": {
+      "monitoreo": "Monitoreo",
+      "historial": "Historial",
+      "calibracion": "Calibración",
+      "ubicacion": "Ubicación y responsable",
+      "configuracion": "Configuración y cambios",
+      "seguridad": "Seguridad"
+    },
+    "monitoreo": {
+      "temperaturaInterna": "Temperatura interna",
+      "extremos24h": "Mín {{min}} · Máx {{max}} en 24 h",
+      "equipo": "Equipo",
+      "conexion": "Conexión",
+      "brechas": "Brechas de telemetría",
+      "brecha": "{{desde}} – {{hasta}} · {{n}} muestras perdidas",
+      "ultimas24h": "Últimas 24 h",
+      "cintaNoDisponible": "Historial de 24 h no disponible.",
+      "ahora": "ahora",
+      "minimo": "Mín",
+      "maximo": "Máx",
+      "promedio": "Promedio",
+      "enRango": "En rango 2–8 °C",
+      "interna": "Interna",
+      "ambiente": "Ambiente",
+      "humedad": "Humedad",
+      "riesgo": "Riesgo"
+    },
+    "historialTab": {
+      "resumen": "Resumen de las últimas lecturas",
+      "lecturas": "Últimas lecturas",
+      "abrirHistorial": "Abrir en Historial"
+    },
+    "calibracionTab": {
+      "certificado": "Certificado de calibración",
+      "diasRestantes": "días restantes",
+      "vencidaHace": "Vencida hace {{dias}} días",
+      "avisoDesde": "Aviso desde {{fecha}}",
+      "anteriores": "Calibraciones anteriores",
+      "sinAnteriores": "Sin calibraciones anteriores",
+      "queRegistrar": "Ten a mano el certificado del laboratorio, la fecha, el vencimiento y el margen de aviso."
+    },
+    "ubicacionTab": {
+      "editar": "Editar",
+      "editarUbicacionA": "Editar ubicación de {{id}}",
+      "editarResponsableA": "Editar responsable de {{id}}",
+      "cambios": "Cambios de ubicación y responsable",
+      "sinResponsable": "Sin responsable registrado: los avisos de excursión crítica no tendrán destinatario."
+    },
+    "configuracionTab": {
+      "nodo": "Nodo",
+      "registrado": "Registrado",
+      "ultimoLatido": "Último latido",
+      "filtroTodos": "Todos",
+      "filtroCalibracion": "Calibración",
+      "filtroUbicacion": "Ubicación",
+      "filtroResponsable": "Responsable"
+    },
+    "campos": {
+      "fecha_ultima_calibracion": "Última calibración",
+      "numero_certificado_calibracion": "N.° de certificado",
+      "fecha_proxima_calibracion": "Próxima calibración",
+      "margen_aviso_calibracion_dias": "Margen de aviso",
+      "observaciones_calibracion": "Observaciones de calibración",
+      "ubicacion": "Ubicación",
+      "fecha_instalacion": "Fecha de instalación",
+      "observaciones_instalacion": "Observaciones de instalación",
+      "responsable_nombre": "Responsable",
+      "responsable_email": "Correo del responsable",
+      "responsable_telefono": "Teléfono del responsable",
+      "intervalo_reporte_segundos": "Intervalo de reporte"
+    },
+    "seguridadTab": {
+      "actualizadaEl": "Actualizada el {{fecha}}",
+      "consola": "Consola del broker",
+      "sinPendientes": "Sin operaciones pendientes en la consola.",
+      "ultimaConfirmacion": "Última confirmación: {{fecha}}",
+      "tokenListo": "Listo, ya lo guardé",
+      "zonaRiesgo": "Zona de riesgo",
+      "zonaRiesgoDetalle": "Acciones que cortan el monitoreo del equipo. Quedan en la auditoría.",
+      "revocarFila": "Revocar credencial MQTT",
+      "revocarBoton": "Revocar credencial…",
+      "yaRevocada": "Credencial revocada el {{fecha}}.",
+      "bajaFila": "Dar de baja el equipo",
+      "bajaFilaDetalle": "El histórico de lecturas y trazabilidad se conserva.",
+      "bajaBoton": "Dar de baja…",
+      "yaDadoDeBaja": "Dado de baja el {{fecha}} · {{motivo}}"
+    },
+    "registro": {
+      "paso": "Paso {{n}} de 2",
+      "pasoDatos": "Datos del equipo",
+      "pasoCredencial": "Credencial",
+      "irAlEquipo": "Ir al equipo"
+    },
+    "simulador": {
+      "estadoActual": "Estado actual",
+      "ayudaSinDatos": "El nodo deja de reportar; aparece «Sin datos» tras el umbral.",
+      "ayudaBuffer": "El nodo acumula lecturas en LittleFS.",
+      "ayudaPerdida": "El buffer se llena y se registra una brecha.",
+      "ayudaSensor": "El DS18B20 deja de medir.",
+      "ayudaRecuperacion": "El nodo reenvía lo pendiente y recibe el ACK."
+    }
   },
   "comunes": {
     "errorCargar": "No pudimos cargar los datos. Intenta de nuevo.",
@@ -807,7 +1620,36 @@
     "ocultarDetalles": "Ocultar detalles",
     "sinPermisoTitulo": "Acceso restringido",
     "sinPermisoRol": "Tu rol: {{rol}}.",
-    "sinPermisoDestinos": "Puedes continuar en"
+    "sinPermisoDestinos": "Puedes continuar en",
+    "ayer": "Ayer",
+    "copiar": "Copiar {{campo}}",
+    "copiado": "Copiado",
+    "verDetalleFila": "Ver detalle",
+    "ocultarDetalleFila": "Ocultar detalle",
+    "filtros": "Filtros",
+    "filtrosActivos": "Filtros activos",
+    "quitarFiltro": "Quitar filtro: {{filtro}}",
+    "quitarFiltros": "Quitar filtros",
+    "aplicarFiltros": "Aplicar filtros",
+    "mostrarTodas": "Mostrar todas",
+    "consultando": "Consultando…",
+    "limiteAlcanzado": "Se muestran los {{n}} registros más recientes. Acota el periodo para ver los anteriores.",
+    "duracionMin": "{{m}} min",
+    "duracionHoras": "{{h}} h {{m}} min",
+    "duracionDias_one": "{{count}} día",
+    "duracionDias_other": "{{count}} días",
+    "periodo": {
+      "titulo": "Periodo",
+      "cualquiera": "Cualquier fecha",
+      "ultimas24h": "Últimas 24 h",
+      "ultimos7d": "Últimos 7 días",
+      "ultimos30d": "Últimos 30 días",
+      "rango": "{{desde}} – {{hasta}}",
+      "desdeSolo": "Desde {{desde}}",
+      "hastaSolo": "Hasta {{hasta}}",
+      "aplicar": "Aplicar periodo",
+      "atajos": "Atajos de periodo"
+    }
   },
   "metricasIA": {
     "titulo": "Cómo se comporta el clasificador",
@@ -875,7 +1717,17 @@
       "hora_evento": "Hora del evento",
       "estado_conectividad_online": "Estado de conexión del equipo"
     },
-    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2–8 °C; no es una probabilidad del modelo."
+    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2–8 °C; no es una probabilidad del modelo.",
+    "meta": "{{modelo}} · versión {{version}} · entrenado el {{fecha}}",
+    "ilustrativo": "Ilustrativo",
+    "umbralCriterio": "Criterio del prototipo",
+    "umbralValor": "{{umbral}} o más",
+    "queMide": "Qué mide cada cifra",
+    "promedio": "Promedio",
+    "dispersionAria": "F1 ponderado por partición: {{valores}}. Promedio {{promedio}}. Criterio {{umbral}}.",
+    "fichaTitulo": "Identificación del modelo",
+    "anilloSr": "F1 ponderado {{valor}}. {{estado}}",
+    "sinClases": "No hay resultados por clase en esta evaluación."
   },
   "sesion": {
     "porExpirar": "Tu sesión expirará en {{restante}}. Guarda lo que estés haciendo."
@@ -885,13 +1737,14 @@
     "titulo": "Consulta y usa ColdCare",
     "descripcion": "Qué revisar, cómo responder a un aviso y dónde consultar los registros.",
     "inicioEyebrow": "Durante tu jornada",
-    "navegacion": "Secciones de la guía",
+    "navegacion": "Pasos de la guía",
     "nav": {
       "inicio": "Empezar",
       "estados": "Temperatura y estados",
       "alertas": "Responder a una alerta",
       "pantallas": "Encontrar una pantalla",
-      "dudas": "Dudas frecuentes"
+      "dudas": "Dudas frecuentes",
+      "conceptos": "Palabras útiles"
     },
     "inicioTitulo": "Revisa, responde y deja registro",
     "inicioDescripcion": "Empieza por el estado del refrigerador. Si aparece un aviso, revisa la lectura y sigue el procedimiento de tu farmacia.",
@@ -923,6 +1776,10 @@
       "critico": {
         "titulo": "Excursión crítica",
         "descripcion": "La lectura salió del rango permitido. Revisa el refrigerador y sigue el procedimiento de tu farmacia."
+      },
+      "sinDatos": {
+        "titulo": "Sin datos",
+        "descripcion": "El equipo no envió lecturas a tiempo. No es una excursión: revisa su conexión."
       }
     },
     "rangoNota": "Consulta en Monitoreo el rango permitido para el equipo y compara la lectura con su fecha y hora.",
@@ -1030,7 +1887,21 @@
         "respuesta": "No. Resumen cómo se evaluó el clasificador con casos de prueba; no muestran la temperatura ni las alertas actuales."
       }
     },
-    "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema."
+    "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema.",
+    "metaRol": "Adaptada a tu rol: {{rol}}",
+    "resumenPasos": {
+      "inicio": "Revisa, responde y deja registro",
+      "estados": "Normal, preventivo, crítico y sin datos",
+      "alertas": "Revisar, actuar y registrar",
+      "pantallas": "Las pantallas de tu rol",
+      "conceptos": "Rango, excursión, integridad y BPA"
+    },
+    "pasoDe": "Paso {{actual}} de {{total}}",
+    "anterior": "Anterior",
+    "siguientePaso": "Siguiente: {{titulo}}",
+    "irMonitoreo": "Ir a Monitoreo",
+    "abrirPantalla": "Abrir {{pantalla}}",
+    "reglaAria": "Rango de referencia de 2 a 8 °C con dos ejemplos: 4,3 °C dentro del rango y 8,4 °C fuera."
   },
   "recuperarContrasena": {
     "email": "Correo electrónico",

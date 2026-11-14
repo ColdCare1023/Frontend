@@ -54,6 +54,10 @@ export const USUARIOS_DEMO: Usuario[] = [
   { id: 'u-04', nombre: 'Técnico Demo 2', email: 'jorge.villanueva@demo.pe', rol: 'tecnico', is_active: true, motivo_desactivacion: null, desactivado_en: null },
   // B-18: el rol de consulta es «Auditor» (RF-17), igual que en el backend.
   { id: 'u-05', nombre: 'Auditor Demo', email: 'auditor@demo.pe', rol: 'auditor', is_active: true, motivo_desactivacion: null, desactivado_en: null },
+  // Cuenta recién creada que aún no eligió su contraseña (activación por correo).
+  { id: 'u-06', nombre: 'Químico Nuevo', email: 'nuevo.quimico@demo.pe', rol: 'farmaceutico', is_active: true, motivo_desactivacion: null, desactivado_en: null, debe_cambiar_password: true },
+  // Cuenta dada de baja (HU-45): la lista muestra motivo y fecha.
+  { id: 'u-07', nombre: 'Técnico Retirado', email: 'tecnico.retirado@demo.pe', rol: 'tecnico', is_active: false, motivo_desactivacion: 'renuncia', desactivado_en: '2026-10-12T15:00:00Z' },
 ]
 
 const DIA_MS = 24 * 60 * 60 * 1000
@@ -73,7 +77,7 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
     estado_conectividad: 'online',
     estado_operativo: 'OPERATIVO',
     ultimo_reporte_en: new Date().toISOString(),
-    registrado_en: new Date().toISOString(),
+    registrado_en: new Date(Date.now() - 120 * DIA_MS).toISOString(),
     intervalo_reporte_segundos: 30,
     umbral_sin_datos_segundos: 90,
     umbral_puerta_abierta_segundos: 120,

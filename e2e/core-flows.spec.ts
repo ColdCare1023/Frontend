@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { accionPrimeraFila, irA, cerrarSesion } from './helpers'
+import { accionAlerta, irA, cerrarSesion } from './helpers'
 
 test('sesión demo, navegación y reapertura', async ({ page }) => {
   // El recorrido guiado se retiró (4e27dbe): tras entrar se llega al monitoreo.
@@ -24,7 +24,7 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
 
   const temperatura = page.getByRole('region', { name: 'Temperatura actual' })
   const curva = page.locator('[role="img"][aria-label^="Gráfica de líneas"]')
-  const lecturaActual = await temperatura.locator('p.nums').textContent()
+  const lecturaActual = await temperatura.getByTestId('valor-actual').getAttribute('data-valor')
   expect(lecturaActual).toMatch(/^\d+\.\d+$/)
   await expect(curva).toBeVisible()
 
@@ -115,11 +115,13 @@ test('alertas permiten abrir detalle contextual', async ({ page }) => {
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
-  await page.getByRole('button', { name: 'Todas' }).click()
-  await expect(page.getByText('Excursión crítica').first()).toBeVisible()
-  await expect(page.getByText('Riesgo preventivo').first()).toBeVisible()
-  await accionPrimeraFila(page, /ver cronología de atención/i)
-  await expect(page.getByRole('dialog')).toContainText(/temperatura|dispositivo/i)
+  await page.getByRole('button', { name: 'Todas', exact: true }).click()
+  // El riesgo de cada fila va con forma propia y texto (lector de pantalla).
+  await expect(page.getByRole('row').filter({ hasText: /fuera del rango/i }).first()).toBeVisible()
+  await expect(page.getByRole('row').filter({ hasText: /se acerca al límite/i }).first()).toBeVisible()
+  await accionAlerta(page, /ver cronología de atención/i)
+  await expect(page.getByRole('dialog')).toContainText(/temperatura/i)
+  await expect(page.getByRole('dialog')).toContainText(/Excursión crítica|Riesgo preventivo/)
 })
 
 test('logout elimina acceso a ruta protegida', async ({ page }) => {
@@ -225,6 +227,8 @@ test('trazabilidad explica cadena, oculta sellos y muestra verificación', async
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await irA(page, '/trazabilidad')
+  // P6: al entrar, el veredicto ya dice el estado de la cadena (sin verificar sola).
+  await expect(page.getByRole('heading', { name: 'Sin alertas de integridad' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Evento' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Mostrar detalles técnicos de los sellos' }).click()

@@ -9,6 +9,12 @@ import type { Rol } from '@/domain/value-objects/Rol'
 
 const useAlertas = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useAlertas', () => ({ useAlertas }))
+vi.mock('@/application/hooks/useIncidentesOperativos', () => ({
+  useIncidentesOperativos: () => ({ incidentes: [], cargando: false, errorCarga: false, consultar: vi.fn() }),
+}))
+vi.mock('@/application/hooks/useAtendidasRecientes', () => ({
+  useAtendidasRecientes: () => ({ alertas: [], estado: 'listo', limite: 50, recargar: vi.fn() }),
+}))
 
 import { AlertasPage } from '@/presentation/pages/AlertasPage'
 
@@ -62,8 +68,8 @@ function montar(ciclo: AccionCorrectiva[], rectificarAccion = vi.fn().mockResolv
 
 async function abrirCronologia() {
   const usuario = userEvent.setup()
-  await usuario.click(screen.getByRole('button', { name: /opciones/i }))
-  await usuario.click(await screen.findByRole('menuitem', { name: /FARM-01-CDL/i }))
+  // La cronología es un botón visible en la fila (antes vivía en «Opciones»).
+  await usuario.click(screen.getByRole('button', { name: /cronología de atención.*FARM-01-CDL/i }))
   return { usuario, dialogo: await screen.findByRole('dialog') }
 }
 
@@ -106,11 +112,50 @@ describe('AlertasPage — HU-28: rectificación trazable', () => {
     await usuario.clear(texto)
     await usuario.type(texto, 'Traslado del lote a las 03:10.')
     const guardar = within(dialogo).getByRole('button', { name: /guardar rectificación/i })
-    expect(guardar).toBeDisabled() // sin motivo todavía
+    // Sin motivo todavía: enfocable pero inactivo, y dice por qué.
+    expect(guardar).toHaveAttribute('aria-disabled', 'true')
+    expect(guardar).toHaveAccessibleDescription(/al menos 10 caracteres/i)
+    await usuario.click(guardar)
+    expect(rectificar).not.toHaveBeenCalled()
     await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Hora equivocada en el registro.')
     await usuario.click(guardar)
 
     expect(rectificar).toHaveBeenCalledWith('ac-1', 'Traslado del lote a las 03:10.', 'Hora equivocada en el registro.')
+  })
+
+  it('exige 10 caracteres de motivo y muestra el contador', async () => {
+    sesionCon('farmaceutico')
+    montar([ORIGINAL])
+    const { usuario, dialogo } = await abrirCronologia()
+
+    await usuario.click(await within(dialogo).findByRole('button', { name: /^rectificar$/i }))
+    await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Corto')
+    expect(within(dialogo).getByText('5 de 500 caracteres')).toBeInTheDocument()
+    expect(within(dialogo).getByRole('button', { name: /guardar rectificación/i })).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('tras rectificar recarga la cronología y anuncia', async () => {
+    sesionCon('farmaceutico')
+    const obtener = vi.fn().mockResolvedValue([ORIGINAL])
+    useAlertas.mockReturnValue({
+      alertas: [ALERTA],
+      cargando: false,
+      filtro: 'todas',
+      setFiltro: vi.fn(),
+      reconocerAlerta: vi.fn(),
+      registrarAccionCorrectiva: vi.fn(),
+      obtenerCicloAtencion: obtener,
+      rectificarAccion: vi.fn().mockResolvedValue('ok'),
+    })
+    render(<MemoryRouter><AlertasPage /></MemoryRouter>)
+    const { usuario, dialogo } = await abrirCronologia()
+
+    await usuario.click(await within(dialogo).findByRole('button', { name: /^rectificar$/i }))
+    await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Hora equivocada en el registro.')
+    await usuario.click(within(dialogo).getByRole('button', { name: /guardar rectificación/i }))
+
+    expect(await within(dialogo).findByText('Rectificación guardada.')).toBeInTheDocument()
+    expect(obtener).toHaveBeenCalledTimes(2)
   })
 
   it('un técnico solo puede rectificar sus propias acciones', async () => {

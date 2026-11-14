@@ -13,7 +13,11 @@ export const CARGADORES: Record<string, () => Promise<unknown>> = {
   '/metricas-ia': () => import('@/presentation/pages/MetricasIAPage'),
   '/auditoria': () => import('@/presentation/pages/AuditoriaPage'),
   '/usuarios': () => import('@/presentation/pages/UsuariosPage'),
-  '/dispositivos': () => import('@/presentation/pages/DispositivosPage'),
+  '/dispositivos': () =>
+    Promise.all([
+      import('@/presentation/pages/dispositivos/DispositivosLayout'),
+      import('@/presentation/pages/dispositivos/ListaDispositivosPage'),
+    ]),
 }
 
 const precargadas = new Set<string>()
