@@ -7,7 +7,16 @@ import type { Dispositivo } from '@/domain/entities/Dispositivo'
 
 const useDispositivos = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useDispositivos', () => ({ useDispositivos }))
-vi.mock('@/infrastructure/api/apiClient', () => ({ apiClient: { get: vi.fn().mockResolvedValue({ data: [] }) } }))
+vi.mock('@/infrastructure/api/apiClient', () => ({
+  apiClient: { get: vi.fn().mockResolvedValue({ data: [] }) },
+  API_BASE_URL: '',
+  getAccessToken: () => null,
+}))
+// La lista y el detalle escuchan el tiempo real (tendencias, curva, actividad).
+vi.mock('@/infrastructure/sse/sseClient', () => ({
+  suscribirseTiempoReal: () => () => {},
+  suscribirseLecturas: () => () => {},
+}))
 
 import { DetalleDispositivoPage } from '@/presentation/pages/dispositivos/DetalleDispositivoPage'
 import { DispositivosLayout } from '@/presentation/pages/dispositivos/DispositivosLayout'

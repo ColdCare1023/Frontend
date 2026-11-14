@@ -576,7 +576,7 @@
       "reintentando": "Retrying email",
       "no_entregada": "Email not delivered",
       "pendiente": "Email pending",
-      "notificadaAyuda": "The email notice was sent on {{fecha}}.",
+      "notificadaAyuda": "The email notice was sent on {{fecha}}",
       "reintentandoAyuda": "The mail provider failed; the system is retrying ({{intentos}} attempt(s)).",
       "no_entregadaAyuda": "Attempts exhausted: notify by another channel.",
       "pendienteAyuda": "No send attempt yet."
@@ -685,7 +685,30 @@
       "atendidasRecientes": "Recently resolved",
       "atendidaHace": "Resolved {{hace}}"
     },
-    "incidenteActivoDesde": "Active since {{hace}}"
+    "incidenteActivoDesde": "Active since {{hace}}",
+    "ahora": {
+      "titulo": "Devices now",
+      "ayuda": "Current reading: is the device back within 2–8 °C?",
+      "lectura": "read {{hace}}"
+    },
+    "guiaAtencion": {
+      "titulo": "How an alert is handled",
+      "revisar": "Review",
+      "revisarDetalle": "The pharmacist confirms they saw it; it moves to Reviewed.",
+      "registrar": "Record the corrective action",
+      "registrarDetalle": "Decision taken, action performed and justification (GDP).",
+      "verificar": "Check the recovery",
+      "verificarDetalle": "Confirm the device is back within 2–8 °C.",
+      "irHistorial": "Open History"
+    },
+    "demo": {
+      "simular": "Simulate",
+      "simularEtiqueta": "Simulate alert (demo)",
+      "grupo": "Demo · {{equipo}}",
+      "excursionCritica": "Simulate critical excursion",
+      "riesgoPreventivo": "Simulate preventive risk",
+      "error": "The alert could not be simulated."
+    }
   },
   "trazabilidad": {
     "titulo": "Record integrity",
@@ -1215,7 +1238,7 @@
   },
   "dispositivos": {
     "titulo": "Measurement devices",
-    "descripcion": "Manage each device code, sensors, connection, local buffer, calibration validity, and lifecycle.",
+    "descripcion": "Status, readings, calibration and credentials of each ESP32 node.",
     "id": "Equipment code",
     "conectividad": "Connectivity",
     "firmware": "Software version",
@@ -1387,11 +1410,8 @@
       "columnaEquipo": "Device",
       "columnaLectura": "Current reading",
       "filtrar": "Filter devices",
-      "filtroTodos": "All ({{n}})",
-      "filtroAtencion": "Needs attention ({{n}})",
-      "filtroBaja": "Decommissioned ({{n}})",
       "buscar": "Search devices",
-      "buscarMarcador": "Code, name or location",
+      "buscarMarcador": "Search device",
       "conteoUno": "{{n}} device",
       "conteoVarios": "{{n}} devices",
       "sinResultados": "No device matches the filter.",
@@ -1405,7 +1425,17 @@
       "lecturaDe": "Reading at {{hora}}",
       "dadoDeBajaEl": "Decommissioned on {{fecha}}",
       "reemplazaA": "Replacement: {{id}}",
-      "fueraDeServicio": "Out of service"
+      "fueraDeServicio": "Out of service",
+      "filtro": {
+        "todos": "All",
+        "atencion": "Need attention",
+        "baja": "Retired"
+      },
+      "ultimas24h": "Last 24 h",
+      "cintaCritica": "Critical {{duracion}}",
+      "cintaPreventiva": "Preventive {{duracion}}",
+      "cintaSinDatos": "No data {{duracion}}",
+      "cintaSinEventos": "No alerts or incidents"
     },
     "estadoEquipo": {
       "normal": "In range",
@@ -1510,7 +1540,14 @@
       "interna": "Internal",
       "ambiente": "Ambient",
       "humedad": "Humidity",
-      "riesgo": "Risk"
+      "riesgo": "Risk",
+      "resumen24hOk": "All 24 h within 2–8 °C and with data.",
+      "puerta": "Door",
+      "puertaAbierta": "Open",
+      "puertaCerrada": "Closed",
+      "puertaSinSensor": "No sensor",
+      "resumenRiesgo": "At risk: {{duracion}}",
+      "resumenSinDatos": "No data: {{duracion}}"
     },
     "historialTab": {
       "resumen": "Summary of the latest readings",
@@ -1585,6 +1622,21 @@
       "ayudaPerdida": "The buffer fills up and a gap is recorded.",
       "ayudaSensor": "The DS18B20 stops measuring.",
       "ayudaRecuperacion": "The node resends what was queued and gets the ACK."
+    },
+    "tendencia": {
+      "sube": "Rising {{valor}} °C/h",
+      "baja": "Falling {{valor}} °C/h",
+      "estable": "Stable",
+      "sr": "Trend since {{desde}}: {{tendencia}}"
+    },
+    "actividad": {
+      "titulo": "Recent activity",
+      "tituloEquipo": "Device activity",
+      "verAlertas": "View alerts",
+      "vacio": "No alerts or incidents in the last 7 days.",
+      "error": "We couldn't load recent activity.",
+      "recuperado": "Recovered: {{tipo}}",
+      "duracion": "lasted {{duracion}}"
     }
   },
   "comunes": {

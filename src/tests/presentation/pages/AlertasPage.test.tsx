@@ -307,3 +307,52 @@ describe('Evidencia de la excursión y estado del correo (outcomes 2 y 6)', () =
     expect(screen.queryByText(/correo/i)).not.toBeInTheDocument()
   })
 })
+
+describe('AlertasPage: foco y contexto con pocas filas (DIRECTION §6 y §13)', () => {
+  beforeEach(() => {
+    useAlertas.mockReset()
+    useIncidentesOperativos.mockReturnValue({ incidentes: [], cargando: false, errorCarga: false, consultar: vi.fn() })
+    useAtendidasRecientes.mockReturnValue({ alertas: [], estado: 'listo', limite: 50, recargar: vi.fn() })
+    useEstadoVivoStore.getState().reiniciar()
+    sesionCon('farmaceutico')
+  })
+
+  it('solo la crítica más antigua lleva «Registrar acción» primario', () => {
+    montar([
+      alerta({ id: 'al-1', created_at: '2026-07-25T10:00:00Z' }),
+      alerta({ id: 'al-2', created_at: '2026-07-25T11:00:00Z' }),
+      alerta({ id: 'al-3', nivel_riesgo: 'riesgo_preventivo', created_at: '2026-07-25T09:00:00Z' }),
+    ])
+    const registrar = screen.getAllByRole('button', { name: /registrar acción correctiva/i })
+    expect(registrar).toHaveLength(3)
+    expect(registrar.filter((b) => b.className.includes('coldcare-primary-action'))).toHaveLength(1)
+    expect(registrar[0]).toHaveClass('coldcare-primary-action')
+  })
+
+  it('con pocas filas muestra la lectura actual de cada equipo y la guía si no hay atendidas', () => {
+    useEstadoVivoStore.setState({
+      carga: 'listo',
+      equipos: [{ id: 'FARM-01-CDL', nombre: 'Refrigerador principal', conectividad: 'online', ultimoReporteEn: null }],
+      ultimas: { 'FARM-01-CDL': { temperatura: 5.2, riesgo: 'normal', timestamp: new Date().toISOString() } },
+    })
+    montar([alerta()])
+
+    const ahora = screen.getByRole('region', { name: 'Equipos ahora' })
+    expect(within(ahora).getByText('FARM-01-CDL')).toBeInTheDocument()
+    expect(within(ahora).getByText(/^5\.2\s°C$/)).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Cómo se atiende una alerta' })).toBeInTheDocument()
+  })
+
+  it('con atendidas recientes no repite la guía', () => {
+    useAtendidasRecientes.mockReturnValue({
+      alertas: [alerta({ id: 'at-1', estado: 'atendida', atendida_en: '2026-07-25T12:30:00Z' })],
+      estado: 'listo',
+      limite: 50,
+      recargar: vi.fn(),
+    })
+    montar([alerta()])
+
+    expect(screen.getByRole('region', { name: 'Atendidas recientemente' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Cómo se atiende una alerta' })).not.toBeInTheDocument()
+  })
+})

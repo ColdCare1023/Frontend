@@ -79,6 +79,9 @@ export function ordenarIncidentes(incidentes: readonly IncidenteOperativo[]): In
   return [...activos, ...resueltos]
 }
 
+/** Hasta cuántas filas visibles la bandeja se acompaña de contexto debajo (DIRECTION §13.3). */
+export const FILAS_CON_CONTEXTO = 4
+
 /** Cuántas atendidas se muestran según las filas visibles (relleno con datos, DIRECTION §13.3). */
 export function cuantasAtendidas(filasVisibles: number): number {
   if (filasVisibles <= 2) return 5

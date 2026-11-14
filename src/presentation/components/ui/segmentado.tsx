@@ -105,7 +105,9 @@ export function Segmentado<T extends string | number>({
         aria-hidden
         data-indicador-segmentado
         className={cn(
-          'pointer-events-none absolute inset-0 flex items-center gap-0.5 p-0.5',
+          // Copia la disposición de la pista (flex o grid de columnas iguales):
+          // así el texto activo cae justo sobre su botón también en móvil.
+          'pointer-events-none absolute inset-0 items-center gap-0.5 p-0.5 [display:inherit] [grid-template-columns:inherit]',
           ancho === 0 && 'opacity-0',
           animar && 'transition-[clip-path] duration-(--duration-ui) ease-(--ease-out)',
         )}
@@ -113,7 +115,7 @@ export function Segmentado<T extends string | number>({
       >
         <span className="absolute inset-0.5 rounded-(--radius-small) bg-surface-raised shadow-[0_1px_2px_rgb(11_30_58/0.12)] dark:shadow-none" />
         {opciones.map((opcion) => (
-          <span key={String(opcion.valor)} className={cn(BOTON, 'inline-flex items-center text-foreground', botonClassName)}>
+          <span key={String(opcion.valor)} className={cn(BOTON, 'inline-flex items-center justify-center text-foreground', botonClassName)}>
             {opcion.etiqueta}
             {opcion.conteo != null && <span className={PASTILLA}>{opcion.conteo}</span>}
           </span>

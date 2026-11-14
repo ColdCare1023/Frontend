@@ -576,7 +576,7 @@
       "reintentando": "Reintentando correo",
       "no_entregada": "Correo no entregado",
       "pendiente": "Correo pendiente",
-      "notificadaAyuda": "El aviso por correo salió el {{fecha}}.",
+      "notificadaAyuda": "El aviso por correo salió el {{fecha}}",
       "reintentandoAyuda": "El proveedor de correo falló; el sistema reintenta ({{intentos}} intento(s)).",
       "no_entregadaAyuda": "Se agotaron los intentos: avise por otro medio.",
       "pendienteAyuda": "Aún no se intentó el envío."
@@ -685,7 +685,30 @@
       "atendidasRecientes": "Atendidas recientemente",
       "atendidaHace": "Atendida {{hace}}"
     },
-    "incidenteActivoDesde": "Activo desde {{hace}}"
+    "incidenteActivoDesde": "Activo desde {{hace}}",
+    "ahora": {
+      "titulo": "Equipos ahora",
+      "ayuda": "Lectura actual: ¿el equipo ya volvió a 2–8 °C?",
+      "lectura": "lectura {{hace}}"
+    },
+    "guiaAtencion": {
+      "titulo": "Cómo se atiende una alerta",
+      "revisar": "Revisar",
+      "revisarDetalle": "El químico farmacéutico confirma que la vio; pasa a Revisadas.",
+      "registrar": "Registrar la acción correctiva",
+      "registrarDetalle": "Decisión adoptada, acción ejecutada y justificación (BPA).",
+      "verificar": "Verificar el retorno",
+      "verificarDetalle": "Comprueba que el equipo volvió a 2–8 °C.",
+      "irHistorial": "Ver Historial"
+    },
+    "demo": {
+      "simular": "Simular",
+      "simularEtiqueta": "Simular alerta (demostración)",
+      "grupo": "Demostración · {{equipo}}",
+      "excursionCritica": "Simular excursión crítica",
+      "riesgoPreventivo": "Simular riesgo preventivo",
+      "error": "No se pudo simular la alerta."
+    }
   },
   "trazabilidad": {
     "titulo": "Integridad del historial",
@@ -1215,7 +1238,7 @@
   },
   "dispositivos": {
     "titulo": "Equipos de medición",
-    "descripcion": "Administra código único, sensores, conexión, buffer local, vigencia de calibración y ciclo de vida de cada equipo.",
+    "descripcion": "Estado, lecturas, calibración y credenciales de cada nodo ESP32.",
     "id": "Código del equipo",
     "conectividad": "Conectividad",
     "firmware": "Versión de software",
@@ -1387,11 +1410,8 @@
       "columnaEquipo": "Equipo",
       "columnaLectura": "Lectura actual",
       "filtrar": "Filtrar equipos",
-      "filtroTodos": "Todos ({{n}})",
-      "filtroAtencion": "Con atención ({{n}})",
-      "filtroBaja": "Dados de baja ({{n}})",
       "buscar": "Buscar equipos",
-      "buscarMarcador": "Código, nombre o ubicación",
+      "buscarMarcador": "Buscar equipo",
       "conteoUno": "{{n}} equipo",
       "conteoVarios": "{{n}} equipos",
       "sinResultados": "Ningún equipo coincide con el filtro.",
@@ -1405,7 +1425,17 @@
       "lecturaDe": "Lectura de las {{hora}}",
       "dadoDeBajaEl": "Dado de baja el {{fecha}}",
       "reemplazaA": "Reemplazo: {{id}}",
-      "fueraDeServicio": "Fuera de servicio"
+      "fueraDeServicio": "Fuera de servicio",
+      "filtro": {
+        "todos": "Todos",
+        "atencion": "Con atención",
+        "baja": "De baja"
+      },
+      "ultimas24h": "Últimas 24 h",
+      "cintaCritica": "Crítica {{duracion}}",
+      "cintaPreventiva": "Preventiva {{duracion}}",
+      "cintaSinDatos": "Sin datos {{duracion}}",
+      "cintaSinEventos": "Sin alertas ni incidentes"
     },
     "estadoEquipo": {
       "normal": "En rango",
@@ -1510,7 +1540,14 @@
       "interna": "Interna",
       "ambiente": "Ambiente",
       "humedad": "Humedad",
-      "riesgo": "Riesgo"
+      "riesgo": "Riesgo",
+      "resumen24hOk": "Las 24 h dentro de 2–8 °C y con datos.",
+      "puerta": "Puerta",
+      "puertaAbierta": "Abierta",
+      "puertaCerrada": "Cerrada",
+      "puertaSinSensor": "Sin sensor",
+      "resumenRiesgo": "Con riesgo: {{duracion}}",
+      "resumenSinDatos": "Sin datos: {{duracion}}"
     },
     "historialTab": {
       "resumen": "Resumen de las últimas lecturas",
@@ -1585,6 +1622,21 @@
       "ayudaPerdida": "El buffer se llena y se registra una brecha.",
       "ayudaSensor": "El DS18B20 deja de medir.",
       "ayudaRecuperacion": "El nodo reenvía lo pendiente y recibe el ACK."
+    },
+    "tendencia": {
+      "sube": "Sube {{valor}} °C/h",
+      "baja": "Baja {{valor}} °C/h",
+      "estable": "Estable",
+      "sr": "Tendencia desde las {{desde}}: {{tendencia}}"
+    },
+    "actividad": {
+      "titulo": "Actividad reciente",
+      "tituloEquipo": "Actividad del equipo",
+      "verAlertas": "Ver alertas",
+      "vacio": "Sin alertas ni incidentes en los últimos 7 días.",
+      "error": "No pudimos cargar la actividad reciente.",
+      "recuperado": "Recuperado: {{tipo}}",
+      "duracion": "duró {{duracion}}"
     }
   },
   "comunes": {

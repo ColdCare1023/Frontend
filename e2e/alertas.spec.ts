@@ -114,3 +114,24 @@ test('móvil 375: fichas con acciones de 44 px, panel a pantalla completa, sin s
   const panel = await page.getByRole('dialog').boundingBox()
   expect(Math.round(panel!.width)).toBe(375)
 })
+
+test('demo: simular excursión crítica hace llegar una fila nueva sin recargar', async ({ page }) => {
+  await entrarComo(page, 'Químico Farmacéutico')
+  const filas = await page.getByRole('row').count()
+  // Si la página se recargara, esta marca desaparecería.
+  await page.evaluate(() => Object.assign(window, { __sinRecargar: true }))
+
+  await page.getByRole('button', { name: 'Simular alerta (demostración)' }).click()
+  await page.getByRole('menuitem', { name: 'Simular excursión crítica' }).click()
+
+  // La alerta llega por el stream en vivo, como por SSE: una fila más, con su evidencia.
+  await expect(page.getByRole('row')).toHaveCount(filas + 1)
+  const nueva = page.getByRole('row').filter({ hasText: 'Temperatura interna 8.6 °C fuera del rango' })
+  await expect(nueva).toBeVisible()
+  // Evidencia: el pico con su Regla S (el lector oye «Pico 8.6 °C»).
+  await expect(nueva).toContainText(/Pico 8\.6\s°C/)
+  await expect(nueva.getByRole('button', { name: /registrar acción correctiva/i })).toBeVisible()
+  // La tira cuenta ya dos críticas abiertas y la página no se recargó.
+  await expect(page.getByRole('region', { name: 'Resumen de alertas' })).toContainText('2 excursiones críticas sin atender')
+  expect(await page.evaluate(() => (window as unknown as { __sinRecargar?: boolean }).__sinRecargar)).toBe(true)
+})
