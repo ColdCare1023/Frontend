@@ -627,6 +627,7 @@
     "equiposRegistrados": "Equipos registrados",
     "sinDatos": "Sin datos",
     "fallasSensor": "Fallas de sensor",
+    "sensoresEnFalla": "Sensores en falla",
     "bufferPendiente": "Lecturas en buffer",
     "estadoOperativo": {
       "OPERATIVO": "Operativo",

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
+import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
 import {
   CAPACIDAD_BUFFER_LITTLEFS,
   estadoCalibracion,
@@ -83,7 +84,7 @@ type EscenarioIoT = 'sin_datos' | 'buffer_pendiente' | 'buffer_lleno' | 'falla_s
 export function DispositivosPage() {
   const { t } = useTranslation()
   const {
-    dispositivos,
+    dispositivos: fichas,
     cargando,
     errorCarga,
     consultar,
@@ -99,6 +100,23 @@ export function DispositivosPage() {
     reenviarDesafio,
     simularEscenario,
   } = useDispositivos()
+  // `/api/dispositivos` devuelve la ficha del equipo; su estado operativo
+  // (FALLA_SENSOR, SIN_DATOS) y el buffer del nodo solo los trae
+  // `/api/dispositivos/estado-operativo`. Sin unirlos, el resumen y la insignia
+  // de la fila comparaban contra un campo ausente y marcaban siempre 0.
+  const { equipos: estadosOperativos } = useEstadoOperativo(true)
+  const dispositivos = useMemo(() => {
+    const porId = new Map(estadosOperativos.map((equipo) => [equipo.id, equipo]))
+    return fichas.map((ficha) => {
+      const estado = porId.get(ficha.id)
+      if (!estado) return ficha
+      return {
+        ...ficha,
+        estado_operativo: ficha.estado_operativo ?? estado.estado_operativo,
+        buffer_littlefs: ficha.buffer_littlefs ?? estado.buffer_littlefs,
+      }
+    })
+  }, [fichas, estadosOperativos])
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   // Solo se pinta la página visible: estas listas crecen sin techo.

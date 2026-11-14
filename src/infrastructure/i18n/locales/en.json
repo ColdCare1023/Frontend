@@ -627,6 +627,7 @@
     "equiposRegistrados": "Registered devices",
     "sinDatos": "No data",
     "fallasSensor": "Sensor faults",
+    "sensoresEnFalla": "Sensors in fault",
     "bufferPendiente": "Buffered readings",
     "estadoOperativo": {
       "OPERATIVO": "Operational",

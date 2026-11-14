@@ -6,6 +6,12 @@ import type { Dispositivo } from '@/domain/entities/Dispositivo'
 
 const useDispositivos = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useDispositivos', () => ({ useDispositivos }))
+// El estado operativo (FALLA_SENSOR, SIN_DATOS) y el buffer del nodo no vienen en
+// `/api/dispositivos`: los trae `/api/dispositivos/estado-operativo`.
+const estadoOperativo = vi.hoisted(() => ({ equipos: [] as unknown[] }))
+vi.mock('@/application/hooks/useEstadoOperativo', () => ({
+  useEstadoOperativo: () => ({ equipos: estadoOperativo.equipos, consultar: async () => {} }),
+}))
 
 import { DispositivosPage } from '@/presentation/pages/DispositivosPage'
 
@@ -51,7 +57,10 @@ function montar(dispositivos: Dispositivo[], extra: Record<string, unknown> = {}
 }
 
 describe('DispositivosPage (HU-43, RF-18)', () => {
-  beforeEach(() => useDispositivos.mockReset())
+  beforeEach(() => {
+    useDispositivos.mockReset()
+    estadoOperativo.equipos = []
+  })
 
   it('un fallo de carga se muestra como error, no como «no hay dispositivos»', async () => {
     const consultar = vi.fn()
@@ -61,6 +70,20 @@ describe('DispositivosPage (HU-43, RF-18)', () => {
     expect(screen.queryByText(/no hay dispositivos/i)).not.toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('button', { name: /volver a intentar/i }))
     expect(consultar).toHaveBeenCalled()
+  })
+
+  it('cuenta los equipos en falla de sensor con el estado operativo del backend', () => {
+    estadoOperativo.equipos = [
+      { id: 'FARM-01-CDL', estado_operativo: 'FALLA_SENSOR', buffer_littlefs: { pendientes: 12 } },
+    ]
+    // La ficha, como la devuelve el backend real, no trae `estado_operativo`.
+    montar([dispositivo()])
+
+    const dato = (etiqueta: RegExp) => screen.getByText(etiqueta).closest('div')
+    expect(dato(/^Fallas de sensor$/)).toHaveTextContent('1')
+    expect(dato(/^Sin datos$/)).toHaveTextContent('0')
+    expect(dato(/^Lecturas en buffer$/)).toHaveTextContent('12')
+    expect(screen.getByText('Falla de sensor')).toBeInTheDocument()
   })
 
   it('muestra el device_id y su versión de firmware', async () => {
@@ -126,7 +149,10 @@ describe('DispositivosPage (HU-43, RF-18)', () => {
 })
 
 describe('DispositivosPage — credenciales MQTT (FE-003)', () => {
-  beforeEach(() => useDispositivos.mockReset())
+  beforeEach(() => {
+    useDispositivos.mockReset()
+    estadoOperativo.equipos = []
+  })
 
   async function abrirAccion(nombre: RegExp) {
     const user = userEvent.setup()
