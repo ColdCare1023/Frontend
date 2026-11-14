@@ -4,9 +4,9 @@ import { ArrowDownRight, ArrowUpRight, DoorClosed, DoorOpen, Droplets, Hourglass
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionBreve } from '@/lib/formato'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
 import { Esqueleto } from '../../components/ui/esqueleto'
+import { useSegundosDesde } from '../../hooks/useReloj'
 import { aperturasEnSerie, estadoPuerta, fallaSensor } from './puerta'
 import { submuestrear } from './utilidades'
 
@@ -133,7 +133,6 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   serie,
   cargando,
   desactualizado,
-  segundosDesdeUltima,
   ventana,
   horasVentana,
 }: {
@@ -141,11 +140,11 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   serie: readonly LecturaTermica[]
   cargando: boolean
   desactualizado: boolean
-  segundosDesdeUltima: number | null
   ventana: string
   horasVentana: number
 }) {
   const { t } = useTranslation()
+  const segundosDesdeUltima = useSegundosDesde(ultima?.timestamp)
   const anterior = serie.at(-2) ?? null
 
   let contenido: React.ReactNode

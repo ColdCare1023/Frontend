@@ -96,7 +96,7 @@ export function NavegacionPrincipal({
                       onFocus={() => precargarRuta(item.ruta)}
                       className={({ isActive }) =>
                         cn(
-                          'group/item relative flex h-11 items-center gap-3 rounded-(--radius-field) px-3 text-body font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:h-9 lg:pointer-coarse:h-11 lg:[@media(max-height:700px)]:h-8',
+                          'group/item relative flex h-11 items-center gap-3 rounded-(--radius-field) px-3 text-body font-medium whitespace-nowrap outline-hidden transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring lg:h-9 lg:pointer-coarse:h-11 lg:[@media(max-height:700px)]:h-8',
                           isActive ? 'bg-primary-tint text-foreground' : 'text-muted hover:bg-surface-hover hover:text-foreground',
                           compacto && 'justify-center px-0',
                         )

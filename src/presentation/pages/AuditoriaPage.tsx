@@ -207,11 +207,11 @@ export function AuditoriaPage() {
           </div>
           <p id="fa-accion-ayuda" className="sr-only">{t('auditoria.ayudaAccion')}</p>
         </div>
-        <div className="w-[calc(50%-6px)] sm:w-40">
+        <div className="w-full sm:w-40">
           <Label htmlFor="fa-usuario" className="text-meta text-muted">{t('auditoria.usuario')}</Label>
           <Input id="fa-usuario" className="h-9 pointer-coarse:h-11" value={filtros.usuario_id ?? ''} onChange={(e) => actualizarFiltro('usuario_id', e.target.value)} placeholder={t('auditoria.usuarioPlaceholder')} />
         </div>
-        <div className="w-[calc(50%-6px)] sm:w-44">
+        <div className="w-full sm:w-44">
           <Label htmlFor="fa-resultado" className="text-meta text-muted">{t('auditoria.filtroResultado.etiqueta')}</Label>
           <NativeSelect id="fa-resultado" className="h-9 pointer-coarse:h-11" aria-describedby="fa-resultado-ayuda" value={resultado} onChange={(e) => setResultado(e.target.value as FiltroResultado)}>
             <option value="todas">{t('auditoria.filtroResultado.todas')}</option>
@@ -298,17 +298,17 @@ export function AuditoriaPage() {
           }}
           encabezados={
             <>
-              <EncabezadoRegistro className="w-[104px]">{t('auditoria.columnas.hora')}</EncabezadoRegistro>
+              <EncabezadoRegistro className="w-[124px] whitespace-nowrap">{t('auditoria.columnas.hora')}</EncabezadoRegistro>
               <EncabezadoRegistro>{t('auditoria.accion')}</EncabezadoRegistro>
               <EncabezadoRegistro className="w-[136px]">{t('auditoria.resultado')}</EncabezadoRegistro>
-              <EncabezadoRegistro className="w-[128px]">{t('auditoria.usuario')}</EncabezadoRegistro>
+              <EncabezadoRegistro className="w-[152px]">{t('auditoria.usuario')}</EncabezadoRegistro>
             </>
           }
           renderCeldas={(r) => {
             const { icono: Icono } = clasificarAccion(r.accion)
             return (
               <>
-                <CeldaRegistro area="oculta" className="nums text-body text-subtle">{hora(r.created_at)}</CeldaRegistro>
+                <CeldaRegistro area="oculta" className="nums whitespace-nowrap text-body text-subtle">{hora(r.created_at)}</CeldaRegistro>
                 <CeldaRegistro area="a">
                   <div className="flex min-w-0 items-start gap-2.5">
                     <Icono aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />

@@ -11,7 +11,9 @@ export interface FiltrosHistorial {
   hasta?: string
 }
 
-export function useHistorial() {
+/** `inicial`: filtros de la primera consulta (p. ej. el equipo que llega por la URL). */
+export function useHistorial(inicial: FiltrosHistorial = {}) {
+  const [primeraConsulta] = useState(inicial)
   const [lecturas, setLecturas] = useState<LecturaTermica[]>([])
   const [cargando, setCargando] = useState(true)
   const [errorCarga, setErrorCarga] = useState(false)
@@ -35,8 +37,8 @@ export function useHistorial() {
   }, [])
 
   useEffect(() => {
-    void consultar()
-  }, [consultar])
+    void consultar(primeraConsulta)
+  }, [consultar, primeraConsulta])
 
   return { lecturas, cargando, errorCarga, consultar }
 }

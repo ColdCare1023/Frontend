@@ -5,7 +5,6 @@ import { DoorClosed, DoorOpen, HardDrive, Hourglass, RefreshCw, TriangleAlert } 
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { rutaApi } from '@/lib/rutaApi'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'

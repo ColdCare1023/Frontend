@@ -5,7 +5,6 @@ import { CalendarClock, ChevronRight, HardDrive, TriangleAlert, Wifi, WifiOff } 
 import { CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { fechaCorta, fechaHora, hora } from '@/lib/formato'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
 import { Button } from '../../components/ui/button'

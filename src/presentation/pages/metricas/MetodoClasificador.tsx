@@ -36,7 +36,7 @@ export function ResultadosPorClase({ metricas: m, className }: { metricas: Metri
       {clases.length === 0 ? (
         <p className="mt-3 text-body text-muted">{t('metricasIA.sinClases')}</p>
       ) : (
-        <Table mobileLayout="stack" className="mt-3 min-w-0" titulo={t('metricasIA.porClase')}>
+        <Table mobileLayout="stack" className="mt-3 min-w-0" titulo={t('metricasIA.porClaseTabla')}>
           <TableHeader>
             <TableRow>
               <TableHead>{t('metricasIA.situacion')}</TableHead>

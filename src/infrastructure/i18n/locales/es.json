@@ -589,7 +589,9 @@
       "incidentesActivos": "Incidentes activos",
       "atendidas7d": "Atendidas en 7 días",
       "atencionMedia": "Atención media (7 días)",
-      "noDisponible": "No disponible"
+      "noDisponible": "No disponible",
+      "verIncidentes_one": "{{count}} incidente activo: ver incidentes",
+      "verIncidentes_other": "{{count}} incidentes activos: ver incidentes"
     },
     "guia": {
       "criticas_one": "1 excursión crítica sin atender desde {{fecha}}",
@@ -1727,7 +1729,8 @@
     "dispersionAria": "F1 ponderado por partición: {{valores}}. Promedio {{promedio}}. Criterio {{umbral}}.",
     "fichaTitulo": "Identificación del modelo",
     "anilloSr": "F1 ponderado {{valor}}. {{estado}}",
-    "sinClases": "No hay resultados por clase en esta evaluación."
+    "sinClases": "No hay resultados por clase en esta evaluación.",
+    "porClaseTabla": "Tabla de resultados por tipo de situación"
   },
   "sesion": {
     "porExpirar": "Tu sesión expirará en {{restante}}. Guarda lo que estés haciendo."

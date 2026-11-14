@@ -118,7 +118,7 @@ export function UsuariosPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[48%]">{t('usuarios.nombre')}</TableHead>
-                    <TableHead className="w-[22%]">{t('usuarios.rol')}</TableHead>
+                    <TableHead className="w-[22%] sm:max-2xl:hidden">{t('usuarios.rol')}</TableHead>
                     <TableHead className="w-[18%]">{t('usuarios.estado')}</TableHead>
                     <TableHead className="w-[12%] text-right">{t('comunes.acciones')}</TableHead>
                   </TableRow>
@@ -138,10 +138,12 @@ export function UsuariosPage() {
                               <span className="block truncate text-meta text-muted max-sm:break-all max-sm:whitespace-normal" title={usuario.email}>
                                 {usuario.email}
                               </span>
+                              {/* Entre sm y 2xl el rol baja aquí: con su columna la tabla no cabía y se desplazaba. */}
+                              <span className="hidden truncate text-meta text-subtle sm:block 2xl:hidden">{t(`roles.${usuario.rol}`)}</span>
                             </span>
                           </span>
                         </TableCell>
-                        <TableCell data-label={t('usuarios.rol')} className="text-body text-subtle sm:whitespace-nowrap">
+                        <TableCell data-label={t('usuarios.rol')} className="text-body text-subtle sm:whitespace-nowrap sm:max-2xl:hidden">
                           {t(`roles.${usuario.rol}`)}
                         </TableCell>
                         <TableCell data-label={t('usuarios.estado')}>

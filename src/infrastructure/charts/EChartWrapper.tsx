@@ -36,7 +36,7 @@ echarts.use([
   CanvasRenderer,
 ])
 
-interface EChartWrapperProps {
+export interface EChartWrapperProps {
   option: EChartsCoreOption
   height?: string
   className?: string

@@ -12,7 +12,8 @@ export const DEFAULT_ROUNDNESS = 16;
 
 /* --------------------------------- Timing --------------------------------- */
 
-export const DURATION_MS = 600;
+// MOTION §6.3: los avisos no pasan de 400 ms (antes 600).
+export const DURATION_MS = 400;
 export const DURATION_S = DURATION_MS / 1000;
 
 export const DEFAULT_TOAST_DURATION = 6000;

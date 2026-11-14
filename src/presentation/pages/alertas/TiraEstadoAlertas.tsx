@@ -52,6 +52,7 @@ export function TiraEstadoAlertas({
         ) : (
           <a
             href="#incidentes-operativos"
+            aria-label={t('alertas.resumen.verIncidentes', { count: incidentesActivos })}
             className="rounded-sm underline decoration-border-strong underline-offset-4 hover:decoration-foreground focus-visible:outline-2 focus-visible:outline-ring"
           >
             {incidentesActivos}

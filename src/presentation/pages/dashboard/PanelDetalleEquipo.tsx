@@ -20,6 +20,7 @@ import {
 import { AnilloBuffer, EstadoCalibracionCorto } from './CeldaEquipo'
 import { BadgeEstadoOperativo } from './CeldaEstadoEquipos'
 import { CintaDisponibilidad } from './CintaDisponibilidad'
+import { useMinuto } from '../../hooks/useReloj'
 
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -37,7 +38,6 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
  */
 export function PanelDetalleEquipo({
   equipo,
-  ahora,
   puedeGestionar,
   onCerrar,
   onMostrar,
@@ -45,12 +45,12 @@ export function PanelDetalleEquipo({
 }: {
   onCloseAutoFocus?: (evento: Event) => void
   equipo: Dispositivo | null
-  ahora: number
   puedeGestionar: boolean
   onCerrar: () => void
   onMostrar: (id: string) => void
 }) {
   const { t } = useTranslation()
+  const ahora = useMinuto()
   const tramos = useMemo(() => (equipo ? tramosDisponibilidad(equipo, ahora) : []), [equipo, ahora])
 
   return (

@@ -137,7 +137,7 @@ export function StepperInteractivo({
               onCambiar(paso.id, teclado ? 'teclado' : 'puntero')
             }}
             className={cn(
-              'group relative z-10 flex cursor-pointer rounded-(--radius-field) text-left outline-none transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+              'group relative z-10 flex cursor-pointer rounded-(--radius-field) text-left outline-hidden transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring',
               vertical
                 ? "min-h-14 w-full items-start gap-3 px-3 py-2.5 hover:bg-surface-hover aria-selected:bg-primary-tint before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] aria-selected:before:opacity-100"
                 : 'min-h-11 min-w-11 flex-col items-center gap-1 px-1 py-1.5',

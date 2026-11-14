@@ -589,7 +589,9 @@
       "incidentesActivos": "Active incidents",
       "atendidas7d": "Resolved in 7 days",
       "atencionMedia": "Average response (7 days)",
-      "noDisponible": "Not available"
+      "noDisponible": "Not available",
+      "verIncidentes_one": "{{count}} active incident: view incidents",
+      "verIncidentes_other": "{{count}} active incidents: view incidents"
     },
     "guia": {
       "criticas_one": "1 critical excursion unresolved since {{fecha}}",
@@ -1727,7 +1729,8 @@
     "dispersionAria": "Weighted F1 per fold: {{valores}}. Mean {{promedio}}. Criterion {{umbral}}.",
     "fichaTitulo": "Model identification",
     "anilloSr": "Weighted F1 {{valor}}. {{estado}}",
-    "sinClases": "This evaluation has no per-class results."
+    "sinClases": "This evaluation has no per-class results.",
+    "porClaseTabla": "Results by situation table"
   },
   "sesion": {
     "porExpirar": "Your session expires in {{restante}}. Save your work."

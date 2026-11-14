@@ -27,10 +27,21 @@ export function useEstadoOperativo(todos = false) {
     }
   }, [todos])
 
+  // Sondeo cada 15 s mientras la pestaña está visible; al volver a ella se
+  // consulta de inmediato (PERFORMANCE C1: nada de tráfico en segundo plano).
   useEffect(() => {
     void consultar()
-    const timer = window.setInterval(() => void consultar(), 15_000)
-    return () => window.clearInterval(timer)
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void consultar()
+    }, 15_000)
+    const alVolver = () => {
+      if (!document.hidden) void consultar()
+    }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', alVolver)
+    }
   }, [consultar])
 
   // HU-13: el cambio de conectividad llega por SSE en cuanto el backend lo

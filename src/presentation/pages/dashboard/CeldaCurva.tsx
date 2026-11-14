@@ -3,17 +3,17 @@ import { useTranslation } from 'react-i18next'
 import { OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
 import { fechaHora, hora as formatearHora } from '@/lib/formato'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
+import { GraficaDiferida } from '../../components/GraficaDiferida'
 import { Paginacion } from '../../components/Paginacion'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Button } from '../../components/ui/button'
 import { Esqueleto } from '../../components/ui/esqueleto'
 import { Segmentado } from '../../components/ui/segmentado'
+import { useReloj } from '../../hooks/useReloj'
 import { resumenVentana } from './utilidades'
 
 // HU-31 criterio 4: opciones de rango para la curva térmica del dashboard.
@@ -92,7 +92,6 @@ export const CeldaCurva = memo(function CeldaCurva({
   reintentar,
   horasVentana,
   onCambiarVentana,
-  marcaVentana,
   ventana,
 }: {
   serie: LecturaTermica[]
@@ -101,11 +100,11 @@ export const CeldaCurva = memo(function CeldaCurva({
   reintentar: () => void
   horasVentana: number
   onCambiarVentana: (horas: number) => void
-  /** Cuarto de minuto en curso: la ventana avanza cada 15 s, no cada segundo. */
-  marcaVentana: number
   ventana: string
 }) {
   const { t } = useTranslation()
+  // Cuarto de minuto en curso: la ventana termina en «ahora» y avanza cada 15 s.
+  const marcaVentana = Math.floor(useReloj(15_000) / 15_000)
   const [vista, setVista] = useState<'grafica' | 'lista'>('grafica')
   const tema = useTemaResuelto()
   const resumen = useMemo(() => resumenVentana(serie), [serie])
@@ -186,7 +185,7 @@ export const CeldaCurva = memo(function CeldaCurva({
   } else {
     cuerpo = (
       <div className="h-full animate-(--animate-fade)">
-        <EChartWrapper option={opcion} height="100%" ariaLabel={titulo} ariaDescribedBy="curva-resumen" />
+        <GraficaDiferida option={opcion} height="100%" ariaLabel={titulo} ariaDescribedBy="curva-resumen" />
       </div>
     )
   }

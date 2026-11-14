@@ -4,7 +4,7 @@
  * de lucide, sin región aria-live propia (los avisos accesibles los publica
  * AvisosTiempoReal), expansión con foco de teclado y cierre con Escape.
  */
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight, Check, CircleAlert, Info, LoaderCircle, X } from "lucide-react";
 import {
   type CSSProperties,
@@ -417,9 +417,17 @@ export const Sileo = memo(function Sileo({
     [open, expandedContent],
   );
 
-  const bodyTransition = useMemo(() => (open ? SPRING : { ...SPRING, bounce: 0 }), [open]);
+  // MOTION §6.3: `MotionConfig reducedMotion="user"` no cubre el ancho y el
+  // alto de los rect del SVG, así que con movimiento reducido el resorte se
+  // corta aquí y el cambio de tamaño es instantáneo.
+  const reducir = useReducedMotion();
 
-  const pillTransition = useMemo(() => (ready ? SPRING : { duration: 0 }), [ready]);
+  const bodyTransition = useMemo(
+    () => (reducir ? { duration: 0 } : open ? SPRING : { ...SPRING, bounce: 0 }),
+    [open, reducir],
+  );
+
+  const pillTransition = useMemo(() => (ready && !reducir ? SPRING : { duration: 0 }), [ready, reducir]);
 
   const viewBox = `0 0 ${WIDTH} ${svgHeight}`;
 

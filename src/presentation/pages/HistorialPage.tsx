@@ -7,7 +7,6 @@ import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/applicat
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
-import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
 import { duracionBreve, duracionPeriodo, fechaCorta, fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
@@ -15,6 +14,7 @@ import { resumenPeriodo, resumenPorDia, type ExcursionEquipo } from '@/lib/resum
 import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
+import { GraficaDiferida } from '../components/GraficaDiferida'
 import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
 import { RiskBadge } from '../components/RiskBadge'
@@ -32,6 +32,13 @@ import { PanelEvidencia } from './historial/PanelEvidencia'
 import { RailHistorial } from './historial/RailHistorial'
 
 const FILTROS_INICIALES: FiltrosHistorial = {}
+
+/** El detalle del equipo enlaza con `?device_id=…`: la primera consulta ya llega filtrada. */
+function filtrosDeUrl(): FiltrosHistorial {
+  if (typeof window === 'undefined') return FILTROS_INICIALES
+  const equipo = new URLSearchParams(window.location.search).get('device_id')?.trim()
+  return equipo ? { device_id: equipo } : FILTROS_INICIALES
+}
 const LIMITE_LECTURAS = 200
 
 /** La cifra solo toma color cuando la lectura pide atención; la columna de riesgo lo dice en texto. */
@@ -46,12 +53,13 @@ const claveLectura = (l: LecturaTermica) => l.id ?? `${l.device_id}-${l.timestam
 
 export function HistorialPage() {
   const { t } = useTranslation()
-  const { lecturas, cargando, errorCarga, consultar } = useHistorial()
+  const [inicio] = useState(filtrosDeUrl)
+  const { lecturas, cargando, errorCarga, consultar } = useHistorial(inicio)
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
-  const [filtros, setFiltros] = useState<FiltrosHistorial>(FILTROS_INICIALES)
+  const [filtros, setFiltros] = useState<FiltrosHistorial>(inicio)
   // Lo que se consultó de verdad: los chips describen la lista visible, no el borrador.
-  const [aplicados, setAplicados] = useState<FiltrosHistorial>(FILTROS_INICIALES)
+  const [aplicados, setAplicados] = useState<FiltrosHistorial>(inicio)
   // HU-36 criterio 3: el rango inválido se bloquea en el FRONTEND antes de consultar.
   const [errorRango, setErrorRango] = useState<string | null>(null)
   const [expandida, setExpandida] = useState<string | null>(null)
@@ -290,10 +298,10 @@ export function HistorialPage() {
         }}
         encabezados={
           <>
-            <EncabezadoRegistro className="w-[104px]">{t('historial.columnas.hora')}</EncabezadoRegistro>
+            <EncabezadoRegistro className="w-[128px] whitespace-nowrap">{t('historial.columnas.hora')}</EncabezadoRegistro>
             {variosEquipos && <EncabezadoRegistro className="w-[136px]">{t('historial.dispositivo')}</EncabezadoRegistro>}
-            <EncabezadoRegistro className="w-[168px] text-right">{t('historial.tempInterna')}</EncabezadoRegistro>
-            <EncabezadoRegistro className="w-[184px]">{t('historial.riesgo')}</EncabezadoRegistro>
+            <EncabezadoRegistro className="w-[144px] text-right">{t('historial.tempInterna')}</EncabezadoRegistro>
+            <EncabezadoRegistro className="w-[144px]">{t('historial.riesgo')}</EncabezadoRegistro>
             <EncabezadoRegistro className="w-[132px]">{t('historial.puerta')}</EncabezadoRegistro>
             <EncabezadoRegistro className="hidden w-[112px] text-right 2xl:table-cell">{t('historial.tempAmbiental')}</EncabezadoRegistro>
             <EncabezadoRegistro className="hidden w-[96px] text-right 2xl:table-cell">{t('historial.humedad')}</EncabezadoRegistro>
@@ -301,12 +309,12 @@ export function HistorialPage() {
         }
         renderCeldas={(lectura) => (
           <>
-            <CeldaRegistro area="a" className="nums text-body text-subtle">
+            <CeldaRegistro area="a" className="nums text-body text-subtle sm:whitespace-nowrap">
               {hora(lectura.timestamp)}
-              {variosEquipos && <span className="codigo ml-2 text-meta text-muted sm:hidden">{lectura.device_id}</span>}
+              {variosEquipos && <span className="codigo ml-2 whitespace-nowrap text-meta text-muted sm:hidden">{lectura.device_id}</span>}
             </CeldaRegistro>
             {variosEquipos && (
-              <CeldaRegistro area="oculta" className="codigo text-body text-subtle">{lectura.device_id}</CeldaRegistro>
+              <CeldaRegistro area="oculta" className="codigo whitespace-nowrap text-body text-subtle">{lectura.device_id}</CeldaRegistro>
             )}
             <CeldaRegistro area="c" className="text-right">
               <span className="inline-flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
@@ -393,7 +401,7 @@ export function HistorialPage() {
               </div>
               {/* HU-36 criterio 1: la misma consulta filtrada alimenta la gráfica y la tabla. */}
               <div id="historial-grafica" aria-busy={cargando || undefined} className={revelarCurva ? 'revelar-grafica' : undefined}>
-                <EChartWrapper option={opcionHistorial} height="clamp(220px, 30vh, 280px)" ariaLabel={t('dashboard.graficaEtiqueta', { n: serieGrafica.length })} ariaDescribedBy="historial-datos-tabla" />
+                <GraficaDiferida option={opcionHistorial} height="clamp(220px, 30vh, 280px)" ariaLabel={t('dashboard.graficaEtiqueta', { n: serieGrafica.length })} ariaDescribedBy="historial-datos-tabla" />
               </div>
             </section>
           )

@@ -11,6 +11,7 @@ import { umbralSilencioSegundos } from '@/domain/entities/Dispositivo'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
+import { useVencido } from '../hooks/useReloj'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
@@ -25,7 +26,6 @@ import { CeldaLecturasRecientes } from './dashboard/CeldaLecturasRecientes'
 import { LineaEstado } from './dashboard/LineaEstado'
 import { PanelDetalleEquipo } from './dashboard/PanelDetalleEquipo'
 import { PanelSimulador } from './dashboard/PanelSimulador'
-import { unirEquipos } from './dashboard/equipos'
 import { condicionesLineaEstado } from './dashboard/condicionesLinea'
 import { useEquipoSeleccionado } from './dashboard/useEquipoSeleccionado'
 import { ROLES_SIMULADOR, resumenVentana } from './dashboard/utilidades'
@@ -42,17 +42,18 @@ export function DashboardPage() {
   const { t } = useTranslation()
   const rol = useAuthStore((s) => s.usuario?.rol)
   const [horasVentana, setHorasVentana] = useState<number>(24)
-  const { equipos: equiposConIncidencias, consultar: consultarEstadoOperativo } = useEstadoOperativo()
   // HU-31/HU-33: el dashboard muestra UN refrigerador a la vez. Por defecto,
   // el que reportó más recientemente; con más de uno, se elige en el selector.
-  const { equipos } = useEstadoOperativo(true)
+  // Un solo sondeo con `todos=true`: el backend devuelve los mismos datos por
+  // equipo que sin el parámetro, solo que incluye también los operativos.
+  const { equipos, consultar: consultarEstadoOperativo } = useEstadoOperativo(true)
   const { deviceId, elegir: setEquipoElegido } = useEquipoSeleccionado(equipos)
   const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana, deviceId)
   const alertas = useAlertasPendientes()
   const ultimaAtendida = useUltimaAlertaAtendida(alertas.estado === 'listo' && alertas.total === 0)
   const ultimasVivo = useEstadoVivoStore((s) => s.ultimas)
 
-  const flota = useMemo(() => unirEquipos(equipos, equiposConIncidencias), [equipos, equiposConIncidencias])
+  const flota = equipos
   const estadoIoTPrincipal =
     flota.find((equipo) => equipo.id === deviceId) ?? flota.find((equipo) => equipo.id === (deviceId ?? DISPOSITIVO_DEMO))
 
@@ -61,25 +62,14 @@ export function DashboardPage() {
     bentoYaEntro = true
   }, [])
 
-  // HU-32 criterio 4 / HU-33 criterio 2: si "hace cuánto" solo se recalculara
-  // al recibir una lectura nueva, se congelaría hasta la siguiente — este
-  // tick lo mantiene avanzando aunque el dato no cambie. Las celdas van en
-  // `memo`: solo Lectura y Condiciones dependen del segundo.
-  const [ahora, setAhora] = useState(() => Date.now())
-  useEffect(() => {
-    const id = setInterval(() => setAhora(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const segundosDesdeUltima = ultima ? Math.max(0, Math.floor((ahora - new Date(ultima.timestamp).getTime()) / 1000)) : null
+  // HU-32 criterio 4 / HU-33 criterio 2: «hace cuánto» avanza aunque no
+  // llegue lectura nueva. El segundo vive en las celdas que lo muestran
+  // (Lectura y Condiciones, `useSegundosDesde`); la página solo se repinta
+  // cuando el dato cruza el umbral (PERFORMANCE C1).
   // HU-33 criterio 2 / B-17: desactualizado al superar el umbral SIN_DATOS del propio nodo.
   const umbralFrescura = umbralSilencioSegundos(estadoIoTPrincipal)
-  const datoDesactualizado =
-    estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' || (segundosDesdeUltima != null && segundosDesdeUltima >= umbralFrescura)
-
-  // La ventana termina en «ahora» y avanza sola cada 15 s (no cada segundo).
-  const marcaVentana = Math.floor(ahora / 15_000)
-  const minuto = Math.floor(ahora / 60_000) * 60_000
+  const vencido = useVencido(ultima?.timestamp, umbralFrescura)
+  const datoDesactualizado = estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' || (ultima !== null && vencido)
 
   const ventana = t(`dashboard.ventanaFrase.${horasVentana}`)
   const resumen = useMemo(() => resumenVentana(serie), [serie])
@@ -189,7 +179,6 @@ export function DashboardPage() {
           deviceId={deviceId}
           onElegirEquipo={elegir}
           desactualizado={datoDesactualizado}
-          segundosDesdeUltima={segundosDesdeUltima}
           sseConectado={sseConectado}
           extremos={extremos}
           ventana={ventana}
@@ -199,7 +188,6 @@ export function DashboardPage() {
           serie={serie}
           cargando={estadoHistorial === 'cargando'}
           desactualizado={datoDesactualizado}
-          segundosDesdeUltima={segundosDesdeUltima}
           ventana={ventana}
           horasVentana={horasVentana}
         />
@@ -211,14 +199,12 @@ export function DashboardPage() {
           reintentar={reintentar}
           horasVentana={horasVentana}
           onCambiarVentana={setHorasVentana}
-          marcaVentana={marcaVentana}
           ventana={ventana}
         />
         <CeldaEstadoEquipos
           equipos={flota}
           deviceId={deviceId}
           temperaturas={temperaturas}
-          ahora={minuto}
           onElegir={elegir}
           onVerDetalles={verDetalles}
         />
@@ -236,7 +222,6 @@ export function DashboardPage() {
 
       <PanelDetalleEquipo
         equipo={equipoDetalle}
-        ahora={minuto}
         puedeGestionar={puedeGestionar}
         onCerrar={cerrarDetalle}
         onMostrar={mostrarDesdePanel}

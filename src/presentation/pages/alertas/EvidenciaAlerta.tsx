@@ -71,18 +71,18 @@ export function EvidenciaFila({ alerta }: { alerta: AlertaTermica }) {
       )}
       {correo && Correo && (
         <Tooltip lado="top" contenido={`${correo.texto}. ${correo.ayuda}`}>
-          <span tabIndex={0} className={cn('inline-flex rounded-sm focus-visible:outline-2 focus-visible:outline-ring', CORREO[correo.estado].clase)}>
+          <button type="button" className={cn('inline-flex cursor-default rounded-sm focus-visible:outline-2 focus-visible:outline-ring', CORREO[correo.estado].clase)}>
             <Correo aria-hidden className="size-3.5" />
             <span className="sr-only">{correo.texto}</span>
-          </span>
+          </button>
         </Tooltip>
       )}
       {alerta.historica && (
         <Tooltip lado="top" contenido={t('alertas.historicaAyuda')}>
-          <span tabIndex={0} className="inline-flex rounded-sm text-warning-700 focus-visible:outline-2 focus-visible:outline-ring">
+          <button type="button" className="inline-flex cursor-default rounded-sm text-warning-700 focus-visible:outline-2 focus-visible:outline-ring">
             <HardDrive aria-hidden className="size-3.5" />
             <span className="sr-only">{t('alertas.historica')}</span>
-          </span>
+          </button>
         </Tooltip>
       )}
     </span>
