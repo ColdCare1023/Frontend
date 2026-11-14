@@ -657,6 +657,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'get' && url === '/api/trazabilidad') {
     let registros = [...estadoDemo.trazabilidad].reverse()
     if (params.tipo_evento) registros = registros.filter((r) => r.tipo_evento === params.tipo_evento)
+    if (params.device_id) registros = registros.filter((r) => r.device_id === params.device_id)
     return responder(config, registros.slice(0, Number(params.limite ?? 200)))
   }
   const aislar = /^\/api\/trazabilidad\/corrupcion\/([^/]+)\/aislar$/.exec(url)

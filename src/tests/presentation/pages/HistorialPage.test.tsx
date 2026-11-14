@@ -50,8 +50,8 @@ describe('HistorialPage (RF-12, HU-36)', () => {
   it('muestra las lecturas consultadas', () => {
     montar([lectura()])
 
-    expect(screen.getByText('FARM-01-CDL')).toBeInTheDocument()
-    expect(screen.getByText(/4[.,]5/)).toBeInTheDocument()
+    expect(screen.getAllByText('FARM-01-CDL').length).toBeGreaterThan(0)
+    expect(screen.getByRole('cell', { name: /4[.,]5/ })).toBeInTheDocument()
   })
 
   it('ofrece los filtros que exige RF-12', () => {
@@ -121,3 +121,69 @@ describe('HistorialPage — HU-34/HU-35: riesgo efectivo y puerta MC-38 opcional
     expect(screen.queryByRole('img', { name: /^cerrada$/i })).not.toBeInTheDocument()
   })
 })
+
+describe('HistorialPage — rediseño P6 (registros)', () => {
+  beforeEach(() => useHistorial.mockReset())
+
+  it('agrupa las lecturas por día con el resumen del día', () => {
+    montar([
+      lectura({ id: 'l-1', timestamp: '2026-07-25T15:00:00Z', temperatura_interna: 4.5 }),
+      lectura({ id: 'l-2', timestamp: '2026-07-25T14:00:00Z', temperatura_interna: 6.1 }),
+      lectura({ id: 'l-3', timestamp: '2026-07-20T15:00:00Z', temperatura_interna: 3.2 }),
+    ])
+    const cabeceras = screen.getAllByRole('columnheader').filter((th) => th.getAttribute('scope') === 'colgroup')
+    expect(cabeceras).toHaveLength(2)
+    expect(cabeceras[0]).toHaveTextContent(/2 lecturas · mín 4[.,]5 · máx 6[.,]1/)
+  })
+
+  it('el detalle de fila muestra ambiente, humedad, conexión y calidad de hora', async () => {
+    montar([lectura({ time_quality: 'backfilled' })])
+    const boton = screen.getByRole('button', { name: /ver detalle de la lectura/i })
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    await userEvent.click(boton)
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    const detalle = document.getElementById(boton.getAttribute('aria-controls') as string) as HTMLElement
+    expect(detalle).toHaveTextContent(/temp\. ambiente/i)
+    expect(detalle).toHaveTextContent(/humedad/i)
+    expect(detalle).toHaveTextContent(/conexión/i)
+    expect(detalle).toHaveTextContent(/recuperada del buffer/i)
+    expect(screen.getByRole('button', { name: /ver origen del riesgo/i })).toBeEnabled()
+  })
+
+  it('solo una fila expandida a la vez y Escape la cierra', async () => {
+    montar([lectura({ id: 'l-1' }), lectura({ id: 'l-2', timestamp: '2026-07-25T11:00:00Z' })])
+    const [primero, segundo] = screen.getAllByRole('button', { name: /ver detalle de la lectura/i })
+    await userEvent.click(primero)
+    await userEvent.click(segundo)
+    expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(1)
+    await userEvent.keyboard('{Tab}')
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryAllByRole('button', { expanded: true })).toHaveLength(0)
+  })
+
+  it('la tira resume lecturas, % en rango y excursiones', () => {
+    montar([lectura(), lectura({ id: 'l-2', timestamp: '2026-07-25T11:59:00Z', temperatura_interna: 9.4 })])
+    const tira = screen.getByRole('region', { name: /resumen del periodo/i })
+    expect(tira).toHaveTextContent(/lecturas\s*2/i)
+    expect(tira).toHaveTextContent(/en rango/i)
+    expect(tira).toHaveTextContent(/excursiones\s*0/i)
+  })
+
+  it('oculta la columna Equipo cuando hay un solo equipo', () => {
+    montar([lectura()])
+    expect(screen.queryByRole('columnheader', { name: /^equipo$/i })).not.toBeInTheDocument()
+    montarOtraVez([lectura(), lectura({ id: 'l-2', device_id: 'FARM-02-CDL' })])
+    expect(screen.getByRole('columnheader', { name: /^equipo$/i })).toBeInTheDocument()
+  })
+
+  it('el estado vacío sin filtros explica cuándo aparecerán las lecturas', () => {
+    montar([])
+    expect(screen.getByText(/aún no hay lecturas registradas/i)).toBeInTheDocument()
+  })
+})
+
+function montarOtraVez(lecturas: LecturaTermica[]) {
+  document.body.innerHTML = ''
+  useHistorial.mockReturnValue({ lecturas, cargando: false, consultar: vi.fn() })
+  render(<HistorialPage />)
+}

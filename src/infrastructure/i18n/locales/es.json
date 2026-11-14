@@ -290,7 +290,7 @@
       "aprobada": "Versión aprobada",
       "sin_aprobacion_registrada": "Sin aprobación registrada"
     },
-    "verEvidencia": "Ver origen",
+    "verEvidencia": "Ver origen del riesgo",
     "evidenciaTitulo": "Cómo se obtuvo este riesgo",
     "idLectura": "Código de lectura",
     "evidenciaNoDisponible": "No hay evidencia de clasificación disponible para esta lectura.",
@@ -310,6 +310,96 @@
       "omitida": "Omitida",
       "fallida": "Fallida",
       "modelo_no_disponible": "Modelo no disponible"
+    },
+    "meta": "{{n}} lecturas · {{desde}} – {{hasta}}",
+    "guia": {
+      "enRango": "Todo el periodo se mantuvo en 2–8 °C.",
+      "excursiones_one": "{{count}} excursión en el periodo: duró {{duracion}} en {{equipo}}.",
+      "excursiones_other": "{{count}} excursiones en el periodo; la más larga duró {{duracion}} en {{equipo}}.",
+      "brechas_one": "Sin excursiones; hay {{count}} brecha sin datos.",
+      "brechas_other": "Sin excursiones; hay {{count}} brechas sin datos."
+    },
+    "resumen": {
+      "etiqueta": "Resumen del periodo",
+      "lecturas": "Lecturas",
+      "enRango": "En rango",
+      "minima": "Mínima",
+      "maxima": "Máxima",
+      "excursiones": "Excursiones"
+    },
+    "filtro": {
+      "etiqueta": "Filtrar el historial",
+      "equipo": "Equipo",
+      "resultados_one": "{{count}} lectura",
+      "resultados_other": "{{count}} lecturas",
+      "chipEquipo": "Equipo: {{valor}}",
+      "chipRiesgo": "Riesgo: {{valor}}",
+      "chipPeriodo": "Periodo: {{valor}}",
+      "panelTitulo": "Filtrar el historial"
+    },
+    "curva": {
+      "titulo": "Curva del periodo",
+      "meta": "{{equipo}} · {{n}} lecturas · rango 2–8 °C",
+      "equipo": "Equipo de la curva"
+    },
+    "dia": {
+      "resumen": "{{n}} lecturas · mín {{min}} · máx {{max}} °C",
+      "excursiones_one": "{{count}} excursión",
+      "excursiones_other": "{{count}} excursiones"
+    },
+    "columnas": {
+      "hora": "Hora",
+      "detalle": "Detalle"
+    },
+    "fila": {
+      "verDetalle": "Ver detalle de la lectura de las {{hora}}, {{equipo}}",
+      "ocultarDetalle": "Ocultar detalle de la lectura de las {{hora}}, {{equipo}}"
+    },
+    "detalle": {
+      "conexion": "Conexión",
+      "calidadHora": "Hora del equipo",
+      "calidad": {
+        "synced": "Sincronizada",
+        "backfilled": "Recuperada del buffer",
+        "unsynced": "Sin sincronizar"
+      },
+      "recibida": "Recibida",
+      "retraso": "{{s}} s después de capturarse",
+      "secuencia": "Secuencia y arranque",
+      "origen": "Origen de la clasificación",
+      "origenes": {
+        "random_forest": "Modelo de IA",
+        "salvaguarda_determinista": "Regla de seguridad",
+        "dato_insuficiente": "Datos insuficientes",
+        "fallo_sensor": "Falla de sensor"
+      },
+      "puertaAbiertaDuracion": "Abierta {{duracion}}"
+    },
+    "rail": {
+      "etiqueta": "Contexto del periodo",
+      "porEquipo": "Por equipo",
+      "porEquipoMeta": "Última lectura, mínima y máxima del periodo",
+      "porEquipoValor": "mín {{min}} · prom {{prom}} · máx {{max}} °C",
+      "porEquipoRegla": "{{equipo}}: última {{ultima}} °C; mínima {{min}} °C; máxima {{max}} °C; rango 2–8 °C",
+      "enRango": "{{pct}} en rango",
+      "excursiones": "Excursiones del periodo",
+      "sinExcursiones": "Sin excursiones: todo el periodo en 2–8 °C.",
+      "excursionValor": "{{duracion}} · máx {{max}} °C",
+      "verEnTabla": "Ver en la tabla",
+      "masExcursiones": "y {{n}} más",
+      "brechas": "Brechas sin datos",
+      "sinBrechas": "Registro continuo, sin brechas.",
+      "brechaMayor": "Mayor: {{duracion}} ({{fecha}})",
+      "brechasTotal_one": "{{count}} brecha en {{equipo}}",
+      "brechasTotal_other": "{{count}} brechas en {{equipo}}"
+    },
+    "vacio": {
+      "filtrosTitulo": "Sin lecturas para estos filtros",
+      "filtrosDetalle": "Prueba con otro periodo o quita un filtro.",
+      "ultimaLectura": "Última lectura registrada: {{fecha}}",
+      "sinDatosTitulo": "Aún no hay lecturas registradas",
+      "sinDatosDetalle": "Las lecturas aparecerán cuando un equipo transmita.",
+      "irMonitoreo": "Ir a Monitoreo"
     }
   },
   "alertas": {
@@ -472,7 +562,116 @@
       "ACCION_CORRECTIVA": "Acción registrada",
       "REPORTE_BPA": "Reporte generado",
       "AUDITORIA": "Acción de usuario",
-      "CONECTIVIDAD": "Cambio de conexión"
+      "CONECTIVIDAD": "Cambio de conexión",
+      "ACCION_CORRECTIVA_RECTIFICADA": "Acción rectificada",
+      "ALERTA_CERRADA": "Alerta cerrada",
+      "ALTA_DISPOSITIVO": "Equipo registrado",
+      "BAJA_HARDWARE": "Equipo dado de baja",
+      "CALIBRACION_SENSORES": "Calibración de sensores",
+      "CHECKLIST_BPA": "Checklist BPA",
+      "AUDIT_LOG": "Acción de usuario",
+      "ACEPTACION_PRIVACIDAD": "Aviso de privacidad aceptado",
+      "RECHAZO_PRIVACIDAD": "Aviso de privacidad rechazado",
+      "DESACTIVACION_USUARIO": "Usuario desactivado",
+      "EMISION_CREDENCIAL_DISPOSITIVO": "Credencial emitida",
+      "ROTACION_CREDENCIAL_DISPOSITIVO": "Credencial rotada",
+      "REVOCACION_CREDENCIAL_DISPOSITIVO": "Credencial revocada",
+      "BROKER_CONSOLA_CONFIRMADA": "Operación del broker confirmada",
+      "BROKER_OPERACION_PENDIENTE": "Operación del broker pendiente",
+      "FIRMWARE_ACTUALIZADO": "Firmware actualizado",
+      "FIRMWARE_OTA_ENVIADA": "Actualización de firmware enviada",
+      "FIRMWARE_OTA_NO_APLICADA": "Actualización de firmware no aplicada",
+      "FIRMWARE_PREPARACION": "Firmware en preparación",
+      "FIRMWARE_ROLLBACK": "Firmware revertido",
+      "INSTALACION_DISPOSITIVO_ACTUALIZADA": "Ubicación actualizada",
+      "RESPONSABLE_DISPOSITIVO_ACTUALIZADO": "Responsable actualizado",
+      "MODELO_IA_VERSION_REGISTRADA": "Versión del modelo registrada",
+      "MODELO_IA_VERSION_ACTIVADA": "Versión del modelo activada",
+      "REGISTRO_AISLADO_CORRUPCION": "Registro aislado por corrupción",
+      "CORRUPCION_CADENA_DETECTADA": "Corrupción de la cadena detectada",
+      "VERIFICACION_INTEGRIDAD": "Verificación de integridad",
+      "DISPOSITIVO_OFFLINE": "Equipo sin conexión",
+      "SIN_DATOS": "Equipo sin datos",
+      "FALLA_SENSOR": "Falla de sensor",
+      "MONITOREO_SUSPENDIDO": "Monitoreo suspendido",
+      "RELOJ_NODO_ADELANTADO": "Reloj del equipo adelantado",
+      "SALTO_RELOJ_NODO": "Salto en el reloj del equipo",
+      "COLISION_CLAVE_DETECTADA": "Colisión de clave detectada"
+    },
+    "meta": "{{n}} registros · {{desde}} – {{hasta}}",
+    "simularDemo": "Simular inconsistencia (demo)",
+    "rail": "Verificación y contexto",
+    "errorVerificar": "No se pudo completar la verificación. Intenta de nuevo.",
+    "limiteVerificaciones": "Alcanzaste el límite de verificaciones por minuto. Espera un momento.",
+    "diferencia": "Los sellos difieren desde el carácter {{n}}.",
+    "veredicto": {
+      "etiqueta": "Estado de la cadena",
+      "sinVerificar": "Sin alertas de integridad",
+      "sinVerificarDetalle": "No hay inconsistencias registradas. Revisa la cadena completa para obtener un resultado actual.",
+      "comprometidaAccion": "Revisa la integridad para ubicar el registro afectado.",
+      "verificandoTitulo": "Verificando la cadena…",
+      "verificada": "Verificada {{tiempo}}",
+      "revisarDeNuevo": "Revisar de nuevo",
+      "verEnTabla": "Ver registro en la tabla",
+      "fueraDeLista": "El registro afectado no está entre los {{n}} registros cargados.",
+      "verTodosLosTipos": "Ver todos los tipos",
+      "aislado": "Registro aislado. Revisa de nuevo para confirmar el estado de la cadena.",
+      "estadoNoDisponible": "No pudimos consultar el estado de la cadena."
+    },
+    "datos": {
+      "registros": "Registros cargados",
+      "verificados": "Registros verificados",
+      "primero": "Primer registro",
+      "ultimo": "Último registro",
+      "ultimaVerificacionEquipo": "Última verificación por equipo",
+      "ninguna": "Ninguna registrada",
+      "integraDesde": "Íntegra desde"
+    },
+    "segmento": {
+      "ultima": "Última: {{device}} · {{fecha}} · {{resultado}}",
+      "queRevisa": "Qué revisa esta verificación",
+      "resultadoIntegro": "sin cambios",
+      "resultadoRoto": "con cambios"
+    },
+    "composicion": {
+      "titulo": "Composición de la cadena",
+      "filtrar": "Ver solo «{{tipo}}»"
+    },
+    "filtro": {
+      "etiqueta": "Filtrar registros",
+      "equipo": "Equipo",
+      "resultados_one": "{{count}} registro",
+      "resultados_other": "{{count}} registros",
+      "chipTipo": "Tipo: {{valor}}",
+      "chipEquipo": "Equipo: {{valor}}"
+    },
+    "dia": {
+      "resumen_one": "{{count}} registro",
+      "resumen_other": "{{count}} registros"
+    },
+    "columnas": {
+      "cadena": "Cadena",
+      "hora": "Hora"
+    },
+    "fila": {
+      "verDetalle": "Ver detalle de «{{evento}}» de las {{hora}}",
+      "ocultarDetalle": "Ocultar detalle de «{{evento}}» de las {{hora}}"
+    },
+    "detalle": {
+      "contenido": "Contenido del registro",
+      "sinContenido": "Sin contenido adicional",
+      "usuario": "Usuario",
+      "codigoEvento": "Código del evento",
+      "verificarEquipoDia": "Verificar este equipo ese día",
+      "enlace": "Enlaza con el sello del registro anterior"
+    },
+    "resumenPayload": {
+      "lectura": "{{temp}} °C · {{riesgo}}",
+      "verificacion": "{{device}} · {{resultado}} · {{n}} bloques"
+    },
+    "vacio": {
+      "filtrosTitulo": "Sin registros para este filtro",
+      "filtrosDetalle": "Elige otro tipo de evento o quita el filtro de equipo."
     }
   },
   "reportes": {
@@ -540,7 +739,150 @@
       "LOGIN_EXITOSO": "Inicio de sesión correcto",
       "BLOQUEO_TEMPORAL": "Bloqueo temporal",
       "RBAC_DENEGADO": "Acceso denegado por rol",
-      "USUARIO_CREADO": "Usuario creado"
+      "USUARIO_CREADO": "Usuario creado",
+      "ACCION_CORRECTIVA_REGISTRADA": "Acción correctiva registrada",
+      "LOGOUT": "Cierre de sesión",
+      "LOGIN_GOOGLE_FALLIDO": "Inicio con Google fallido",
+      "UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO": "Límite de intentos superado",
+      "PASSWORD_CAMBIADA": "Contraseña cambiada",
+      "RECUPERACION_PASSWORD_SOLICITADA": "Recuperación de contraseña solicitada",
+      "PASSWORD_RESTABLECIDA_CON_ENLACE": "Contraseña restablecida con enlace",
+      "RESTABLECER_PASSWORD_USUARIO": "Contraseña temporal emitida",
+      "CREAR_USUARIO": "Usuario creado",
+      "DESACTIVAR_USUARIO": "Usuario desactivado",
+      "REACTIVAR_USUARIO": "Usuario reactivado",
+      "CAMBIAR_ROL_USUARIO": "Rol de usuario cambiado",
+      "BIENVENIDA_NOTIFICADA": "Bienvenida enviada",
+      "REVISAR_ALERTA": "Alerta revisada",
+      "REGISTRAR_ACCION_CORRECTIVA": "Acción correctiva registrada",
+      "RECTIFICAR_ACCION_CORRECTIVA": "Acción correctiva rectificada",
+      "EXPORTAR_REPORTE_BPA": "Reporte BPA exportado",
+      "EXPORTAR_REPORTE_BPA_PDF": "Reporte BPA exportado en PDF",
+      "CHECKLIST_BPA_REGISTRADO": "Checklist BPA registrado",
+      "ALTA_DISPOSITIVO": "Equipo registrado",
+      "BAJA_DISPOSITIVO": "Equipo dado de baja",
+      "CALIBRACION_REGISTRADA": "Calibración registrada",
+      "ACTUALIZAR_INSTALACION_DISPOSITIVO": "Ubicación del equipo actualizada",
+      "ACTUALIZAR_RESPONSABLE_DISPOSITIVO": "Responsable del equipo actualizado",
+      "ROTAR_CREDENCIAL_DISPOSITIVO": "Credencial del equipo rotada",
+      "REVOCAR_CREDENCIAL_DISPOSITIVO": "Credencial del equipo revocada",
+      "CREDENCIAL_POSESION_VERIFICADA": "Posesión de credencial verificada",
+      "DESAFIO_POSESION_REENVIADO": "Desafío de posesión reenviado",
+      "BROKER_CONSOLA_CONFIRMADA": "Operación del broker confirmada",
+      "BROKER_OPERACION_PENDIENTE": "Operación del broker pendiente",
+      "INTERVALO_REPORTE_ACTUALIZADO": "Intervalo de reporte actualizado",
+      "DISPOSITIVO_ONLINE": "Equipo en línea",
+      "SIN_DATOS_DETECTADO": "Equipo sin datos",
+      "MONITOREO_SUSPENDIDO_DETECTADO": "Monitoreo suspendido",
+      "EXCURSION_NO_VERIFICADA_DETECTADA": "Excursión sin verificar detectada",
+      "LECTURA_RECHAZADA_TIMESTAMP": "Lectura rechazada por hora",
+      "LECTURA_RECHAZADA_ESQUEMA": "Lectura rechazada por formato",
+      "LECTURA_RECHAZADA_CREDENCIAL_REVOCADA": "Lectura rechazada: credencial revocada",
+      "LECTURA_SIMULADA_RECHAZADA": "Lectura simulada rechazada",
+      "LECTURA_MANUAL_REGISTRADA": "Lectura manual registrada",
+      "LECTURA_CONFLICTO": "Lectura en conflicto",
+      "LECTURA_RETENIDA_ROTACION_COMPROMISO": "Lectura retenida por rotación de credencial",
+      "TELEMETRIA_RETENIDA_ROTACION_COMPROMISO": "Telemetría retenida por rotación de credencial",
+      "EVENTO_RETENIDO_ROTACION_COMPROMISO": "Evento retenido por rotación de credencial",
+      "EVENTO_CREDENCIAL_REVOCADA": "Evento con credencial revocada",
+      "EVENTO_DISPOSITIVO_DADO_DE_BAJA": "Evento de equipo dado de baja",
+      "LWT_OBSOLETO_IGNORADO": "Aviso de desconexión obsoleto ignorado",
+      "REGISTRAR_VERSION_MODELO_IA": "Versión del modelo registrada",
+      "ACTIVAR_VERSION_MODELO_IA": "Versión del modelo activada",
+      "ACTIVAR_VERSION_MODELO_IA_RECHAZADO": "Activación del modelo rechazada",
+      "MODELO_RECHAZADO": "Modelo rechazado",
+      "INTENTO_MODIFICAR_INFERENCIA": "Intento de modificar una inferencia",
+      "CADENA_CORRUPCION_AISLADA": "Registro corrupto aislado",
+      "RETENCION_INTENTOS_SUPRIMIDOS": "Intentos suprimidos por retención"
+    },
+    "meta": "{{n}} acciones · {{desde}} – {{hasta}}",
+    "buscarAccion": "Buscar acción",
+    "usuariosDistintos": "Usuarios distintos",
+    "sinUsuario": "Sin sesión",
+    "guia": {
+      "sinFallos": "Sin intentos fallidos ni denegados en las acciones cargadas.",
+      "fallidos_one": "{{count}} acción fallida o denegada; revisa su origen en el detalle.",
+      "fallidos_other": "{{count}} acciones fallidas o denegadas; revisa su origen en el detalle."
+    },
+    "resultados": {
+      "exitoso": "Exitoso",
+      "fallido": "Fallido",
+      "denegado": "Denegado",
+      "bloqueado": "Bloqueado"
+    },
+    "filtroResultado": {
+      "etiqueta": "Resultado",
+      "todas": "Todas",
+      "fallidas": "Fallidas o denegadas",
+      "bloqueos": "Bloqueos",
+      "ayuda": "Filtra solo las acciones ya cargadas."
+    },
+    "chip": {
+      "accion": "Acción: {{valor}}",
+      "usuario": "Usuario: {{valor}}",
+      "periodo": "Periodo: {{valor}}",
+      "resultado": "Resultado: {{valor}}",
+      "categoria": "Categoría: {{valor}}"
+    },
+    "filtro": {
+      "etiqueta": "Filtrar la bitácora",
+      "resultados_one": "{{count}} acción",
+      "resultados_other": "{{count}} acciones",
+      "panelTitulo": "Filtrar la bitácora"
+    },
+    "actividad": {
+      "titulo": "Actividad de 14 días",
+      "exitosas": "Exitosas",
+      "fallidas": "Fallidas o denegadas",
+      "barra": "{{dia}}: {{total}} acciones, {{fallidas}} fallidas o denegadas. Filtrar este día.",
+      "base": "Según las {{n}} acciones cargadas"
+    },
+    "dia": {
+      "resumen_one": "{{count}} acción",
+      "resumen_other": "{{count}} acciones",
+      "fallidas_one": "{{count}} fallida",
+      "fallidas_other": "{{count}} fallidas"
+    },
+    "columnas": {
+      "hora": "Hora"
+    },
+    "fila": {
+      "verDetalle": "Ver detalle de «{{accion}}» de las {{hora}}",
+      "ocultarDetalle": "Ocultar detalle de «{{accion}}» de las {{hora}}"
+    },
+    "detalle": {
+      "codigo": "Código de la acción",
+      "usuarioCompleto": "Usuario (ID completo)",
+      "contenido": "Detalle registrado",
+      "sinContenido": "Sin detalle adicional",
+      "idRegistro": "ID del registro",
+      "fechaUtc": "Fecha (UTC)",
+      "filtrarUsuario": "Ver solo este usuario",
+      "filtrarAccion": "Ver solo esta acción"
+    },
+    "rail": {
+      "etiqueta": "Contexto de la bitácora",
+      "categorias": "Por categoría",
+      "origenes": "Orígenes más frecuentes",
+      "origenValor_one": "{{count}} acción",
+      "origenValor_other": "{{count}} acciones",
+      "alcance": "Alcance"
+    },
+    "categorias": {
+      "acceso": "Acceso y credenciales",
+      "usuarios": "Usuarios",
+      "equipos": "Equipos",
+      "alertas": "Alertas y acciones",
+      "reportes": "Reportes",
+      "ia": "Modelo de IA",
+      "integridad": "Integridad",
+      "otros": "Otras"
+    },
+    "vacio": {
+      "filtrosTitulo": "Sin acciones para estos filtros",
+      "filtrosDetalle": "Prueba con otro periodo o quita un filtro.",
+      "sinDatosDetalle": "Las acciones de acceso, usuarios y equipos aparecerán aquí.",
+      "actualizar": "Actualizar"
     }
   },
   "usuarios": {
@@ -807,7 +1149,36 @@
     "ocultarDetalles": "Ocultar detalles",
     "sinPermisoTitulo": "Acceso restringido",
     "sinPermisoRol": "Tu rol: {{rol}}.",
-    "sinPermisoDestinos": "Puedes continuar en"
+    "sinPermisoDestinos": "Puedes continuar en",
+    "ayer": "Ayer",
+    "copiar": "Copiar {{campo}}",
+    "copiado": "Copiado",
+    "verDetalleFila": "Ver detalle",
+    "ocultarDetalleFila": "Ocultar detalle",
+    "filtros": "Filtros",
+    "filtrosActivos": "Filtros activos",
+    "quitarFiltro": "Quitar filtro: {{filtro}}",
+    "quitarFiltros": "Quitar filtros",
+    "aplicarFiltros": "Aplicar filtros",
+    "mostrarTodas": "Mostrar todas",
+    "consultando": "Consultando…",
+    "limiteAlcanzado": "Se muestran los {{n}} registros más recientes. Acota el periodo para ver los anteriores.",
+    "duracionMin": "{{m}} min",
+    "duracionHoras": "{{h}} h {{m}} min",
+    "duracionDias_one": "{{count}} día",
+    "duracionDias_other": "{{count}} días",
+    "periodo": {
+      "titulo": "Periodo",
+      "cualquiera": "Cualquier fecha",
+      "ultimas24h": "Últimas 24 h",
+      "ultimos7d": "Últimos 7 días",
+      "ultimos30d": "Últimos 30 días",
+      "rango": "{{desde}} – {{hasta}}",
+      "desdeSolo": "Desde {{desde}}",
+      "hastaSolo": "Hasta {{hasta}}",
+      "aplicar": "Aplicar periodo",
+      "atajos": "Atajos de periodo"
+    }
   },
   "metricasIA": {
     "titulo": "Cómo se comporta el clasificador",

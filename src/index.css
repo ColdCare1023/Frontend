@@ -886,3 +886,77 @@
   .coldcare-data-stack td[colspan] { padding: 20px 0; }
   .coldcare-data-stack td.mobile-actions > div { display: flex; flex-wrap: wrap; justify-content: flex-start; }
 }
+
+/* ── Registros (Historial, Bitácora, Integridad) ─────────────────────────
+   Detalle de fila: excepción documentada de alto con grid-template-rows
+   (MOTION §3.1). Al cerrar se desmonta sin animación: la salida es más
+   rápida que la entrada. */
+@layer utilities {
+  .fila-detalle {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows var(--duration-reveal) var(--ease-out),
+      opacity var(--duration-pop) var(--ease-out);
+  }
+  @starting-style {
+    .fila-detalle { grid-template-rows: 0fr; opacity: 0; }
+  }
+
+  /* Un momento por página: la curva del periodo se revela de izquierda a
+     derecha la primera vez que llega con datos (MOTION 4.11). */
+  .revelar-grafica { animation: revelar-grafica var(--duration-panel) var(--ease-out) both; }
+
+  /* Text swap: solo opacidad (regla transform/opacity). */
+  .cambio-texto { animation: cambio-texto var(--duration-pop) var(--ease-out) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .revelar-grafica { animation: none; }
+    .fila-detalle { transition: opacity 120ms linear; }
+    @starting-style {
+      .fila-detalle { grid-template-rows: 1fr; opacity: 0; }
+    }
+    .cambio-texto { animation-duration: 120ms; animation-timing-function: linear; }
+  }
+}
+
+@keyframes revelar-grafica {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+@keyframes cambio-texto {
+  from { opacity: 0; }
+}
+
+/* Lista móvil compacta: sustituye a las fichas apiladas de 8 campos. Cada
+   fila es una rejilla de 4 áreas (a/b a la izquierda, c la cifra, d el
+   control). La cabecera de día y el detalle ocupan el ancho completo. */
+@media (max-width: 639px) {
+  .coldcare-data-list .coldcare-table-region { overflow-x: visible; }
+  .coldcare-data-list table, .coldcare-data-list tbody { display: block; min-width: 0; }
+  .coldcare-data-list thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .coldcare-data-list tr[data-fila] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 44px;
+    grid-template-areas: "a c d" "b c d";
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: center;
+    min-height: 56px;
+    padding: 8px 0 8px 16px;
+  }
+  .coldcare-data-list td { display: block; padding: 0; min-width: 0; }
+  .coldcare-data-list tr[data-fila] > td:first-child { box-shadow: none; }
+  .coldcare-data-list td[data-area="a"] { grid-area: a; }
+  .coldcare-data-list td[data-area="b"] { grid-area: b; }
+  .coldcare-data-list td[data-area="c"] { grid-area: c; }
+  .coldcare-data-list td[data-area="d"] { grid-area: d; }
+  .coldcare-data-list td[data-area="oculta"] { display: none; }
+  .coldcare-data-list tr[data-grupo],
+  .coldcare-data-list tr[data-grupo] > th,
+  .coldcare-data-list tr[data-detalle],
+  .coldcare-data-list tr[data-detalle] > td { display: block; }
+  .coldcare-data-list tr[data-fila][data-expandida] { box-shadow: inset 2px 0 0 var(--color-primary); }
+  .coldcare-data-list tr[data-fila][data-marca="corrupta"] { box-shadow: inset 3px 0 0 var(--color-critical); }
+}

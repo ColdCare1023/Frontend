@@ -66,3 +66,32 @@ export function duracionBreve(segundos: number): string {
   const resto = total % 60
   return `${minutos}:${String(resto).padStart(2, '0')}`
 }
+
+/** «sáb, 14 nov»: cabecera de día en las tablas de registros. */
+export function diaCorto(iso: string): string {
+  const fecha = new Date(iso)
+  if (Number.isNaN(fecha.getTime())) return '—'
+  return fecha.toLocaleDateString(localeActual(), { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** «Hoy», «Ayer» o el día corto. `ahora` se inyecta en las pruebas. */
+export function etiquetaDia(iso: string, t: (clave: string) => string, ahora = new Date()): string {
+  const fecha = new Date(iso)
+  if (Number.isNaN(fecha.getTime())) return '—'
+  const mismoDia = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  if (mismoDia(fecha, ahora)) return t('comunes.hoy')
+  const ayer = new Date(ahora)
+  ayer.setDate(ayer.getDate() - 1)
+  if (mismoDia(fecha, ayer)) return t('comunes.ayer')
+  return diaCorto(iso)
+}
+
+/** «50 min», «1 h 20 min» o «2 días». */
+export function duracionLegible(ms: number, t: (clave: string, opciones?: Record<string, unknown>) => string): string {
+  const minutos = Math.max(1, Math.round(ms / 60_000))
+  if (minutos < 60) return t('comunes.duracionMin', { m: minutos })
+  const horas = Math.floor(minutos / 60)
+  if (horas < 48) return t('comunes.duracionHoras', { h: horas, m: minutos % 60 })
+  return t('comunes.duracionDias', { count: Math.round(horas / 24) })
+}

@@ -13,7 +13,11 @@ interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   titulo?: string
   /** Consulta en curso: marca la región como ocupada (WCAG 4.1.3). */
   cargando?: boolean
-  mobileLayout?: 'scroll' | 'stack'
+  /**
+   * `list`: bajo 640 px cada fila es una rejilla compacta de 4 áreas
+   * (`data-area` a/b/c/d en las celdas; `oculta` no se pinta en móvil).
+   */
+  mobileLayout?: 'scroll' | 'stack' | 'list'
 }
 
 export function Table({ className, titulo, cargando, mobileLayout = 'scroll', children, ...props }: TableProps) {
@@ -38,7 +42,7 @@ export function Table({ className, titulo, cargando, mobileLayout = 'scroll', ch
     return () => observer.disconnect()
   }, [])
   return (
-    <div className={cn('coldcare-data-surface', mobileLayout === 'stack' && 'coldcare-data-stack')}>
+    <div className={cn('coldcare-data-surface', mobileLayout === 'stack' && 'coldcare-data-stack', mobileLayout === 'list' && 'coldcare-data-list')}>
       {overflowing && <p id={hintId} className="mb-2 flex items-center gap-2 text-xs text-faint"><MoveHorizontal aria-hidden className="size-4" />{t('comunes.deslizarTabla')}</p>}
     <div
       ref={regionRef}
@@ -90,7 +94,7 @@ export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTable
   return (
     <tr
       role="row"
-      className={cn('transition-colors duration-(--duration-micro) hover:bg-secondary/[0.04]', className)}
+      className={cn('transition-colors duration-(--duration-micro) hover:bg-surface-hover', className)}
       {...props}
     />
   )

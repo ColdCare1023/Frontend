@@ -157,7 +157,8 @@ describe('Trazabilidad — cadena de custodia (RF-14, RF-15, HU-47)', () => {
 
   it('anuncia también el resultado de la verificación', () => {
     montarTrazabilidad({ verificacion: CADENA_ROTA })
-    expect(screen.getByRole('status')).toHaveTextContent(/alteración detectada/i)
+    // P6: una ruptura detectada es urgente y se anuncia como alerta (HU-47).
+    expect(screen.getByRole('alert')).toHaveTextContent(/alteración detectada/i)
   })
 
   it('pide confirmación antes de aislar un registro', async () => {
