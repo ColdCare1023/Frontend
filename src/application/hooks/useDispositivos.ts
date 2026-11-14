@@ -12,6 +12,7 @@ import {
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 import { rutaApi } from '@/lib/rutaApi'
+import { cuerpoCalibracion } from './useCalibracion'
 
 export function useDispositivos() {
   const [dispositivos, setDispositivos] = useState<Dispositivo[]>([])
@@ -279,16 +280,5 @@ export function cuerpoAlta(payload: { device_id: string; nombre: string; ubicaci
   }
 }
 
-/** B-12: cuerpo exacto de `PATCH /api/dispositivos/{id}/calibracion`. */
-export function cuerpoCalibracion(
-  fechaCalibracion: string, numeroCertificado: string, observaciones: string | undefined,
-  fechaVencimiento: string, margenAvisoDias: number,
-) {
-  return {
-    fecha_calibracion: fechaCalibracion,
-    numero_certificado: numeroCertificado,
-    observaciones: observaciones || undefined,
-    fecha_vencimiento: fechaVencimiento,
-    margen_aviso_dias: margenAvisoDias,
-  }
-}
+/** B-12: cuerpo exacto de `PATCH /api/dispositivos/{id}/calibracion` (compartido con el QF, HU-30). */
+export { cuerpoCalibracion }

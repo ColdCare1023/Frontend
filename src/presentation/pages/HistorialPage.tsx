@@ -1,15 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, OctagonAlert, Search, ThermometerSun, Timer, Wifi, WifiOff, Hash, Inbox, Brain } from 'lucide-react'
+import { CalendarX2, CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, OctagonAlert, Search, ThermometerSun, Timer, Wifi, WifiOff, Hash, Inbox, Brain } from 'lucide-react'
 
+import { useCalibracionEquipos } from '@/application/hooks/useCalibracion'
 import { useHistorial, type FiltrosHistorial } from '@/application/hooks/useHistorial'
 import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
+import { useAuthStore } from '@/application/stores/authStore'
+import { capturadaConCalibracionVencida, inicioCalibracionVencida } from '@/domain/entities/Dispositivo'
 import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import type { SerieTermica } from '@/domain/entities/SerieTermica'
 import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
+import { tienePermiso } from '@/domain/value-objects/Rol'
+import { anotarCalibracionVencida, type TramoCalibracionVencida } from '@/infrastructure/charts/calibracionCurva'
 import { construirOpcionSerieTermica } from '@/infrastructure/charts/serieTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { duracionBreve, duracionLegible, duracionPeriodo, fechaCorta, fechaHora, hora } from '@/lib/formato'
+import { duracionBreve, duracionLegible, duracionPeriodo, fechaCorta, fechaDia, fechaHora, hora } from '@/lib/formato'
 import { lecturasNoDibujadas, resumenDeSeries, resumenPorDiaDeSeries } from '@/lib/resumenSerie'
 import type { ExcursionEquipo } from '@/lib/resumenTermico'
 import { cn } from '@/lib/utils'
@@ -65,6 +70,12 @@ const claveLectura = (l: LecturaTermica) => l.id ?? `${l.device_id}-${l.timestam
 export function HistorialPage() {
   const { t } = useTranslation()
   const [inicio] = useState(filtrosDeUrl)
+  // HU-47 / HU-18: la evidencia de la inferencia es solo de QF y auditor
+  // (require_roles(FARMACEUTICO, AUDITOR)); al técnico no se le ofrece un 403.
+  const rol = useAuthStore((s) => s.usuario?.rol)
+  const puedeVerEvidencia = rol !== undefined && tienePermiso(rol, ['farmaceutico', 'auditor'])
+  // HU-30 esc. 3: equipos con la calibración vencida y desde cuándo.
+  const { equipos: equiposCalibracion } = useCalibracionEquipos()
   const tamanoPagina = useResponsivePageSize()
   const {
     lecturas, total, pagina, irAPagina, cargando, errorCarga, consultar,
@@ -163,27 +174,54 @@ export function HistorialPage() {
       hasta: entradaLocal(Math.ceil((excursion.fin + MARGEN_EPISODIO_MS) / MINUTO_MS) * MINUTO_MS),
     })
 
+  // HU-30 esc. 3: solo los equipos de la consulta (los de la serie del
+  // periodo y los de la página) cuya calibración está vencida.
+  const calibracionVencida = useMemo(() => {
+    const vistos = new Set([...series.map((s) => s.device_id), ...lecturas.map((l) => l.device_id)])
+    const mapa = new Map<string, { desde: number; fecha: string }>()
+    for (const equipo of equiposCalibracion) {
+      const desde = vistos.has(equipo.id) ? inicioCalibracionVencida(equipo) : null
+      if (desde !== null) mapa.set(equipo.id, { desde, fecha: equipo.fecha_proxima_calibracion ?? '' })
+    }
+    return mapa
+  }, [equiposCalibracion, series, lecturas])
+  const vencidaDe = useCallback(
+    (lectura: LecturaTermica) => capturadaConCalibracionVencida(lectura.timestamp, calibracionVencida.get(lectura.device_id)?.desde ?? null),
+    [calibracionVencida],
+  )
+
   // HU-36 criterio 1: la serie del periodo alimenta la gráfica; el eje
   // muestra el periodo consultado entero, también lo que no tiene datos.
   const tema = useTemaResuelto()
   const ventana = useMemo(() => ({ desde: Date.parse(periodo.desde), hasta: Date.parse(periodo.hasta) }), [periodo])
-  const opcionHistorial = useMemo(
-    () =>
-      construirOpcionSerieTermica(series, {
-        interna: t('dashboard.tempInterna'),
-        ambiental: t('dashboard.tempAmbiental'),
-        rangoEsperado: t('dashboard.rangoEsperadoCorto'),
-        ahora: t('dashboard.ejeAhora'),
-        excursion: t('dashboard.graficaExcursion'),
-        sinDatos: t('dashboard.graficaSinDatos'),
-        banda: t('historial.curva.banda'),
-        bufferAgotado: t('historial.curva.bufferAgotado'),
-        minimo: t('historial.curva.minimo'),
-        maximo: t('historial.curva.maximo'),
-        lecturas: t('historial.curva.lecturas'),
-      }, ventana, tema),
-    [series, t, ventana, tema],
-  )
+  const opcionHistorial = useMemo(() => {
+    const base = construirOpcionSerieTermica(series, {
+      interna: t('dashboard.tempInterna'),
+      ambiental: t('dashboard.tempAmbiental'),
+      rangoEsperado: t('dashboard.rangoEsperadoCorto'),
+      ahora: t('dashboard.ejeAhora'),
+      excursion: t('dashboard.graficaExcursion'),
+      sinDatos: t('dashboard.graficaSinDatos'),
+      banda: t('historial.curva.banda'),
+      bufferAgotado: t('historial.curva.bufferAgotado'),
+      minimo: t('historial.curva.minimo'),
+      maximo: t('historial.curva.maximo'),
+      lecturas: t('historial.curva.lecturas'),
+    }, ventana, tema)
+    if (calibracionVencida.size === 0) return base
+    // HU-30 esc. 3: el tramo va del vencimiento (o del inicio del periodo) a la
+    // última lectura del equipo en la serie.
+    const tramos = [...calibracionVencida].flatMap(([equipo, { desde }]): TramoCalibracionVencida[] => {
+      const serie = series.find((s) => s.device_id === equipo)
+      const ultima = serie?.resumen.ultima_lectura_en ? Date.parse(serie.resumen.ultima_lectura_en) : Date.parse(serie?.buckets.at(-1)?.fin ?? '')
+      if (!Number.isFinite(ultima) || ultima < desde) return []
+      const etiqueta = calibracionVencida.size > 1 || variosEquipos
+        ? `${t('dashboard.graficaCalibracionVencida')} · ${equipo}`
+        : t('dashboard.graficaCalibracionVencida')
+      return [{ desde: Number.isFinite(ventana.desde) ? Math.max(desde, ventana.desde) : desde, hasta: ultima, etiqueta }]
+    })
+    return anotarCalibracionVencida(base, tramos, tema)
+  }, [series, t, ventana, tema, calibracionVencida, variosEquipos])
   const intervaloSerie = series[0]?.bucket_segundos
 
   const masLarga = resumen.excursiones[0]
@@ -383,6 +421,11 @@ export function HistorialPage() {
             {/* HU-34: el estado de riesgo (sin clasificación IA no es Normal), no la clase cruda de la IA. */}
             <CeldaRegistro area="b">
               <RiskBadge nivel={estadoRiesgoDe(lectura)} />
+              {vencidaDe(lectura) && (
+                <span role="img" aria-label={t('historial.calibracionVencidaFila')} title={t('historial.calibracionVencidaFila')} className="ml-2 inline-flex align-middle text-warning-700">
+                  <CalendarX2 aria-hidden className="size-3.5" />
+                </span>
+              )}
               {lectura.apertura_refrigerador && (
                 <span className="ml-2 text-meta text-warning-700 sm:hidden">{t('dashboard.puertaAbierta')}</span>
               )}
@@ -411,7 +454,13 @@ export function HistorialPage() {
             )}
           </>
         )}
-        renderDetalle={(lectura) => <DetalleLectura lectura={lectura} onVerOrigen={() => void abrirEvidencia(lectura)} />}
+        renderDetalle={(lectura) => (
+          <DetalleLectura
+            lectura={lectura}
+            calibracionVencida={vencidaDe(lectura)}
+            onVerOrigen={puedeVerEvidencia ? () => void abrirEvidencia(lectura) : undefined}
+          />
+        )}
       />
       <div className="border-t border-border px-3 sm:px-4">
         <Paginacion total={total} pagina={pagina} onCambiar={cambiarPagina} tamano={tamanoPagina} />
@@ -441,6 +490,16 @@ export function HistorialPage() {
             { clave: 'minmax', etiqueta: t('historial.resumen.minMax'), valor: `${cifra(resumen.min)} – ${cifra(resumen.max)} °C`, className: 'lg:hidden' },
           ]}
         />
+      )}
+      {conDatos && calibracionVencida.size > 0 && (
+        <div role="note" aria-label={t('historial.calibracionVencidaTitulo')} className="flex items-start gap-2 rounded-(--radius-field) bg-warning-100 px-3 py-2 text-meta text-warning-700">
+          <CalendarX2 aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <ul className="space-y-0.5">
+            {[...calibracionVencida].map(([equipo, { fecha }]) => (
+              <li key={equipo}>{t('historial.calibracionVencidaAviso', { equipo, fecha: fechaDia(fecha) })}</li>
+            ))}
+          </ul>
+        </div>
       )}
       {(noDibujadas.sinHora > 0 || noDibujadas.manuales > 0 || series.some((s) => s.brechas_truncadas)) && (
         <p role="status" className="flex items-start gap-1.5 text-meta text-faint">
@@ -499,7 +558,16 @@ export function HistorialPage() {
 }
 
 /** Detalle de una lectura: los campos técnicos que no caben en la fila. */
-function DetalleLectura({ lectura, onVerOrigen }: { lectura: LecturaTermica; onVerOrigen: () => void }) {
+function DetalleLectura({
+  lectura,
+  calibracionVencida,
+  onVerOrigen,
+}: {
+  lectura: LecturaTermica
+  calibracionVencida: boolean
+  /** Sin permiso para la evidencia (técnico), no se ofrece el botón. */
+  onVerOrigen?: () => void
+}) {
   const { t } = useTranslation()
   const retraso =
     lectura.received_at && (lectura.captured_at ?? lectura.timestamp)
@@ -542,12 +610,19 @@ function DetalleLectura({ lectura, onVerOrigen }: { lectura: LecturaTermica; onV
           {lectura.id && <BotonCopiar valor={lectura.id} campo={t('historial.idLectura')} />}
         </Dato>
         <Dato etiqueta={t('historial.fecha')} className="nums">{fechaCorta(lectura.timestamp)} {hora(lectura.timestamp)}</Dato>
+        {calibracionVencida && (
+          <Dato etiqueta={t('historial.calibracionSensor')} icono={CalendarX2} className="font-medium text-warning-700">
+            {t('historial.calibracionVencidaFila')}
+          </Dato>
+        )}
       </dl>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={onVerOrigen}>
-          {t('historial.verEvidencia')}
-        </Button>
-      </div>
+      {onVerOrigen && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={onVerOrigen}>
+            {t('historial.verEvidencia')}
+          </Button>
+        </div>
+      )}
     </>
   )
 }

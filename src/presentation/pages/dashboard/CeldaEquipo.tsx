@@ -4,7 +4,7 @@ import { CalendarClock, ChevronRight, HardDrive, TriangleAlert, Wifi, WifiOff } 
 
 import { CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { fechaCorta, hora } from '@/lib/formato'
+import { fechaDia, hora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
 import { Button } from '../../components/ui/button'
@@ -78,7 +78,7 @@ export function EstadoCalibracionCorto({ equipo }: { equipo: Dispositivo | undef
   const { t } = useTranslation()
   if (!equipo) return <span className="text-faint">—</span>
   const estado = estadoCalibracion(equipo)
-  const fecha = fechaCorta(equipo.fecha_proxima_calibracion)
+  const fecha = fechaDia(equipo.fecha_proxima_calibracion)
   if (estado === 'vencida')
     return (
       <span role="status" className="inline-flex items-center gap-1 font-medium text-warning-700">
@@ -106,7 +106,7 @@ function CalibracionCelda({ equipo }: { equipo: Dispositivo | undefined }) {
   if (!equipo) return <dd className="mt-1 text-body text-faint">—</dd>
   const estado = estadoCalibracion(equipo)
   if (estado === 'vigente') {
-    const fecha = fechaCorta(equipo.fecha_proxima_calibracion)
+    const fecha = fechaDia(equipo.fecha_proxima_calibracion)
     return (
       <>
         <dd className="mt-1 text-body text-foreground lg:truncate">{t('dashboard.calibracionVigente')}</dd>

@@ -1,14 +1,15 @@
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Info, OctagonAlert, TriangleAlert } from 'lucide-react'
+import { CalendarX2, Info, OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import type { CoberturaHistorial } from '@/application/hooks/useMonitoreoTermico'
 import { estadoRiesgoDe, lecturaSinHora, serieGraficable, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { resumenCombinado, type ResumenCurva, type SerieTermica } from '@/domain/entities/SerieTermica'
+import { anotarCalibracionVencida } from '@/infrastructure/charts/calibracionCurva'
 import { construirOpcionCurvaAgregada, puntosCurvaAgregada, type PuntoCurva } from '@/infrastructure/charts/curvaAgregada'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { fechaHora, hora as formatearHora } from '@/lib/formato'
+import { fechaDia, fechaHora, hora as formatearHora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { GraficaDiferida } from '../../components/GraficaDiferida'
 import { HoraLectura } from '../../components/HoraLectura'
@@ -116,6 +117,8 @@ export const CeldaCurva = memo(function CeldaCurva({
   agregada = null,
   resumen: resumenExterno,
   cobertura = null,
+  calibracionVencidaDesde = null,
+  vencimientoCalibracion = null,
 }: {
   serie: LecturaTermica[]
   ultimaPresente: boolean
@@ -130,6 +133,9 @@ export const CeldaCurva = memo(function CeldaCurva({
   resumen?: ResumenCurva | null
   /** Lecturas crudas recibidas frente al total de la ventana. */
   cobertura?: CoberturaHistorial | null
+  /** HU-30 esc. 3: desde cuándo (ms) el sensor en pantalla tiene la calibración vencida. */
+  calibracionVencidaDesde?: number | null
+  vencimientoCalibracion?: string | null
 }) {
   const { t } = useTranslation()
   // Cuarto de minuto en curso: la ventana termina en «ahora» y avanza cada 15 s.
@@ -214,9 +220,15 @@ export const CeldaCurva = memo(function CeldaCurva({
       return lectura ? detalleLectura(lectura) : ''
     }
     const tooltip = (base as { tooltip?: Record<string, unknown> }).tooltip ?? {}
-    return { ...base, tooltip: { ...tooltip, formatter } }
+    const conTooltip = { ...base, tooltip: { ...tooltip, formatter } }
+    if (calibracionVencidaDesde === null) return conTooltip
+    return anotarCalibracionVencida(
+      conTooltip,
+      [{ desde: Math.max(calibracionVencidaDesde, hasta - horasVentana * 60 * 60 * 1000), hasta, etiqueta: t('dashboard.graficaCalibracionVencida') }],
+      tema,
+    )
     // Con el tema cambian los colores del canvas (tokens CSS): se reconstruye.
-  }, [serie, graficable, puntos, agregada, intervalo, t, horasVentana, marcaVentana, tema])
+  }, [serie, graficable, puntos, agregada, intervalo, t, horasVentana, marcaVentana, tema, calibracionVencidaDesde])
 
   // HU-31: lo crudo no cubre la ventana si el total supera lo recibido.
   const recorte =
@@ -306,6 +318,12 @@ export const CeldaCurva = memo(function CeldaCurva({
           ]}
         />
       </div>
+      {calibracionVencidaDesde !== null && (
+        <p role="note" className="mt-2 flex items-start gap-1.5 text-meta font-medium text-warning-700">
+          <CalendarX2 aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+          {t('dashboard.curvaCalibracionVencida', { fecha: fechaDia(vencimientoCalibracion) })}
+        </p>
+      )}
       {resumen && (
         <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-meta text-muted">
           {(

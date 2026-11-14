@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, CalendarPlus } from 'lucide-react'
 
+import { registrarCalibracionDispositivo } from '@/application/hooks/useCalibracion'
 import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { tramosDisponibilidad } from '@/domain/value-objects/Disponibilidad'
-import { fechaCorta, fechaHora } from '@/lib/formato'
+import { fechaDia, fechaHora } from '@/lib/formato'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
 import { Button } from '../../components/ui/button'
 import {
@@ -17,6 +18,8 @@ import {
   SidePanelHeader,
   SidePanelTitle,
 } from '../../components/ui/side-panel'
+import { FormCalibracion } from '../compartido/FormCalibracion'
+import { MensajeFormulario } from '../dispositivos/compartido'
 import { claveBrecha, textoRangoBuffer, textosBrecha } from './bufferNodo'
 import { AnilloBuffer, EstadoCalibracionCorto } from './CeldaEquipo'
 import { BadgeEstadoOperativo } from './CeldaEstadoEquipos'
@@ -43,6 +46,8 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
 export function PanelDetalleEquipo({
   equipo,
   puedeGestionar,
+  puedeCalibrar = false,
+  onCalibracionRegistrada,
   onCerrar,
   onMostrar,
   onCloseAutoFocus,
@@ -50,6 +55,9 @@ export function PanelDetalleEquipo({
   onCloseAutoFocus?: (evento: Event) => void
   equipo: Dispositivo | null
   puedeGestionar: boolean
+  /** HU-30: el Químico Farmacéutico registra la calibración y su margen sin entrar a Dispositivos. */
+  puedeCalibrar?: boolean
+  onCalibracionRegistrada?: () => void | Promise<void>
   onCerrar: () => void
   onMostrar: (id: string) => void
 }) {
@@ -69,7 +77,13 @@ export function PanelDetalleEquipo({
           </SidePanelHeader>
           {/* Enfocable: con contenido solo de lectura, el teclado también debe poder desplazarlo. */}
           <SidePanelBody tabIndex={0} className="focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
-            <DetalleEquipo equipo={equipo} tramos={tramos} />
+            <DetalleEquipo
+              key={equipo.id}
+              equipo={equipo}
+              tramos={tramos}
+              puedeCalibrar={puedeCalibrar}
+              onCalibracionRegistrada={onCalibracionRegistrada}
+            />
           </SidePanelBody>
           <SidePanelFooter>
             {puedeGestionar && (
@@ -91,8 +105,21 @@ export function PanelDetalleEquipo({
   )
 }
 
-function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: ReturnType<typeof tramosDisponibilidad> }) {
+function DetalleEquipo({
+  equipo,
+  tramos,
+  puedeCalibrar,
+  onCalibracionRegistrada,
+}: {
+  equipo: Dispositivo
+  tramos: ReturnType<typeof tramosDisponibilidad>
+  puedeCalibrar: boolean
+  onCalibracionRegistrada?: () => void | Promise<void>
+}) {
   const { t } = useTranslation()
+  const [registrando, setRegistrando] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const botonCalibrar = useRef<HTMLButtonElement>(null)
   const buffer = equipo.buffer_littlefs
   const limite = buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS
   const pendientes = buffer?.pendientes ?? 0
@@ -182,7 +209,7 @@ function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: Return
         {(calibracion === 'vencida' || calibracion === 'proxima_a_vencer') && (
           <p className="text-warning-700">
             {t(calibracion === 'vencida' ? 'dashboard.calibracionVencida' : 'dashboard.calibracionPorVencer', {
-              fecha: fechaCorta(equipo.fecha_proxima_calibracion),
+              fecha: fechaDia(equipo.fecha_proxima_calibracion),
             })}
           </p>
         )}
@@ -191,6 +218,44 @@ function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: Return
             {t('dispositivos.numeroCertificado')}: {equipo.numero_certificado_calibracion}
           </p>
         )}
+        {equipo.fecha_proxima_calibracion && (
+          <p className="nums">{t('dashboard.margenAvisoCalibracion', { dias: equipo.margen_aviso_calibracion_dias ?? 30 })}</p>
+        )}
+        {puedeCalibrar &&
+          (registrando ? (
+            <div className="pt-2 text-foreground">
+              <FormCalibracion
+                dispositivo={equipo}
+                registrar={(datos) => registrarCalibracionDispositivo(equipo.id, datos)}
+                alCancelar={() => {
+                  setRegistrando(false)
+                  requestAnimationFrame(() => botonCalibrar.current?.focus())
+                }}
+                alGuardar={(texto) => {
+                  setAviso(texto)
+                  setRegistrando(false)
+                  void onCalibracionRegistrada?.()
+                  requestAnimationFrame(() => botonCalibrar.current?.focus())
+                }}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2 pt-1">
+              <Button
+                ref={botonCalibrar}
+                size="sm"
+                variant={calibracion === 'vencida' || calibracion === 'sin_registrar' ? 'primary' : 'secondary'}
+                onClick={() => {
+                  setAviso(null)
+                  setRegistrando(true)
+                }}
+              >
+                <CalendarPlus aria-hidden />
+                {t('dispositivos.registrarCalibracion')}
+              </Button>
+              {aviso && <MensajeFormulario mensaje={{ tipo: 'ok', texto: aviso }} />}
+            </div>
+          ))}
       </Seccion>
 
       <Seccion titulo={t('dashboard.seccionIncidentes')}>

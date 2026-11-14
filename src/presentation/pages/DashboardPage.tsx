@@ -8,7 +8,7 @@ import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { useSerieTermica } from '@/application/hooks/useSerieTermica'
 import { useAuthStore } from '@/application/stores/authStore'
 import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
-import { umbralSilencioSegundos } from '@/domain/entities/Dispositivo'
+import { inicioCalibracionVencida, umbralSilencioSegundos } from '@/domain/entities/Dispositivo'
 import { estadoRiesgoDe } from '@/domain/entities/LecturaTermica'
 import { resumenCombinado } from '@/domain/entities/SerieTermica'
 import { tienePermiso } from '@/domain/value-objects/Rol'
@@ -107,6 +107,12 @@ export function DashboardPage() {
   const [simuladorAbierto, setSimuladorAbierto] = useState(false)
   const puedeSimular = MODO_DEMO && rol !== undefined && tienePermiso(rol, ROLES_SIMULADOR)
   const puedeGestionar = rol !== undefined && tienePermiso(rol, [])
+  // HU-30: el QF registra la calibración y el margen (el backend lo autoriza).
+  const puedeCalibrar = rol !== undefined && tienePermiso(rol, ['farmaceutico'])
+  // HU-30 esc. 3: la curva del equipo en pantalla marca el tramo con certificado
+  // vencido. Primitivos: el sondeo de 15 s no debe reconstruir la curva.
+  const calibracionVencidaDesde = estadoIoTPrincipal ? inicioCalibracionVencida(estadoIoTPrincipal) : null
+  const vencimientoCalibracion = estadoIoTPrincipal?.fecha_proxima_calibracion ?? null
 
   // Los paneles se abren sin `Trigger` de Radix: el foco vuelve a mano al control de origen.
   const origenPanel = useRef<HTMLElement | null>(null)
@@ -220,6 +226,8 @@ export function DashboardPage() {
           agregada={agregada}
           resumen={resumen}
           cobertura={cobertura}
+          calibracionVencidaDesde={calibracionVencidaDesde}
+          vencimientoCalibracion={vencimientoCalibracion}
         />
         <CeldaEstadoEquipos
           equipos={flota}
@@ -243,6 +251,8 @@ export function DashboardPage() {
       <PanelDetalleEquipo
         equipo={equipoDetalle}
         puedeGestionar={puedeGestionar}
+        puedeCalibrar={puedeCalibrar}
+        onCalibracionRegistrada={consultarEstadoOperativo}
         onCerrar={cerrarDetalle}
         onMostrar={mostrarDesdePanel}
         onCloseAutoFocus={devolverFoco}

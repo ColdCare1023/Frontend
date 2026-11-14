@@ -88,26 +88,17 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
     await u.type(screen.getByLabelText(/contraseña provisional/i), password)
   }
 
-  it('envía el celular al crear la cuenta', async () => {
+  it('HU-53: no pide el celular (el aviso por SMS quedó fuera del alcance)', async () => {
     const crear = vi.fn().mockResolvedValue('ok')
     montar([usuario()], { crear })
     const u = userEvent.setup()
 
     await abrirYLlenar(u)
-    await u.click(screen.getByRole('button', { name: /datos opcionales/i }))
-    await u.type(screen.getByLabelText('Celular (opcional)'), '+51999888777')
+    expect(screen.queryByLabelText(/celular/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /datos opcionales/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/SMS/)).not.toBeInTheDocument()
     await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
-    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026x', 'tecnico', '+51999888777')
-  })
-
-  it('omite el celular si se deja vacío', async () => {
-    const crear = vi.fn().mockResolvedValue('ok')
-    montar([usuario()], { crear })
-    const u = userEvent.setup()
-
-    await abrirYLlenar(u)
-    await u.click(screen.getByRole('button', { name: 'Crear usuario' }))
-    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026x', 'tecnico', undefined)
+    expect(crear).toHaveBeenLastCalledWith('Ana Prueba', 'ana@prueba.pe', 'Clave-Segura-2026x', 'tecnico')
   })
 
   it('valida la política de contraseña antes de enviar', async () => {

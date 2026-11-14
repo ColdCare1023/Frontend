@@ -8,7 +8,6 @@ import { problemaPassword } from '@/domain/value-objects/politicaPassword'
 import { ROLES, type Rol } from '@/domain/value-objects/Rol'
 import { generarPasswordProvisional } from '@/lib/passwordProvisional'
 import { Button } from '../../components/ui/button'
-import { Detalles } from '../../components/ui/detalles'
 import { Input, Label, NativeSelect } from '../../components/ui/input'
 import {
   SidePanel,
@@ -22,7 +21,7 @@ import {
 import { StepperEstatico } from '../../components/ui/stepper'
 import { MensajeFormulario } from './MensajeFormulario'
 
-const FORM_INICIAL = { nombre: '', email: '', telefono: '', password: '', rol: 'tecnico' as Rol }
+const FORM_INICIAL = { nombre: '', email: '', password: '', rol: 'tecnico' as Rol }
 
 type Crear = (nombre: string, email: string, password: string, rol: Rol, telefono?: string) => Promise<ResultadoCrear | 'ok' | 'duplicado' | 'error'>
 
@@ -98,7 +97,7 @@ export function PanelNuevoUsuario({
     }
     setErrorCampo(null)
     setCreando(true)
-    const resultado = normalizar(await crear(form.nombre, form.email, form.password, form.rol, form.telefono.trim() || undefined))
+    const resultado = normalizar(await crear(form.nombre, form.email, form.password, form.rol))
     setCreando(false)
     if (resultado.estado === 'ok') {
       setExito({ nombre: form.nombre, email: form.email, rol: form.rol, password: form.password, activacion: resultado.activacion })
@@ -291,24 +290,8 @@ export function PanelNuevoUsuario({
                 {errorPassword && <p id="u-password-error" role="alert" className="mt-1 text-meta text-critical">{errorPassword}</p>}
                 <p role="status" className="sr-only">{anuncio}</p>
               </div>
-              <Detalles titulo={t('usuarios.datosOpcionales')} className="border-t border-border pt-2">
-                <div className="pb-1">
-                  <Label htmlFor="u-telefono">{t('usuarios.telefono')}</Label>
-                  <Input
-                    id="u-telefono"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="off"
-                    placeholder="+51999888777"
-                    pattern="^\+[1-9][0-9]{7,14}$"
-                    title={t('usuarios.telefonoAyuda')}
-                    aria-describedby="u-telefono-ayuda"
-                    value={form.telefono}
-                    onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-                  />
-                  <p id="u-telefono-ayuda" className="mt-1 text-meta text-muted">{t('usuarios.telefonoAyuda')}</p>
-                </div>
-              </Detalles>
+              {/* HU-53: el aviso por SMS quedó fuera del alcance; la bienvenida va
+                  solo por correo, así que ya no se pide el celular. */}
               <MensajeFormulario mensaje={errorGeneral ? { tipo: 'error', texto: errorGeneral } : null} />
             </SidePanelBody>
             <SidePanelFooter>

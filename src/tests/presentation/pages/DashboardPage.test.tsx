@@ -2,7 +2,9 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useAuthStore } from '@/application/stores/authStore'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import type { Rol } from '@/domain/value-objects/Rol'
 
 const useMonitoreoTermico = vi.hoisted(() => vi.fn())
 // HU-31: serie agregada; por defecto no disponible (curva con lecturas crudas).
@@ -739,5 +741,37 @@ describe('DashboardPage — HU-31: periodo completo y aviso de recorte', () => {
     // En la lista (lecturas crudas) sí se avisa que no cubre el periodo.
     fireEvent.click(within(screen.getByRole('group', { name: 'Vista de la curva' })).getByRole('button', { name: 'Lista' }))
     expect(screen.getByTestId('aviso-curva-lista')).toHaveTextContent(/la gráfica y el resumen cubren el periodo completo/)
+  })
+})
+
+describe('DashboardPage — HU-30: calibración para el Químico Farmacéutico', () => {
+  beforeEach(() => {
+    useMonitoreoTermico.mockReset()
+    equiposOperativos.lista = [
+      { id: 'FARM-01-CDL', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', fecha_proxima_calibracion: '2020-01-01' },
+    ]
+  })
+
+  function sesion(rol: Rol) {
+    useAuthStore.setState({ usuario: { id: 'u-1', email: `${rol}@upc.pe`, rol, expiraEn: Date.now() + 3_600_000 }, autenticado: true })
+  }
+
+  it('la curva avisa de la calibración vencida del equipo en pantalla', () => {
+    renderizar(lectura())
+    expect(screen.getByRole('note')).toHaveTextContent(/La calibración del sensor venció el 1\/1\/2020/)
+  })
+
+  it.each([
+    ['farmaceutico', true],
+    ['administrador', true],
+    ['tecnico', false],
+    ['auditor', false],
+  ] as const)('%s: «Registrar calibración» en la ficha del equipo = %s', (rol, visible) => {
+    sesion(rol)
+    renderizar(lectura())
+    fireEvent.click(screen.getAllByRole('button', { name: /^Detalles/ })[0])
+    const panel = screen.getByRole('dialog')
+    expect(within(panel).queryAllByRole('button', { name: 'Registrar calibración' })).toHaveLength(visible ? 1 : 0)
+    useAuthStore.setState({ usuario: null, autenticado: false })
   })
 })

@@ -1,20 +1,39 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useAuthStore } from '@/application/stores/authStore'
+import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import type { SerieTermica } from '@/domain/entities/SerieTermica'
+import type { Rol } from '@/domain/value-objects/Rol'
 
 const useHistorial = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useHistorial', () => ({ useHistorial }))
 
+// HU-30: vigencia de calibración por equipo (estado-operativo?todos=true).
+const useCalibracionEquipos = vi.hoisted(() => vi.fn(() => ({ equipos: [] as Partial<Dispositivo>[], consultar: vi.fn() })))
+vi.mock('@/application/hooks/useCalibracion', () => ({ useCalibracionEquipos }))
+
 // HU-36 criterio 1: jsdom no implementa ResizeObserver, que EChartWrapper
-// necesita — mismo mock que DashboardPage.test.tsx.
+// necesita — mismo mock que DashboardPage.test.tsx. Guarda la última opción
+// para afirmar sobre la curva (HU-30 esc. 3).
+const grafica = vi.hoisted(() => ({ opcion: null as null | { series?: Array<{ name?: string; markArea?: { data: unknown[] } }> } }))
 vi.mock('@/infrastructure/charts/EChartWrapper', () => ({
-  EChartWrapper: () => <div data-testid="grafica" />,
+  EChartWrapper: ({ option }: { option: typeof grafica.opcion }) => {
+    grafica.opcion = option
+    return <div data-testid="grafica" />
+  },
 }))
 
 import { HistorialPage } from '@/presentation/pages/HistorialPage'
+
+function sesion(rol: Rol) {
+  useAuthStore.setState({ usuario: { id: 'u-1', email: `${rol}@upc.pe`, rol, expiraEn: Date.now() + 3_600_000 }, autenticado: true })
+}
+
+beforeEach(() => sesion('farmaceutico'))
+afterEach(() => useAuthStore.setState({ usuario: null, autenticado: false }))
 
 function lectura(over: Partial<LecturaTermica> = {}): LecturaTermica {
   return {
@@ -341,3 +360,71 @@ function montarOtraVez(lecturas: LecturaTermica[]) {
   useHistorial.mockReturnValue(estadoHook(lecturas))
   render(<HistorialPage />)
 }
+
+describe('HistorialPage — HU-47/HU-18: evidencia de la inferencia según el rol', () => {
+  beforeEach(() => useHistorial.mockReset())
+
+  async function abrirDetalle() {
+    await userEvent.click(screen.getByRole('button', { name: /ver detalle de la lectura/i }))
+  }
+
+  it.each(['farmaceutico', 'auditor', 'administrador'] as const)('%s ve «Ver origen del riesgo»', async (rol) => {
+    sesion(rol)
+    montar([lectura()])
+    await abrirDetalle()
+    expect(screen.getByRole('button', { name: /ver origen del riesgo/i })).toBeEnabled()
+  })
+
+  it('el técnico no recibe el botón (el backend le respondería 403)', async () => {
+    sesion('tecnico')
+    montar([lectura()])
+    await abrirDetalle()
+    expect(screen.queryByRole('button', { name: /ver origen del riesgo/i })).not.toBeInTheDocument()
+    // El resto del detalle sigue disponible.
+    expect(screen.getByText('Hora del equipo')).toBeInTheDocument()
+  })
+})
+
+describe('HistorialPage — HU-30 esc. 3: calibración vencida', () => {
+  beforeEach(() => {
+    useHistorial.mockReset()
+    grafica.opcion = null
+  })
+
+  const vencido = { id: 'FARM-01-CDL', fecha_ultima_calibracion: '2025-01-10', fecha_proxima_calibracion: '2026-07-20', margen_aviso_calibracion_dias: 30 }
+
+  it('avisa del equipo con la calibración vencida y marca las lecturas posteriores', async () => {
+    useCalibracionEquipos.mockReturnValue({ equipos: [vencido], consultar: vi.fn() })
+    montar([
+      lectura({ id: 'l-desp', timestamp: '2026-07-25T12:00:00Z' }),
+      lectura({ id: 'l-antes', timestamp: '2026-07-19T12:00:00Z' }),
+    ])
+
+    const aviso = screen.getByRole('note', { name: 'Calibración vencida' })
+    expect(aviso).toHaveTextContent(/FARM-01-CDL: la calibración del sensor venció el 20\/7\/2026/)
+    // Solo la lectura capturada después del vencimiento lleva la marca.
+    expect(screen.getAllByRole('img', { name: 'Capturada con la calibración vencida' })).toHaveLength(1)
+
+    const [posterior] = screen.getAllByRole('button', { name: /ver detalle de la lectura/i })
+    await userEvent.click(posterior)
+    const detalle = document.getElementById(posterior.getAttribute('aria-controls') as string) as HTMLElement
+    expect(within(detalle).getByText('Calibración del sensor')).toBeInTheDocument()
+
+    // La curva lleva el tramo sin certificado vigente, fuera de la leyenda.
+    await screen.findByTestId('grafica')
+    const serie = grafica.opcion?.series?.find((s) => s.name === '__calibracion')
+    expect(serie?.markArea?.data).toHaveLength(1)
+  })
+
+  it('sin calibración vencida no hay aviso ni marca', async () => {
+    useCalibracionEquipos.mockReturnValue({
+      equipos: [{ ...vencido, fecha_proxima_calibracion: '2099-01-01' }],
+      consultar: vi.fn(),
+    })
+    montar([lectura()])
+    expect(screen.queryByRole('note', { name: 'Calibración vencida' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Capturada con la calibración vencida' })).not.toBeInTheDocument()
+    await screen.findByTestId('grafica')
+    expect(grafica.opcion?.series?.some((s) => s.name === '__calibracion')).toBe(false)
+  })
+})

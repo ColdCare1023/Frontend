@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fechaHora, fechaISOlocal, hora } from '@/lib/formato'
+import { fechaDia, fechaHora, fechaISOlocal, hora } from '@/lib/formato'
 
 describe('fechaISOlocal', () => {
   it('usa el día calendario local y rellena mes y día', () => {
@@ -23,5 +23,16 @@ describe('fechaHora y hora', () => {
 
     expect(texto).toMatch(/\d:\d{2}:\d{2}\u00a0[ap]\.\u00a0m\.$/)
     expect(hora('2026-10-28T14:50:40Z')).not.toMatch(/ [ap]\. ?m\./)
+  })
+})
+
+describe('fechaDia', () => {
+  it('muestra el día de calendario sin desplazarlo por la zona horaria', () => {
+    expect(fechaDia('2027-05-12')).toBe(new Date(2027, 4, 12).toLocaleDateString('es-PE'))
+  })
+
+  it('sin valor o inválida, guion', () => {
+    expect(fechaDia(null)).toBe('—')
+    expect(fechaDia('no-es-fecha')).toBe('—')
   })
 })
