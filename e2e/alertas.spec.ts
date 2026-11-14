@@ -12,7 +12,9 @@ async function entrarComo(page: Page, perfil: string) {
   await expect(page).toHaveURL(/\/dashboard$/)
   await irA(page, '/alertas')
   await expect(page.getByRole('heading', { name: 'Alertas', level: 1 })).toBeVisible()
-  await expect(page.getByRole('row').nth(1)).toBeVisible()
+  // El primer esqueleto de carga también es una fila: se espera a una fila
+  // real (la Cronología está en cada fila y para todos los roles).
+  await expect(page.getByRole('button', { name: /^ver cronología de atención/i }).first()).toBeVisible()
 }
 
 const fila = (page: Page) => page.getByRole('row').nth(1)
