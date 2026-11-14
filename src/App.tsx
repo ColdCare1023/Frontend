@@ -49,9 +49,17 @@ const MetricasIAPage = diferida(
 )
 const AuditoriaPage = diferida(() => import('@/presentation/pages/AuditoriaPage'), 'AuditoriaPage')
 const UsuariosPage = diferida(() => import('@/presentation/pages/UsuariosPage'), 'UsuariosPage')
-const DispositivosPage = diferida(
-  () => import('@/presentation/pages/DispositivosPage'),
-  'DispositivosPage',
+const DispositivosLayout = diferida(
+  () => import('@/presentation/pages/dispositivos/DispositivosLayout'),
+  'DispositivosLayout',
+)
+const ListaDispositivosPage = diferida(
+  () => import('@/presentation/pages/dispositivos/ListaDispositivosPage'),
+  'ListaDispositivosPage',
+)
+const DetalleDispositivoPage = diferida(
+  () => import('@/presentation/pages/dispositivos/DetalleDispositivoPage'),
+  'DetalleDispositivoPage',
 )
 /** Holds a stable shell while a protected route's code loads. */
 function RespaldoCarga({ shell = false }: { shell?: boolean }) {
@@ -177,7 +185,11 @@ export function App() {
                   el historial de configuración, sin UI propia todavía). */}
               <Route element={<RequireRoles roles={[]} />}>
                 <Route path="/usuarios" element={<Pagina><UsuariosPage /></Pagina>} />
-                <Route path="/dispositivos" element={<Pagina><DispositivosPage /></Pagina>} />
+                {/* Lista y detalle comparten la flota del layout (SPEC P5b §4.1). */}
+                <Route path="/dispositivos" element={<Pagina><DispositivosLayout /></Pagina>}>
+                  <Route index element={<Pagina><ListaDispositivosPage /></Pagina>} />
+                  <Route path=":deviceId" element={<Pagina><DetalleDispositivoPage /></Pagina>} />
+                </Route>
               </Route>
             </Route>
             </Route>

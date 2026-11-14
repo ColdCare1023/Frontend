@@ -18,7 +18,7 @@ const roles = [
     rutas: [
       '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
       '/reportes', '/metricas-ia', '/auditoria',
-      '/usuarios', '/dispositivos',
+      '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL',
     ],
   },
   {
@@ -33,7 +33,7 @@ const roles = [
 const todasLasRutas = [
   '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
   '/reportes', '/metricas-ia', '/auditoria',
-  '/usuarios', '/dispositivos',
+  '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL',
 ] as const
 
 async function iniciarSesionDemo(page: import('@playwright/test').Page, boton: string) {
@@ -58,8 +58,11 @@ test('matriz completa de permisos: 10 rutas protegidas × 4 roles', async ({ pag
       if (permitidas.has(ruta)) {
         await expect(sinPermiso).toHaveCount(0)
         await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
-        if (ruta === '/usuarios' || ruta === '/dispositivos') {
+        if (ruta === '/usuarios') {
           await expect(page.getByRole('columnheader', { name: /^(Acciones|Opciones)$/ })).toBeVisible()
+        }
+        if (ruta === '/dispositivos') {
+          await expect(page.getByRole('button', { name: 'Opciones: FARM-01-CDL' })).toBeVisible()
         }
       } else {
         await expect(sinPermiso).toBeVisible()
@@ -89,7 +92,7 @@ test('pantallas de administración no desbordan viewport en anchos móviles y de
   ]
   for (const { width, height } of viewports) {
     await page.setViewportSize({ width, height })
-    for (const ruta of ['/usuarios', '/dispositivos']) {
+    for (const ruta of ['/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL?tab=seguridad']) {
       await irA(page, ruta)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
       const dimensiones = await page.evaluate(() => ({

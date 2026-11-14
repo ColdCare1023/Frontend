@@ -701,6 +701,18 @@
     animation: var(--animate-pagina);
   }
 
+  /* Lista → detalle de un equipo (SPEC P5b §9, eje compartido X): entra
+     12 px desde la derecha; con movimiento reducido (--mov 0) solo funde. */
+  .vista-entra-x {
+    animation: vista-entra-x var(--duration-reveal) var(--ease-out) both;
+  }
+  @keyframes vista-entra-x {
+    from {
+      opacity: 0;
+      transform: translateX(calc(12px * var(--mov, 1)));
+    }
+  }
+
   /* Filas que llegan después de la carga inicial (MOTION 4.4). */
   [data-nueva] {
     animation: var(--animate-fila);

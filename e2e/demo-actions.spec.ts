@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { abrirOpciones, accionAlerta, irA } from './helpers'
+import { abrirEquipo, abrirOpciones, abrirOpcionesEquipo, accionAlerta, irA } from './helpers'
 
 async function entrarComo(page: import('@playwright/test').Page, perfil: string) {
   await page.goto('/login')
@@ -46,64 +46,52 @@ test('admin actualiza dispositivo, consulta historial y registra baja de reempla
   await entrarComo(page, 'Administrador')
   await irA(page, '/dispositivos')
 
-  await abrirOpciones(page, 'FARM-01-CDL')
-  const calibracion = page.getByRole('menuitem', {
-    name: 'Registrar calibración',
-  })
-  await calibracion.click()
-  let dialogo = page.getByRole('dialog')
+  // Las acciones del equipo viven en las pestañas de su detalle.
+  await abrirOpcionesEquipo(page, 'FARM-01-CDL')
+  await page.getByRole('menuitem', { name: 'Calibración' }).click()
+  await expect(page).toHaveURL(/\/dispositivos\/FARM-01-CDL\?tab=calibracion/)
+  await page.getByRole('button', { name: 'Registrar calibración' }).click()
   const hoy = new Date()
-  await dialogo.getByLabel('Fecha de calibración').fill(hoy.toISOString().slice(0, 10))
-  await dialogo.getByLabel('N.° de certificado').fill(`QA-CAL-${Date.now()}`)
+  await page.getByLabel('Fecha de calibración').fill(hoy.toISOString().slice(0, 10))
+  await page.getByLabel('N.° de certificado').fill(`QA-CAL-${Date.now()}`)
   // HU-30: el vencimiento sale del certificado.
-  await dialogo.getByLabel('Vencimiento del certificado').fill(`${hoy.getFullYear() + 1}-12-31`)
-  await dialogo.getByRole('button', { name: 'Guardar' }).click()
+  await page.getByLabel('Vencimiento del certificado').fill(`${hoy.getFullYear() + 1}-12-31`)
+  await page.getByRole('button', { name: 'Guardar' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Calibración registrada correctamente.' })).toBeVisible()
+
+  await page.getByRole('tab', { name: /Ubicación y responsable/ }).click()
+  const ubicacion = page.getByRole('region', { name: 'Ubicación e instalación' })
+  await ubicacion.getByRole('button', { name: 'Editar ubicación de FARM-01-CDL' }).click()
+  await ubicacion.getByLabel('Ubicación', { exact: true }).fill('Almacén QA')
+  await ubicacion.getByRole('button', { name: 'Guardar' }).click()
+  await expect(ubicacion.getByRole('status')).toContainText('Instalación actualizada correctamente.')
+
+  const responsable = page.getByRole('region', { name: 'Responsable de notificaciones' })
+  await responsable.getByRole('button', { name: 'Editar responsable de FARM-01-CDL' }).click()
+  await responsable.getByLabel('Nombre').fill('Responsable QA')
+  await responsable.getByLabel('Correo electrónico').fill('responsable-qa@demo.pe')
+  await responsable.getByRole('button', { name: 'Guardar' }).click()
+  await expect(responsable.getByRole('status')).toContainText('Responsable actualizado correctamente.')
+
+  await page.getByRole('tab', { name: /Configuración y cambios/ }).click()
+  const historial = page.getByRole('tabpanel')
+  await expect(historial).toContainText('fecha_ultima_calibracion')
+  await expect(historial).toContainText('ubicacion')
+  await expect(historial).toContainText('responsable_nombre')
+
+  await abrirEquipo(page, 'FARM-02-CDL', 'seguridad')
+  // Zona de riesgo: la baja abre su alertdialog con motivo.
+  await page.getByRole('button', { name: 'Dar de baja…' }).click()
+  const dialogo = page.getByRole('alertdialog')
+  await dialogo.getByLabel('Motivo de baja').selectOption('reemplazo')
+  await dialogo.getByLabel('Descripción (opcional)').fill('Reemplazo verificado en QA demo')
+  await dialogo.getByLabel('Código del equipo de reemplazo (opcional)').fill('FARM-03-QA')
+  await dialogo.getByRole('button', { name: 'Confirmar' }).click()
+  await expect(dialogo.getByRole('status')).toContainText('Dispositivo dado de baja correctamente.')
   await expect(dialogo).toBeHidden()
-
-  await abrirOpciones(page, 'FARM-01-CDL')
-  await page.getByRole('menuitem', {
-    name: 'Ubicación e instalación',
-  }).click()
-  dialogo = page.getByRole('dialog')
-  await dialogo.getByLabel('Ubicación').fill('Almacén QA')
-  await dialogo.getByRole('button', { name: 'Guardar' }).click()
-  await expect(dialogo.getByRole('status')).toContainText('Instalación actualizada correctamente.')
-  await expect(dialogo).toBeHidden()
-
-  await abrirOpciones(page, 'FARM-01-CDL')
-  await page.getByRole('menuitem', {
-    name: 'Responsable de notificaciones',
-  }).click()
-  dialogo = page.getByRole('dialog')
-  await dialogo.getByLabel('Nombre').fill('Responsable QA')
-  await dialogo.getByLabel('Correo electrónico').fill('responsable-qa@demo.pe')
-  await dialogo.getByRole('button', { name: 'Guardar' }).click()
-  await expect(dialogo.getByRole('status')).toContainText('Responsable actualizado correctamente.')
-  await expect(dialogo).toBeHidden()
-
-  await abrirOpciones(page, 'FARM-01-CDL')
-  await page.getByRole('menuitem', {
-    name: 'Historial de configuración',
-  }).click()
-  dialogo = page.getByRole('dialog')
-  await expect(dialogo).toContainText('fecha_ultima_calibracion')
-  await expect(dialogo).toContainText('ubicacion')
-  await expect(dialogo).toContainText('responsable_nombre')
-  await dialogo.getByRole('button', { name: 'Cerrar', exact: true }).first().click()
-
-  const segundaFila = page.getByRole('row').filter({ hasText: 'FARM-02-CDL' })
-  await abrirOpciones(page, 'FARM-02-CDL')
-  const baja = page.getByRole('menuitem', { name: 'Dar de baja', exact: true })
-  if (await baja.count()) {
-    await baja.click()
-    dialogo = page.getByRole('alertdialog')
-    await dialogo.getByLabel('Motivo de baja').selectOption('reemplazo')
-    await dialogo.getByLabel('Descripción (opcional)').fill('Reemplazo verificado en QA demo')
-    await dialogo.getByLabel('Código del equipo de reemplazo (opcional)').fill('FARM-03-QA')
-    await dialogo.getByRole('button', { name: 'Confirmar' }).click()
-    await expect(dialogo.getByRole('status')).toContainText('Dispositivo dado de baja correctamente.')
-  }
-  await expect(segundaFila).toContainText('Dado de baja')
+  await page.getByRole('link', { name: 'Equipos' }).first().click()
+  const lista = page.getByRole('list', { name: 'Equipos de medición' })
+  await expect(lista.getByRole('listitem').filter({ hasText: 'FARM-02-CDL' })).toContainText('Dado de baja')
 })
 
 test('farmacéutico revisa alerta y genera reporte', async ({ page }) => {
