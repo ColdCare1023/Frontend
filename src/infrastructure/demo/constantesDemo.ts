@@ -10,3 +10,10 @@ export const DISPOSITIVO_DEMO = 'FARM-01-CDL'
  * activación). La demo no envía correos: la pantalla lo muestra como ayuda.
  */
 export const CODIGO_VERIFICACION_DEMO = '123456'
+
+/**
+ * Evento de ventana con el que el adaptador demo publica en el stream demo
+ * lo que el backend emitiría por SSE (p. ej. una alerta simulada). Así el
+ * adaptador no importa el cliente SSE ni al revés.
+ */
+export const EVENTO_SSE_DEMO = 'coldcare:sse-demo'

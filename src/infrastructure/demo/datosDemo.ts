@@ -61,6 +61,7 @@ export const USUARIOS_DEMO: Usuario[] = [
 ]
 
 const DIA_MS = 24 * 60 * 60 * 1000
+const HORA_MS = 60 * 60 * 1000
 const PASO_MS = 10 * 60 * 1000
 const TOTAL_LECTURAS = 7 * 24 * 6 // una semana, cada 10 minutos
 
@@ -143,6 +144,13 @@ function generarEstadoInicial(): EstadoDemo {
   const excursionFin = excursionInicio + 50 * 60 * 1000
   const preventivoInicio = ahora - 3 * 60 * 60 * 1000
   const preventivoFin = preventivoInicio + 20 * 60 * 1000
+  // Episodios de días anteriores, ya atendidos: dan historia a la pestaña
+  // «Atendidas», a la atención media de 7 días y a la cinta de Historial.
+  const episodiosPrevios = [
+    { inicio: ahora - 6 * DIA_MS + 5 * HORA_MS, duracion: 40 * 60 * 1000, critico: true },
+    { inicio: ahora - 4 * DIA_MS - 2 * HORA_MS, duracion: 30 * 60 * 1000, critico: false },
+    { inicio: ahora - 2 * DIA_MS - 14 * HORA_MS, duracion: 20 * 60 * 1000, critico: false },
+  ]
 
   const lecturas: LecturaTermica[] = []
   let empujePuerta = 0
@@ -166,6 +174,14 @@ function generarEstadoInicial(): EstadoDemo {
     } else if (ts >= preventivoInicio && ts <= preventivoFin) {
       interna = 7.1 + rng() * 0.5
       puerta = true
+    } else {
+      const previo = episodiosPrevios.find((e) => ts >= e.inicio && ts <= e.inicio + e.duracion)
+      if (previo) {
+        // Sin `rng()`: el resto de la semana conserva exactamente su ruido.
+        const avance = (ts - previo.inicio) / previo.duracion
+        interna = previo.critico ? 6.9 + Math.sin(avance * Math.PI) * 2.3 : 7.05 + Math.sin(avance * Math.PI) * 0.6
+        puerta = avance < 0.6
+      }
     }
 
     const ambiental = 21.5 + 3.6 * Math.sin(faseDia - Math.PI / 2) + (rng() - 0.5) * 1.2
@@ -295,17 +311,63 @@ function generarEstadoInicial(): EstadoDemo {
     }
   }
 
+  // Evidencia de cada alerta (como el backend desde la migración 0035): el
+  // episodio son las lecturas seguidas del equipo con riesgo desde la que la
+  // disparó; de ahí salen inicio, pico y duración. Nada se inventa: todo sale
+  // de la propia serie demo.
+  const porEquipo = new Map<string, LecturaTermica[]>()
+  for (const lectura of lecturas) {
+    const serie = porEquipo.get(lectura.device_id) ?? []
+    serie.push(lectura)
+    porEquipo.set(lectura.device_id, serie)
+  }
+  for (const alerta of alertas) {
+    const serie = porEquipo.get(alerta.device_id) ?? []
+    const desde = serie.findIndex((l) => l.id === alerta.reading_id)
+    if (desde < 0) continue
+    let hasta = desde
+    while (hasta + 1 < serie.length && (serie[hasta + 1].nivel_riesgo ?? 'normal') !== 'normal') hasta += 1
+    const episodio = serie.slice(desde, hasta + 1)
+    const temperaturas = episodio.map((l) => l.temperatura_interna).filter((t): t is number => typeof t === 'number')
+    alerta.iniciada_en = serie[desde].timestamp
+    alerta.temperatura_pico = temperaturas.length > 0 ? Math.max(...temperaturas) : null
+    alerta.duracion_s = Math.round((Date.parse(serie[hasta].timestamp) - Date.parse(serie[desde].timestamp) + PASO_MS) / 1000)
+    alerta.historica = false
+    if (alerta.nivel_riesgo === 'excursion_critica') {
+      // Aviso por correo entregado al primer intento.
+      alerta.notificada_en = new Date(Date.parse(alerta.created_at ?? '') + 45_000).toISOString()
+      alerta.notificacion_intentos = 1
+    } else {
+      alerta.notificacion_intentos = 0
+    }
+    if (alerta.estado === 'atendida') alerta.revisada_por_nombre = 'Farmacéutica Demo'
+  }
+
+  // HU-27: toda alerta atendida tiene su acción correctiva (decisión, acción
+  // y justificación). Las preventivas las registró el técnico.
   const acciones: AccionCorrectiva[] = alertas
-    .filter((a) => a.estado === 'atendida' && a.nivel_riesgo === 'excursion_critica')
-    .map((a, i) => ({
-      id: `ac-${String(i + 1).padStart(3, '0')}`,
-      alert_id: a.id,
-      usuario_id: 'u-01',
-      descripcion:
-        'Se verificó el cierre de la puerta, se reorganizaron los productos y se confirmó el retorno al rango 2–8 °C en menos de 30 minutos.',
-      created_at: new Date(new Date(a.created_at ?? 0).getTime() + 25 * 60 * 1000).toISOString(),
-      corrige_accion_id: null,
-    }))
+    .filter((a) => a.estado === 'atendida')
+    .map((a, i) => {
+      const critica = a.nivel_riesgo === 'excursion_critica'
+      return {
+        id: `ac-${String(i + 1).padStart(3, '0')}`,
+        alert_id: a.id,
+        usuario_id: critica ? 'u-01' : 'u-03',
+        usuario_nombre: critica ? 'Farmacéutica Demo' : 'Técnico Demo',
+        decision: critica
+          ? 'Cuarentena del lote hasta evaluar su estabilidad con el fabricante.'
+          : 'Seguimiento reforzado del equipo durante el turno.',
+        descripcion: critica
+          ? 'Se verificó el cierre de la puerta, se reorganizaron los productos y se confirmó el retorno al rango 2–8 °C en menos de 30 minutos.'
+          : 'Se cerró la puerta, se revisó el burlete y se confirmó el retorno a 2–8 °C en la lectura siguiente.',
+        justificacion: critica
+          ? 'La temperatura superó 8 °C: el procedimiento de BPA exige cuarentena y evaluación.'
+          : 'No hubo excursión: el valor se acercó al límite por una apertura prolongada.',
+        created_at: new Date(new Date(a.created_at ?? 0).getTime() + 25 * 60 * 1000).toISOString(),
+        corrige_accion_id: null,
+        vigente: true,
+      }
+    })
 
   // Trazabilidad: cadena de sellos encadenados (hash previo → hash actual).
   type EventoBase = Omit<RegistroTrazabilidad, 'id' | 'previous_hash' | 'hash_actual'>
