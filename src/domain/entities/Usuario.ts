@@ -14,6 +14,15 @@ export interface Usuario {
   telefono?: string | null
 }
 
+/**
+ * Respuesta de `POST /api/usuarios`. `codigo_activacion_emitido` es opcional:
+ * el backend con códigos de verificación lo informa; si falta, la UI no
+ * afirma que se envió el correo.
+ */
+export interface UsuarioCreado extends Usuario {
+  codigo_activacion_emitido?: boolean
+}
+
 /** FE-004: respuesta de restablecimiento/reactivación; se muestra una vez. */
 export interface PasswordTemporal {
   usuario: Usuario

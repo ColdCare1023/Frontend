@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import axios from 'axios'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
@@ -16,7 +16,8 @@ function descargarBlob(contenido: BlobPart, tipo: string, nombre: string): void 
   enlace.href = url
   enlace.download = nombre
   enlace.click()
-  URL.revokeObjectURL(url)
+  // Revocar en el mismo tick puede cancelar la descarga en algunos navegadores.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 /**
@@ -97,37 +98,75 @@ export function nombreArchivoReporte(reporte: ReporteBPA, extension: 'csv' | 'js
   return `reporte-bpa-${periodo}${reporte.truncado ? '-parcial' : ''}.${extension}`
 }
 
+/** Periodo del reporte mostrado: el PDF y la vista lo usan, no el formulario. */
+export interface PeriodoReporte {
+  desde: string
+  hasta: string
+  deviceId?: string
+}
+
+export type OrigenReporte = 'auto' | 'usuario'
+
 export function useReportesBPA() {
   const [reporte, setReporte] = useState<ReporteBPA | null>(null)
   const [generando, setGenerando] = useState(false)
   const [error, setError] = useState<ErrorReporte | null>(null)
   const [descargandoPdf, setDescargandoPdf] = useState(false)
+  const [periodo, setPeriodo] = useState<PeriodoReporte | null>(null)
+  const [origen, setOrigen] = useState<OrigenReporte | null>(null)
+  const [generacion, setGeneracion] = useState(0)
+  const ultimaPeticion = useRef<{ desde: string; hasta: string; deviceId?: string; origen: OrigenReporte } | null>(null)
+  const controlador = useRef<AbortController | null>(null)
 
-  const generar = useCallback(async (desde: string, hasta: string, deviceId?: string) => {
-    // Se comprueba antes de salir a la red: el endpoint tiene cuota propia
-    // (10 peticiones por minuto y usuario), así que gastar un intento en algo
-    // que el backend va a rechazar con 400 penaliza al usuario dos veces.
-    const invalido = validarRango(desde, hasta)
-    if (invalido) {
-      setError(invalido)
-      return
-    }
-    setGenerando(true)
-    setError(null)
-    try {
-      const params: Record<string, string> = {
-        fecha_desde: inicioDelDiaLocal(desde),
-        fecha_hasta: finDelDiaLocal(hasta),
+  const generar = useCallback(
+    async (desde: string, hasta: string, deviceId?: string, opciones: { origen?: OrigenReporte } = {}) => {
+      const origenPeticion = opciones.origen ?? 'usuario'
+      // Se comprueba antes de salir a la red: el endpoint tiene cuota propia
+      // (10 peticiones por minuto y usuario), así que gastar un intento en algo
+      // que el backend va a rechazar con 400 penaliza al usuario dos veces.
+      const invalido = validarRango(desde, hasta)
+      if (invalido) {
+        setError(invalido)
+        return
       }
-      if (deviceId) params.device_id = deviceId
-      const { data } = await apiClient.get<ReporteBPA>('/api/reportes/bpa', { params })
-      setReporte(data)
-    } catch (err) {
-      setError(clasificarFallo(err))
-    } finally {
-      setGenerando(false)
-    }
-  }, [])
+      ultimaPeticion.current = { desde, hasta, deviceId, origen: origenPeticion }
+      // Una generación nueva cancela la anterior: la vista nunca mezcla dos periodos.
+      controlador.current?.abort()
+      const actual = new AbortController()
+      controlador.current = actual
+      setGenerando(true)
+      setError(null)
+      try {
+        const params: Record<string, string> = {
+          fecha_desde: inicioDelDiaLocal(desde),
+          fecha_hasta: finDelDiaLocal(hasta),
+        }
+        if (deviceId) params.device_id = deviceId
+        const { data } = await apiClient.get<ReporteBPA>('/api/reportes/bpa', { params, signal: actual.signal })
+        if (actual.signal.aborted) return
+        setReporte(data)
+        setPeriodo({ desde, hasta, ...(deviceId ? { deviceId } : {}) })
+        setOrigen(origenPeticion)
+        setGeneracion((n) => n + 1)
+      } catch (err) {
+        if (actual.signal.aborted || axios.isCancel(err)) return
+        setError(clasificarFallo(err))
+      } finally {
+        if (controlador.current === actual) {
+          controlador.current = null
+          setGenerando(false)
+        }
+      }
+    },
+    [],
+  )
+
+  /** Repite la última petición (cuota agotada, fallo de red). */
+  const reintentar = useCallback(() => {
+    const ultima = ultimaPeticion.current
+    if (!ultima) return
+    void generar(ultima.desde, ultima.hasta, ultima.deviceId, { origen: ultima.origen })
+  }, [generar])
 
   const descargarJson = useCallback(() => {
     if (!reporte) return
@@ -177,7 +216,13 @@ export function useReportesBPA() {
   // SHA-256 calculado sobre los registros reales — un PDF armado en el cliente
   // solo podría copiar lo que ya se le entregó, y no probaría nada.
   const descargarPdf = useCallback(
-    async (desde: string, hasta: string, deviceId?: string) => {
+    async (desdeArg?: string, hastaArg?: string, deviceIdArg?: string) => {
+      // Sin argumentos usa el periodo del reporte mostrado, no el que se haya
+      // editado después en el formulario.
+      const desde = desdeArg ?? periodo?.desde
+      const hasta = hastaArg ?? periodo?.hasta
+      const deviceId = desdeArg === undefined ? periodo?.deviceId : deviceIdArg
+      if (!desde || !hasta) return
       const invalido = validarRango(desde, hasta)
       if (invalido) {
         setError(invalido)
@@ -202,7 +247,7 @@ export function useReportesBPA() {
         setDescargandoPdf(false)
       }
     },
-    [],
+    [periodo],
   )
 
   return {
@@ -210,7 +255,11 @@ export function useReportesBPA() {
     generando,
     error,
     descargandoPdf,
+    periodo,
+    origen,
+    generacion,
     generar,
+    reintentar,
     descargarJson,
     descargarCsv,
     descargarPdf,

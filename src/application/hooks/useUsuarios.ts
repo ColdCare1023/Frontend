@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 
-import type { PasswordTemporal, Usuario } from '@/domain/entities/Usuario'
+import type { PasswordTemporal, Usuario, UsuarioCreado } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { rutaApi } from '@/lib/rutaApi'
+
+export type ResultadoCrear =
+  | { estado: 'ok'; usuario: Usuario | null; activacion: boolean | null }
+  | { estado: 'duplicado' | 'politica' | 'error' }
 
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -31,21 +35,27 @@ export function useUsuarios() {
   }, [consultar])
 
   const crear = useCallback(
-    async (
-      nombre: string,
-      email: string,
-      password: string,
-      rol: Rol,
-      telefono?: string,
-    ): Promise<'ok' | 'duplicado' | 'error'> => {
+    async (nombre: string, email: string, password: string, rol: Rol, telefono?: string): Promise<ResultadoCrear> => {
       try {
-        // El celular (E.164) es opcional: con él el usuario recibe también un SMS de bienvenida.
-        await apiClient.post('/api/usuarios', { nombre, email, password, rol, ...(telefono ? { telefono } : {}) })
+        // El celular (E.164) es opcional.
+        const { data } = await apiClient.post<UsuarioCreado>('/api/usuarios', {
+          nombre,
+          email,
+          password,
+          rol,
+          ...(telefono ? { telefono } : {}),
+        })
         await consultar()
-        return 'ok'
+        return {
+          estado: 'ok',
+          usuario: data ?? null,
+          // Si el backend no informa el campo, no se afirma que el correo salió.
+          activacion: typeof data?.codigo_activacion_emitido === 'boolean' ? data.codigo_activacion_emitido : null,
+        }
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 409) return 'duplicado'
-        return 'error'
+        if (axios.isAxiosError(error) && error.response?.status === 409) return { estado: 'duplicado' }
+        if (axios.isAxiosError(error) && error.response?.status === 422) return { estado: 'politica' }
+        return { estado: 'error' }
       }
     },
     [consultar],

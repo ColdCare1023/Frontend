@@ -18,10 +18,14 @@ test('admin crea usuario, cambia rol y desactiva cuenta en demo', async ({ page 
   let dialogo = page.getByRole('dialog')
   await dialogo.getByLabel('Nombre completo').fill(nombre)
   await dialogo.getByLabel('Correo electrónico').fill(correo)
-  await dialogo.getByLabel('Contraseña').fill('demo-seguro-2026')
-  await dialogo.getByLabel('Rol').selectOption('tecnico')
+  await dialogo.getByLabel('Contraseña provisional', { exact: true }).fill('demo-seguro-2026')
+  await dialogo.getByLabel('Rol', { exact: true }).selectOption('tecnico')
   await dialogo.getByRole('button', { name: 'Crear usuario' }).click()
   await expect(dialogo.getByRole('status')).toContainText('Usuario creado correctamente.')
+  // El alta explica la activación por correo (código de 48 h).
+  await expect(dialogo).toContainText('código de activación')
+  // Con el panel abierto, Radix oculta la tabla al árbol de accesibilidad.
+  await dialogo.getByRole('button', { name: 'Listo' }).click()
 
   const fila = page.getByRole('row').filter({ hasText: correo })
   await expect(fila).toContainText('Técnico de Farmacia')
