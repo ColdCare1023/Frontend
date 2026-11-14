@@ -3,28 +3,60 @@ import { useTranslation } from 'react-i18next'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
-import { resumenTemperatura, submuestrear } from '@/lib/resumenReporte'
+import { curvasPorEquipo, resumenTemperatura, type PuntoCurva } from '@/lib/resumenReporte'
 import { temperatura } from './formatoReporte'
 
 const ANCHO = 240
 const ALTO = 96
+const TRAMOS = 120
 
 /**
- * Mini curva del periodo en SVG (sin ECharts, PERFORMANCE B3): una línea
- * vertical de mínimo a máximo por tramo de tiempo sobre la franja 2–8 °C.
- * Un tramo sin lecturas no se dibuja: el hueco es «sin datos».
+ * Trazo por equipo, el mismo vocabulario que la curva de Historial: tinta
+ * navy, gris discontinuo, acero punteado. El tipo de línea los distingue sin
+ * depender del color; ninguno usa el teal de la franja ni el carmesí.
+ */
+const TRAZOS = [
+  { clase: 'stroke-grafica-1', guiones: undefined },
+  { clase: 'stroke-grafica-2', guiones: '4 3' },
+  { clase: 'stroke-nodata-700', guiones: '1 3' },
+  { clase: 'stroke-faint', guiones: '6 2 1 2' },
+] as const
+
+const fuera = (p: PuntoCurva) => p.min < RANGO_TERMICO.minimo || p.max > RANGO_TERMICO.maximo
+
+/**
+ * Mini curva del periodo en SVG (sin ECharts, PERFORMANCE B3): una línea por
+ * equipo con la media de cada tramo de tiempo sobre la franja 2–8 °C. Donde
+ * un tramo salió del rango, un trazo carmesí de su mínimo a su máximo marca
+ * la excursión que la media escondería. Un tramo sin lecturas corta la línea:
+ * el hueco es «sin datos».
  */
 export function CurvaMiniReporte({ lecturas, clave }: { lecturas: readonly LecturaTermica[]; clave?: number }) {
   const { t } = useTranslation()
-  const { buckets } = useMemo(() => submuestrear(lecturas, ANCHO), [lecturas])
+  const { curvas } = useMemo(() => curvasPorEquipo(lecturas, TRAMOS), [lecturas])
   const resumen = useMemo(() => resumenTemperatura(lecturas), [lecturas])
-  if (!resumen || buckets.length === 0) return null
+  if (!resumen || curvas.length === 0) return null
 
   const bajo = Math.min(0, Math.floor(resumen.minimo) - 1)
   const alto = Math.max(10, Math.ceil(resumen.maximo) + 1)
   const y = (v: number) => ALTO - ((v - bajo) / (alto - bajo)) * ALTO
-  const paso = ANCHO / buckets.length
+  const tramos = curvas[0].puntos.length
+  const paso = ANCHO / tramos
+  const x = (i: number) => i * paso + paso / 2
   const valores = { minimo: temperatura(resumen.minimo), promedio: temperatura(resumen.promedio), maximo: temperatura(resumen.maximo) }
+
+  /** Trayecto con cortes en los huecos; un tramo aislado se dibuja como un guion corto. */
+  const trayecto = (puntos: readonly (PuntoCurva | null)[]) => {
+    let d = ''
+    puntos.forEach((p, i) => {
+      if (!p) return
+      const anterior = puntos[i - 1]
+      const siguiente = puntos[i + 1]
+      if (!anterior && !siguiente) d += `M${(x(i) - paso / 2).toFixed(2)} ${y(p.media).toFixed(2)}h${paso.toFixed(2)}`
+      else d += `${anterior ? 'L' : 'M'}${x(i).toFixed(2)} ${y(p.media).toFixed(2)}`
+    })
+    return d
+  }
 
   return (
     <figure className="min-w-0">
@@ -65,28 +97,56 @@ export function CurvaMiniReporte({ lecturas, clave }: { lecturas: readonly Lectu
               className="stroke-banda-borde"
             />
           ))}
-          {buckets.map((b, i) => {
-            if (!b) return null
-            const fuera = b.min < RANGO_TERMICO.minimo || b.max > RANGO_TERMICO.maximo
-            const x = i * paso + paso / 2
-            const y1 = y(b.max)
-            const y2 = Math.max(y(b.min), y1 + 1)
+          {curvas.map((curva, indice) => {
+            const trazo = TRAZOS[indice % TRAZOS.length]
             return (
-              <line
-                key={i}
-                x1={x}
-                x2={x}
-                y1={y1}
-                y2={y2}
+              <path
+                key={curva.device_id}
+                d={trayecto(curva.puntos)}
+                fill="none"
                 strokeWidth={1.5}
+                strokeLinejoin="round"
                 strokeLinecap="round"
+                strokeDasharray={trazo.guiones}
                 vectorEffect="non-scaling-stroke"
-                className={fuera ? 'stroke-critical' : 'stroke-grafica-1'}
+                className={trazo.clase}
               />
             )
           })}
+          {curvas.flatMap((curva) =>
+            curva.puntos.map((p, i) =>
+              p && fuera(p) ? (
+                <line
+                  key={`${curva.device_id}-${i}`}
+                  x1={x(i)}
+                  x2={x(i)}
+                  y1={y(p.max)}
+                  y2={Math.max(y(p.min), y(p.max) + 1)}
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                  className="stroke-critical"
+                />
+              ) : null,
+            ),
+          )}
         </svg>
       </div>
+      {curvas.length > 1 && (
+        <ul aria-hidden className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-micro text-faint">
+          {curvas.map((curva, indice) => {
+            const trazo = TRAZOS[indice % TRAZOS.length]
+            return (
+              <li key={curva.device_id} className="codigo inline-flex items-center gap-1.5">
+                <svg viewBox="0 0 16 4" className="h-1 w-4" aria-hidden>
+                  <line x1={0} x2={16} y1={2} y2={2} strokeWidth={1.5} strokeDasharray={trazo.guiones} className={trazo.clase} />
+                </svg>
+                {curva.device_id}
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </figure>
   )
 }
