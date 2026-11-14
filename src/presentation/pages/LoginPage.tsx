@@ -86,11 +86,11 @@ export function LoginPage() {
   return (
     <AuthShell brandPanel={<ColdCareBrandPanel />}>
       <div className="w-full">
-        <div className="mb-7">
-          <h2 className="text-[26px] leading-8 font-semibold tracking-tight text-foreground">
+        <div className="mb-8">
+          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
             {t('login.titulo')}
           </h2>
-          <p className="mt-1.5 text-[15px] leading-6 text-muted">{t('login.subtitulo')}</p>
+          <p className="mt-2 text-[15px] leading-6 text-muted">{t('login.subtitulo')}</p>
         </div>
 
         {/* Notificación de sesión expirada o recarga de página (HU-40) */}
@@ -122,7 +122,7 @@ export function LoginPage() {
                 aria-invalid={Boolean(
                   error && (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())),
                 )}
-                className="h-11 pl-10 pointer-coarse:h-12"
+                className="h-12 rounded-[10px] pl-10 text-[15px]"
                 required
               />
             </div>
@@ -135,7 +135,7 @@ export function LoginPage() {
               </label>
               <Link
                 to="/recuperar-contrasena"
-                className="rounded-sm text-[13px] font-medium text-primary transition-colors hover:text-primary-hover hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                className="rounded-sm text-[13px] font-medium text-marca-texto transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
               >
                 {t('login.olvidastePassword')}
               </Link>
@@ -148,7 +148,7 @@ export function LoginPage() {
                 type={mostrarPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="h-11 pl-10 pr-12 pointer-coarse:h-12"
+                className="h-12 rounded-[10px] pl-10 pr-12 text-[15px]"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 required
@@ -178,7 +178,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={cargando}
-            className="coldcare-primary-action flex h-11 w-full cursor-pointer items-center justify-center gap-2 px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-70 pointer-coarse:h-12"
+            className="coldcare-primary-action flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] px-4 text-[15px] font-semibold disabled:cursor-wait disabled:opacity-70"
           >
             {cargando ? (
               <>
@@ -206,7 +206,7 @@ export function LoginPage() {
           <DemoRoleGrid
             onSelectRole={entrarDemo}
             cargandoGeneral={cargando}
-            className="mt-7 border-t border-border pt-6"
+            className="mt-8 border-t border-border pt-7"
           />
         )}
       </div>

@@ -53,6 +53,16 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
     })
   })
 
+  it('un fallo de carga se muestra como error, no como cadena sin registros', async () => {
+    const consultar = vi.fn()
+    montar({ registros: [], errorCarga: true, consultar })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no pudimos cargar/i)
+    expect(screen.queryByText(/no hay registros de trazabilidad/i)).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /volver a intentar/i }))
+    expect(consultar).toHaveBeenCalled()
+  })
+
   it('ofrece verificar la integridad de la cadena', () => {
     montar()
     expect(screen.getByRole('button', { name: /revisar integridad/i })).toBeInTheDocument()

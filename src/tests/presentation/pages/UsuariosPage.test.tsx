@@ -37,6 +37,16 @@ function montar(usuarios: Usuario[], extra: Record<string, unknown> = {}) {
 describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
   beforeEach(() => useUsuarios.mockReset())
 
+  it('un fallo de carga se muestra como error, no como «no hay usuarios»', async () => {
+    const reintentar = vi.fn()
+    montar([], { errorCarga: true, reintentar })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no pudimos cargar/i)
+    expect(screen.queryByText(/no hay usuarios/i)).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /volver a intentar/i }))
+    expect(reintentar).toHaveBeenCalled()
+  })
+
   it('lista los usuarios con su rol', () => {
     montar([usuario()])
 

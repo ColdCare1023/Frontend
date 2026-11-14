@@ -459,13 +459,19 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     await usuario.click(screen.getByRole('button', { name: /opciones/i }))
     await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
+    await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
+    await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
     await usuario.type(
       within(dialogo).getByLabelText(/descripción/i),
       'Se reubicaron los viales',
     )
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
 
-    expect(registrarAccionCorrectiva).toHaveBeenCalledWith('a-1', 'Se reubicaron los viales')
+    expect(registrarAccionCorrectiva).toHaveBeenCalledWith('a-1', {
+      decision: 'Inmovilizar',
+      descripcion: 'Se reubicaron los viales',
+      justificacion: 'Superó 8 °C',
+    })
   })
 
   it('avisa cuando otro usuario ya atendió la alerta primero (HU-27 Escenario 2)', async () => {
@@ -475,6 +481,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     await usuario.click(screen.getByRole('button', { name: /opciones/i }))
     await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
+    await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
+    await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
     await usuario.type(within(dialogo).getByLabelText(/descripción/i), 'Termostato ajustado')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
 
@@ -502,6 +510,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     await usuario.click(screen.getByRole('button', { name: /opciones/i }))
     await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
+    await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
+    await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
     await usuario.type(within(dialogo).getByLabelText(/descripción/i), '   ')
 
     expect(within(dialogo).getByRole('button', { name: /guardar/i })).toBeDisabled()
@@ -515,6 +525,8 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     await usuario.click(screen.getByRole('button', { name: /opciones/i }))
     await usuario.click(screen.getByRole('menuitem', { name: /acción correctiva/i }))
     const dialogo = await screen.findByRole('dialog')
+    await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
+    await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
     await usuario.type(within(dialogo).getByLabelText(/descripción/i), 'Termostato ajustado')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
 

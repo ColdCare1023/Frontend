@@ -76,9 +76,12 @@ export function useAlertas() {
   // atendió primero, el backend responde 409 — se informa en vez de fingir
   // éxito o de sobrescribir en silencio.
   const registrarAccionCorrectiva = useCallback(
-    async (alertaId: string, descripcion: string): Promise<ResultadoAccionAlerta> => {
+    async (
+      alertaId: string,
+      { decision, descripcion, justificacion }: { decision: string; descripcion: string; justificacion: string },
+    ): Promise<ResultadoAccionAlerta> => {
       try {
-        await apiClient.post(rutaApi`/api/alertas/${alertaId}/acciones-correctivas`, { descripcion })
+        await apiClient.post(rutaApi`/api/alertas/${alertaId}/acciones-correctivas`, { decision, justificacion, descripcion })
         await consultar(filtro)
         return 'ok'
       } catch (error) {

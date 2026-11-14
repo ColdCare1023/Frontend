@@ -53,6 +53,16 @@ function montar(dispositivos: Dispositivo[], extra: Record<string, unknown> = {}
 describe('DispositivosPage (HU-43, RF-18)', () => {
   beforeEach(() => useDispositivos.mockReset())
 
+  it('un fallo de carga se muestra como error, no como «no hay dispositivos»', async () => {
+    const consultar = vi.fn()
+    montar([], { errorCarga: true, consultar })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no pudimos cargar/i)
+    expect(screen.queryByText(/no hay dispositivos/i)).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /volver a intentar/i }))
+    expect(consultar).toHaveBeenCalled()
+  })
+
   it('muestra el device_id y su versión de firmware', async () => {
     montar([dispositivo()])
 
@@ -110,8 +120,13 @@ describe('DispositivosPage (HU-43, RF-18)', () => {
 
     await user.type(fecha, '2026-10-27')
     expect(fecha).not.toHaveAttribute('aria-invalid')
+    // HU-30: la vigencia sale de la fecha del certificado y el margen se configura.
+    await user.type(screen.getByLabelText('Vencimiento del certificado'), '2027-04-30')
+    const margen = screen.getByLabelText('Avisar antes (días)')
+    await user.clear(margen)
+    await user.type(margen, '45')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
-    expect(registrarCalibracion).toHaveBeenCalledWith('FARM-01-CDL', '2026-10-27', 'CAL-QA-1', '', 12)
+    expect(registrarCalibracion).toHaveBeenCalledWith('FARM-01-CDL', '2026-10-27', 'CAL-QA-1', '', '2027-04-30', 45)
   })
 })
 

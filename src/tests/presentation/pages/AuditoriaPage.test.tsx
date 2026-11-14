@@ -25,6 +25,17 @@ function registro(over: Partial<RegistroAuditoria> = {}): RegistroAuditoria {
 describe('AuditoriaPage (HU-42, RF-16)', () => {
   beforeEach(() => useAuditoria.mockReset())
 
+  it('un fallo de carga se muestra como error, no como bitácora vacía', async () => {
+    const consultar = vi.fn()
+    useAuditoria.mockReturnValue({ registros: [], cargando: false, errorCarga: true, consultar })
+    render(<AuditoriaPage />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/no pudimos cargar/i)
+    expect(screen.queryByText(/no.*acciones registradas|no recorded actions/i)).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /volver a intentar/i }))
+    expect(consultar).toHaveBeenCalled()
+  })
+
   it('lista las acciones críticas registradas', () => {
     useAuditoria.mockReturnValue({ registros: [registro()], cargando: false })
     render(<AuditoriaPage />)

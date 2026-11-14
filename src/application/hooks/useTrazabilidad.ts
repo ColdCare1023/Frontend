@@ -13,17 +13,23 @@ import { rutaApi } from '@/lib/rutaApi'
 export function useTrazabilidad() {
   const [registros, setRegistros] = useState<RegistroTrazabilidad[]>([])
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
   const [verificacion, setVerificacion] = useState<VerificacionIntegridad | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [estadoCadena, setEstadoCadena] = useState<EstadoCadena | null>(null)
 
   const consultar = useCallback(async (tipoEvento?: string) => {
     setCargando(true)
+    setErrorCarga(false)
     try {
       const params: Record<string, string> = { limite: '200' }
       if (tipoEvento) params.tipo_evento = tipoEvento
       const { data } = await apiClient.get<RegistroTrazabilidad[]>('/api/trazabilidad', { params })
       setRegistros(data)
+    } catch {
+      // No se relanza: quien refresca tras una operación ya hecha no debe
+      // perder su resultado por un fallo de la recarga.
+      setErrorCarga(true)
     } finally {
       setCargando(false)
     }
@@ -34,8 +40,13 @@ export function useTrazabilidad() {
   }, [consultar])
 
   const consultarEstadoCadena = useCallback(async () => {
-    const { data } = await apiClient.get<EstadoCadena>('/api/trazabilidad/estado')
-    setEstadoCadena(data)
+    try {
+      const { data } = await apiClient.get<EstadoCadena>('/api/trazabilidad/estado')
+      setEstadoCadena(data)
+    } catch {
+      // Sin estado de cadena la pantalla sigue siendo útil; el fallo de la
+      // lista ya se muestra con `errorCarga`.
+    }
   }, [])
 
   useEffect(() => {
@@ -101,6 +112,7 @@ export function useTrazabilidad() {
   return {
     registros,
     cargando,
+    errorCarga,
     consultar,
     verificacion,
     verificando,

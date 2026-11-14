@@ -38,8 +38,9 @@ import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSiz
 import { Paginacion } from '../components/Paginacion'
 import { BadgeConectividad } from '../components/BadgeConectividad'
 import { ActionMenu } from '../components/ActionMenu'
-import { EstadoCarga, EstadoVacio } from '../components/EstadoPagina'
+import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
+import { CifrasResumen } from './compartido/CifrasResumen'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Detalles } from '../components/ui/detalles'
@@ -62,7 +63,7 @@ const FORM_BAJA_INICIAL: { motivo: MotivoBaja; descripcion: string; deviceIdReem
 }
 
 // B-12: el backend calcula la próxima calibración con la vigencia en meses.
-const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', mesesVigencia: '12', observaciones: '' }
+const FORM_CALIBRACION_INICIAL = { fecha: '', certificado: '', vencimiento: '', margen: '30', observaciones: '' }
 const FORM_INSTALACION_INICIAL = { ubicacion: '', fecha: '', observaciones: '' }
 const FORM_RESPONSABLE_INICIAL = { nombre: '', email: '', telefono: '' }
 
@@ -85,6 +86,8 @@ export function DispositivosPage() {
   const {
     dispositivos,
     cargando,
+    errorCarga,
+    consultar,
     darDeBaja,
     registrarCalibracion,
     actualizarInstalacion,
@@ -271,7 +274,8 @@ export function DispositivosPage() {
       fecha: '',
       certificado: dispositivo.numero_certificado_calibracion ?? '',
       observaciones: dispositivo.observaciones_calibracion ?? '',
-      mesesVigencia: '12',
+      vencimiento: '',
+      margen: String(dispositivo.margen_aviso_calibracion_dias ?? 30),
     })
     setFechaCalibracionInvalida(false)
     setMensaje(null)
@@ -341,6 +345,10 @@ export function DispositivosPage() {
       return
     }
     if (!formCalibracion.certificado) return
+    if (!(formCalibracion.vencimiento > formCalibracion.fecha)) {
+      setMensaje({ tipo: 'error', texto: t('dispositivos.vencimientoInvalido') })
+      return
+    }
     setEnviando(true)
     setMensaje(null)
     const resultado = await registrarCalibracion(
@@ -348,7 +356,8 @@ export function DispositivosPage() {
       formCalibracion.fecha,
       formCalibracion.certificado,
       formCalibracion.observaciones,
-      Number(formCalibracion.mesesVigencia) || 12,
+      formCalibracion.vencimiento,
+      Number(formCalibracion.margen) || 30,
     )
     setEnviando(false)
     if (resultado === 'ok') {
@@ -424,21 +433,26 @@ export function DispositivosPage() {
 
       {cargando ? (
         <EstadoCarga />
+      ) : errorCarga ? (
+        <EstadoError mensaje={t('comunes.errorCargar')}>
+          <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar()}>
+            {t('comunes.reintentar')}
+          </Button>
+        </EstadoError>
       ) : dispositivos.length === 0 ? (
         <EstadoVacio icono={HardDrive} titulo={t('dispositivos.sinDispositivos')} />
       ) : (
         <>
-          {/* Totales en una línea discreta; la tabla es la protagonista. */}
-          <section aria-label={t('dispositivos.resumenIoT')} className="mb-3 px-1">
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px] sm:flex sm:flex-wrap sm:items-baseline">
-              {resumen.map(({ clave, valor, problema }) => (
-                <div key={clave} className="flex items-baseline justify-between gap-2 sm:justify-start">
-                  <dt className="text-muted">{t(clave)}</dt>
-                  <dd className={cn('nums font-semibold', problema && valor > 0 ? 'text-critical' : 'text-foreground')}>{valor}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
+          {/* Totales como fichas de instrumento: lo que falla resalta con su punto y su cifra. */}
+          <CifrasResumen
+            etiqueta={t('dispositivos.resumenIoT')}
+            cifras={resumen.map(({ clave, valor, problema }) => ({
+              clave,
+              etiqueta: t(clave),
+              valor,
+              tono: problema && valor > 0 ? 'critico' : clave === 'dispositivos.equiposRegistrados' ? 'vivo' : 'neutro',
+            }))}
+          />
 
           <div>
             <Table mobileLayout="stack" titulo={t('dispositivos.titulo')}>
@@ -456,13 +470,17 @@ export function DispositivosPage() {
                   return (
                     <TableRow key={dispositivo.id}>
                       <TableCell data-label={t('dispositivos.id')} className="mobile-full">
-                        <p className="nums font-semibold text-foreground">{dispositivo.id}</p>
-                        <p className="mt-0.5 break-words text-[13px] leading-5 text-muted">{dispositivo.ubicacion ?? '—'}</p>
-                        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                          <span aria-hidden className={cn('size-1.5 rounded-full', dispositivo.activo ? 'bg-success-600' : 'bg-faint')} />
-                          {dispositivo.activo ? t('dispositivos.activo') : t('dispositivos.inactivo')}
-                          {!dispositivo.activo && dispositivo.motivo_baja && <span className="sr-only"> — {dispositivo.motivo_baja}</span>}
-                        </p>
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="min-w-0">
+                            <p className="nums text-[15px] font-semibold tracking-[-0.01em] text-foreground">{dispositivo.id}</p>
+                            <p className="mt-0.5 break-words text-[13px] leading-5 text-muted">{dispositivo.ubicacion ?? '—'}</p>
+                            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                              <span aria-hidden className={cn('size-1.5 rounded-full', dispositivo.activo ? 'bg-success-600' : 'bg-faint')} />
+                              {dispositivo.activo ? t('dispositivos.activo') : t('dispositivos.inactivo')}
+                              {!dispositivo.activo && dispositivo.motivo_baja && <span className="sr-only"> — {dispositivo.motivo_baja}</span>}
+                            </p>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell data-label={t('dispositivos.estado')} className="mobile-full">
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -958,18 +976,26 @@ export function DispositivosPage() {
               />
             </div>
             <div>
-              <Label htmlFor="c-vigencia">{t('dispositivos.mesesVigencia')}</Label>
+              <Label htmlFor="c-vencimiento">{t('dispositivos.fechaVencimiento')}</Label>
+              <SelectorFecha
+                id="c-vencimiento"
+                valor={formCalibracion.vencimiento}
+                onCambiar={(vencimiento) => setFormCalibracion((previo) => ({ ...previo, vencimiento }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="c-margen">{t('dispositivos.margenAviso')}</Label>
               <Input
-                id="c-vigencia"
+                id="c-margen"
                 type="number"
                 min={1}
-                max={60}
-                value={formCalibracion.mesesVigencia}
-                onChange={(e) => setFormCalibracion({ ...formCalibracion, mesesVigencia: e.target.value })}
-                aria-describedby="c-vigencia-ayuda"
+                max={365}
+                value={formCalibracion.margen}
+                onChange={(e) => setFormCalibracion({ ...formCalibracion, margen: e.target.value })}
+                aria-describedby="c-margen-ayuda"
                 required
               />
-              <p id="c-vigencia-ayuda" className="mt-1 text-xs text-muted">{t('dispositivos.mesesVigenciaAyuda')}</p>
+              <p id="c-margen-ayuda" className="mt-1 text-xs text-muted">{t('dispositivos.margenAvisoAyuda')}</p>
             </div>
             <div>
               <Label htmlFor="c-observaciones">{t('dispositivos.observaciones')}</Label>

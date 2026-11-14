@@ -51,6 +51,23 @@ describe('ReportesPage (RF-13, HU-38)', () => {
     expect(screen.getByRole('button', { name: /generar reporte/i })).toBeInTheDocument()
   })
 
+  it('avisa cuando el backend truncó el reporte: no se presenta como completo', () => {
+    montar({
+      reporte: { ...REPORTE, truncado: true, lecturas_truncadas: true, limite_por_coleccion: 10000 },
+    })
+
+    const aviso = screen.getByRole('alert')
+    expect(aviso).toHaveTextContent(/reporte incompleto/i)
+    expect(aviso).toHaveTextContent(/10[.,\s]?000/)
+    expect(aviso).toHaveTextContent(/lecturas/i)
+  })
+
+  it('un reporte completo no muestra aviso de truncamiento', () => {
+    montar({ reporte: { ...REPORTE, truncado: false } })
+
+    expect(screen.queryByText(/reporte incompleto/i)).not.toBeInTheDocument()
+  })
+
   it('ofrece los tres formatos que exige RF-13 una vez generado', () => {
     // Mantener disponibles los tres formatos de descarga del reporte.
     montar({ reporte: REPORTE })

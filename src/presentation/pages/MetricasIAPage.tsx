@@ -130,11 +130,11 @@ export function MetricasIAPage() {
           </div>
         )}
 
-        <div className="grid gap-5 p-4 sm:px-5 md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] md:gap-8">
+        <div className="tarjeta-lectura relative grid gap-6 p-5 sm:px-6 sm:py-6 md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] md:gap-10" data-riesgo={cumpleUmbral ? 'normal' : 'sinDatos'}>
           <div className="min-w-0">
             <p className="text-[13px] font-medium text-muted">{t('metricasIA.f1Ponderado')}</p>
             <p
-              className="nums mt-1 text-4xl leading-tight font-semibold tracking-tight text-foreground"
+              className="nums mt-2 text-[56px] leading-none font-semibold tracking-[-0.04em] text-foreground sm:text-[68px]"
               aria-label={t('metricasIA.muestraIlustrativa')}
             >
               {pct(m.f1_weighted)}
@@ -143,8 +143,8 @@ export function MetricasIAPage() {
               role="status"
               data-testid="veredicto-umbral"
               className={cn(
-                'mt-3 flex items-start gap-2.5 rounded-lg px-3 py-2.5 text-[13px] leading-5',
-                cumpleUmbral ? 'bg-success-100 text-success-700' : 'bg-honey-100 text-honey-700',
+                'mt-4 flex items-start gap-2.5 rounded-[10px] px-3.5 py-3 text-[13px] leading-5 ring-1 ring-inset',
+                cumpleUmbral ? 'bg-success-100 text-success-700 ring-success-600/20' : 'bg-honey-100 text-honey-700 ring-honey-600/25',
               )}
             >
               {/* WCAG 1.4.1: cumplir e incumplir usan iconos distintos. */}
@@ -169,13 +169,13 @@ export function MetricasIAPage() {
           </div>
 
           <dl className="grid content-start divide-y divide-border border-t border-border pt-1 md:border-t-0 md:border-l md:pt-0 md:pl-8">
-            <div className="flex items-baseline justify-between gap-5 py-3 md:pt-1">
+            <div className="flex items-baseline justify-between gap-5 py-4 md:pt-1">
               <dt className="text-[13px] font-medium text-foreground">{t('metricasIA.exactitudGeneral')}</dt>
-              <dd className="nums shrink-0 text-xl font-semibold tracking-tight text-foreground">{pct(m.accuracy)}</dd>
+              <dd className="nums shrink-0 text-[28px] leading-none font-semibold tracking-[-0.03em] text-foreground">{pct(m.accuracy)}</dd>
             </div>
-            <div className="flex items-baseline justify-between gap-5 py-3">
+            <div className="flex items-baseline justify-between gap-5 py-4">
               <dt className="text-[13px] font-medium text-foreground">{t('metricasIA.casosEvaluados')}</dt>
-              <dd className="nums shrink-0 text-xl font-semibold tracking-tight text-foreground">{entero(m.n_samples_test)}</dd>
+              <dd className="nums shrink-0 text-[28px] leading-none font-semibold tracking-[-0.03em] text-foreground">{entero(m.n_samples_test)}</dd>
             </div>
           </dl>
         </div>
@@ -205,7 +205,7 @@ export function MetricasIAPage() {
         <div className="mt-2 border-t border-border">
           <DetallePlegable titulo={t('metricasIA.porClase')} descripcion={t('metricasIA.porClaseAyuda')}>
             <p className="mb-3 flex items-start gap-2 text-xs leading-relaxed text-muted">
-              <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+              <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-marca-texto" />
               <span>{t('metricasIA.definicionesTabla')}</span>
             </p>
             <p className="mb-4 text-[13px] leading-6 text-muted">{t('metricasIA.reglaIndependiente')}</p>
@@ -295,7 +295,7 @@ export function MetricasIAPage() {
                     })}
                   >
                     <div
-                      className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                      className="h-full rounded-full bg-[linear-gradient(90deg,rgb(11_92_255/0.85),var(--color-secondary))] shadow-[0_0_10px_rgb(0_209_255/0.35)] transition-[width] duration-300 motion-reduce:transition-none"
                       style={{ width: `${Math.max(0, Math.min(1, peso)) * 100}%` }}
                     />
                   </div>
@@ -330,7 +330,7 @@ export function MetricasIAPage() {
       </section>
 
       <p className="flex items-start gap-2 text-xs leading-relaxed text-muted">
-        <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+        <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-marca-texto" />
         {t('metricasIA.notaUsoProfesional')}
       </p>
     </CompactWorkspace>

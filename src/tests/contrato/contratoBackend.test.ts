@@ -38,7 +38,7 @@ describe('contrato con el backend — Dispositivos', () => {
     const { result } = await montar()
     await act(async () => {
       await result.current.registrarDispositivo({ device_id: 'FARM-09', nombre: 'Refri 1', ubicacion: 'Botica', sensores: ['DS18B20', 'SHT31'] })
-      await result.current.registrarCalibracion('FARM-09', '2026-10-01', 'CERT-001', 'ok', 12)
+      await result.current.registrarCalibracion('FARM-09', '2026-10-01', 'CERT-001', 'ok', '2027-10-01', 30)
       await result.current.actualizarInstalacion('FARM-09', 'Estante 2', '2026-10-02', undefined)
       await result.current.actualizarResponsable('FARM-09', 'QF Ana', 'ana@farmacia.pe', '+51999999999')
       await result.current.rotarCredencial('FARM-09', 'Rotación programada')

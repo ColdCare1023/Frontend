@@ -163,15 +163,39 @@ function baseCurva(colores: ColoresGrafica, ventana?: { desde: number; hasta: nu
   }
 }
 
+/** `#rrggbb` con transparencia; cualquier otro formato se devuelve tal cual. */
+function conAlfa(color: string, alfa: number): string {
+  const hex = /^#([0-9a-f]{6})$/i.exec(color.trim())
+  if (!hex) return color
+  const n = Number.parseInt(hex[1], 16)
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`
+}
+
+const ZONA_SEGURA = '#22C55E'
+// Más allá de cualquier lectura plausible: la zona llega hasta el borde del eje.
+// ('min'/'max' de ECharts serían los extremos de los datos, no los del eje.)
+const LIMITE_ZONA = 200
+
 /** Franja y líneas del rango de referencia 2–8 °C. */
 function marcasRango(colores: ColoresGrafica, etiquetas: EtiquetasCurvaTermica) {
   const fuente = FUENTE_GRAFICA
   return {
     markArea: {
       silent: true,
-      itemStyle: { color: colores.safe, opacity: 0.1 },
+      // HU-31: verde dentro del rango y rojo fuera de él.
+      itemStyle: { color: ZONA_SEGURA, opacity: 0.1 },
       label: { show: true, position: 'insideTop', color: colores.safeText, fontSize: 10, fontFamily: fuente, formatter: etiquetas.rangoEsperado },
-      data: [[{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }]],
+      data: [
+        [{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }],
+        [
+          { yAxis: RANGO_TERMICO.maximo, itemStyle: { color: colores.critical, opacity: 0.08 }, label: { show: false } },
+          { yAxis: LIMITE_ZONA },
+        ],
+        [
+          { yAxis: -LIMITE_ZONA, itemStyle: { color: colores.critical, opacity: 0.08 }, label: { show: false } },
+          { yAxis: RANGO_TERMICO.minimo },
+        ],
+      ],
     },
     markLine: {
       silent: true,
@@ -209,7 +233,8 @@ function construirCurvaPorEquipo(
   colores: ColoresGrafica,
   ventana?: { desde: number; hasta: number },
 ): EChartsCoreOption {
-  const paleta = [colores.primary, colores.safe, colores.accent, colores.warn]
+  // Cada equipo con un tono que no se confunde con el anterior: cian, rosa, violeta, ámbar.
+  const paleta = [colores.primary, colores.accent, colores.secondary, colores.warn]
   const visible = ventana ? serie.filter((l) => Date.parse(l.timestamp) >= ventana.desde) : serie
   return {
     ...baseCurva(colores, ventana),
@@ -302,8 +327,22 @@ export function construirOpcionCurvaTermica(
         // HU-31 criterio 3: LTTB conserva picos y caídas al muestrear ventanas largas.
         sampling: 'lttb',
         data: puntos(visible, (l) => l.temperatura_interna, umbral),
-        lineStyle: { width: 2, color: colores.primary },
+        // La línea de la landing: un brillo corto del mismo color y un relleno que se desvanece.
+        lineStyle: { width: 2.25, color: colores.primary, shadowColor: conAlfa(colores.primary, 0.45), shadowBlur: 10 },
         itemStyle: { color: colores.primary },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: conAlfa(colores.primary, 0.22) },
+              { offset: 1, color: conAlfa(colores.primary, 0) },
+            ],
+          },
+        },
         ...marcasRango(colores, etiquetas),
         markPoint: {
           symbol: 'circle',

@@ -82,6 +82,19 @@ export interface ReporteBPA {
   lecturas: LecturaTermica[]
   alertas: AlertaTermica[]
   registros_trazabilidad: RegistroTrazabilidad[]
+  // RF-13: el backend corta cada colección en `limite_por_coleccion` y lo
+  // declara aquí. Un reporte truncado no puede presentarse como completo.
+  truncado?: boolean
+  lecturas_truncadas?: boolean
+  alertas_truncadas?: boolean
+  trazabilidad_truncada?: boolean
+  limite_por_coleccion?: number | null
+}
+
+/** Nombre del archivo exportado; un reporte truncado lo dice en el nombre. */
+export function nombreArchivoReporte(reporte: ReporteBPA, extension: 'csv' | 'json'): string {
+  const periodo = `${reporte.fecha_desde.slice(0, 10)}-${reporte.fecha_hasta.slice(0, 10)}`
+  return `reporte-bpa-${periodo}${reporte.truncado ? '-parcial' : ''}.${extension}`
 }
 
 export function useReportesBPA() {
@@ -118,11 +131,7 @@ export function useReportesBPA() {
 
   const descargarJson = useCallback(() => {
     if (!reporte) return
-    descargarBlob(
-      JSON.stringify(reporte, null, 2),
-      'application/json',
-      `reporte-bpa-${reporte.fecha_desde.slice(0, 10)}-${reporte.fecha_hasta.slice(0, 10)}.json`,
-    )
+    descargarBlob(JSON.stringify(reporte, null, 2), 'application/json', nombreArchivoReporte(reporte, 'json'))
   }, [reporte])
 
   const descargarCsv = useCallback(() => {
@@ -160,11 +169,7 @@ export function useReportesBPA() {
     )
     // BOM UTF-8 + separador ';' para que Excel en español lo abra directo.
     const csv = '\uFEFF' + [cabecera.map(textoCsv).join(';'), ...filas].join('\r\n')
-    descargarBlob(
-      csv,
-      'text/csv;charset=utf-8',
-      `reporte-bpa-${reporte.fecha_desde.slice(0, 10)}-${reporte.fecha_hasta.slice(0, 10)}.csv`,
-    )
+    descargarBlob(csv, 'text/csv;charset=utf-8', nombreArchivoReporte(reporte, 'csv'))
   }, [reporte])
 
   // RF-13 / HU-38: el PDF lo compone el backend, no el navegador. Es la única
