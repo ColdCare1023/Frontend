@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
+import { congelarAnimaciones } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 
 /** P5c: el monitoreo como bento. Demo; los valores cambian, se afirma estructura. */
@@ -120,6 +121,7 @@ for (const tema of ['light', 'dark'] as const) {
     const axe = async () => {
       // Con movimiento reducido el panel aún se funde: se mide al terminar.
       await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))))
+      await congelarAnimaciones(page)
       const resultado = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
       return resultado.violations.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(' ')}`))
     }
