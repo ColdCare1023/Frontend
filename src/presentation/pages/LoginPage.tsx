@@ -4,15 +4,22 @@ import { useTranslation } from 'react-i18next'
 import { ArrowRight, CircleAlert, Eye, EyeOff, Info, Loader2, Lock, Mail } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
+import type { DesafioCodigo } from '@/domain/value-objects/codigoVerificacion'
 import { consumirMotivoAviso } from '@/infrastructure/auth/avisoSesion'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { AuthShell } from '@/presentation/components/auth/AuthShell'
 import { ColdCareBrandPanel } from '@/presentation/components/auth/ColdCareBrandPanel'
 import { DemoRoleGrid } from '@/presentation/components/auth/DemoRoleGrid'
 import { GoogleAuthSection } from '@/presentation/components/auth/GoogleAuthSection'
+import { PasoCodigoLogin, type DestinoVolver } from '@/presentation/components/auth/PasoCodigoLogin'
+import { TransicionPasos } from '@/presentation/components/auth/TransicionPasos'
 import { Input } from '@/presentation/components/ui/input'
 
-/** Credential and demo access share the light ColdCare account workspace. */
+/**
+ * Acceso con contraseña. Con el segundo factor del backend activo
+ * (OTP_LOGIN_ENABLED) una contraseña correcta lleva al paso del código; sin él,
+ * entra directo como siempre.
+ */
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -28,26 +35,46 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [mostrarPassword, setMostrarPassword] = useState(false)
+  const [desafio, setDesafio] = useState<DesafioCodigo | null>(null)
+  const [direccion, setDireccion] = useState<1 | -1>(1)
+  // Campo que recibe el foco al volver del paso del código (se monta tras la transición).
+  const enfocarAlVolver = useRef<DestinoVolver | null>(null)
 
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
 
   const mostrarDemo = MODO_DEMO
 
-  const autenticar = async (correo: string, clave: string) => {
+  const irAlPanel = useCallback(() => {
+    // FE-004: con una contraseña temporal solo se puede cambiarla.
+    const destino = useAuthStore.getState().requiereCambioPassword ? '/cambiar-password' : '/dashboard'
+    void navigate(destino, { replace: true })
+  }, [navigate])
+
+  const autenticar = async (correo: string, clave: string, accesoRapidoDemo = false) => {
     setError(null)
     setCargando(true)
     try {
-      await login(correo, clave)
-      // FE-004: con una contraseña temporal solo se puede cambiarla.
-      const destino = useAuthStore.getState().requiereCambioPassword ? '/cambiar-password' : '/dashboard'
-      void navigate(destino, { replace: true })
+      const pendiente = await login(correo, clave, { accesoRapidoDemo })
+      if (pendiente) {
+        // El reenvío solo usa el desafío: la contraseña no se guarda en memoria
+        // mientras se espera el código.
+        setPassword('')
+        setDireccion(1)
+        setDesafio(pendiente)
+        return
+      }
+      irAlPanel()
     } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { detail?: string } } }
-      if (e?.response?.status === 429) {
+      const estado = e?.response?.status
+      if (estado === 429) {
         setError(t('login.errorDemasiadosIntentos'))
-      } else if (e?.response?.status === 401) {
-        setError(t('login.errorCredenciales'))
+      } else if (estado === 503) {
+        // Segundo factor activo y el correo no salió: sin él no hay forma de entrar.
+        setError(t('loginCodigo.errorNoDisponible'))
+      } else if (!e?.response) {
+        setError(t('login.errorServidor'))
       } else {
         setError(t('login.errorCredenciales'))
       }
@@ -55,6 +82,35 @@ export function LoginPage() {
       setCargando(false)
     }
   }
+
+  const volverACredenciales = useCallback((destino: DestinoVolver) => {
+    enfocarAlVolver.current = destino
+    setDireccion(-1)
+    setDesafio(null)
+    setPassword('')
+    setError(null)
+  }, [])
+
+  // Al volver del código el correo se conserva. «Usar otra cuenta» enfoca y
+  // selecciona el correo (escribir lo reemplaza); «Volver a iniciar sesión»,
+  // la contraseña. El formulario se monta al terminar la transición, por eso
+  // se enfoca desde la referencia y no desde un efecto.
+  const refEmail = useCallback((nodo: HTMLInputElement | null) => {
+    emailRef.current = nodo
+    if (nodo && enfocarAlVolver.current === 'email') {
+      enfocarAlVolver.current = null
+      nodo.focus()
+      nodo.select()
+    }
+  }, [])
+
+  const refPassword = useCallback((nodo: HTMLInputElement | null) => {
+    passwordRef.current = nodo
+    if (nodo && enfocarAlVolver.current === 'password') {
+      enfocarAlVolver.current = null
+      nodo.focus()
+    }
+  }, [])
 
   const enviar = async (event: FormEvent) => {
     event.preventDefault()
@@ -76,140 +132,141 @@ export function LoginPage() {
     await autenticar(email.trim(), password)
   }
 
-  const entrarDemo = (correo: string) => autenticar(correo, 'demo-2026')
-
-  const irAlPanel = useCallback(() => {
-    const destino = useAuthStore.getState().requiereCambioPassword ? '/cambiar-password' : '/dashboard'
-    void navigate(destino, { replace: true })
-  }, [navigate])
+  const entrarDemo = (correo: string) => autenticar(correo, 'demo-2026', true)
 
   return (
     <AuthShell brandPanel={<ColdCareBrandPanel />}>
-      <div className="w-full">
-        <div className="mb-8">
-          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
-            {t('login.titulo')}
-          </h2>
-          <p className="mt-2 text-[15px] leading-6 text-muted">{t('login.subtitulo')}</p>
-        </div>
-
-        {/* Notificación de sesión expirada o recarga de página (HU-40) */}
-        {avisoSesion && (
-          <p
-            role="status"
-            className="mb-5 flex items-start gap-2.5 rounded-(--radius-field) bg-primary-tint px-3 py-2.5 text-sm leading-5 text-foreground ring-1 ring-inset ring-primary/20"
-          >
-            <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-            {avisoSesion === 'expirada' ? t('comunes.sesionExpirada') : t('login.sesionCerradaRecarga')}
-          </p>
-        )}
-
-        <form className="space-y-4" onSubmit={enviar} noValidate>
-          <div className="space-y-1.5">
-            <label htmlFor="login-email" className="block text-[13px] leading-5 font-medium text-subtle">
-              {t('login.email')}
-            </label>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden="true" />
-              <Input
-                ref={emailRef}
-                id="login-email"
-                type="email"
-                autoComplete="username"
-                placeholder={t('login.emailPlaceholder')}
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                aria-invalid={Boolean(
-                  error && (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())),
-                )}
-                className="h-12 rounded-[10px] pl-10 text-[15px]"
-                required
-              />
+      <TransicionPasos paso={desafio ? 'codigo' : 'credenciales'} direccion={direccion}>
+        {desafio ? (
+          <PasoCodigoLogin desafio={desafio} onVerificado={irAlPanel} onVolver={volverACredenciales} />
+        ) : (
+          <div className="w-full">
+            <div className="mb-8">
+              <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
+                {t('login.titulo')}
+              </h2>
+              <p className="mt-2 text-[15px] leading-6 text-muted">{t('login.subtitulo')}</p>
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <label htmlFor="login-password" className="block text-[13px] leading-5 font-medium text-subtle">
-                {t('login.password')}
-              </label>
-              <Link
-                to="/recuperar-contrasena"
-                className="rounded-sm text-[13px] font-medium text-marca-texto transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+            {/* Notificación de sesión expirada o recarga de página (HU-40) */}
+            {avisoSesion && (
+              <p
+                role="status"
+                className="mb-5 flex items-start gap-2.5 rounded-(--radius-field) bg-primary-tint px-3 py-2.5 text-sm leading-5 text-foreground ring-1 ring-inset ring-primary/20"
               >
-                {t('login.olvidastePassword')}
-              </Link>
-            </div>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden="true" />
-              <Input
-                ref={passwordRef}
-                id="login-password"
-                type={mostrarPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="h-12 rounded-[10px] pl-10 pr-12 text-[15px]"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-neutral-200/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:right-1 sm:size-9 sm:pointer-coarse:size-10"
-                aria-label={t(mostrarPassword ? 'login.ocultarPassword' : 'login.mostrarPassword')}
-                aria-pressed={mostrarPassword}
-                onClick={() => setMostrarPassword((visible) => !visible)}
-              >
-                {mostrarPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <p
-              role="alert"
-              className="flex items-start gap-2.5 rounded-(--radius-field) bg-critical-tint px-3 py-2.5 text-sm leading-5 text-critical ring-1 ring-inset ring-critical/25 animate-fade"
-            >
-              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={cargando}
-            className="coldcare-primary-action flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] px-4 text-[15px] font-semibold disabled:cursor-wait disabled:opacity-70"
-          >
-            {cargando ? (
-              <>
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                <span>{t('login.entrando')}</span>
-              </>
-            ) : (
-              <>
-                <span>{t('login.entrar')}</span>
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </>
+                <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                {avisoSesion === 'expirada' ? t('comunes.sesionExpirada') : t('login.sesionCerradaRecarga')}
+              </p>
             )}
-          </button>
 
-          {/* FE-001: Google real (ID token verificado por el backend); sin
-              VITE_GOOGLE_CLIENT_ID no se muestra. */}
-          <GoogleAuthSection onIdToken={loginConGoogle} onExito={irAlPanel} />
+            <form className="space-y-4" onSubmit={enviar} noValidate>
+              <div className="space-y-1.5">
+                <label htmlFor="login-email" className="block text-[13px] leading-5 font-medium text-subtle">
+                  {t('login.email')}
+                </label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden="true" />
+                  <Input
+                    ref={refEmail}
+                    id="login-email"
+                    type="email"
+                    autoComplete="username"
+                    placeholder={t('login.emailPlaceholder')}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    aria-invalid={Boolean(
+                      error && (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())),
+                    )}
+                    className="h-12 rounded-[10px] pl-10 text-[15px]"
+                    required
+                  />
+                </div>
+              </div>
 
-          {/* FE-004: no hay autorregistro; las cuentas las crea el administrador. */}
-          <p className="text-center text-xs leading-5 text-faint">{t('login.cuentasAdministrador')}</p>
-        </form>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <label htmlFor="login-password" className="block text-[13px] leading-5 font-medium text-subtle">
+                    {t('login.password')}
+                  </label>
+                  <Link
+                    to="/recuperar-contrasena"
+                    className="-my-3 inline-flex min-h-11 items-center rounded-sm text-[13px] font-medium text-marca-texto transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                  >
+                    {t('login.olvidastePassword')}
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden="true" />
+                  <Input
+                    ref={refPassword}
+                    id="login-password"
+                    type={mostrarPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    className="h-12 rounded-[10px] pl-10 pr-12 text-[15px]"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors hover:bg-neutral-200/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:right-1 sm:size-9 sm:pointer-coarse:size-10"
+                    aria-label={t(mostrarPassword ? 'login.ocultarPassword' : 'login.mostrarPassword')}
+                    aria-pressed={mostrarPassword}
+                    onClick={() => setMostrarPassword((visible) => !visible)}
+                  >
+                    {mostrarPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
 
-        {/* Demo roles stay in view; users should not have to discover a hidden menu. */}
-        {mostrarDemo && (
-          <DemoRoleGrid
-            onSelectRole={entrarDemo}
-            cargandoGeneral={cargando}
-            className="mt-8 border-t border-border pt-7"
-          />
+              {error && (
+                <p
+                  role="alert"
+                  className="flex items-start gap-2.5 rounded-(--radius-field) bg-critical-tint px-3 py-2.5 text-sm leading-5 text-critical ring-1 ring-inset ring-critical/25 animate-fade"
+                >
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={cargando}
+                className="coldcare-primary-action flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] px-4 text-[15px] font-semibold disabled:cursor-wait disabled:opacity-70"
+              >
+                {cargando ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    <span>{t('login.entrando')}</span>
+                  </>
+              ) : (
+                  <>
+                    <span>{t('login.entrar')}</span>
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+
+              {/* FE-001: Google real (ID token verificado por el backend); sin
+                  VITE_GOOGLE_CLIENT_ID no se muestra. */}
+              <GoogleAuthSection onIdToken={loginConGoogle} onExito={irAlPanel} />
+
+              {/* FE-004: no hay autorregistro; las cuentas las crea el administrador. */}
+              <p className="text-center text-xs leading-5 text-faint">{t('login.cuentasAdministrador')}</p>
+            </form>
+
+            {/* Demo roles stay in view; users should not have to discover a hidden menu. */}
+            {mostrarDemo && (
+              <DemoRoleGrid
+                onSelectRole={entrarDemo}
+                cargandoGeneral={cargando}
+                className="mt-8 border-t border-border pt-7"
+              />
+            )}
+          </div>
         )}
-      </div>
+      </TransicionPasos>
     </AuthShell>
   )
 }

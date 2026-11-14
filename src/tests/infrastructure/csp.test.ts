@@ -41,12 +41,16 @@ describe('Content-Security-Policy', () => {
     expect(observacion).toContain("require-trusted-types-for 'script'")
   })
 
-  it('vercel.json versionado coincide con la política generada para la demo', () => {
+  it('vercel.json versionado coincide con la política generada para producción (backend real)', () => {
+    // Producción (coldcare.vercel.app) compila contra el backend de Railway:
+    // `node scripts/generar-vercel-json.mjs https://backend-production-2e5efc7d.up.railway.app`.
+    const backend = 'https://backend-production-2e5efc7d.up.railway.app'
     const vercel = JSON.parse(readFileSync(path.resolve(__dirname, '../../../vercel.json'), 'utf-8'))
     const cabeceras = Object.fromEntries(
       vercel.headers[0].headers.map((h: { key: string; value: string }) => [h.key, h.value]),
     )
-    expect(cabeceras['Content-Security-Policy']).toBe(politicaCsp())
-    expect(cabeceras['Content-Security-Policy-Report-Only']).toBe(politicaCspReportOnly())
+    expect(vercel.buildCommand).toBe('npm run build && npm run verificar:bundle')
+    expect(cabeceras['Content-Security-Policy']).toBe(politicaCsp({ backend }))
+    expect(cabeceras['Content-Security-Policy-Report-Only']).toBe(politicaCspReportOnly({ backend }))
   })
 })

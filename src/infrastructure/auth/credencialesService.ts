@@ -14,7 +14,10 @@ function estado(error: unknown): number | undefined {
 
 export type ResultadoSolicitud = 'enviado' | 'no_disponible' | 'limite' | 'error'
 
-/** La respuesta es la misma exista o no la cuenta (anti-enumeración). */
+/**
+ * Pide el código de recuperación (6 dígitos, 10 min). La respuesta es la misma
+ * exista o no la cuenta (anti-enumeración).
+ */
 export async function solicitarRecuperacion(email: string): Promise<ResultadoSolicitud> {
   try {
     await apiClient.post('/api/auth/recuperar-password', { email })
@@ -41,6 +44,37 @@ export async function restablecerPassword(token: string, passwordNueva: string):
     return 'error'
   }
 }
+
+export type ResultadoConCodigo = 'ok' | 'codigo_invalido' | 'password_invalida' | 'limite' | 'error'
+
+/**
+ * Recuperación y activación por código (POST /api/auth/restablecer-password
+ * con `{email, codigo, password_nueva}`). El mismo endpoint acepta el código
+ * de recuperación (10 min) y el de activación (48 h); responde 204, o 400
+ * genérico si el código no sirve.
+ */
+export async function restablecerPasswordConCodigo(
+  email: string,
+  codigo: string,
+  passwordNueva: string,
+): Promise<ResultadoConCodigo> {
+  try {
+    await apiClient.post('/api/auth/restablecer-password', { email, codigo, password_nueva: passwordNueva })
+    return 'ok'
+  } catch (error) {
+    const codigoHttp = estado(error)
+    if (codigoHttp === 400) return 'codigo_invalido'
+    if (codigoHttp === 422) return 'password_invalida'
+    if (codigoHttp === 429) return 'limite'
+    return 'error'
+  }
+}
+
+/**
+ * La activación no tiene endpoint propio para pedir otro código: el de
+ * recuperación emite uno que /restablecer-password acepta igual.
+ */
+export const solicitarCodigoActivacion = solicitarRecuperacion
 
 export interface PasswordCambiada {
   accessToken: string

@@ -10,7 +10,7 @@ import { CambiarPasswordPage } from '@/presentation/pages/CambiarPasswordPage'
 import { LoginPage } from '@/presentation/pages/LoginPage'
 import { RecuperarContrasenaPage } from '@/presentation/pages/RecuperarContrasenaPage'
 import { RestablecerContrasenaPage } from '@/presentation/pages/RestablecerContrasenaPage'
-import { instalarAdaptadorFalso, tokenDe } from '../../ayudas'
+import { esperarAviso, instalarAdaptadorFalso, tokenDe } from '../../ayudas'
 
 /**
  * FE-004: recuperación, restablecimiento y cambio de contraseña contra el
@@ -47,15 +47,16 @@ afterEach(() => {
 })
 
 describe('Recuperar contraseña', () => {
-  it('envía la solicitud al backend y confirma sin revelar si la cuenta existe', async () => {
+  it('pide el código al backend y pasa al paso del código sin revelar si la cuenta existe', async () => {
     adaptador = instalarAdaptadorFalso(() => ({ status: 202, data: { detail: 'ok' } }))
     const user = userEvent.setup()
     montar('/recuperar-contrasena')
 
     await user.type(screen.getByLabelText(/Correo electrónico/i), 'farma@upc.pe')
-    await user.click(screen.getByRole('button', { name: /Enviar instrucciones/i }))
+    await user.click(screen.getByRole('button', { name: /Enviar código/i }))
 
-    expect(await screen.findByText(/Instrucciones enviadas/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Crea tu nueva contraseña' })).toBeInTheDocument()
+    expect(document.getElementById('recuperar-codigo-ayuda')).toHaveTextContent(/Si farma@upc.pe tiene una cuenta activa/)
     expect(adaptador.ultima().url).toBe('/api/auth/recuperar-password')
     expect(JSON.parse(adaptador.ultima().data as string)).toEqual({ email: 'farma@upc.pe' })
   })
@@ -66,9 +67,9 @@ describe('Recuperar contraseña', () => {
     montar('/recuperar-contrasena')
 
     await user.type(screen.getByLabelText(/Correo electrónico/i), 'farma@upc.pe')
-    await user.click(screen.getByRole('button', { name: /Enviar instrucciones/i }))
+    await user.click(screen.getByRole('button', { name: /Enviar código/i }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/administrador/)
+    await esperarAviso('alert', /administrador/)
   })
 })
 
