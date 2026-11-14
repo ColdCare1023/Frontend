@@ -98,7 +98,7 @@ export const CeldaLectura = memo(function CeldaLectura({
           <div aria-busy="true" className="mt-3 space-y-4">
             <span className="sr-only">{t('app.cargando')}</span>
             <Esqueleto className="h-[72px] w-48" />
-            <Esqueleto className="h-1.5 max-w-[480px]" />
+            <Esqueleto className="h-1.5 w-full" />
             <Esqueleto className="h-4 w-64 max-w-full" />
           </div>
         ) : estadoHistorial === 'error' ? (
@@ -217,7 +217,7 @@ export const CeldaLectura = memo(function CeldaLectura({
         maximo={extremos?.maxima ?? null}
         cotas
         etiqueta={etiquetaRegla}
-        className="mt-4 max-w-[480px]"
+        className="mt-4"
       />
       {extremos && (
         <p className="nums mt-1 text-micro text-faint">
