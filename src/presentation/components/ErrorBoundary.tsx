@@ -6,6 +6,12 @@ import { Button } from './ui/button'
 
 interface Props {
   children: ReactNode
+  /**
+   * Respaldo propio (p. ej. una tarjeta dentro del shell para el error de una
+   * sola ruta). Recibe `reintentar`, que vuelve a montar los hijos. Sin él,
+   * la pantalla completa de la raíz.
+   */
+  fallback?: (reintentar: () => void) => ReactNode
 }
 
 interface State {
@@ -36,13 +42,14 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     const { error } = this.state
     if (!error) return this.props.children
+    if (this.props.fallback) return this.props.fallback(() => this.setState({ error: null }))
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
         <span className="flex size-11 items-center justify-center rounded-full bg-danger-100 text-danger-700">
           <AlertTriangle className="size-5" />
         </span>
-        <h1 className="font-display text-[28px] leading-[34px] font-bold tracking-tight">
+        <h1 className="font-display text-page text-foreground">
           {i18n.t('comunes.errorPantallaTitulo')}
         </h1>
         <p className="max-w-md text-sm leading-relaxed text-muted">

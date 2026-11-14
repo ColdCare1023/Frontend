@@ -3,6 +3,7 @@ import { CircleAlert, Loader } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from './ui/card'
+import { IlustracionVacia, type VarianteIlustracion } from './ui/ilustracion-vacia'
 
 /**
  * Estados de carga, vacío y error compartidos por las 12 páginas.
@@ -37,7 +38,7 @@ export function EstadoCarga({ texto, className, variant = 'inline', children }: 
   return (
     <p
       role="status"
-      className={cn('animate-fade flex items-center gap-2 py-8 text-sm text-muted', className)}
+      className={cn('flex items-center gap-2 py-8 text-body text-muted', className)}
     >
       <Loader className="size-4 animate-spin" aria-hidden />
       {texto ?? t('app.cargando')}
@@ -45,29 +46,44 @@ export function EstadoCarga({ texto, className, variant = 'inline', children }: 
   )
 }
 
+/**
+ * Estado vacío compacto y alineado a la izquierda (DIRECTION §13.6, 21st
+ * Empty States): ilustración de instrumento a la izquierda, texto a la
+ * derecha, alto máximo de 160 px. Lleva una acción (children) y, si existe,
+ * un dato de contexto (p. ej. la última alerta atendida). Sin `ilustracion`,
+ * usa el icono en línea, sin baldosa de color.
+ */
 export function EstadoVacio({
   icono: Icono,
+  ilustracion,
   titulo,
   detalle,
+  contexto,
+  className,
   children,
 }: {
-  icono: React.ComponentType<{ className?: string }>
+  icono?: React.ComponentType<{ className?: string }>
+  ilustracion?: VarianteIlustracion
   titulo: string
   detalle?: string
+  contexto?: React.ReactNode
+  className?: string
   children?: React.ReactNode
 }) {
   return (
-    <Card className="animate-rise">
-      <CardContent
-        role="status"
-        className="flex flex-col items-center gap-2 py-10 text-center sm:py-12"
-      >
-        <span className="mb-1 flex size-11 items-center justify-center rounded-xl border border-border bg-surface-sunken text-faint shadow-(--shadow-card)">
-          <Icono className="size-5" />
-        </span>
-        <p className="text-[15px] font-medium text-foreground">{titulo}</p>
-        {detalle && <p className="max-w-sm text-sm leading-5 text-muted">{detalle}</p>}
-        {children}
+    <Card className={cn('animate-(--animate-swap)', className)}>
+      <CardContent role="status" className="flex max-h-40 items-center gap-4 p-4 sm:gap-5 sm:px-5">
+        {ilustracion ? (
+          <IlustracionVacia variante={ilustracion} />
+        ) : (
+          Icono && <Icono aria-hidden className="size-6 shrink-0 text-faint" />
+        )}
+        <div className="min-w-0 space-y-1">
+          <p className="text-title text-foreground">{titulo}</p>
+          {detalle && <p className="max-w-prose text-body text-muted">{detalle}</p>}
+          {contexto && <div className="text-meta text-faint">{contexto}</div>}
+          {children && <div className="flex flex-wrap items-center gap-2 pt-1">{children}</div>}
+        </div>
       </CardContent>
     </Card>
   )
@@ -75,11 +91,11 @@ export function EstadoVacio({
 
 export function EstadoError({ mensaje, children }: { mensaje: string; children?: React.ReactNode }) {
   return (
-    <Card className="animate-rise border-danger-200 bg-danger-100/60">
-      <CardContent role="alert" className="flex items-start gap-3 p-5">
+    <Card className="animate-(--animate-swap) border-danger-200 bg-danger-50">
+      <CardContent role="alert" className="flex items-start gap-3 p-4">
         <CircleAlert className="mt-0.5 size-5 shrink-0 text-danger-700" aria-hidden />
         <div>
-          <p className="text-sm leading-relaxed text-danger-700">{mensaje}</p>
+          <p className="text-body text-danger-700">{mensaje}</p>
           {children}
         </div>
       </CardContent>

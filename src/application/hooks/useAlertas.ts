@@ -3,6 +3,7 @@ import axios from 'axios'
 
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
+import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 import { rutaApi } from '@/lib/rutaApi'
@@ -60,6 +61,8 @@ export function useAlertas() {
       try {
         await apiClient.patch(rutaApi`/api/alertas/${alertaId}/revisar`)
         await consultar(filtro)
+        // El contador del riel y la píldora se actualizan sin esperar al SSE.
+        useEstadoVivoStore.getState().refrescarAlertas()
         return 'ok'
       } catch (error) {
         await consultar(filtro)
@@ -83,6 +86,7 @@ export function useAlertas() {
       try {
         await apiClient.post(rutaApi`/api/alertas/${alertaId}/acciones-correctivas`, { decision, justificacion, descripcion })
         await consultar(filtro)
+        useEstadoVivoStore.getState().refrescarAlertas()
         return 'ok'
       } catch (error) {
         await consultar(filtro)

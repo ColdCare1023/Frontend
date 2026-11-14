@@ -4,7 +4,10 @@
     "subtitulo": "Cold-chain monitoring",
     "tituloDocumento": "ColdCare — Pharmaceutical temperature monitoring",
     "metaDescripcion": "ColdCare: temperature monitoring, alerts and history for refrigerated medicines.",
-    "cargando": "Loading…"
+    "cargando": "Loading…",
+    "tituloRuta": "{{pagina}} · ColdCare",
+    "errorSeccion": "This section could not be loaded.",
+    "errorSeccionDetalle": "Try again; the rest of the menu is still available."
   },
   "login": {
     "marcaSubtitulo": "Temperature control for pharmacies",
@@ -64,7 +67,23 @@
     "contenidoPrincipal": "Main content",
     "colapsarMenu": "Collapse menu",
     "expandirMenu": "Expand menu",
-    "menuUsuario": "User menu"
+    "menuUsuario": "User menu",
+    "insigniaAlertas_one": "{{count}} unattended alert",
+    "insigniaAlertas_other": "{{count}} unattended alerts",
+    "insigniaCriticas_one": "{{count}} critical",
+    "insigniaCriticas_other": "{{count}} critical",
+    "descripciones": {
+      "dashboard": "Current temperature and status of each device",
+      "alertas": "Pending alerts and their follow-up",
+      "historial": "Past readings with filters",
+      "guia": "How to use ColdCare for your role",
+      "trazabilidad": "Seal chain and its verification",
+      "reportes": "GSP report as PDF, CSV or JSON",
+      "metricasIA": "Risk classifier evaluation",
+      "auditoria": "System action log",
+      "usuarios": "Accounts and roles",
+      "dispositivos": "Devices, calibration and credentials"
+    }
   },
   "roles": {
     "administrador": "Administrator",
@@ -211,8 +230,6 @@
     "excursionNoVerificada": "Critical excursion of unverified origin: {{temperatura}} °C ({{fecha}}). Check the refrigerator with the backup thermometer."
   },
   "demo": {
-    "badge": "Demo",
-    "descripcionBadge": "Simulated data: the application runs without a server connection",
     "accesoRapido": "Demo access",
     "accesoDetalle": "Explore the system with simulated data.",
     "entrandoComo": "Entering as {{rol}}…",
@@ -235,7 +252,8 @@
       }
     },
     "avisoTitulo": "Simulated data",
-    "avisoDetalle": "Demo mode: no temperature, alert or verification on this screen comes from a real refrigerator."
+    "avisoDetalle": "Demo mode: no temperature, alert or verification on this screen comes from a real refrigerator.",
+    "chipCorto": "Simulated"
   },
   "historial": {
     "titulo": "Reading history",
@@ -788,7 +806,8 @@
     "verDetalles": "Show details",
     "ocultarDetalles": "Hide details",
     "sinPermisoTitulo": "Restricted access",
-    "volverMonitoreo": "Back to Monitoring"
+    "sinPermisoRol": "Your role: {{rol}}.",
+    "sinPermisoDestinos": "You can continue in"
   },
   "metricasIA": {
     "titulo": "How the classifier behaves",
@@ -1021,26 +1040,8 @@
     "notaSeguridad": "For your security we do not confirm whether the email is registered.",
     "volverLogin": "Back to sign in",
     "noDisponible": "Email recovery is not available. Ask the administrator to reset your password.",
-    "cambiarEmail": "Use another email",
-    "reenviado": "If the email matches an active account, a new code is on its way. The previous one no longer works.",
     "errorCodigo": "The code is not valid or has expired. Request a new one.",
-    "irLogin": "Go to sign in",
-    "progreso": "Progress",
     "pasoDe": "Step {{actual}} of {{total}} · {{nombre}}",
-    "pasos": {
-      "correo": "Email",
-      "codigo": "Code",
-      "listo": "Done"
-    },
-    "recuperacion": {
-      "titulo": "Recover password",
-      "subtitulo": "We will send you a 6-digit code so you can create a new password.",
-      "tituloCodigo": "Create your new password",
-      "subtituloCodigo": "If <email>{{email}}</email> has an active account, you will receive a code valid for 10 minutes.",
-      "boton": "Save password",
-      "exitoTitulo": "Password updated",
-      "exitoMensaje": "You can now sign in with your new password. We closed any sessions you had open."
-    },
     "activacion": {
       "titulo": "Activate your account",
       "subtitulo": "Enter your email and we will send you an activation code.",
@@ -1050,7 +1051,25 @@
       "boton": "Activate account",
       "exitoTitulo": "Account activated",
       "exitoMensaje": "Your account is ready. Sign in with your email and the password you just created."
-    }
+    },
+    "reenviado": "If the email matches an active account, a new code is on its way. The previous one no longer works.",
+    "progreso": "Progress",
+    "pasos": {
+      "correo": "Email",
+      "codigo": "Code",
+      "listo": "Done"
+    },
+    "irLogin": "Go to sign in",
+    "recuperacion": {
+      "titulo": "Recover password",
+      "subtitulo": "We will send you a 6-digit code so you can create a new password.",
+      "tituloCodigo": "Create your new password",
+      "subtituloCodigo": "If <email>{{email}}</email> has an active account, you will receive a code valid for 10 minutes.",
+      "boton": "Save password",
+      "exitoTitulo": "Password updated",
+      "exitoMensaje": "You can now sign in with your new password. We closed any sessions you had open."
+    },
+    "cambiarEmail": "Use another email"
   },
   "restablecerContrasena": {
     "titulo": "Reset password",
@@ -1136,6 +1155,63 @@
     "cambiar": "Change language",
     "es": "Español",
     "en": "English"
+  },
+  "filtros": {
+    "limpiar": "Clear filters"
+  },
+  "regla": {
+    "nombre": "{{valor}}, safe range {{minimo}} to {{maximo}} °C",
+    "sinLectura": "no reading"
+  },
+  "cinta": {
+    "resumen": "{{etiqueta}}: {{fuera}} of {{total}} periods out of range and {{sinDatos}} without data",
+    "estado": {
+      "normal": "In range",
+      "preventivo": "Preventive",
+      "critico": "Critical excursion",
+      "sin_datos": "No data",
+      "sin_conexion": "Offline",
+      "neutro": "Unclassified"
+    }
+  },
+  "estadoVivo": {
+    "titulo": "Live status",
+    "cargando": "Loading status…",
+    "equipos": "Devices",
+    "estado": {
+      "normal": "Normal",
+      "riesgo_preventivo": "Preventive",
+      "excursion_critica": "Critical",
+      "falla_sensor": "Sensor fault",
+      "sin_datos": "No data",
+      "suspendido": "Suspended",
+      "sin_conexion": "Offline",
+      "sin_lectura": "No readings",
+      "sin_equipos": "No devices",
+      "desconocido": "Status unavailable"
+    },
+    "conexion": {
+      "conectado": "Live connection",
+      "reconectando": "Reconnecting…",
+      "sinConexion": "Live connection lost"
+    },
+    "ultimaLectura": "{{id}} · {{tiempo}}",
+    "alertas_one": "{{count}} unattended alert",
+    "alertas_other": "{{count}} unattended alerts",
+    "criticas_one": "{{count}} critical",
+    "criticas_other": "{{count}} critical",
+    "sinAlertas": "No pending alerts",
+    "verAlertas": "View alerts",
+    "alertasError": "Could not count alerts.",
+    "actualizado": "Updated {{hora}}",
+    "error": "Part of the status could not be loaded.",
+    "sinEquiposDetalle": "No devices registered yet.",
+    "registrarEquipo": "Register device",
+    "sr": {
+      "equipo": "{{equipo}}: {{valor}}, {{estado}}",
+      "incidencias_one": "{{count}} more device with an issue",
+      "incidencias_other": "{{count}} more devices with issues"
+    }
   },
   "codigo": {
     "etiqueta": "Verification code",

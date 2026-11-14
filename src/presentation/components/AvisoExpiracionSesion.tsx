@@ -10,7 +10,7 @@ import { marcarSesionExpirada } from '@/infrastructure/auth/avisoSesion'
 /**
  * FS5 — banda de aviso cuando el JWT está a punto de caducar.
  *
- * Se muestra fija arriba y no como diálogo: bloquear la pantalla justo cuando
+ * FS5: va en la pila fija de la cabecera (AppLayout), no como diálogo: bloquear la pantalla justo cuando
  * al usuario le quedan minutos para guardar sería contraproducente.
  */
 export function AvisoExpiracionSesion() {
@@ -34,7 +34,7 @@ export function AvisoExpiracionSesion() {
     <div
       role="status"
       aria-live="polite"
-      className="sticky top-0 z-40 flex items-center justify-center gap-2 border-b border-warning-600/25 bg-warning-100 px-4 py-2 text-[13px] text-warning-700 animate-rise"
+      className="flex min-h-9 items-center justify-center gap-2 border-b border-warning-600/25 bg-warning-100 px-4 py-2 text-meta text-warning-700 animate-fade"
     >
       <Clock className="size-3.5 shrink-0" aria-hidden />
       <span>{t('sesion.porExpirar', { restante: formatearRestante(restanteMs) })}</span>

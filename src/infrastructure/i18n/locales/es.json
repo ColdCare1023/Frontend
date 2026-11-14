@@ -4,7 +4,10 @@
     "subtitulo": "Monitoreo de cadena de frío",
     "tituloDocumento": "ColdCare — Monitoreo térmico farmacéutico",
     "metaDescripcion": "ColdCare: control de temperatura, alertas e historial para medicamentos refrigerados.",
-    "cargando": "Cargando…"
+    "cargando": "Cargando…",
+    "tituloRuta": "{{pagina}} · ColdCare",
+    "errorSeccion": "No se pudo cargar esta sección.",
+    "errorSeccionDetalle": "Vuelve a intentarlo; el resto del menú sigue disponible."
   },
   "login": {
     "marcaSubtitulo": "Control térmico para farmacias",
@@ -64,7 +67,23 @@
     "contenidoPrincipal": "Contenido principal",
     "colapsarMenu": "Contraer menú",
     "expandirMenu": "Expandir menú",
-    "menuUsuario": "Menú de usuario"
+    "menuUsuario": "Menú de usuario",
+    "insigniaAlertas_one": "{{count}} alerta sin atender",
+    "insigniaAlertas_other": "{{count}} alertas sin atender",
+    "insigniaCriticas_one": "{{count}} crítica",
+    "insigniaCriticas_other": "{{count}} críticas",
+    "descripciones": {
+      "dashboard": "Temperatura actual y estado de cada equipo",
+      "alertas": "Avisos pendientes y su seguimiento",
+      "historial": "Lecturas anteriores con filtros",
+      "guia": "Cómo usar ColdCare según tu rol",
+      "trazabilidad": "Cadena de sellos y su verificación",
+      "reportes": "Reporte BPA en PDF, CSV o JSON",
+      "metricasIA": "Evaluación del clasificador de riesgo",
+      "auditoria": "Bitácora de acciones del sistema",
+      "usuarios": "Cuentas y roles",
+      "dispositivos": "Equipos, calibración y credenciales"
+    }
   },
   "roles": {
     "administrador": "Administrador",
@@ -211,8 +230,6 @@
     "excursionNoVerificada": "Excursión crítica de origen no verificado: {{temperatura}} °C ({{fecha}}). Compruebe el refrigerador con el termómetro de respaldo."
   },
   "demo": {
-    "badge": "Demostración",
-    "descripcionBadge": "Datos simulados: la aplicación funciona sin conexión al servidor",
     "accesoRapido": "Acceso de demostración",
     "accesoDetalle": "Explora el sistema con datos simulados.",
     "entrandoComo": "Entrando como {{rol}}…",
@@ -235,7 +252,8 @@
       }
     },
     "avisoTitulo": "Datos simulados",
-    "avisoDetalle": "Modo demostración: ninguna temperatura, alerta o verificación de esta pantalla corresponde a un refrigerador real."
+    "avisoDetalle": "Modo demostración: ninguna temperatura, alerta o verificación de esta pantalla corresponde a un refrigerador real.",
+    "chipCorto": "Simulado"
   },
   "historial": {
     "titulo": "Historial de lecturas",
@@ -788,7 +806,8 @@
     "verDetalles": "Ver detalles",
     "ocultarDetalles": "Ocultar detalles",
     "sinPermisoTitulo": "Acceso restringido",
-    "volverMonitoreo": "Volver a Monitoreo"
+    "sinPermisoRol": "Tu rol: {{rol}}.",
+    "sinPermisoDestinos": "Puedes continuar en"
   },
   "metricasIA": {
     "titulo": "Cómo se comporta el clasificador",
@@ -1021,26 +1040,8 @@
     "notaSeguridad": "Por seguridad no confirmamos si el correo está registrado.",
     "volverLogin": "Volver a iniciar sesión",
     "noDisponible": "La recuperación por correo no está disponible. Pide al administrador que restablezca tu contraseña.",
-    "cambiarEmail": "Usar otro correo",
-    "reenviado": "Si el correo corresponde a una cuenta activa, te llegará un código nuevo. El anterior ya no sirve.",
     "errorCodigo": "El código no es válido o ya caducó. Pide uno nuevo.",
-    "irLogin": "Ir a iniciar sesión",
-    "progreso": "Progreso",
     "pasoDe": "Paso {{actual}} de {{total}} · {{nombre}}",
-    "pasos": {
-      "correo": "Correo",
-      "codigo": "Código",
-      "listo": "Listo"
-    },
-    "recuperacion": {
-      "titulo": "Recuperar contraseña",
-      "subtitulo": "Te enviaremos un código de 6 dígitos para que crees una contraseña nueva.",
-      "tituloCodigo": "Crea tu nueva contraseña",
-      "subtituloCodigo": "Si <email>{{email}}</email> tiene una cuenta activa, recibirás un código válido por 10 minutos.",
-      "boton": "Guardar contraseña",
-      "exitoTitulo": "Contraseña actualizada",
-      "exitoMensaje": "Ya puedes ingresar con tu nueva contraseña. Cerramos las sesiones que tenías abiertas."
-    },
     "activacion": {
       "titulo": "Activa tu cuenta",
       "subtitulo": "Escribe tu correo y te enviaremos un código de activación.",
@@ -1050,7 +1051,25 @@
       "boton": "Activar cuenta",
       "exitoTitulo": "Cuenta activada",
       "exitoMensaje": "Tu cuenta está lista. Ingresa con tu correo y la contraseña que acabas de crear."
-    }
+    },
+    "reenviado": "Si el correo corresponde a una cuenta activa, te llegará un código nuevo. El anterior ya no sirve.",
+    "progreso": "Progreso",
+    "pasos": {
+      "correo": "Correo",
+      "codigo": "Código",
+      "listo": "Listo"
+    },
+    "irLogin": "Ir a iniciar sesión",
+    "recuperacion": {
+      "titulo": "Recuperar contraseña",
+      "subtitulo": "Te enviaremos un código de 6 dígitos para que crees una contraseña nueva.",
+      "tituloCodigo": "Crea tu nueva contraseña",
+      "subtituloCodigo": "Si <email>{{email}}</email> tiene una cuenta activa, recibirás un código válido por 10 minutos.",
+      "boton": "Guardar contraseña",
+      "exitoTitulo": "Contraseña actualizada",
+      "exitoMensaje": "Ya puedes ingresar con tu nueva contraseña. Cerramos las sesiones que tenías abiertas."
+    },
+    "cambiarEmail": "Usar otro correo"
   },
   "restablecerContrasena": {
     "titulo": "Restablecer contraseña",
@@ -1136,6 +1155,63 @@
     "cambiar": "Cambiar idioma",
     "es": "Español",
     "en": "English"
+  },
+  "filtros": {
+    "limpiar": "Limpiar filtros"
+  },
+  "regla": {
+    "nombre": "{{valor}}, rango seguro de {{minimo}} a {{maximo}} °C",
+    "sinLectura": "sin lectura"
+  },
+  "cinta": {
+    "resumen": "{{etiqueta}}: {{fuera}} de {{total}} tramos fuera de rango y {{sinDatos}} sin datos",
+    "estado": {
+      "normal": "En rango",
+      "preventivo": "Preventivo",
+      "critico": "Excursión crítica",
+      "sin_datos": "Sin datos",
+      "sin_conexion": "Sin conexión",
+      "neutro": "Sin clasificar"
+    }
+  },
+  "estadoVivo": {
+    "titulo": "Estado en vivo",
+    "cargando": "Cargando estado…",
+    "equipos": "Equipos",
+    "estado": {
+      "normal": "Normal",
+      "riesgo_preventivo": "Preventivo",
+      "excursion_critica": "Crítico",
+      "falla_sensor": "Falla de sensor",
+      "sin_datos": "Sin datos",
+      "suspendido": "Suspendido",
+      "sin_conexion": "Sin conexión",
+      "sin_lectura": "Sin lecturas",
+      "sin_equipos": "Sin equipos",
+      "desconocido": "Sin estado"
+    },
+    "conexion": {
+      "conectado": "Conectado en vivo",
+      "reconectando": "Reconectando…",
+      "sinConexion": "Sin conexión en vivo"
+    },
+    "ultimaLectura": "{{id}} · {{tiempo}}",
+    "alertas_one": "{{count}} alerta sin atender",
+    "alertas_other": "{{count}} alertas sin atender",
+    "criticas_one": "{{count}} crítica",
+    "criticas_other": "{{count}} críticas",
+    "sinAlertas": "Sin alertas pendientes",
+    "verAlertas": "Ver alertas",
+    "alertasError": "No se pudo contar las alertas.",
+    "actualizado": "Actualizado {{hora}}",
+    "error": "Parte del estado no se pudo cargar.",
+    "sinEquiposDetalle": "Aún no hay equipos registrados.",
+    "registrarEquipo": "Registrar equipo",
+    "sr": {
+      "equipo": "{{equipo}}: {{valor}}, {{estado}}",
+      "incidencias_one": "{{count}} equipo más con incidencia",
+      "incidencias_other": "{{count}} equipos más con incidencias"
+    }
   },
   "codigo": {
     "etiqueta": "Código de verificación",

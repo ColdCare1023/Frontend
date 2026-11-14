@@ -2,12 +2,13 @@ import { cn } from '@/lib/utils'
 
 export type TonoKpi = 'neutro' | 'ok' | 'aviso' | 'critico' | 'info'
 
-const CHIP: Record<TonoKpi, string> = {
-  neutro: 'bg-neutral-200 text-subtle ring-border',
-  ok: 'bg-success-100 text-success-700 ring-success-600/25',
-  aviso: 'bg-warning-100 text-warning-700 ring-warning-600/30',
-  critico: 'bg-critical-tint text-critical ring-critical/25',
-  info: 'bg-secondary-tint text-success-700 ring-success-200',
+/** Solo los iconos de estado llevan color; sin baldosas detrás (DIRECTION §14). */
+const ICONO: Record<TonoKpi, string> = {
+  neutro: 'text-faint',
+  ok: 'text-success-700',
+  aviso: 'text-warning-700',
+  critico: 'text-critical',
+  info: 'text-faint',
 }
 
 const BARRA: Record<TonoKpi, string> = {
@@ -51,39 +52,47 @@ export function Kpi({
   return (
     <div
       className={cn(
-        'spotlight tarjeta-cristal flex min-w-0 flex-col rounded-(--radius-card) border p-4',
-        destacado && 'sm:p-5',
+        'superficie flex min-w-0 flex-col p-4',
+        destacado && 'xl:p-5',
         className,
       )}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="truncate text-[13px] leading-5 font-medium text-muted">{etiqueta}</p>
+        <p className="truncate text-meta font-medium text-muted">{etiqueta}</p>
         {Icono && (
-          <span aria-hidden className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset', CHIP[tono])}>
+          <span aria-hidden className={cn('flex shrink-0', ICONO[tono])}>
             <Icono className="size-4" />
           </span>
         )}
       </div>
-      <p className={cn('nums mt-2 flex items-baseline gap-1 font-semibold tracking-tight text-foreground', destacado ? 'text-4xl sm:text-5xl' : 'text-[26px] leading-8')}>
+      <p className={cn('nums mt-2 flex items-baseline gap-0.5 text-foreground', destacado ? 'text-display' : 'text-metric')}>
         <span className="min-w-0 truncate">{valor}</span>
-        {unidad && <span className={cn('font-medium text-muted', destacado ? 'text-xl' : 'text-sm')}>{unidad}</span>}
+        {unidad && <span className={cn('font-medium text-muted', destacado ? 'text-title' : 'text-body')}>{unidad}</span>}
       </p>
       {proporcion !== null && (
-        <div aria-hidden className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
-          <div className={cn('h-full rounded-full transition-[width] duration-500 ease-(--ease-out-soft)', BARRA[tono])} style={{ width: `${proporcion * 100}%` }} />
+        <div aria-hidden className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+          {/* scaleX, no width: sin layout en cada fotograma (MOTION #13). */}
+          <div
+            className={cn('h-full origin-left rounded-full transition-transform duration-(--duration-reveal) ease-(--ease-out)', BARRA[tono])}
+            style={{ transform: `scaleX(${proporcion})` }}
+          />
         </div>
       )}
-      {detalle && <div className="mt-auto pt-2 text-xs leading-5 text-faint">{detalle}</div>}
+      {detalle && <div className="mt-auto pt-2 text-meta text-faint">{detalle}</div>}
       {children}
     </div>
   )
 }
 
-/** Fila de indicadores que se reparte sin huecos: 2 por fila en móvil, auto en escritorio. */
+/**
+ * Fila de indicadores: 2 por fila en móvil y columnas de ancho propio en
+ * escritorio (nada se estira para llenar, DIRECTION §13.1). Para totales de
+ * pantalla prefiere `TiraEstado`.
+ */
 export function TiraKpi({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('grid grid-cols-2 gap-3 lg:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]', className)}
+      className={cn('grid grid-cols-2 gap-3 lg:flex lg:flex-wrap lg:[&>*]:min-w-44 lg:[&>*]:flex-[0_1_15rem]', className)}
       {...props}
     >
       {children}

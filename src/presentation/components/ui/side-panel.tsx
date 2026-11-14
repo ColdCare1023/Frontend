@@ -22,11 +22,11 @@ export function SidePanelContent({
   const { t } = useTranslation()
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/40 data-[state=open]:animate-fade data-[state=closed]:animate-fade-out" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/40 data-[state=open]:animate-fade data-[state=closed]:animate-fade-out dark:bg-overlay/60" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-border bg-surface shadow-(--shadow-lift) focus:outline-none',
-          'pb-[env(safe-area-inset-bottom)] sm:max-w-lg',
+          'fixed inset-y-0 right-0 z-50 flex w-full max-w-[480px] flex-col border-l border-border bg-surface-raised shadow-(--shadow-float) focus:outline-none',
+          'pb-[env(safe-area-inset-bottom)] sm:rounded-l-(--radius-modal)',
           'data-[state=open]:animate-(--animate-panel-in) data-[state=closed]:animate-(--animate-panel-out)',
           className,
         )}
@@ -70,7 +70,7 @@ export function SidePanelTitle({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('font-display text-lg leading-7 font-semibold tracking-tight text-foreground', className)}
+      className={cn('text-title text-foreground', className)}
       {...props}
     />
   )

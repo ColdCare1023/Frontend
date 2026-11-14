@@ -37,13 +37,13 @@ export function Detalles({
         <span>{titulo ?? (abierto ? t('comunes.ocultarDetalles') : t('comunes.verDetalles'))}</span>
         <ChevronDown
           aria-hidden
-          className={cn('size-4 shrink-0 transition-transform duration-(--duration-ui) ease-(--ease-out-soft)', abierto && 'rotate-180')}
+          className={cn('size-4 shrink-0 transition-transform duration-(--duration-ui) ease-(--ease-out)', abierto && 'rotate-180')}
         />
       </button>
       <div
         id={id}
         className={cn(
-          'grid transition-[grid-template-rows,opacity] duration-(--duration-panel) ease-(--ease-out-soft)',
+          'grid transition-[grid-template-rows,opacity] duration-(--duration-reveal) ease-(--ease-out)',
           abierto ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
         )}
       >

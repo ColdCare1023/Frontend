@@ -114,6 +114,30 @@ describe('RequireRoles (RBAC)', () => {
     montar('/protegida', ['farmaceutico'])
 
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Monitoreo/i })).toBeInTheDocument()
+    // La salida a Monitoreo es ahora el primer destino de la lista.
+    expect(screen.getByRole('link', { name: /Monitoreo/i })).toHaveAttribute('href', '/dashboard')
+  })
+
+  it('la pantalla sin permiso muestra el rol y los destinos que ese rol sí abre', () => {
+    sesionCon('tecnico')
+
+    montar('/protegida', ['farmaceutico'])
+
+    expect(screen.getByText('Tu rol: Técnico de Farmacia.')).toBeInTheDocument()
+    for (const destino of [/Monitoreo/, /Alertas/, /Historial/, /Guía de uso/, /Integridad de registros/]) {
+      expect(screen.getByRole('link', { name: destino })).toBeInTheDocument()
+    }
+  })
+
+  it('no ofrece destinos que el rol no puede abrir', () => {
+    sesionCon('tecnico')
+
+    montar('/protegida', ['farmaceutico'])
+
+    for (const prohibido of [/Reportes/, /Clasificador de riesgo/, /Auditoría/, /Usuarios/, /Dispositivos/]) {
+      expect(screen.queryByRole('link', { name: prohibido })).not.toBeInTheDocument()
+    }
+    // Solo el texto del 403 menciona «permiso» (las e2e lo buscan con /permiso/i).
+    expect(screen.getAllByText(/permiso/i)).toHaveLength(1)
   })
 })

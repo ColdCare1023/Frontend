@@ -36,7 +36,7 @@ export function DialogContent({
   return (
     <DialogPrimitive.Portal>
       {/* Radix espera a que terminen las animaciones de salida (data-state=closed). */}
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/55 backdrop-blur-[2px] data-[state=open]:animate-fade data-[state=closed]:animate-fade-out" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/40 backdrop-blur-[2px] dark:bg-overlay/60 data-[state=open]:animate-fade data-[state=closed]:animate-fade-out" />
       <DialogPrimitive.Content
         ref={contenedor}
         // Ojo: `role={undefined}` no es «no tocar el rol», es sobrescribir con
@@ -53,7 +53,7 @@ export function DialogContent({
         tabIndex={destructivo ? -1 : undefined}
         className={cn(
           'fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
-          'cristal max-h-[85dvh] overflow-y-auto rounded-(--radius-modal) border p-5 sm:p-6',
+          'flotante max-h-[85dvh] overflow-y-auto rounded-(--radius-modal) p-5 sm:p-6',
           'data-[state=open]:animate-(--animate-dialog-in) data-[state=closed]:animate-(--animate-dialog-out) focus:outline-none',
           className,
         )}
