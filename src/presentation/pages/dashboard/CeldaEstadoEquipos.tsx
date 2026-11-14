@@ -5,7 +5,6 @@ import { CircleCheck, Hourglass, Info, ShieldAlert, TriangleAlert, WifiOff } fro
 import { umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { porcentajeConDatos, tramosDisponibilidad } from '@/domain/value-objects/Disponibilidad'
 import { fechaHora, hora } from '@/lib/formato'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -14,6 +13,7 @@ import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
 import { CintaDisponibilidad } from './CintaDisponibilidad'
 import { FONDO_TRAMO } from './utilidades'
 import { ordenarEquipos, rangoEquipo, tieneIncidencia } from './equipos'
+import { useMinuto } from '../../hooks/useReloj'
 
 export interface TemperaturaEquipo {
   valor: number | null
@@ -179,19 +179,18 @@ export const CeldaEstadoEquipos = memo(function CeldaEstadoEquipos({
   equipos,
   deviceId,
   temperaturas,
-  ahora,
   onElegir,
   onVerDetalles,
 }: {
   equipos: readonly Dispositivo[]
   deviceId: string | null
   temperaturas: Record<string, TemperaturaEquipo>
-  /** Minuto en curso (ms): la cinta avanza por minuto, no por segundo. */
-  ahora: number
   onElegir: (id: string) => void
   onVerDetalles: (id: string) => void
 }) {
   const { t } = useTranslation()
+  // Minuto en curso (ms): la cinta avanza por minuto, no por segundo.
+  const ahora = useMinuto()
   const ordenados = useMemo(() => ordenarEquipos(equipos), [equipos])
   const problemas = ordenados.filter(tieneIncidencia).length
   const leyenda = (['operativo', 'sin_datos', 'perdida', 'falla_sensor'] as const).map((estado) => (

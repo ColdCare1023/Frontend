@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useReportesBPA, MAX_DIAS_RANGO_REPORTE, diasDeRango } from '@/application/hooks/useReportesBPA'
+import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { fechaCorta } from '@/lib/formato'
 import { PageHeader } from '../components/PageHeader'
 import { FormularioPeriodo } from './reportes/FormularioPeriodo'
@@ -11,9 +12,11 @@ import { atajoDe, periodoDeAtajo } from './reportes/formatoReporte'
 
 /**
  * Reportes BPA (RF-13, HU-38), Plantilla Documento: periodo a la izquierda
- * (5/12) y resultado a la derecha (7/12). Al entrar se genera una vista
- * previa de los últimos 7 días con el mismo endpoint, así la pantalla nunca
- * abre vacía; generar después sigue siendo explícito (cuota de 10/min).
+ * (5/12) y resultado a la derecha (7/12). Solo en modo demo se genera al
+ * entrar una vista previa de los últimos 7 días. Con backend real no: cada
+ * llamada a /api/reportes/bpa registra una exportación EXPORTAR_REPORTE_BPA en
+ * la auditoría y en la cadena de hashes y consume la cuota de 10/min, así que
+ * generar sigue siendo una acción explícita del usuario.
  */
 export function ReportesPage() {
   const { t } = useTranslation()
@@ -36,13 +39,15 @@ export function ReportesPage() {
   const [desde, setDesde] = useState(inicial.desde)
   const [hasta, setHasta] = useState(inicial.hasta)
   const [deviceId, setDeviceId] = useState('')
-  const [autoPendiente, setAutoPendiente] = useState(true)
+  const [autoPendiente, setAutoPendiente] = useState(MODO_DEMO)
   const autoLanzada = useRef(false)
   const formulario = useRef<HTMLFormElement>(null)
 
-  // Vista previa automática, una sola vez (el ref protege del doble efecto de StrictMode).
+  // Vista previa automática solo en demo, una sola vez (el ref protege del
+  // doble efecto de StrictMode). Fuera de demo dejaría una exportación BPA
+  // en la auditoría que el usuario nunca pidió.
   useEffect(() => {
-    if (autoLanzada.current) return
+    if (!MODO_DEMO || autoLanzada.current) return
     autoLanzada.current = true
     void Promise.resolve(generar(inicial.desde, inicial.hasta, undefined, { origen: 'auto' })).finally(() =>
       setAutoPendiente(false),

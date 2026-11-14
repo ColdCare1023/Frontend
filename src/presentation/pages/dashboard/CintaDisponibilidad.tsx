@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 
 import { fusionarTramos, porcentajeConDatos, type TramoDisponibilidad } from '@/domain/value-objects/Disponibilidad'
 import { hora } from '@/lib/formato'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
 import { FONDO_TRAMO } from './utilidades'
 

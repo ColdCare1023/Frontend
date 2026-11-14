@@ -130,7 +130,7 @@ export function PanelPestana({
       id={idPanelPestana(idBase, valor)}
       aria-labelledby={idPestana(idBase, valor)}
       tabIndex={0}
-      className={cn('animate-(--animate-pestana) focus-visible:outline-none', className)}
+      className={cn('animate-(--animate-pestana) rounded-(--radius-card) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-ring', className)}
       style={{ '--dir': direccion } as React.CSSProperties}
     >
       {children}

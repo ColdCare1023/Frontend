@@ -5,7 +5,6 @@ import { ArrowRight, OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { fechaHora } from '@/lib/formato'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'

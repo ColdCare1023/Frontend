@@ -81,9 +81,10 @@ describe('HistorialPage (RF-12, HU-36)', () => {
     expect(screen.getByText(/no hay lecturas|sin lecturas|sin resultados/i)).toBeInTheDocument()
   })
 
-  it('muestra la gráfica cuando hay lecturas (HU-36 criterio 1)', () => {
+  it('muestra la gráfica cuando hay lecturas (HU-36 criterio 1)', async () => {
     montar([lectura()])
-    expect(screen.getByTestId('grafica')).toBeInTheDocument()
+    // ECharts se carga bajo demanda (PERFORMANCE B2): la gráfica llega tras el esqueleto.
+    expect(await screen.findByTestId('grafica')).toBeInTheDocument()
   })
 
   it('no muestra la gráfica cuando no hay lecturas', () => {

@@ -50,7 +50,8 @@ describe('ReportesPage (RF-13, HU-38)', () => {
     montar()
 
     expect(screen.getByText(/periodo del reporte/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /generar reporte/i })).toBeInTheDocument()
+    // Formulario y estado vacío ofrecen generar; nada se genera solo.
+    expect(screen.getAllByRole('button', { name: /generar reporte/i }).length).toBeGreaterThan(0)
   })
 
   it('avisa cuando el backend truncó el reporte: no se presenta como completo', () => {
@@ -91,10 +92,10 @@ describe('ReportesPage (RF-13, HU-38)', () => {
     expect(screen.getByText(/no se pudo generar el reporte/i)).toBeInTheDocument()
   })
 
-  it('genera la vista previa al entrar con los últimos 7 días', () => {
+  it('fuera de demo no genera nada al entrar: cada reporte registra una exportación BPA', () => {
     const { generar } = montar()
-    expect(generar).toHaveBeenCalledTimes(1)
-    expect(generar).toHaveBeenCalledWith(fechaRelativa(-6), fechaRelativa(0), undefined, { origen: 'auto' })
+    expect(generar).not.toHaveBeenCalled()
+    expect(screen.getByText(/periodo seleccionado: 7 días/i)).toBeInTheDocument()
   })
 
   it('los atajos ajustan las fechas sin generar', async () => {
@@ -105,7 +106,7 @@ describe('ReportesPage (RF-13, HU-38)', () => {
     expect(screen.getByText(/periodo seleccionado: 30 días/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Este mes' }))
     expect(screen.getByRole('button', { name: 'Este mes' })).toHaveAttribute('aria-pressed', 'true')
-    expect(generar).toHaveBeenCalledTimes(1)
+    expect(generar).not.toHaveBeenCalled()
   })
 
   it('el PDF descarga el periodo del reporte mostrado y avisa si se editó', async () => {

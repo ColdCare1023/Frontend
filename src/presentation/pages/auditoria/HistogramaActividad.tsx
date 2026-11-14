@@ -15,6 +15,8 @@ const DIAS = 14
  * sobre la última carga sin periodo. Pulsar una barra filtra ese día en el
  * servidor; volver a pulsarla lo quita. Sin escalonado ni animación de
  * entrada (MOTION §3.9): solo color en hover y anillo de selección.
+ * Bajo `sm` las 14 barras van en dos filas de 7 para que cada una mida al
+ * menos 24 px de ancho (WCAG 2.5.8, tamaño mínimo del objetivo).
  */
 export function HistogramaActividad({
   registros,
@@ -57,13 +59,13 @@ export function HistogramaActividad({
           <span className="inline-flex items-center gap-1.5"><span aria-hidden className="size-2 rounded-full bg-critical" />{t('auditoria.actividad.fallidas')}</span>
         </div>
       </div>
-      <ol aria-label={t('auditoria.actividad.titulo')} className="mt-3 grid h-16 grid-cols-[repeat(14,minmax(0,1fr))] items-end gap-0.5 sm:gap-1">
+      <ol aria-label={t('auditoria.actividad.titulo')} className="mt-3 grid grid-cols-7 items-end gap-x-1.5 gap-y-2 sm:h-16 sm:grid-cols-[repeat(14,minmax(0,1fr))] sm:gap-1">
         {dias.map((dia) => {
           const activo = diaSeleccionado === dia.clave
           const alto = (dia.total / maximo) * 100
           const altoFallidas = dia.total ? (dia.fallidas / dia.total) * 100 : 0
           return (
-            <li key={dia.clave} className="h-full">
+            <li key={dia.clave} className="h-12 sm:h-full">
               <button
                 type="button"
                 aria-pressed={activo}

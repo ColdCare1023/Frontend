@@ -154,7 +154,7 @@ export function TrazabilidadPage() {
           consultarCon(tipoEvento, equipo.trim())
         }}
       >
-        <div className="w-[calc(50%-6px)] sm:w-44">
+        <div className="w-full sm:w-44">
           <Label htmlFor="f-equipo-traza" className="text-meta text-muted">{t('trazabilidad.filtro.equipo')}</Label>
           <div className="relative">
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
@@ -162,7 +162,7 @@ export function TrazabilidadPage() {
             <datalist id={idEquipos}>{equiposVistos.map((d) => <option key={d} value={d} />)}</datalist>
           </div>
         </div>
-        <div className="w-[calc(50%-6px)] sm:w-48">
+        <div className="w-full sm:w-48">
           <Label htmlFor="f-evento" className="text-meta text-muted">{t('trazabilidad.tipoEvento')}</Label>
           <NativeSelect id="f-evento" className="h-9 pointer-coarse:h-11" value={tipoEvento} onChange={(e) => consultarCon(e.target.value, equipoAplicado)}>
             <option value="">{t('trazabilidad.todosEventos')}</option>
@@ -239,7 +239,7 @@ export function TrazabilidadPage() {
           encabezados={
             <>
               <EncabezadoRegistro className="w-12 px-0 first:pl-0"><span className="sr-only">{t('trazabilidad.columnas.cadena')}</span></EncabezadoRegistro>
-              <EncabezadoRegistro className="w-[96px]">{t('trazabilidad.columnas.hora')}</EncabezadoRegistro>
+              <EncabezadoRegistro className="w-[124px] whitespace-nowrap">{t('trazabilidad.columnas.hora')}</EncabezadoRegistro>
               <EncabezadoRegistro>{t('trazabilidad.evento')}</EncabezadoRegistro>
               <EncabezadoRegistro className="w-[136px]">{t('historial.dispositivo')}</EncabezadoRegistro>
               {mostrarSellos && <EncabezadoRegistro className="w-[220px]">{t('trazabilidad.sellos')}</EncabezadoRegistro>}
@@ -257,7 +257,7 @@ export function TrazabilidadPage() {
                     {corrupto ? <ShieldAlert aria-hidden className="size-3.5" /> : <Icono aria-hidden className="size-3.5" />}
                   </span>
                 </CeldaRegistro>
-                <CeldaRegistro area="oculta" className="nums text-body text-subtle">{hora(r.timestamp)}</CeldaRegistro>
+                <CeldaRegistro area="oculta" className="nums whitespace-nowrap text-body text-subtle">{hora(r.timestamp)}</CeldaRegistro>
                 <CeldaRegistro area="a">
                   <div className="flex min-w-0 items-start gap-2">
                     <Icono aria-hidden className="mt-0.5 size-4 shrink-0 text-muted sm:hidden" />

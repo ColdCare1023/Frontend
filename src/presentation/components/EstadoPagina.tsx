@@ -40,7 +40,7 @@ export function EstadoCarga({ texto, className, variant = 'inline', children }: 
       role="status"
       className={cn('flex items-center gap-2 py-8 text-body text-muted', className)}
     >
-      <Loader className="size-4 animate-spin" aria-hidden />
+      <Loader className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
       {texto ?? t('app.cargando')}
     </p>
   )

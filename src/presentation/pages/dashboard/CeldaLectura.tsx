@@ -6,7 +6,6 @@ import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
 import { hora as formatearHora } from '@/lib/formato'
-// clsx sin twMerge: twMerge confunde text-hero/metric/title (tamaño) con text-<color> y borra el tamaño.
 import { clsx } from 'clsx'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Badge } from '../../components/ui/badge'
@@ -19,6 +18,7 @@ import { IlustracionVacia } from '../../components/ui/ilustracion-vacia'
 import { Regla } from '../../components/ui/regla'
 import { EJE_REGLA } from '../../components/ui/regla-eje'
 import { Tooltip } from '../../components/ui/tooltip'
+import { useSegundosDesde } from '../../hooks/useReloj'
 import { fallaSensor } from './puerta'
 
 export interface ExtremosVentana {
@@ -40,7 +40,6 @@ export const CeldaLectura = memo(function CeldaLectura({
   deviceId,
   onElegirEquipo,
   desactualizado,
-  segundosDesdeUltima,
   sseConectado,
   extremos,
   ventana,
@@ -52,13 +51,13 @@ export const CeldaLectura = memo(function CeldaLectura({
   deviceId: string | null
   onElegirEquipo: (id: string) => void
   desactualizado: boolean
-  segundosDesdeUltima: number | null
   sseConectado: boolean
   extremos: ExtremosVentana | null
   /** Frase de la ventana elegida («las últimas 24 h»). */
   ventana: string
 }) {
   const { t } = useTranslation()
+  const segundosDesdeUltima = useSegundosDesde(ultima?.timestamp)
   const riesgo = ultima?.riesgo_efectivo ?? null
 
   const selector = equipos.length > 1 && (

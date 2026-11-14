@@ -49,7 +49,7 @@ export function TabHistorial({ dispositivo }: { dispositivo: Dispositivo }) {
           <p className="text-meta text-muted">{cargando ? '…' : t('dispositivos.estadoEquipo.esperando')}</p>
         )}
         <Link
-          to="/historial"
+          to={`/historial?device_id=${encodeURIComponent(dispositivo.id)}`}
           className="mt-3 inline-flex min-h-11 items-center gap-1 text-meta font-medium text-primary-text hover:underline sm:min-h-8"
         >
           {t('dispositivos.historialTab.abrirHistorial')}

@@ -1,13 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import { DayPicker } from 'react-day-picker'
 import { format, isValid, parse } from 'date-fns'
-import { enUS, es } from 'date-fns/locale'
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
+import { Esqueleto } from './esqueleto'
 import { Input } from './input'
+
+// PERFORMANCE A1: react-day-picker y los locales de date-fns (~29 KB gzip)
+// solo se descargan al abrir el calendario; el campo de texto ya funciona sin
+// ellos, así que Auditoría, Reportes, Trazabilidad y el detalle del equipo no
+// los cargan al entrar.
+const Calendario = lazy(() => import('./selector-fecha-calendario'))
+
+/** Mismo tamaño que el mes de react-day-picker (7 × 6 días + cabecera). */
+function EsqueletoCalendario() {
+  return (
+    <div aria-hidden className="w-[280px] space-y-2">
+      <Esqueleto className="mx-auto h-9 w-32" />
+      <Esqueleto className="h-[272px] w-full rounded-lg" />
+    </div>
+  )
+}
 
 /**
  * Selector de fecha (y hora) adaptado de shadcn-datetime-picker
@@ -155,38 +170,9 @@ export function SelectorFecha({
           className="flotante z-50 w-max max-w-[calc(100vw-24px)] origin-(--radix-popover-content-transform-origin) rounded-(--radius-modal) p-3 data-[state=open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)"
         >
           <div className="flex flex-col gap-3 min-[480px]:flex-row">
-            <DayPicker
-              mode="single"
-              selected={fecha ?? undefined}
-              onSelect={elegirDia}
-              defaultMonth={fecha ?? new Date()}
-              locale={idioma === 'en' ? enUS : es}
-              weekStartsOn={1}
-              showOutsideDays
-              fixedWeeks
-              components={{
-                Chevron: ({ orientation }) =>
-                  orientation === 'left' ? <ChevronLeft className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />,
-              }}
-              classNames={{
-                root: 'text-sm text-foreground',
-                months: 'relative',
-                month_caption: 'flex h-9 items-center justify-center',
-                caption_label: 'text-sm font-semibold capitalize',
-                nav: 'absolute inset-x-0 top-0 z-10 flex h-9 items-center justify-between',
-                button_previous: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground',
-                button_next: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground',
-                month_grid: 'mt-2 border-collapse',
-                weekday: 'size-9 text-[11px] font-medium uppercase text-faint',
-                day: 'p-0.5 text-center',
-                day_button:
-                  'nums size-9 cursor-pointer rounded-lg text-[13px] transition-[background-color,color,transform] duration-(--duration-micro) hover:bg-neutral-200/70 active:scale-95 focus-visible:outline-2 focus-visible:outline-ring',
-                selected: '[&>button]:bg-primary [&>button]:font-semibold [&>button]:text-on-primary [&>button]:hover:bg-primary-hover',
-                today: '[&>button]:font-semibold [&>button]:ring-1 [&>button]:ring-inset [&>button]:ring-primary/45',
-                outside: 'text-faint/60',
-                disabled: 'pointer-events-none opacity-35',
-              }}
-            />
+            <Suspense fallback={<EsqueletoCalendario />}>
+              <Calendario seleccionado={fecha} idioma={idioma} onElegir={elegirDia} />
+            </Suspense>
             {conHora && (
               <div className="min-w-0 min-[480px]:w-24">
                 <p className="mb-1.5 px-1 text-[11px] font-medium uppercase tracking-wide text-faint">{t('comunes.hora')}</p>

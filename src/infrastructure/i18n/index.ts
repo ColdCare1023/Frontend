@@ -1,8 +1,7 @@
-import i18n from 'i18next'
+import i18n, { type BackendModule } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 import es from './locales/es.json'
-import en from './locales/en.json'
 
 export const IDIOMAS = ['es', 'en'] as const
 export type Idioma = (typeof IDIOMAS)[number]
@@ -18,11 +17,37 @@ function idiomaGuardado(): Idioma {
   }
 }
 
-i18n.use(initReactI18next).init({
+/**
+ * PERFORMANCE A2: el español viaja en el paquete inicial; el inglés (~100 KB
+ * sin comprimir) se descarga en su propio trozo solo cuando hace falta, al
+ * arrancar con inglés guardado o al cambiar de idioma. `changeLanguage('en')`
+ * espera a que llegue, así que nunca se pinta una mezcla de idiomas.
+ */
+const traduccionesDiferidas: BackendModule = {
+  type: 'backend',
+  init() {},
+  read(idioma, _espacio, listo) {
+    if (idioma === 'es') {
+      listo(null, es)
+      return
+    }
+    if (idioma !== 'en') {
+      listo(null, {})
+      return
+    }
+    import('./locales/en.json').then(
+      (modulo) => listo(null, modulo.default),
+      (error: unknown) => listo(error instanceof Error ? error.message : String(error), false),
+    )
+  },
+}
+
+/** Se resuelve cuando el idioma inicial está cargado: `main.tsx` monta la app después. */
+export const i18nListo = i18n.use(traduccionesDiferidas).use(initReactI18next).init({
   resources: {
     es: { translation: es },
-    en: { translation: en },
   },
+  partialBundledLanguages: true,
   lng: idiomaGuardado(),
   fallbackLng: 'es',
   supportedLngs: ['es', 'en'],
