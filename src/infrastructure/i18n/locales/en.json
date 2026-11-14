@@ -749,7 +749,10 @@
     "posesionPendienteAyuda": "Console confirmed. Retention ends when the node signs the challenge with the new credential; if the console was not changed, the node cannot do so and retention continues.",
     "reenviarDesafio": "Resend challenge",
     "reenviarDesafioAyuda": "After fixing the password in the console: kicks the node session so it reconnects with the new credential and resends the challenge.",
-    "desafioReenviado": "Challenge resent: the node will reconnect and must prove the new credential."
+    "desafioReenviado": "Challenge resent: the node will reconnect and must prove the new credential.",
+    "grupoEquipo": "Device",
+    "grupoSeguridad": "Security",
+    "grupoDemo": "Demo"
   },
   "comunes": {
     "errorCargar": "We couldn't load the data. Try again.",
@@ -783,7 +786,9 @@
     "marcadorFechaHora": "mm/dd/yyyy hh:mm",
     "marcadorFecha": "mm/dd/yyyy",
     "verDetalles": "Show details",
-    "ocultarDetalles": "Hide details"
+    "ocultarDetalles": "Hide details",
+    "sinPermisoTitulo": "Restricted access",
+    "volverMonitoreo": "Back to Monitoring"
   },
   "metricasIA": {
     "titulo": "How the classifier behaves",

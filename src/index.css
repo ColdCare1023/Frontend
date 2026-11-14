@@ -128,6 +128,8 @@
   --animate-pop-in: pop-in 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-pop-out: pop-out 0.12s ease-in both;
   --animate-toast-in: toast-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-panel-in: panel-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-panel-out: panel-out 0.18s cubic-bezier(0.4, 0, 1, 1) both;
 
   @keyframes deslizar-drawer {
     from {
@@ -231,6 +233,27 @@
     to {
       opacity: 1;
       transform: none;
+    }
+  }
+  /* Panel lateral: entra desde su borde, sale más rápido de lo que entra. */
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes panel-out {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    to {
+      opacity: 0;
+      transform: translateX(16px);
     }
   }
   @keyframes destello {

@@ -1,9 +1,10 @@
-import { Navigate, Outlet } from 'react-router'
+import { Navigate, Outlet, useNavigate } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ShieldAlert } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
+import { Button } from './ui/button'
 
 /** Redirige a /login si no hay sesión activa. */
 export function RequireAuth() {
@@ -38,17 +39,26 @@ export function RequireConsentimiento() {
 export function RequireRoles({ roles }: { roles: Rol[] }) {
   const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
+  const navigate = useNavigate()
 
   if (!usuario) return <Navigate to="/login" replace />
 
   if (!tienePermiso(usuario.rol, roles)) {
+    // H15: la pantalla dice dónde está la persona, por qué no puede seguir y
+    // le da una salida; antes solo había un icono y una frase.
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+      <section aria-labelledby="titulo-sin-permiso" className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
         <span className="flex size-12 items-center justify-center rounded-full bg-warning-100 text-warning-700">
-          <ShieldAlert className="size-6" />
+          <ShieldAlert className="size-6" aria-hidden />
         </span>
+        <h1 id="titulo-sin-permiso" className="font-display text-xl font-semibold tracking-tight text-foreground">
+          {t('comunes.sinPermisoTitulo')}
+        </h1>
         <p className="text-sm text-muted">{t('comunes.sinPermiso')}</p>
-      </div>
+        <Button variant="secondary" size="sm" className="mt-2" onClick={() => navigate('/dashboard')}>
+          {t('comunes.volverMonitoreo')}
+        </Button>
+      </section>
     )
   }
   return <Outlet />

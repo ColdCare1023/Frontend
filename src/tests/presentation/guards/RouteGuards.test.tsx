@@ -107,4 +107,13 @@ describe('RequireRoles (RBAC)', () => {
 
     expect(screen.getByText('pantalla de inicio de sesión')).toBeInTheDocument()
   })
+
+  it('la pantalla sin permiso tiene título y una salida (H15)', async () => {
+    sesionCon('tecnico')
+
+    montar('/protegida', ['farmaceutico'])
+
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Monitoreo/i })).toBeInTheDocument()
+  })
 })

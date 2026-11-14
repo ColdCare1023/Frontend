@@ -749,7 +749,10 @@
     "posesionPendienteAyuda": "Consola confirmada. La retención termina cuando el nodo firma el desafío con la credencial nueva; si la consola no se cambió, el nodo no puede hacerlo y la retención sigue.",
     "reenviarDesafio": "Reenviar desafío",
     "reenviarDesafioAyuda": "Tras corregir la contraseña en la consola: expulsa la sesión del nodo para que entre con la credencial nueva y le reenvía el desafío.",
-    "desafioReenviado": "Desafío reenviado: el nodo se reconectará y deberá probar la credencial nueva."
+    "desafioReenviado": "Desafío reenviado: el nodo se reconectará y deberá probar la credencial nueva.",
+    "grupoEquipo": "Equipo",
+    "grupoSeguridad": "Seguridad",
+    "grupoDemo": "Demostración"
   },
   "comunes": {
     "errorCargar": "No pudimos cargar los datos. Intenta de nuevo.",
@@ -783,7 +786,9 @@
     "marcadorFechaHora": "dd/mm/aaaa hh:mm",
     "marcadorFecha": "dd/mm/aaaa",
     "verDetalles": "Ver detalles",
-    "ocultarDetalles": "Ocultar detalles"
+    "ocultarDetalles": "Ocultar detalles",
+    "sinPermisoTitulo": "Acceso restringido",
+    "volverMonitoreo": "Volver a Monitoreo"
   },
   "metricasIA": {
     "titulo": "Cómo se comporta el clasificador",
