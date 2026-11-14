@@ -40,6 +40,8 @@ export function temaGrafica(tema: TemaGrafica = 'light') {
     safeText: colorToken('success-700', oscuro ? '#5CC6D4' : '#07546A'),
     /** Tramos fuera de 2–8 °C, episodios y marcadores de excursión. */
     critical: colorToken('danger-700', oscuro ? '#FF7A87' : '#A4233F'),
+    /** HU-31 esc. 1: zonas por debajo de 2 °C y por encima de 8 °C, rojo tenue. */
+    zonaFuera: colorToken('critical-tint', oscuro ? '#2A0F14' : '#FFF0F3'),
     /** Sin datos: acero con trama, nunca rojo (HU-54). */
     nodata: colorToken('nodata-100', oscuro ? '#1A2130' : '#E9EDF3'),
     nodataTrama: colorToken('nodata-trama', oscuro ? '#2C3546' : '#C9D2DE'),

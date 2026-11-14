@@ -1,3 +1,4 @@
+import { ESTADOS_RIESGO, type EstadoRiesgo } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { rutaApi } from '@/lib/rutaApi'
@@ -15,6 +16,11 @@ export interface EvidenciaInferencia {
   operating_policy?: string | null
   excursion_confirmada: boolean
   effective_risk: string | null
+  /**
+   * HU-34 esc. 4: estado que se rotula (distingue «sin clasificación IA» y
+   * «falla de sensor» de Normal). null si el backend no lo informa.
+   */
+  estado_riesgo?: EstadoRiesgo | null
   /** Solo en modo demostración: evidencia simulada, no del modelo real. */
   datos_simulados?: boolean
   /** HU-47: la clasificación la hizo el modelo en modo experimental (no aprobado). */
@@ -44,6 +50,8 @@ export interface InferenciaLecturaApi {
   estado_inferencia: EvidenciaInferencia['inference_status']
   excursion_confirmada: boolean
   riesgo_efectivo: string | null
+  /** HU-34 esc. 4: ausente en backends anteriores. */
+  estado_riesgo?: string | null
   ia_experimental: boolean
   horizonte_min?: number | null
   feature_schema_version?: string | null
@@ -61,6 +69,9 @@ export function aEvidencia(api: InferenciaLecturaApi): EvidenciaInferencia {
     feature_vector: api.vector_features ?? {},
     excursion_confirmada: api.excursion_confirmada,
     effective_risk: api.riesgo_efectivo,
+    estado_riesgo: (ESTADOS_RIESGO as readonly string[]).includes(api.estado_riesgo ?? '')
+      ? (api.estado_riesgo as EstadoRiesgo)
+      : null,
     // HU-47: «Ejemplo simulado» solo en la demo; con datos reales, el modelo
     // experimental se rotula como tal (antes `ia_experimental` se tomaba como demo).
     datos_simulados: MODO_DEMO,

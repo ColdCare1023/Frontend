@@ -1703,7 +1703,9 @@
       "editarUbicacionA": "Edit location of {{id}}",
       "editarResponsableA": "Edit contact of {{id}}",
       "cambios": "Location and contact changes",
-      "sinResponsable": "No contact registered: critical excursion notices will have no recipient."
+      "sinResponsable": "No contact registered: critical excursion notices will have no recipient.",
+      "instaladoPor": "Installed by",
+      "instaladorSinNombre": "User {{id}}…"
     },
     "configuracionTab": {
       "nodo": "Node",

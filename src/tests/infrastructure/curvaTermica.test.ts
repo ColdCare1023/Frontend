@@ -39,12 +39,37 @@ describe('curva térmica', () => {
     const series = opcion.series as Array<Serie & { name: string; lineStyle?: { color?: string; shadowBlur?: number }; areaStyle?: unknown }>
     const zonas = series.flatMap((s) => (s.markArea?.data ?? []) as Array<Array<{ yAxis?: number | string }>>)
     expect(zonas.map(([desde, hasta]) => [desde.yAxis, hasta.yAxis])).toContainEqual([2, 8])
-    // Fuera de la franja no se tiñe el fondo (DIRECTION §18): el rojo va en el trazo.
-    expect(zonas.some(([desde]) => desde.yAxis === 8 || desde.yAxis === -200)).toBe(false)
+    // Esc. 1 al pie de la letra: zonas rojas por debajo de 2 °C y por encima de
+    // 8 °C hasta el borde del eje (sin cambiar la escala), además del trazo.
+    expect(zonas.map(([desde, hasta]) => [desde.yAxis, hasta.yAxis])).toEqual(
+      expect.arrayContaining([
+        [Number.NEGATIVE_INFINITY, 2],
+        [8, Number.POSITIVE_INFINITY],
+      ]),
+    )
     const tramos = series.filter((s) => s.name === 'Refrigerador')
     expect(tramos).toHaveLength(2)
     expect(tramos[1].lineStyle?.color).not.toBe(tramos[0].lineStyle?.color)
     expect(tramos[1].data.filter(([, v]) => v !== null).map(([, v]) => v)).toEqual([8, 9.5, 8])
+  })
+
+  it('HU-31: las zonas fuera de 2–8 °C son rojo tenue, sin rótulo, y la franja conserva el suyo', () => {
+    const colores = temaGrafica('light')
+    const series = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 6)], ETIQUETAS, undefined, 'light').series as Array<
+      Serie & { markArea?: { itemStyle: { color: string }; label: { formatter: string }; data: unknown[] } }
+    >
+    const marcas = series.find((s) => s.markArea)!.markArea!
+    type Extremo = { yAxis: number; itemStyle?: { color: string }; label?: { show: boolean } }
+    const [franja, debajo, encima] = marcas.data as Array<[Extremo, Extremo]>
+    expect(franja[0].itemStyle).toBeUndefined() // usa la `banda` del markArea
+    expect(marcas.itemStyle.color).toBe(colores.banda)
+    expect(marcas.label.formatter).toBe('Rango')
+    for (const zona of [debajo, encima]) {
+      expect(zona[0].itemStyle?.color).toBe(colores.zonaFuera)
+      expect(zona[0].label?.show).toBe(false)
+    }
+    expect(colores.zonaFuera).not.toBe(colores.banda)
+    expect(temaGrafica('dark').zonaFuera).not.toBe(colores.zonaFuera)
   })
 
   it('trazo de registrador: 1,75 px, sin brillo ni área degradada', () => {

@@ -14,7 +14,7 @@ import {
   type HistorialConfiguracion,
   type IncidenteOperativo,
 } from '@/domain/entities/Dispositivo'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { MOTIVOS_DESACTIVACION, type Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { ROLES } from '@/domain/value-objects/Rol'
@@ -1097,6 +1097,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       estado_inferencia: lectura.estado_inferencia,
       excursion_confirmada: lectura.excursion_confirmada,
       riesgo_efectivo: lectura.riesgo_efectivo,
+      // HU-34 esc. 4: lo que se rotula, como `estado_riesgo` del backend.
+      estado_riesgo: estadoRiesgoDe(lectura),
       ia_experimental: true,
     })
   }
@@ -1164,6 +1166,10 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       responsable_telefono: null,
     }
     estadoDemo.dispositivos.push(dispositivo)
+    // HU-49: como el backend, la configuración inicial consta en el historial
+    // con origen «alta» (desde cuándo rigen la ubicación y los sensores).
+    registrarCambioDispositivo(deviceId, 'ubicacion (alta)', null, ubicacion, config)
+    registrarCambioDispositivo(deviceId, 'sensores_habilitados (alta)', null, modelos.join(', '), config)
     return responder(config, {
       ...dispositivo,
       credencial: {

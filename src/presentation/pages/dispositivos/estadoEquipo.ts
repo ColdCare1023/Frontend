@@ -228,3 +228,17 @@ export function campoBase(cambio: Pick<HistorialConfiguracion, 'campo' | 'campo_
   return cambio.campo_base ?? cambio.campo.replace(/\s*\([^)]*\)\s*$/, '')
 }
 export const CAMPOS_REEMPLAZO = ['baja', 'reemplazado_por', 'reemplaza_a'] as const
+
+/**
+ * HU-51 esc. 2: nombre de quien registró la instalación vigente. La ficha
+ * guarda solo su id (`instalado_por`); el nombre lo resuelve el backend en
+ * cada fila del historial que ese usuario firmó (`actor_nombre`). null si no
+ * hay instalador o si el historial cargado no trae su nombre.
+ */
+export function nombreInstalador(
+  instaladoPor: string | null | undefined,
+  cambios: readonly Pick<HistorialConfiguracion, 'actor_id' | 'actor_nombre'>[],
+): string | null {
+  if (!instaladoPor) return null
+  return cambios.find((c) => c.actor_id === instaladoPor && c.actor_nombre)?.actor_nombre ?? null
+}

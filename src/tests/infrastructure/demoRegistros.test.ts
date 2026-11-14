@@ -148,6 +148,21 @@ describe('demo — HU-49 y HU-28', () => {
     expect(calibracion.every((c) => c.categoria === 'calibracion')).toBe(true)
   })
 
+  it('el alta deja la ubicación y los sensores iniciales en el historial, con origen «alta»', async () => {
+    const alta = await demoAdapter(config({
+      method: 'post',
+      url: '/api/dispositivos',
+      data: JSON.stringify({ device_id: 'FARM-ALTA-P2', nombre: 'Equipo nuevo', ubicacion: 'Estante 7', sensores_habilitados: ['DS18B20', 'SHT31'] }),
+    }))
+    expect(alta.status).toBe(201)
+    const filas = (await demoAdapter(config({ url: '/api/dispositivos/FARM-ALTA-P2/historial-configuracion' }))).data as HistorialConfiguracion[]
+    expect(filas.map((f) => [f.campo, f.valor_anterior, f.valor_nuevo, f.origen]).sort()).toEqual([
+      ['sensores_habilitados (alta)', null, 'DS18B20, SHT31', 'alta'],
+      ['ubicacion (alta)', null, 'Estante 7', 'alta'],
+    ])
+    expect(filas.find((f) => f.campo_base === 'sensores_habilitados')?.categoria).toBe('sensores')
+  })
+
   it('la rectificación hereda lo no enviado y rechaza un cambio vacío', async () => {
     const { estadoDemo } = await import('@/infrastructure/demo/datosDemo')
     const original = estadoDemo.acciones.find((a) => a.decision && a.justificacion && !estadoDemo.acciones.some((b) => b.corrige_accion_id === a.id))!

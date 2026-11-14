@@ -1703,7 +1703,9 @@
       "editarUbicacionA": "Editar ubicación de {{id}}",
       "editarResponsableA": "Editar responsable de {{id}}",
       "cambios": "Cambios de ubicación y responsable",
-      "sinResponsable": "Sin responsable registrado: los avisos de excursión crítica no tendrán destinatario."
+      "sinResponsable": "Sin responsable registrado: los avisos de excursión crítica no tendrán destinatario.",
+      "instaladoPor": "Instalado por",
+      "instaladorSinNombre": "Usuario {{id}}…"
     },
     "configuracionTab": {
       "nodo": "Nodo",

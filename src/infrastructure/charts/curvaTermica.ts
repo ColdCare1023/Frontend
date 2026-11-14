@@ -284,18 +284,25 @@ export function baseCurva(colores: ColoresGrafica, ventana?: { desde: number; ha
 
 /**
  * Franja 2–8 °C (la firma, DIRECTION §4): área `banda` con cotas
- * discontinuas `banda-borde`. Fuera del rango no se tiñe nada: lo que sale de
- * la franja se dibuja en carmesí en el propio trazo (HU-31 esc. 1: el rango
- * se ve como zona y lo que queda fuera, en rojo).
+ * discontinuas `banda-borde`. HU-31 esc. 1 pide «zonas de colores
+ * (rojo/verde)»: por debajo de 2 °C y por encima de 8 °C el fondo lleva un
+ * rojo tenue (`critical-tint`), y lo que sale de la franja se dibuja además en
+ * carmesí en el propio trazo. Las zonas rojas no llevan rótulo ni cambian la
+ * escala: van hasta el borde del eje (±Infinity se recorta a su extensión).
  */
 export function marcasRango(colores: ColoresGrafica, etiquetas: EtiquetasCurvaTermica) {
   const fuente = FUENTE_GRAFICA
+  const zonaFuera = { itemStyle: { color: colores.zonaFuera, opacity: 1 }, label: { show: false } }
   return {
     markArea: {
       silent: true,
       itemStyle: { color: colores.banda, opacity: 1 },
       label: { show: true, position: 'insideTop', color: colores.safeText, fontSize: 11, fontFamily: fuente, formatter: etiquetas.rangoEsperado },
-      data: [[{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }]],
+      data: [
+        [{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }],
+        [{ yAxis: Number.NEGATIVE_INFINITY, ...zonaFuera }, { yAxis: RANGO_TERMICO.minimo }],
+        [{ yAxis: RANGO_TERMICO.maximo, ...zonaFuera }, { yAxis: Number.POSITIVE_INFINITY }],
+      ],
     },
     markLine: {
       silent: true,

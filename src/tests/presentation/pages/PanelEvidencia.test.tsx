@@ -9,6 +9,11 @@ const LECTURA = {
   id: 'l-1',
   device_id: 'FARM-01-CDL',
   timestamp: '2026-10-26T12:00:00Z',
+  temperatura_interna: 5.1,
+  nivel_riesgo: 'normal',
+  riesgo_efectivo: 'normal',
+  estado_inferencia: 'completada',
+  excursion_confirmada: false,
 } as LecturaTermica
 
 function api(over: Partial<InferenciaLecturaApi> = {}): InferenciaLecturaApi {
@@ -32,8 +37,13 @@ function api(over: Partial<InferenciaLecturaApi> = {}): InferenciaLecturaApi {
   }
 }
 
-function montar(evidencia: EvidenciaInferencia) {
-  render(<PanelEvidencia lectura={LECTURA} evidencia={evidencia} cargando={false} error={false} onCerrar={vi.fn()} />)
+function montar(evidencia: EvidenciaInferencia, lectura: LecturaTermica = LECTURA) {
+  render(<PanelEvidencia lectura={lectura} evidencia={evidencia} cargando={false} error={false} onCerrar={vi.fn()} />)
+}
+
+/** Insignia del «Riesgo efectivo» (la primera del panel). */
+function estadoRotulado(): string | null {
+  return document.querySelector('[data-estado-riesgo]')?.getAttribute('data-estado-riesgo') ?? null
 }
 
 /** HU-47: la evidencia real no lleva rótulos de demostración. */
@@ -70,5 +80,32 @@ describe('PanelEvidencia (HU-47)', () => {
     expect(screen.getByText(/Ejemplo simulado/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Probabilidades ilustrativas' })).toBeInTheDocument()
     expect(screen.queryByText('Modelo experimental (no aprobado).')).not.toBeInTheDocument()
+  })
+})
+
+/** HU-34 esc. 4 (P2 de la re-auditoría): la insignia del panel usa `estado_riesgo`. */
+describe('PanelEvidencia: estado de riesgo rotulado (HU-34)', () => {
+  it('una lectura sin clasificación IA no se rotula «Normal» aunque el riesgo efectivo lo sea', () => {
+    montar(aEvidencia(api({ estado_inferencia: 'omitida', clasificacion_final: null, estado_riesgo: 'sin_clasificacion_ia' })))
+    expect(estadoRotulado()).toBe('sin_clasificacion_ia')
+    expect(screen.getAllByText('Sin clasificación IA').length).toBeGreaterThan(0)
+  })
+
+  it('una falla de sensor se rotula como tal', () => {
+    montar(aEvidencia(api({ estado_riesgo: 'falla_sensor', riesgo_efectivo: null })))
+    expect(estadoRotulado()).toBe('falla_sensor')
+  })
+
+  it('sin `estado_riesgo` (backend anterior) usa el mismo estado que la fila del Historial', () => {
+    const sinInferencia = { ...LECTURA, estado_inferencia: 'omitida', nivel_riesgo: null } as LecturaTermica
+    montar(aEvidencia(api({ estado_inferencia: 'omitida', clasificacion_final: null })), sinInferencia)
+    expect(estadoRotulado()).toBe('sin_clasificacion_ia')
+  })
+
+  it('un valor desconocido de `estado_riesgo` no se rotula: cae al estado de la lectura', () => {
+    const evidencia = aEvidencia(api({ estado_riesgo: 'otro' }))
+    expect(evidencia.estado_riesgo).toBeNull()
+    montar(evidencia)
+    expect(estadoRotulado()).toBe('normal')
   })
 })

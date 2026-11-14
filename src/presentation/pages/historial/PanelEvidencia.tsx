@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { FlaskConical, Thermometer } from 'lucide-react'
 
 import type { EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 import { fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
@@ -77,7 +77,17 @@ export function PanelEvidencia({
                 <section>
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                     <Dato etiqueta={t('historial.riesgoEfectivo')}>
-                      <RiskBadge nivel={(evidencia.effective_risk as NivelRiesgo | null) ?? null} />
+                      {/* HU-34 esc. 4: sin clasificación IA o falla de sensor no se
+                          rotulan Normal. Sin `estado_riesgo` en la evidencia (backend
+                          anterior), el mismo estado que la fila del Historial. */}
+                      <RiskBadge
+                        nivel={
+                          evidencia.estado_riesgo ??
+                          estadoRiesgoDe(lectura) ??
+                          (evidencia.effective_risk as NivelRiesgo | null) ??
+                          null
+                        }
+                      />
                     </Dato>
                     <Dato etiqueta={t('historial.claseModelo')}>
                       {evidencia.model_class ? (
