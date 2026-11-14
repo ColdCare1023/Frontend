@@ -24,6 +24,7 @@ import {
   generarLecturasBuffer,
   METRICAS_IA_DEMO,
 } from './datosDemo'
+import { CODIGO_VERIFICACION_DEMO } from './constantesDemo'
 
 // Flujos que tienen estado propio del adapter durante la sesión demo.
 const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>()
@@ -31,6 +32,39 @@ const registrosAisladosDemo = new Set<string>()
 const registrosCorrompidosDemo = new Set<string>()
 const intentosLoginDemo = new Map<string, { cantidad: number; inicio: number; bloqueadoHasta: number }>()
 let siguienteCambioDemo = 1
+
+/*
+ * Códigos de verificación (docs/operacion/CODIGOS_VERIFICACION.md del
+ * backend): la demo se comporta como OTP_LOGIN_ENABLED=true, pero el código es
+ * siempre CODIGO_VERIFICACION_DEMO y la pantalla lo muestra. Los botones de
+ * rol (`X-Demo-Acceso-Rapido`) siguen entrando con un clic.
+ */
+const VIGENCIA_CODIGO_DEMO_S = 600
+const ESPERA_REENVIO_DEMO_S = 30
+const MAX_INTENTOS_CODIGO_DEMO = 5
+const desafiosDemo = new Map<string, { email: string; expiraEn: number; reenviarDesde: number; intentos: number }>()
+/** Contraseñas fijadas con recuperación o activación durante la sesión demo. */
+const passwordsDemo = new Map<string, string>()
+
+function enmascararEmailDemo(email: string): string {
+  const [local, dominio] = email.split('@')
+  return `${local.slice(0, 1)}***@${dominio ?? ''}`
+}
+
+function respuestaDesafioDemo(desafio: string, email: string, ahora: number) {
+  const registro = desafiosDemo.get(desafio)
+  return {
+    access_token: null,
+    token_type: 'bearer',
+    require_privacy_consent: false,
+    require_password_change: false,
+    requiere_codigo: true,
+    desafio,
+    email_enmascarado: enmascararEmailDemo(email),
+    expira_en_segundos: registro ? Math.max(0, Math.round((registro.expiraEn - ahora) / 1000)) : VIGENCIA_CODIGO_DEMO_S,
+    reenviar_en_segundos: ESPERA_REENVIO_DEMO_S,
+  }
+}
 let cadenaComprometidaDemo = false
 
 function registrarAuditoriaDemo(
@@ -458,7 +492,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       registrarAuditoriaDemo('BLOQUEO_TEMPORAL', '/api/auth/login', usuario?.id ?? null, 'bloqueado')
       fallar(config, 429, 'Demasiados intentos fallidos')
     }
-    if (!usuario || !usuario.is_active || password !== 'demo-2026') {
+    const passwordValida = password === 'demo-2026' || passwordsDemo.get(emailNormalizado) === password
+    if (!usuario || !usuario.is_active || !passwordValida) {
       control.cantidad += 1
       if (control.cantidad >= 5) control.bloqueadoHasta = ahora + 5 * 60_000
       intentosLoginDemo.set(emailNormalizado, control)
@@ -470,11 +505,64 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       fallar(config, 401, 'Correo o contraseña incorrectos')
     }
     intentosLoginDemo.delete(emailNormalizado)
+    if (config.headers.get('X-Demo-Acceso-Rapido') !== '1') {
+      const desafio = `demo-${tokenDemo()}`
+      desafiosDemo.set(desafio, {
+        email: emailNormalizado,
+        expiraEn: ahora + VIGENCIA_CODIGO_DEMO_S * 1000,
+        reenviarDesde: ahora + ESPERA_REENVIO_DEMO_S * 1000,
+        intentos: 0,
+      })
+      registrarAuditoriaDemo('LOGIN_CODIGO_EMITIDO', '/api/auth/login', usuario.id, 'exitoso')
+      return responder(config, respuestaDesafioDemo(desafio, emailNormalizado, ahora))
+    }
     registrarAuditoriaDemo('LOGIN_EXITOSO', '/api/auth/login', usuario.id, 'exitoso')
     return responder(config, {
       access_token: crearTokenDemo(email),
       token_type: 'bearer',
     })
+  }
+  if (metodo === 'post' && url === '/api/auth/login/verificar') {
+    const cuerpo = cuerpoJson(config)
+    const desafio = String(cuerpo.desafio ?? '')
+    const codigo = String(cuerpo.codigo ?? '').replace(/\D/g, '')
+    const registro = desafiosDemo.get(desafio)
+    const ahora = Date.now()
+    if (!registro || registro.expiraEn <= ahora) {
+      desafiosDemo.delete(desafio)
+      fallar(config, 401, 'La verificación caducó o no es válida. Vuelve a iniciar sesión.')
+    }
+    const usuario = estadoDemo.usuarios.find((item) => item.email.toLowerCase() === registro.email)
+    if (codigo !== CODIGO_VERIFICACION_DEMO) {
+      registro.intentos += 1
+      registrarAuditoriaDemo('LOGIN_CODIGO_FALLIDO', '/api/auth/login/verificar', usuario?.id ?? null, 'fallido')
+      if (registro.intentos >= MAX_INTENTOS_CODIGO_DEMO) {
+        desafiosDemo.delete(desafio)
+        fallar(config, 401, 'Se agotaron los intentos para este código. Vuelve a iniciar sesión.')
+      }
+      fallar(config, 401, 'El código no es correcto.')
+    }
+    desafiosDemo.delete(desafio)
+    if (!usuario || !usuario.is_active) fallar(config, 401, 'La verificación caducó o no es válida. Vuelve a iniciar sesión.')
+    registrarAuditoriaDemo('LOGIN_EXITOSO', '/api/auth/login', usuario.id, 'exitoso', { metodo: 'password+codigo' })
+    return responder(config, { access_token: crearTokenDemo(usuario.email), token_type: 'bearer' })
+  }
+  if (metodo === 'post' && url === '/api/auth/login/reenviar') {
+    const desafio = String(cuerpoJson(config).desafio ?? '')
+    const registro = desafiosDemo.get(desafio)
+    const ahora = Date.now()
+    if (!registro || registro.expiraEn <= ahora) {
+      fallar(config, 401, 'La verificación caducó o no es válida. Vuelve a iniciar sesión.')
+    }
+    if (ahora < registro.reenviarDesde) {
+      const segundos = Math.ceil((registro.reenviarDesde - ahora) / 1000)
+      const respuesta = responder(config, { detail: `Espera ${segundos} segundos antes de pedir otro código.` }, 429)
+      respuesta.headers = { 'retry-after': String(segundos) }
+      throw new AxiosError(respuesta.data.detail, 'ERR_BAD_REQUEST', config, null, respuesta)
+    }
+    registro.expiraEn = ahora + VIGENCIA_CODIGO_DEMO_S * 1000
+    registro.reenviarDesde = ahora + ESPERA_REENVIO_DEMO_S * 1000
+    return responder(config, respuestaDesafioDemo(desafio, registro.email, ahora))
   }
   if (metodo === 'post' && url === '/api/auth/sse-ticket') {
     return responder(config, { ticket: 'ticket-demo' })
@@ -486,13 +574,36 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'post' && url === '/api/auth/privacidad/rechazar') {
     fallar(config, 401, 'Consentimiento rechazado: sesión cerrada')
   }
-  // FE-004: mismo contrato que BE-025. La demo no envía correos (503, como un
-  // backend sin SMTP) y todas las cuentas demo usan la contraseña común.
+  // Recuperación y activación por código: mismo contrato que el backend. La
+  // demo no envía correos; el código es CODIGO_VERIFICACION_DEMO.
   if (metodo === 'post' && url === '/api/auth/recuperar-password') {
-    fallar(config, 503, 'La recuperación por correo no está disponible en la demostración')
+    registrarAuditoriaDemo('RECUPERACION_PASSWORD_SOLICITADA', '/api/auth/recuperar-password', null, 'exitoso')
+    return responder(
+      config,
+      { detail: 'Si el correo corresponde a una cuenta activa, recibirás un código de verificación para restablecer la contraseña.' },
+      202,
+    )
   }
   if (metodo === 'post' && url === '/api/auth/restablecer-password') {
-    fallar(config, 400, 'El enlace de recuperación no es válido o ya caducó.')
+    const cuerpo = cuerpoJson(config)
+    const passwordNueva = String(cuerpo.password_nueva ?? cuerpo.nueva_password ?? '')
+    if (passwordNueva.length < 10 || !/\p{L}/u.test(passwordNueva) || !/\d/.test(passwordNueva)) {
+      fallar(config, 422, 'La contraseña debe combinar letras y números')
+    }
+    if (cuerpo.token !== undefined) fallar(config, 400, 'El enlace de recuperación no es válido o ya caducó.')
+    const email = String(cuerpo.email ?? '').trim().toLowerCase()
+    const codigo = String(cuerpo.codigo ?? '').replace(/\D/g, '')
+    const usuario = estadoDemo.usuarios.find((item) => item.email.toLowerCase() === email)
+    // Las cuentas demo (y las creadas en la sesión) aceptan el código demo
+    // como código de activación o de recuperación.
+    if (!usuario || !usuario.is_active || codigo !== CODIGO_VERIFICACION_DEMO) {
+      registrarAuditoriaDemo('RESTABLECER_CODIGO_FALLIDO', '/api/auth/restablecer-password', usuario?.id ?? null, 'fallido')
+      fallar(config, 400, 'El código no es válido o ya caducó. Solicita uno nuevo.')
+    }
+    passwordsDemo.set(email, passwordNueva)
+    usuario.debe_cambiar_password = false
+    registrarAuditoriaDemo('PASSWORD_RESTABLECIDA', '/api/auth/restablecer-password', usuario.id, 'exitoso', { metodo: 'codigo' })
+    return responder(config, null, 204)
   }
   if (metodo === 'post' && url === '/api/auth/cambiar-password') {
     const email = sesionDemo(config)?.email

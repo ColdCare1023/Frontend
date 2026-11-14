@@ -1,5 +1,6 @@
+import { screen, waitFor } from '@testing-library/react'
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
-import { vi } from 'vitest'
+import { expect, vi } from 'vitest'
 
 import { apiClient } from '@/infrastructure/api/apiClient'
 import type { Rol } from '@/domain/value-objects/Rol'
@@ -88,3 +89,19 @@ export function instalarAdaptadorFalso(responder: Respondedor = () => ({})) {
 
 /** Espera a que se vacíe la cola de microtasks (promesas ya resueltas). */
 export const esperarMicrotasks = () => new Promise((resolver) => setTimeout(resolver, 0))
+
+/**
+ * Espera un aviso en una región viva (`alert` o `status`). Las regiones de los
+ * flujos de cuenta están siempre montadas (vacías) para que los lectores de
+ * pantalla anuncien el contenido, así que se busca la que contenga el texto.
+ */
+export async function esperarAviso(rol: 'alert' | 'status', texto: string | RegExp): Promise<HTMLElement> {
+  return waitFor(() => {
+    const region = screen.getAllByRole(rol).find((nodo) => {
+      const contenido = nodo.textContent ?? ''
+      return typeof texto === 'string' ? contenido.includes(texto) : texto.test(contenido)
+    })
+    expect(region, `${rol} con «${String(texto)}»`).toBeDefined()
+    return region as HTMLElement
+  })
+}
