@@ -87,8 +87,38 @@ export function EstadoCalibracionCorto({ equipo }: { equipo: Dispositivo | undef
 }
 
 /**
+ * Calibración en dos líneas para la celda (valor y meta): «Vigente / hasta
+ * 11/5/2027». Vencida o por vencer conservan la frase completa en el valor;
+ * son el caso que importa y pueden ocupar dos líneas.
+ */
+function CalibracionCelda({ equipo }: { equipo: Dispositivo | undefined }) {
+  const { t } = useTranslation()
+  if (!equipo) return <dd className="mt-1 text-body text-faint">—</dd>
+  const estado = estadoCalibracion(equipo)
+  if (estado === 'vigente') {
+    const fecha = fechaCorta(equipo.fecha_proxima_calibracion)
+    return (
+      <>
+        <dd className="mt-1 text-body text-foreground lg:truncate">{t('dashboard.calibracionVigente')}</dd>
+        <dd className="nums mt-1 text-faint lg:truncate">{t('dashboard.calibracionHasta', { fecha })}</dd>
+      </>
+    )
+  }
+  return (
+    <dd className="mt-1 text-body text-foreground">
+      <EstadoCalibracionCorto equipo={equipo} />
+    </dd>
+  )
+}
+
+/** «01:04 p. m.»: la hora sin segundos para una meta de una línea. */
+const horaCorta = (iso: string) => hora(iso).replace(/:\d{2}(?=\D*$)/, '')
+
+/**
  * Equipo en pantalla: conexión del nodo (HU-13, RF-18), buffer local (HU-48)
- * y calibración (HU-30). «Detalles» abre la ficha completa.
+ * y calibración (HU-30). «Detalles» abre la ficha completa. Cada columna es
+ * etiqueta, valor y una meta de una línea: la celda mide lo mismo que
+ * Condiciones (136 px) y la Lectura no se estira (DIRECTION §12).
  */
 export const CeldaEquipo = memo(function CeldaEquipo({
   deviceId,
@@ -107,72 +137,78 @@ export const CeldaEquipo = memo(function CeldaEquipo({
   const buffer = equipo?.buffer_littlefs
   const limite = buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS
   const pendientes = buffer?.pendientes ?? 0
+  const ultimoReporte = equipo?.ultimo_reporte_en
 
   return (
-    <section aria-labelledby="equipo-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 lg:col-span-5 xl:p-5">
-      <div className="flex min-h-9 items-center gap-2">
+    // <640 va al final (DIRECTION §12: Lectura, Condiciones, Curva, Estado de
+    // equipos, Alertas, Recientes, Equipo). Solo cambia el orden visual en
+    // móvil; el DOM sigue el orden del bento de escritorio.
+    <section aria-labelledby="equipo-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 max-sm:order-last lg:col-span-5 xl:p-5">
+      <div className="flex h-6 min-w-0 items-center gap-2">
         <h2 id="equipo-titulo" className="eyebrow">
           {t('dashboard.equipo')}
         </h2>
         {id && <span className="codigo truncate text-meta text-faint">{id}</span>}
         {id && (
-          <Button variant="ghost" size="sm" className="ml-auto shrink-0" onClick={() => onVerDetalles(id)}>
+          <Button variant="ghost" size="sm" className="-my-2 -mr-2 ml-auto shrink-0" onClick={() => onVerDetalles(id)}>
             {t('dashboard.detalles')}
             <ChevronRight aria-hidden className="size-4" />
           </Button>
         )}
       </div>
-      <dl className="mt-3 grid grid-cols-3 gap-3 text-meta text-muted">
+      <dl className="mt-2 grid grid-cols-3 gap-x-3 text-meta text-muted">
         <div className="min-w-0">
           <dt className="flex items-center gap-1.5 font-medium">
-            {conectividad === 'online' ? <Wifi aria-hidden className="size-3.5" /> : <WifiOff aria-hidden className="size-3.5" />}
-            {t('dispositivos.conectividad')}
+            {conectividad === 'online' ? <Wifi aria-hidden className="size-3.5 shrink-0" /> : <WifiOff aria-hidden className="size-3.5 shrink-0" />}
+            <span className="min-w-0 lg:truncate">{t('dispositivos.conectividad')}</span>
           </dt>
-          <dd className="mt-1.5">
+          <dd className="mt-1">
             {/* HU-13: estado del NODO (LWT/online/telemetría), no el de la
                 lectura, que siempre se envió conectada. Sin datos del equipo
                 (modo demo) se usa el de la lectura. */}
             <BadgeConectividad estado={conectividad} desde={equipo?.conectividad_cambiada_en} testId="conectividad-dispositivo" />
           </dd>
-          {equipo?.ultimo_reporte_en && (
-            <dd className="nums mt-1 text-faint">{t('dashboard.ultimoReporteCorto', { hora: hora(equipo.ultimo_reporte_en) })}</dd>
+          {ultimoReporte && (
+            <dd className="nums mt-1 text-faint lg:truncate" title={t('dashboard.ultimoReporteCorto', { hora: hora(ultimoReporte) })}>
+              <span className="sr-only">{t('dashboard.ultimoReporteCorto', { hora: '' })}</span>
+              <time dateTime={ultimoReporte}>{horaCorta(ultimoReporte)}</time>
+            </dd>
           )}
         </div>
         <div className="min-w-0">
           <dt className="flex items-center gap-1.5 font-medium">
-            <HardDrive aria-hidden className="size-3.5" />
-            {t('dashboard.bufferTitulo')}
+            <HardDrive aria-hidden className="size-3.5 shrink-0" />
+            <span className="min-w-0 lg:truncate">{t('dashboard.bufferTitulo')}</span>
           </dt>
           {buffer ? (
             <>
-              <dd className="mt-1.5 flex items-center gap-2">
+              <dd className="mt-1 flex min-h-5 min-w-0 items-center gap-1.5">
                 <AnilloBuffer
                   pendientes={pendientes}
                   limite={limite}
                   perdidas={buffer.perdidas ?? 0}
+                  tamano={18}
                   etiqueta={t('dashboard.bufferAnillo', { n: pendientes.toLocaleString(), max: limite.toLocaleString() })}
                 />
-                <span className="nums text-body text-foreground">
+                <span className="nums text-body text-foreground lg:truncate">
                   {pendientes.toLocaleString()}
                   <span className="text-meta text-faint"> / {limite.toLocaleString()}</span>
                 </span>
               </dd>
-              <dd className="mt-1 text-faint">
+              <dd className="mt-1 text-faint lg:truncate">
                 <MetaBuffer equipo={equipo} />
               </dd>
             </>
           ) : (
-            <dd className="mt-1.5 text-body text-faint">—</dd>
+            <dd className="mt-1 text-body text-faint">—</dd>
           )}
         </div>
         <div className="min-w-0">
           <dt className="flex items-center gap-1.5 font-medium">
-            <CalendarClock aria-hidden className="size-3.5" />
-            {t('dashboard.calibracionTitulo')}
+            <CalendarClock aria-hidden className="size-3.5 shrink-0" />
+            <span className="min-w-0 lg:truncate">{t('dashboard.calibracionTitulo')}</span>
           </dt>
-          <dd className="mt-1.5 text-body text-foreground">
-            <EstadoCalibracionCorto equipo={equipo} />
-          </dd>
+          <CalibracionCelda equipo={equipo} />
         </div>
       </dl>
     </section>

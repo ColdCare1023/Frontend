@@ -10,23 +10,39 @@ export function colorToken(nombre: string, fallback: string): string {
 
 export type TemaGrafica = 'dark' | 'light'
 
+/**
+ * Paleta de la curva (DIRECTION §3, §4 y §18): tinta navy de registrador
+ * para el trazo, franja teal 2–8 °C con cotas discontinuas, carmesí solo
+ * para lo que sale del rango y acero con trama para «sin datos». Rosa y cian
+ * son de la marca y no aparecen en datos.
+ */
 export function temaGrafica(tema: TemaGrafica = 'light') {
   const oscuro = tema === 'dark'
   return {
-    foreground: colorToken('foreground', oscuro ? '#EEF2F8' : '#0F172A'),
-    muted: colorToken('faint', oscuro ? '#8A95A8' : '#5B6B82'),
-    surface: colorToken('surface', oscuro ? '#0A0F1A' : '#FFFFFF'),
-    border: colorToken('border', oscuro ? '#182132' : '#DFE6F0'),
-    grid: colorToken('neutral-200', oscuro ? '#131B2B' : '#EDF2F8'),
-    primary: colorToken('grafica-1', oscuro ? '#00D1FF' : '#0B5CFF'),
-    secondary: colorToken('grafica-2', oscuro ? '#A78BFA' : '#08738F'),
-    // Rango de referencia 2–8 °C: cian de rango seguro (DESIGN.md) con texto
-    // en el tono «normal» para que la etiqueta sea legible sobre la franja.
-    safe: colorToken('secondary', oscuro ? '#00D1FF' : '#00D1FF'),
-    safeText: colorToken('success-700', oscuro ? '#4FDCFF' : '#07546A'),
+    foreground: colorToken('foreground', oscuro ? '#E8EDF5' : '#0B1E3A'),
+    /** Texto de etiquetas activas (leyenda). */
+    texto: colorToken('muted', oscuro ? '#9AA6B8' : '#475A75'),
+    /** Ejes, cotas y metadatos. */
+    muted: colorToken('faint', oscuro ? '#7F8BA0' : '#5B6B82'),
+    surface: colorToken('surface', oscuro ? '#121826' : '#FFFFFF'),
+    /** Lo que flota (tooltip): un nivel sobre la tarjeta. */
+    raised: colorToken('surface-raised', oscuro ? '#19202F' : '#FFFFFF'),
+    border: colorToken('border', oscuro ? '#232B3A' : '#E1E7EF'),
+    grid: colorToken('neutral-200', oscuro ? '#19202F' : '#EDF1F6'),
+    /** Trazo interno: tinta de registrador. */
+    primary: colorToken('grafica-1', oscuro ? '#DCE4F0' : '#1B2B47'),
+    /** Ambiente: línea discontinua. */
+    secondary: colorToken('grafica-2', oscuro ? '#6B778C' : '#7A879C'),
+    /** Franja 2–8 °C y sus cotas. */
+    banda: colorToken('banda', oscuro ? '#0F2730' : '#E6F5F8'),
+    safe: colorToken('banda-borde', oscuro ? '#3FB6CC' : '#2F93A8'),
+    // Texto sobre la franja: el tono «normal» legible (AA) en ambos temas.
+    safeText: colorToken('success-700', oscuro ? '#5CC6D4' : '#07546A'),
+    /** Tramos fuera de 2–8 °C, episodios y marcadores de excursión. */
     critical: colorToken('danger-700', oscuro ? '#FF7A87' : '#A4233F'),
-    // Líneas adicionales cuando la curva compara varios equipos.
-    accent: colorToken('accent', oscuro ? '#FF8FB1' : '#FF7AA2'),
-    warn: colorToken('warning-600', oscuro ? '#E9A93A' : '#B45F06'),
+    /** Sin datos: acero con trama, nunca rojo (HU-54). */
+    nodata: colorToken('nodata-100', oscuro ? '#1A2130' : '#E9EDF3'),
+    nodataTrama: colorToken('nodata-trama', oscuro ? '#2C3546' : '#C9D2DE'),
+    nodataTexto: colorToken('nodata-700', oscuro ? '#B4BFCF' : '#4A5A73'),
   }
 }

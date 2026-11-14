@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 import { CircleCheck, CircleHelp, ClipboardPen, Hourglass, OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import { duracionLegible, fechaHoraCompacta, haceCuanto } from '@/lib/formato'
-import { Esqueleto } from '../../components/ui/esqueleto'
 import { TiraEstado, type SegmentoTira } from '../../components/ui/tira-estado'
 import { textoConteo } from '../../components/ui/formato-cifra'
 import type { ResumenBandeja } from './logica'
@@ -34,7 +33,7 @@ export function TiraEstadoAlertas({
     </span>
   )
   const valor = (contenido: React.ReactNode) =>
-    estado === 'cargando' ? <Esqueleto className="my-0.5 h-6 w-10" /> : estado === 'error' || !resumen ? noDisponible : contenido
+    estado === 'cargando' ? <EsqueletoEnLinea className="my-0.5 h-6 w-10" /> : estado === 'error' || !resumen ? noDisponible : contenido
 
   const segmentos: SegmentoTira[] = [
     {
@@ -73,7 +72,9 @@ export function TiraEstadoAlertas({
       valor: atendidasDisponibles
         ? valor(resumen?.atencionMedia7d != null ? duracionLegible(resumen.atencionMedia7d) : '—')
         : noDisponible,
-      className: 'hidden lg:flex',
+      // Entre 1024 y 1279 no cabe en la fila de la frase guía y quedaba sola
+      // en una segunda fila.
+      className: 'hidden xl:flex',
     },
   ]
 
@@ -99,7 +100,7 @@ function FraseGuia({
   ahora: number
 }) {
   const { t } = useTranslation()
-  if (estado === 'cargando') return <Esqueleto className="h-4 w-64 max-w-full" />
+  if (estado === 'cargando') return <EsqueletoEnLinea className="h-4 w-64 max-w-full" />
   const clase = 'flex min-w-0 items-center gap-2 text-pretty'
   if (estado === 'error' || !resumen) {
     return (
@@ -150,4 +151,9 @@ function FraseGuia({
         : t('alertas.guia.enOrdenSinHistorial')}
     </span>
   )
+}
+
+/** Esqueleto en línea: la frase y las cifras viven dentro de `<p>` y `<dd>` (sin `<div>` anidado). */
+function EsqueletoEnLinea({ className }: { className?: string }) {
+  return <span aria-hidden className={`esqueleto inline-block rounded-(--radius-small) align-middle ${className ?? ''}`} />
 }

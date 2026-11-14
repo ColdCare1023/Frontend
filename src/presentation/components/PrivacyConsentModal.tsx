@@ -65,7 +65,7 @@ export function PrivacyConsentModal() {
           </DialogPrimitive.Description>
 
           {error && (
-            <p role="alert" className="mt-3 rounded-(--radius-field) bg-danger-100 px-3 py-2 text-[13px] text-danger-700">
+            <p role="alert" className="mt-3 rounded-(--radius-field) bg-danger-100 px-3 py-2 text-body text-danger-700">
               {t('privacidad.errorAceptar')}
             </p>
           )}

@@ -118,7 +118,7 @@ export function TableHead({
       role="columnheader"
       scope={scope}
       className={cn(
-        'h-11 px-3 py-2 text-left align-middle text-[12px] leading-4 font-semibold tracking-[0.01em] text-faint sm:px-5',
+        'h-11 px-3 py-2 text-left align-middle text-meta font-semibold tracking-[0.01em] text-faint sm:px-5',
         className,
       )}
       {...props}

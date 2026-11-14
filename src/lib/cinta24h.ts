@@ -34,12 +34,14 @@ const parse = (iso: string | null | undefined) => {
  * Cinta de 24 h por equipo construida SOLO con alertas e incidentes que la
  * pantalla ya cargó (sin GET por equipo): 48 tramos de 30 min que terminan en
  * el tramo actual. Cada tramo toma el evento más grave (crítica > preventiva >
- * sin datos > sin eventos). Solo aparecen los equipos con algún evento.
+ * sin datos > sin eventos). Solo aparecen los equipos con algún evento, salvo
+ * los de `equipos`, que se incluyen siempre (cinta «sin eventos» si no hubo).
  */
 export function construirCinta24h(
   alertas: readonly AlertaTermica[],
   incidentes: readonly IncidenteOperativo[],
   ahora: number,
+  equipos: readonly string[] = [],
 ): CintaEquipo[] {
   const fin = (Math.floor(ahora / TRAMO_MS) + 1) * TRAMO_MS
   const inicio = fin - TRAMOS * TRAMO_MS
@@ -55,6 +57,10 @@ export function construirCinta24h(
       porEquipo.set(deviceId, tramos)
     }
     for (let i = primero; i <= ultimo; i++) if (PESO[tramo] > PESO[tramos[i]]) tramos[i] = tramo
+  }
+
+  for (const deviceId of equipos) {
+    if (!porEquipo.has(deviceId)) porEquipo.set(deviceId, Array.from({ length: TRAMOS }, () => 'sin_eventos' as TramoCinta))
   }
 
   const vistas = new Set<string>()

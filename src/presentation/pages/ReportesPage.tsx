@@ -83,7 +83,7 @@ export function ReportesPage() {
   const editado =
     reporte && periodo && (periodo.desde !== desde || periodo.hasta !== hasta || (periodo.deviceId ?? '') !== deviceId.trim())
   const textoPeriodo = periodo
-    ? `${fechaCorta(`${periodo.desde}T12:00:00`)} — ${fechaCorta(`${periodo.hasta}T12:00:00`)}`
+    ? `${fechaCorta(`${periodo.desde}T12:00:00`)} – ${fechaCorta(`${periodo.hasta}T12:00:00`)}`
     : ''
   const usar30 = () => {
     const p = periodoDeAtajo('dias30')

@@ -93,12 +93,22 @@ export function MetricasIAPage() {
       {encabezado}
       <div className="space-y-3 xl:space-y-4">
         <EstadoEvaluacion estado={estado} umbral={porcentaje(UMBRAL_F1, i18n.resolvedLanguage, 0)} />
+        {/* Desde 1024 px, dos columnas que se apilan por separado (5 + 7): en
+            una rejilla de filas, cada tarjeta se estiraba al alto de su vecina
+            y el F1 y las variables quedaban con 100–130 px en blanco. La última
+            tarjeta de cada columna toma el sobrante para que ambas terminen
+            alineadas. Bajo 1024 px las columnas se disuelven (`contents`) y
+            `order` mantiene el orden de lectura: F1, resultados, método y variables. */}
         <div className="grid gap-3 lg:grid-cols-12 xl:gap-4">
-          <ResultadoEvaluacion className="lg:col-span-5" metricas={m} estado={estado} umbral={UMBRAL_F1} />
-          <ResultadosPorClase className="lg:col-span-7" metricas={m} />
-          <ComoSeEvaluo className="lg:col-span-5" metricas={m} umbral={UMBRAL_F1} />
-          <ImportanciaVariables className="lg:col-span-7" metricas={m} />
-          <FichaModelo className="lg:col-span-12" metricas={m} />
+          <div className="contents lg:col-span-5 lg:flex lg:flex-col lg:gap-3 xl:gap-4">
+            <ResultadoEvaluacion className="order-1" metricas={m} estado={estado} umbral={UMBRAL_F1} />
+            <ComoSeEvaluo className="order-3 lg:flex-1" metricas={m} umbral={UMBRAL_F1} />
+          </div>
+          <div className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-3 xl:gap-4">
+            <ResultadosPorClase className="order-2" metricas={m} />
+            <ImportanciaVariables className="order-4 lg:flex-1" metricas={m} />
+          </div>
+          <FichaModelo className="order-5 lg:col-span-12" metricas={m} />
         </div>
         <p className="flex items-start gap-2 text-meta text-muted">
           <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />

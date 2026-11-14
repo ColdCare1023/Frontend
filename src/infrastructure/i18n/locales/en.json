@@ -19,7 +19,7 @@
     "password": "Password",
     "entrar": "Sign in",
     "entrando": "Signing in…",
-    "rango": "Pharmaceutical cold chain · 2–8 °C",
+    "rango": "Pharmaceutical cold chain · 2⁠–⁠8 °C",
     "rangoCadenaFrio": "Pharmaceutical cold chain · 2 °C – 8 °C",
     "marcaEslogan": "Protect every dose. At every degree.",
     "marcaDescripcion": "Monitor your equipment, receive timely alerts and keep traceable records for every review.",
@@ -89,16 +89,16 @@
     "administrador": "Administrator",
     "farmaceutico": "Pharmacist",
     "tecnico": "Pharmacy Technician",
-    "auditor": "Cashier"
+    "auditor": "Auditor"
   },
   "riesgo": {
     "normal": "Normal",
     "riesgo_preventivo": "Preventive risk",
     "excursion_critica": "Critical excursion",
     "detalle": {
-      "normal": "Temperature is within the expected 2–8 °C range",
+      "normal": "Temperature is within the expected 2⁠–⁠8 °C range",
       "riesgo_preventivo": "Approaching the limit: keep an eye on the refrigerator",
-      "excursion_critica": "Temperature is outside the 2–8 °C range. Check the refrigerator."
+      "excursion_critica": "Temperature is outside the 2⁠–⁠8 °C range. Check the refrigerator."
     }
   },
   "ia": {
@@ -128,7 +128,7 @@
     "estadoRefrigerador": "Current temperature",
     "ultimaTemperatura": "Last reported temperature",
     "conexionEquipo": "Device connection",
-    "rangoEsperadoCorto": "Expected range · 2–8 °C",
+    "rangoEsperadoCorto": "Expected range · 2⁠–⁠8 °C",
     "ejeAhora": "Now",
     "graficaExcursion": "Confirmed excursion",
     "graficaSinDatos": "No data",
@@ -143,7 +143,7 @@
     "sinLecturaDisponible": "No reading is available for this metric.",
     "sinClasificacion": "No temperature reading is available to calculate risk.",
     "riesgoUltimaLectura": "Risk from the last reading. Wait for new data to confirm the current state.",
-    "excursionConfirmada": "Temperature is outside the expected 2–8 °C range.",
+    "excursionConfirmada": "Temperature is outside the expected 2⁠–⁠8 °C range.",
     "clasificacionIaDivergente": "Automatic analysis suggests reviewing this reading, but temperature remains within range. No excursion is confirmed.",
     "puerta": "Door",
     "puertaAbierta": "Open",
@@ -162,7 +162,7 @@
     "lecturasRecientesTitulo": "Recent readings",
     "lecturasRecientesAyuda": "Latest records in the selected period.",
     "ultimasLecturas": "last {{n}} readings",
-    "rangoConservacion": "Range 2–8 °C",
+    "rangoConservacion": "Range 2⁠–⁠8 °C",
     "lecturaSobreEscala": "Reading exceeds the indicator scale (0–10 °C). Actual value: {{temperatura}} °C.",
     "lecturaBajoEscala": "Reading is below the indicator scale (0 °C). Actual value: {{temperatura}} °C.",
     "ultimaActualizacion": "Last update",
@@ -183,8 +183,8 @@
     "resumenMinima": "Minimum",
     "resumenMaxima": "Maximum",
     "resumenPromedio": "Average",
-    "resumenFueraRango": "Readings outside 2–8 °C range",
-    "graficaEtiqueta": "Line chart: internal and ambient temperature for the last {{n}} readings, with the 2–8 °C storage range marked",
+    "resumenFueraRango": "Readings outside 2⁠–⁠8 °C range",
+    "graficaEtiqueta": "Line chart: internal and ambient temperature for the last {{n}} readings, with the 2⁠–⁠8 °C storage range marked",
     "anuncioRiesgo": "{{nivel}}. Internal temperature {{temperatura}} °C.",
     "anuncioRiesgoSinTemp": "{{nivel}}. No internal temperature reading.",
     "datoDesactualizado": "No new reading for {{s}}s",
@@ -199,13 +199,13 @@
     "estadoIoTTitulo": "Device operational status",
     "estadoIoTDetalle": "Connection, sensor faults, and local sync. This status is separate from thermal risk.",
     "estadoSinDatos": "No data ({{segundos}}s)",
-    "alertaSilencio": "No reports since {{fecha}}. The {{segundos}}s threshold was exceeded.",
+    "alertaSilencio": "No reports since {{fecha}} · {{segundos}}s threshold exceeded.",
     "ultimoDatoOperativo": "Last report received: {{fecha}}.",
     "nuncaReporto": "This device has not sent its first report yet.",
     "sinPendientes": "No pending readings; synchronization recovered: {{fecha}}.",
     "brechaBuffer": "{{n}} readings were lost",
     "causaBufferAgotado": "local buffer full",
-    "periodoBrecha": "Affected period: {{desde}} — {{hasta}}",
+    "periodoBrecha": "Affected period: {{desde}} – {{hasta}}",
     "incidentesRecientes": "Recovered incidents ({{n}})",
     "incidenteRecuperado": "Data connection recovered: {{fecha}}.",
     "puertaSuperaUmbral": "Open for more than {{segundos}}s. Check the door.",
@@ -244,7 +244,7 @@
     },
     "haceSegundos": "{{s}}s ago",
     "extremosVentana": "Min {{min}} · Max {{max}} · {{ventana}}",
-    "reglaEtiqueta": "{{valor}} °C on the 0–10 °C scale; expected range 2–8 °C. Minimum {{min}} °C and maximum {{max}} °C over {{ventana}}.",
+    "reglaEtiqueta": "{{valor}} °C on the 0–10 °C scale; expected range 2⁠–⁠8 °C. Minimum {{min}} °C and maximum {{max}} °C over {{ventana}}.",
     "reglaSinValor": "No reading to place on the 0–10 °C scale.",
     "ventanaFrase": {
       "1": "the last hour",
@@ -256,12 +256,16 @@
     "humedadCorta": "Humidity",
     "aperturasVentana_one": "{{count}} opening in {{ventana}}",
     "aperturasVentana_other": "{{count}} openings in {{ventana}}",
+    "aperturasCorto_one": "{{count}} opening · {{ventana}}",
+    "aperturasCorto_other": "{{count}} openings · {{ventana}}",
     "detalles": "Details",
     "bufferTitulo": "Local buffer",
     "bufferSincronizado": "Synced {{hora}}",
     "bufferAnillo": "Local buffer: {{n}} of {{max}} readings pending",
     "calibracionTitulo": "Calibration",
     "calibracionVigenteHasta": "Valid until {{fecha}}",
+    "calibracionVigente": "Valid",
+    "calibracionHasta": "until {{fecha}}",
     "calibracionVencidaCorta": "Expired on {{fecha}}",
     "calibracionPorVencerCorta": "Expires on {{fecha}}",
     "calibracionSinRegistro": "Not recorded",
@@ -269,7 +273,7 @@
     "vistaCurva": "Curve view",
     "vistaGrafica": "Chart",
     "vistaLista": "List",
-    "resumenCurva": "Over {{ventana}}: minimum {{min}} °C, maximum {{max}} °C, average {{prom}} °C and {{fuera}} readings outside 2–8 °C.",
+    "resumenCurva": "Over {{ventana}}: minimum {{min}} °C, maximum {{max}} °C, average {{prom}} °C and {{fuera}} readings outside 2⁠–⁠8 °C.",
     "curvaSinLecturas": "No readings in {{ventana}}.",
     "equiposResumen_one": "{{count}} unit · {{problemas}} with issues",
     "equiposResumen_other": "{{count}} units · {{problemas}} with issues",
@@ -298,6 +302,9 @@
     "alertaPico": "Peak {{temp}} °C",
     "alertaReconocida": "Acknowledged",
     "alertasError": "We couldn't load alerts.",
+    "alertasLineaTitulo": "Start and duration of pending alerts",
+    "alertasLineaEtiqueta": "Pending alerts over the last {{horas}} h: {{detalle}}.",
+    "haceHorasEje": "−{{h}} h",
     "recientesVacio": "No readings yet in {{ventana}}.",
     "simular": "Simulate",
     "simularEtiqueta": "Try dashboard states (demo)",
@@ -327,7 +334,7 @@
         "descripcion": "Operations and query"
       },
       "auditor": {
-        "titulo": "Cashier",
+        "titulo": "Auditor",
         "descripcion": "Records access"
       }
     },
@@ -393,7 +400,7 @@
     },
     "meta": "{{n}} readings · {{desde}} – {{hasta}}",
     "guia": {
-      "enRango": "The whole period stayed within 2–8 °C.",
+      "enRango": "The whole period stayed within 2⁠–⁠8 °C.",
       "excursiones_one": "{{count}} excursion in the period: it lasted {{duracion}} on {{equipo}}.",
       "excursiones_other": "{{count}} excursions in the period; the longest lasted {{duracion}} on {{equipo}}.",
       "brechas_one": "No excursions; there is {{count}} data gap.",
@@ -405,7 +412,8 @@
       "enRango": "In range",
       "minima": "Minimum",
       "maxima": "Maximum",
-      "excursiones": "Excursions"
+      "excursiones": "Excursions",
+      "minMax": "Min – max"
     },
     "filtro": {
       "etiqueta": "Filter history",
@@ -415,11 +423,14 @@
       "chipEquipo": "Device: {{valor}}",
       "chipRiesgo": "Risk: {{valor}}",
       "chipPeriodo": "Period: {{valor}}",
-      "panelTitulo": "Filter history"
+      "panelTitulo": "Filter history",
+      "mas": "Filters",
+      "masActivos_one": "Filters ({{count}})",
+      "masActivos_other": "Filters ({{count}})"
     },
     "curva": {
       "titulo": "Period curve",
-      "meta": "{{equipo}} · {{n}} readings · 2–8 °C range",
+      "meta": "{{equipo}} · {{n}} readings · 2⁠–⁠8 °C range",
       "equipo": "Curve device"
     },
     "dia": {
@@ -460,10 +471,10 @@
       "porEquipo": "By device",
       "porEquipoMeta": "Last reading, minimum and maximum of the period",
       "porEquipoValor": "min {{min}} · avg {{prom}} · max {{max}} °C",
-      "porEquipoRegla": "{{equipo}}: last {{ultima}} °C; minimum {{min}} °C; maximum {{max}} °C; range 2–8 °C",
+      "porEquipoRegla": "{{equipo}}: last {{ultima}} °C; minimum {{min}} °C; maximum {{max}} °C; range 2⁠–⁠8 °C",
       "enRango": "{{pct}} in range",
       "excursiones": "Excursions in the period",
-      "sinExcursiones": "No excursions: the whole period within 2–8 °C.",
+      "sinExcursiones": "No excursions: the whole period within 2⁠–⁠8 °C.",
       "excursionValor": "{{duracion}} · max {{max}} °C",
       "verEnTabla": "Show in table",
       "masExcursiones": "and {{n}} more",
@@ -576,7 +587,7 @@
       "reintentando": "Retrying email",
       "no_entregada": "Email not delivered",
       "pendiente": "Email pending",
-      "notificadaAyuda": "The email notice was sent on {{fecha}}.",
+      "notificadaAyuda": "The email notice was sent on {{fecha}}",
       "reintentandoAyuda": "The mail provider failed; the system is retrying ({{intentos}} attempt(s)).",
       "no_entregadaAyuda": "Attempts exhausted: notify by another channel.",
       "pendienteAyuda": "No send attempt yet."
@@ -633,7 +644,7 @@
       "secciones": "Alert sections",
       "tabCronologia": "Timeline",
       "evidencia": "Excursion evidence",
-      "reglaPico": "Peak of {{valor}} against the 2–8 °C range",
+      "reglaPico": "Peak of {{valor}} against the 2⁠–⁠8 °C range",
       "sinEvidencia": "This alert predates evidence recording (peak, duration and start).",
       "camposObligatorios": "All three fields are required and stay on record.",
       "faltan": "Still missing: {{campos}}.",
@@ -659,7 +670,7 @@
       "verPendientes": "View pending",
       "verTodas": "View all",
       "irMonitoreo": "Go to Monitoring",
-      "todasDetalle": "When a device leaves the 2–8 °C range, the alert will appear here.",
+      "todasDetalle": "When a device leaves the 2⁠–⁠8 °C range, the alert will appear here.",
       "incidentes_one": "1 device has an active operational incident (not a thermal alert).",
       "incidentes_other": "{{count}} devices have an active operational incident (not thermal alerts)."
     },
@@ -685,7 +696,30 @@
       "atendidasRecientes": "Recently resolved",
       "atendidaHace": "Resolved {{hace}}"
     },
-    "incidenteActivoDesde": "Active since {{hace}}"
+    "incidenteActivoDesde": "Active since {{hace}}",
+    "ahora": {
+      "titulo": "Devices now",
+      "ayuda": "Current reading: is the device back within 2⁠–⁠8 °C?",
+      "lectura": "read {{hace}}"
+    },
+    "guiaAtencion": {
+      "titulo": "How an alert is handled",
+      "revisar": "Review",
+      "revisarDetalle": "The pharmacist confirms they saw it; it moves to Reviewed.",
+      "registrar": "Record the corrective action",
+      "registrarDetalle": "Decision taken, action performed and justification (GDP).",
+      "verificar": "Check the recovery",
+      "verificarDetalle": "Confirm the device is back within 2⁠–⁠8 °C.",
+      "irHistorial": "Open History"
+    },
+    "demo": {
+      "simular": "Simulate",
+      "simularEtiqueta": "Simulate alert (demo)",
+      "grupo": "Demo · {{equipo}}",
+      "excursionCritica": "Simulate critical excursion",
+      "riesgoPreventivo": "Simulate preventive risk",
+      "error": "The alert could not be simulated."
+    }
   },
   "trazabilidad": {
     "titulo": "Record integrity",
@@ -872,7 +906,7 @@
     "truncadoTitulo": "Incomplete report: the limit of {{limite}} records per type was reached.",
     "truncadoDetalle": "Records are missing from: {{colecciones}}. Shorten the period or filter by one unit to get the full report. CSV and JSON files carry “parcial” in their name.",
     "descargarCsv": "Download spreadsheet (CSV)",
-    "descargarJson": "Download data for technical review (JSON)",
+    "descargarJson": "Download technical data (JSON)",
     "notaFormatos": "CSV is easy to review and print. JSON retains technical data, including verification seals.",
     "resumen": "Period summary",
     "lecturas": "Readings",
@@ -903,14 +937,14 @@
     "todosLosEquipos": "All devices",
     "queIncluye": "What it includes",
     "vistaDesactualizada": "The preview shows {{periodo}}. Generate the report to see the edited period.",
-    "tiempoEnRango": "Time within 2–8 °C",
+    "tiempoEnRango": "Time within 2⁠–⁠8 °C",
     "tramos": {
       "enRango": "In range",
       "fuera": "Out of range",
       "sinDatos": "No data"
     },
     "tramoValor": "{{tramo}} {{porcentaje}} · {{duracion}}",
-    "barraTiempoAria": "Time within 2–8 °C: {{enRango}}. Out of range: {{fuera}}. No data: {{sinDatos}}.",
+    "barraTiempoAria": "Time within 2⁠–⁠8 °C: {{enRango}}. Out of range: {{fuera}}. No data: {{sinDatos}}.",
     "calculoParcial": "Calculated only from the data received: {{desde}} – {{hasta}}.",
     "curvaTitulo": "Internal temperature",
     "curvaResumen": "Min {{minimo}} · Avg {{promedio}} · Max {{maximo}}",
@@ -930,7 +964,8 @@
     "sinLecturasDetalle": "Try a wider period or check the device code.",
     "usar30": "Use 30 days",
     "generadoAnuncio": "Report generated: {{lecturas}} readings, {{alertas}} alerts and {{registros}} traceability records.",
-    "descargas": "Downloads"
+    "descargas": "Downloads",
+    "curvaLeyenda": "Devices in the curve"
   },
   "auditoria": {
     "titulo": "Audit log",
@@ -1051,14 +1086,18 @@
       "etiqueta": "Filter the log",
       "resultados_one": "{{count}} action",
       "resultados_other": "{{count}} actions",
-      "panelTitulo": "Filter the log"
+      "panelTitulo": "Filter the log",
+      "mas": "Filters",
+      "masActivos_one": "Filters ({{count}})",
+      "masActivos_other": "Filters ({{count}})"
     },
     "actividad": {
       "titulo": "14-day activity",
       "exitosas": "Succeeded",
       "fallidas": "Failed or denied",
       "barra": "{{dia}}: {{total}} actions, {{fallidas}} failed or denied. Filter this day.",
-      "base": "Based on the {{n}} loaded actions"
+      "base": "Based on the {{n}} loaded actions",
+      "semana": "{{desde}} to {{hasta}}"
     },
     "dia": {
       "resumen_one": "{{count}} action",
@@ -1202,7 +1241,8 @@
     "crearOtro": "Create another",
     "listo": "Done",
     "grupoCuenta": "Account",
-    "grupoRiesgo": "Danger zone"
+    "grupoRiesgo": "Danger zone",
+    "administradoresCorto": "Active admins"
   },
   "privacidad": {
     "titulo": "Privacy notice",
@@ -1215,7 +1255,7 @@
   },
   "dispositivos": {
     "titulo": "Measurement devices",
-    "descripcion": "Manage each device code, sensors, connection, local buffer, calibration validity, and lifecycle.",
+    "descripcion": "Status, readings, calibration and credentials of each ESP32 node.",
     "id": "Equipment code",
     "conectividad": "Connectivity",
     "firmware": "Software version",
@@ -1331,7 +1371,7 @@
     "registroEquipo": "Device registration",
     "registrarEquipo": "Register",
     "codigoDeEquipo": "Device code",
-    "rangoBuffer": "Queued period: {{desde}} — {{hasta}}",
+    "rangoBuffer": "Queued period: {{desde}} – {{hasta}}",
     "ultimoReporte": "Last report",
     "motivoCredencial": "Reason",
     "motivoCredencialAyuda": "Recorded in the audit log (max. 200 characters).",
@@ -1387,11 +1427,8 @@
       "columnaEquipo": "Device",
       "columnaLectura": "Current reading",
       "filtrar": "Filter devices",
-      "filtroTodos": "All ({{n}})",
-      "filtroAtencion": "Needs attention ({{n}})",
-      "filtroBaja": "Decommissioned ({{n}})",
       "buscar": "Search devices",
-      "buscarMarcador": "Code, name or location",
+      "buscarMarcador": "Search device",
       "conteoUno": "{{n}} device",
       "conteoVarios": "{{n}} devices",
       "sinResultados": "No device matches the filter.",
@@ -1405,7 +1442,17 @@
       "lecturaDe": "Reading at {{hora}}",
       "dadoDeBajaEl": "Decommissioned on {{fecha}}",
       "reemplazaA": "Replacement: {{id}}",
-      "fueraDeServicio": "Out of service"
+      "fueraDeServicio": "Out of service",
+      "filtro": {
+        "todos": "All",
+        "atencion": "Need attention",
+        "baja": "Retired"
+      },
+      "ultimas24h": "Last 24 h",
+      "cintaCritica": "Critical {{duracion}}",
+      "cintaPreventiva": "Preventive {{duracion}}",
+      "cintaSinDatos": "No data {{duracion}}",
+      "cintaSinEventos": "No alerts or incidents"
     },
     "estadoEquipo": {
       "normal": "In range",
@@ -1439,10 +1486,8 @@
     "tira": {
       "enLinea": "{{n}} online",
       "deBaja": "{{n}} decommissioned",
-      "calibracion": "Calibration",
-      "porAtender": "to handle",
-      "consola": "Console",
-      "pendientes": "pending",
+      "calibracion": "Calibration due",
+      "consola": "Console pending",
       "fraseNormal": "All devices are reporting normally · {{n}} online",
       "fraseRetenida": "{{id}}: telemetry held until the console is confirmed",
       "fraseSinDatos": "{{n}} of {{total}} devices with no data since {{hora}}",
@@ -1451,7 +1496,9 @@
       "fraseFallaVarios": "{{n}} devices with a sensor fault",
       "fraseCalibracion": "Calibration expired on {{id}}",
       "fraseConsolaUno": "1 pending operation in the broker console",
-      "fraseConsolaVarios": "{{n}} pending operations in the broker console"
+      "fraseConsolaVarios": "{{n}} pending operations in the broker console",
+      "vencidas_one": "{{count}} expired",
+      "vencidas_other": "{{count}} expired"
     },
     "rail": {
       "etiqueta": "Device context",
@@ -1474,13 +1521,13 @@
       "volverLista": "Back to devices",
       "fueraDeServicio": "Device out of service: showing its last data.",
       "guia": {
-        "normal": "Temperature within 2–8 °C · reports every {{s}} s",
+        "normal": "Temperature within 2⁠–⁠8 °C · reports every {{s}} s",
         "sin_datos": "No data since {{hora}} · the node holds {{n}} readings in its buffer",
         "sin_conexion": "Offline since {{hora}}",
         "retenida": "Telemetry held: confirm the console and wait for the proof of possession.",
         "falla_sensor": "Sensor fault: check the {{sensor}}.",
-        "critico": "Outside 2–8 °C: review the pending alert.",
-        "preventivo": "Close to the 2–8 °C limit.",
+        "critico": "Outside 2⁠–⁠8 °C: review the pending alert.",
+        "preventivo": "Close to the 2⁠–⁠8 °C limit.",
         "esperando": "Waiting for the node's first report.",
         "baja": "Decommissioned on {{fecha}}."
       }
@@ -1506,11 +1553,18 @@
       "minimo": "Min",
       "maximo": "Max",
       "promedio": "Average",
-      "enRango": "In range 2–8 °C",
+      "enRango": "In range 2⁠–⁠8 °C",
       "interna": "Internal",
       "ambiente": "Ambient",
       "humedad": "Humidity",
-      "riesgo": "Risk"
+      "riesgo": "Risk",
+      "resumen24hOk": "All 24 h within 2⁠–⁠8 °C and with data.",
+      "puerta": "Door",
+      "puertaAbierta": "Open",
+      "puertaCerrada": "Closed",
+      "puertaSinSensor": "No sensor",
+      "resumenRiesgo": "At risk: {{duracion}}",
+      "resumenSinDatos": "No data: {{duracion}}"
     },
     "historialTab": {
       "resumen": "Summary of the latest readings",
@@ -1585,6 +1639,23 @@
       "ayudaPerdida": "The buffer fills up and a gap is recorded.",
       "ayudaSensor": "The DS18B20 stops measuring.",
       "ayudaRecuperacion": "The node resends what was queued and gets the ACK."
+    },
+    "tendencia": {
+      "sube": "Rising {{valor}} °C/h",
+      "baja": "Falling {{valor}} °C/h",
+      "estable": "Stable",
+      "sr": "Trend since {{desde}}: {{tendencia}}"
+    },
+    "actividad": {
+      "titulo": "Recent activity",
+      "tituloEquipo": "Device activity",
+      "verAlertas": "View alerts",
+      "vacio": "No alerts or incidents in the last 7 days.",
+      "error": "We couldn't load recent activity.",
+      "recuperado": "Recovered: {{tipo}}",
+      "duracion": "lasted {{duracion}}",
+      "sinMas": "No other activity in the last 7 days",
+      "verHistorial": "View history"
     }
   },
   "comunes": {
@@ -1719,7 +1790,7 @@
       "hora_evento": "Time of event",
       "estado_conectividad_online": "Device connection status"
     },
-    "reglaIndependiente": "Random Forest classifies Normal or Preventive risk. A critical excursion is confirmed by the independent 2–8 °C rule; it is not a model probability.",
+    "reglaIndependiente": "Random Forest classifies Normal or Preventive risk. A critical excursion is confirmed by the independent 2⁠–⁠8 °C rule; it is not a model probability.",
     "meta": "{{modelo}} · version {{version}} · trained on {{fecha}}",
     "ilustrativo": "Illustrative",
     "umbralCriterio": "Prototype criterion",
@@ -1804,7 +1875,7 @@
       }
     },
     "alertaPermisos": "Pharmacy technicians can record a corrective action; pharmacists can also mark an alert as reviewed. Auditors have read-only access.",
-    "ejemploTitulo": "Illustrative example · 2–8 °C range",
+    "ejemploTitulo": "Illustrative example · 2⁠–⁠8 °C range",
     "ejemplo": "4.3 °C is within range. A reading of 8.4 °C is outside it: review the alert, follow your pharmacy's procedure, and record the response.",
     "pantallasTitulo": "Find a screen",
     "pantallasDescripcion": "Available links depend on your role.",

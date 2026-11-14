@@ -119,7 +119,7 @@ function ContenidoResumen({
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-3 xl:px-5">
         <h2 id="reportes-resumen-titulo" className="text-title text-foreground">{t('reportes.resumen')}</h2>
         <p className="nums text-meta text-faint">
-          {fechaCorta(reporte.fecha_desde)} — {fechaCorta(reporte.fecha_hasta)} ·{' '}
+          {fechaCorta(reporte.fecha_desde)} – {fechaCorta(reporte.fecha_hasta)} ·{' '}
           {reporte.device_id ? <span className="codigo">{reporte.device_id}</span> : t('reportes.todosLosEquipos')}
         </p>
         {desactualizada && <p className="basis-full text-meta text-warning-700">{desactualizada}</p>}
@@ -241,10 +241,12 @@ function PorEquipo({
       <h3 className="text-body font-medium text-foreground">{t('reportes.porEquipo')}</h3>
       <ul className="mt-1 divide-y divide-border">
         {filas.map(({ equipo, tiempo }) => (
-          <li key={equipo} className="grid h-11 grid-cols-[minmax(0,1fr)_6rem_auto] items-center gap-3">
-            <span className="codigo truncate text-body">{equipo}</span>
+          // La barra ocupa el ancho libre (antes 96 px fijos); código y cifra
+          // en columnas fijas para que todas las barras empiecen y acaben igual.
+          <li key={equipo} className="grid h-11 grid-cols-[7.5rem_minmax(0,1fr)_3.5rem] items-center gap-3">
+            <span className="codigo truncate text-body" title={equipo}>{equipo}</span>
             <BarraTiempoEnRango tiempo={tiempo} compacta />
-            <span className="nums text-meta text-muted">{textoPorcentaje(tiempo.porcentajes.enRango, idioma)}</span>
+            <span className="nums text-right text-meta text-muted">{textoPorcentaje(tiempo.porcentajes.enRango, idioma)}</span>
           </li>
         ))}
       </ul>

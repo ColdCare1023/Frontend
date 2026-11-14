@@ -130,7 +130,7 @@ describe('ReportesPage (RF-13, HU-38)', () => {
       temperatura_interna: i < 9 ? 5 : 9.1,
     }))
     montar({ reporte: { ...REPORTE, lecturas } })
-    expect(screen.getByRole('img', { name: /tiempo en 2–8 °C/i })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /tiempo en 2\u2060?–\u2060?8\s°C/i })).toBeInTheDocument()
     expect(screen.getByText(/fuera de rango/i, { selector: 'li' })).toBeInTheDocument()
   })
 

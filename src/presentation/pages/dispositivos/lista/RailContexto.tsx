@@ -27,7 +27,7 @@ export function RailContexto({ dispositivos }: { dispositivos: readonly Disposit
   return (
     <aside
       aria-label={t('dispositivos.rail.etiqueta')}
-      className="col-span-12 grid grid-cols-1 content-start gap-3 sm:grid-cols-2 xl:col-span-4 xl:grid-cols-1 xl:gap-4"
+      className="col-span-12 grid grid-cols-1 content-start gap-3 sm:grid-cols-2 xl:sticky xl:top-[calc(var(--alto-cabecera)+24px)] xl:col-span-4 xl:grid-cols-1 xl:gap-4 xl:self-start 2xl:col-span-3"
     >
       <section aria-labelledby="rail-calibraciones" className="superficie p-4">
         <h2 id="rail-calibraciones" className="mb-3 flex items-center justify-between gap-2 text-title text-foreground">

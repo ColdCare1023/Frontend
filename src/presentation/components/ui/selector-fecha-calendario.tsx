@@ -38,10 +38,10 @@ export default function CalendarioSelector({
         button_previous: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground',
         button_next: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground',
         month_grid: 'mt-2 border-collapse',
-        weekday: 'size-9 text-[11px] font-medium uppercase text-faint',
+        weekday: 'size-9 text-micro uppercase text-faint',
         day: 'p-0.5 text-center',
         day_button:
-          'nums size-9 cursor-pointer rounded-lg text-[13px] transition-[background-color,color,transform] duration-(--duration-micro) hover:bg-neutral-200/70 active:scale-95 focus-visible:outline-2 focus-visible:outline-ring',
+          'nums size-9 cursor-pointer rounded-lg text-body transition-[background-color,color,transform] duration-(--duration-micro) hover:bg-neutral-200/70 active:scale-95 focus-visible:outline-2 focus-visible:outline-ring',
         selected: '[&>button]:bg-primary [&>button]:font-semibold [&>button]:text-on-primary [&>button]:hover:bg-primary-hover',
         today: '[&>button]:font-semibold [&>button]:ring-1 [&>button]:ring-inset [&>button]:ring-primary/45',
         outside: 'text-faint/60',

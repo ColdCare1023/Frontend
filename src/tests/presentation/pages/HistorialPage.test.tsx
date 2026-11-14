@@ -177,6 +177,26 @@ describe('HistorialPage — rediseño P6 (registros)', () => {
     expect(screen.getByRole('columnheader', { name: /^equipo$/i })).toBeInTheDocument()
   })
 
+  it('«Filtros» (solo bajo 640 px) despliega riesgo y periodo sin quitarlos del formulario', async () => {
+    montar([lectura()])
+    const boton = screen.getByRole('button', { name: /^filtros$/i })
+    const bloque = document.getElementById(boton.getAttribute('aria-controls') as string) as HTMLElement
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    // Los campos siguen en el formulario: desde 640 px se ven siempre.
+    expect(bloque).toContainElement(screen.getByLabelText(/nivel de riesgo/i))
+    expect(bloque.className).toMatch(/max-sm:hidden/)
+    await userEvent.click(boton)
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    expect(bloque.className).not.toMatch(/max-sm:hidden/)
+  })
+
+  it('la cabecera de día abarca solo las columnas montadas (sin columnas fantasma)', () => {
+    montar([lectura(), lectura({ id: 'l-2', device_id: 'FARM-02-CDL' })])
+    const columnas = screen.getAllByRole('columnheader').filter((th) => th.getAttribute('scope') === 'col')
+    const dia = screen.getAllByRole('columnheader').find((th) => th.getAttribute('scope') === 'colgroup') as HTMLTableCellElement
+    expect(dia.colSpan).toBe(columnas.length)
+  })
+
   it('el estado vacío sin filtros explica cuándo aparecerán las lecturas', () => {
     montar([])
     expect(screen.getByText(/aún no hay lecturas registradas/i)).toBeInTheDocument()

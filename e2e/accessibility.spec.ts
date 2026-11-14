@@ -5,15 +5,24 @@ import { congelarAnimaciones, irA } from './helpers'
 /**
  * axe mide el color pintado: si corre durante una entrada de página o un
  * fundido de texto (opacidad < 1), informa contrastes que no existen al
- * terminar. Se espera a que acaben las animaciones finitas (los indicadores
- * en bucle, como el pulso «en vivo», no cuentan).
+ * terminar. Se espera a que no quede ningún esqueleto de carga y a que acaben
+ * las animaciones finitas (los indicadores en bucle, como el pulso «en vivo»,
+ * no cuentan), y a que eso se mantenga en dos lecturas seguidas: la demo
+ * responde con 180–420 ms de latencia y una fila que llega después monta su
+ * etiqueta con un fundido.
  */
 async function esperarAnimaciones(page: Page) {
-  await page.waitForFunction(() =>
-    document
-      .getAnimations()
-      .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
-  )
+  const quieta = () =>
+    page.evaluate(
+      () =>
+        !document.querySelector('.esqueleto') &&
+        document
+          .getAnimations()
+          .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
+    )
+  await expect
+    .poll(async () => (await quieta()) && (await page.waitForTimeout(500), await quieta()), { timeout: 15_000 })
+    .toBe(true)
 }
 
 test('monitoreo, alertas e historial sin violaciones axe WCAG 2 A/AA', async ({ page }) => {

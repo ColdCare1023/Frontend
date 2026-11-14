@@ -6,8 +6,10 @@ import {
   construirOpcionCurvaTermica,
   episodiosDeExcursion,
   huecosSinDatos,
+  tramosFueraDeRango,
   umbralHueco,
 } from '@/infrastructure/charts/curvaTermica'
+import { temaGrafica } from '@/infrastructure/charts/temaColdCare'
 
 const BASE = Date.parse('2026-10-24T13:00:00Z')
 const ETIQUETAS = {
@@ -32,12 +34,53 @@ function lectura(segundos: number, temperatura: number, excursion = false): Lect
 type Serie = { data: Array<[number, number | null]>; markPoint?: { data: unknown[] }; markArea?: { data: unknown[] } }
 
 describe('curva térmica', () => {
-  it('HU-31: marca en verde el rango 2-8 °C y en rojo lo que queda fuera', () => {
-    const opcion = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 6)], ETIQUETAS)
-    const zonas = (opcion.series as Serie[]).flatMap((s) => (s.markArea?.data ?? []) as Array<Array<{ yAxis?: number | string }>>)
-    expect(zonas.map(([desde, hasta]) => [desde.yAxis, hasta.yAxis])).toEqual(
-      expect.arrayContaining([[2, 8], [8, 200], [-200, 2]]),
-    )
+  it('HU-31: la franja 2–8 °C es una zona y lo que sale de ella se dibuja en rojo', () => {
+    const opcion = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 9.5), lectura(60, 5)], ETIQUETAS)
+    const series = opcion.series as Array<Serie & { name: string; lineStyle?: { color?: string; shadowBlur?: number }; areaStyle?: unknown }>
+    const zonas = series.flatMap((s) => (s.markArea?.data ?? []) as Array<Array<{ yAxis?: number | string }>>)
+    expect(zonas.map(([desde, hasta]) => [desde.yAxis, hasta.yAxis])).toContainEqual([2, 8])
+    // Fuera de la franja no se tiñe el fondo (DIRECTION §18): el rojo va en el trazo.
+    expect(zonas.some(([desde]) => desde.yAxis === 8 || desde.yAxis === -200)).toBe(false)
+    const tramos = series.filter((s) => s.name === 'Refrigerador')
+    expect(tramos).toHaveLength(2)
+    expect(tramos[1].lineStyle?.color).not.toBe(tramos[0].lineStyle?.color)
+    expect(tramos[1].data.filter(([, v]) => v !== null).map(([, v]) => v)).toEqual([8, 9.5, 8])
+  })
+
+  it('trazo de registrador: 1,75 px, sin brillo ni área degradada', () => {
+    const interna = (construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 6)], ETIQUETAS).series as Array<
+      Serie & { lineStyle: { width: number; shadowBlur?: number }; areaStyle?: unknown }
+    >)[0]
+    expect(interna.lineStyle.width).toBe(1.75)
+    expect(interna.lineStyle.shadowBlur).toBeUndefined()
+    expect(interna.areaStyle).toBeUndefined()
+  })
+
+  it('sin lecturas fuera de rango no añade el trazo carmesí', () => {
+    const series = construirOpcionCurvaTermica([lectura(0, 5), lectura(30, 6)], ETIQUETAS).series as Array<{ name: string }>
+    expect(series.filter((s) => s.name === 'Refrigerador')).toHaveLength(1)
+  })
+
+  it('el tramo fuera de rango empieza y acaba justo en la cota que cruza', () => {
+    const datos: Array<[number, number | null]> = [
+      [0, 6],
+      [10, 10], // cruza 8 °C en x = 5
+      [20, 6], // vuelve a cruzarlo en x = 15
+      [30, null],
+      [40, 1], // empieza fuera tras un hueco
+      [50, 11], // salta de bajo 2 a sobre 8 sin pasar por una muestra en rango
+    ]
+    expect(tramosFueraDeRango(datos)).toEqual([
+      [5, 8],
+      [10, 10],
+      [15, 8],
+      [15, null],
+      [40, 1],
+      [41, 2],
+      [41, null],
+      [47, 8],
+      [50, 11],
+    ])
   })
 
   it('agrupa lecturas consecutivas en un solo episodio de excursión', () => {
@@ -85,6 +128,21 @@ describe('curva térmica', () => {
     expect(series.map((s) => s.name)).toEqual(['FARM-01', 'FARM-02'])
     expect(series[0].data.map(([, valor]) => valor)).toEqual([5.2, 5.2, 5.2, 5.2])
     expect(series[1].data.map(([, valor]) => valor)).toEqual([3.8, 3.8, 3.8, 3.8])
+  })
+
+  it('con varios equipos no usa el rosa de marca y distingue cada línea por su trazo', () => {
+    const intercaladas = Array.from({ length: 8 }, (_, i) => ({
+      ...lectura(i * 120, 5),
+      device_id: i % 2 === 0 ? 'FARM-01' : 'FARM-02',
+    }))
+    const series = construirOpcionCurvaTermica(intercaladas, ETIQUETAS, undefined, 'light').series as Array<{
+      lineStyle: { color: string; type: string }
+    }>
+    expect(series.map((s) => s.lineStyle.type)).toEqual(['solid', 'dashed'])
+    // Navy y gris de la paleta de gráficas; el rosa de marca (#FF7AA2) no aparece en datos.
+    const tema = temaGrafica('light')
+    expect(series.map((s) => s.lineStyle.color)).toEqual([tema.primary, tema.secondary])
+    expect(series.map((s) => s.lineStyle.color.toUpperCase())).not.toContain('#FF7AA2')
   })
 
   it('con ventana, el eje termina en «ahora» y descarta lo anterior al inicio', () => {

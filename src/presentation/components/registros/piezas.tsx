@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, Copy, X } from 'lucide-react'
+import { Check, Copy, SlidersHorizontal, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '../ui/button'
@@ -64,6 +64,43 @@ export function BotonCopiar({ valor, campo }: { valor: string; campo: string }) 
         {copiado ? t('comunes.copiado') : ''}
       </span>
     </>
+  )
+}
+
+/**
+ * Bajo 640 px la barra de filtros muestra solo la búsqueda y este botón, que
+ * despliega el resto de campos (`controla` es el id de su contenedor). Desde
+ * 640 px no se pinta: todos los campos están siempre a la vista.
+ */
+export function BotonMasFiltros({
+  abierto,
+  onCambiar,
+  controla,
+  activos,
+  texto,
+  textoActivos,
+}: {
+  abierto: boolean
+  onCambiar: (abierto: boolean) => void
+  controla: string
+  /** Filtros aplicados que quedan dentro del bloque plegado. */
+  activos: number
+  texto: string
+  textoActivos: (count: number) => string
+}) {
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      className="shrink-0 sm:hidden"
+      aria-expanded={abierto}
+      aria-controls={controla}
+      onClick={() => onCambiar(!abierto)}
+    >
+      <SlidersHorizontal aria-hidden />
+      {activos > 0 ? textoActivos(activos) : texto}
+    </Button>
   )
 }
 

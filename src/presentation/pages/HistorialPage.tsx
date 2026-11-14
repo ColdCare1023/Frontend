@@ -12,13 +12,14 @@ import { duracionBreve, duracionPeriodo, fechaCorta, fechaHora, hora } from '@/l
 import { rangoPagina } from '@/lib/paginacion'
 import { resumenPeriodo, resumenPorDia, type ExcursionEquipo } from '@/lib/resumenTermico'
 import { cn } from '@/lib/utils'
+import { useCoincideMedia } from '@/presentation/hooks/useCoincideMedia'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { GraficaDiferida } from '../components/GraficaDiferida'
 import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
 import { RiskBadge } from '../components/RiskBadge'
-import { BotonCopiar, ChipsFiltro, Dato, PlantillaBandeja, type Chip } from '../components/registros/piezas'
+import { BotonCopiar, BotonMasFiltros, ChipsFiltro, Dato, PlantillaBandeja, type Chip } from '../components/registros/piezas'
 import { CeldaRegistro, EncabezadoRegistro, TablaRegistros } from '../components/registros/TablaRegistros'
 import { idBotonFila } from '../components/registros/ids'
 import { Button } from '../components/ui/button'
@@ -63,6 +64,7 @@ export function HistorialPage() {
   // HU-36 criterio 3: el rango inválido se bloquea en el FRONTEND antes de consultar.
   const [errorRango, setErrorRango] = useState<string | null>(null)
   const [expandida, setExpandida] = useState<string | null>(null)
+  const [masFiltros, setMasFiltros] = useState(false)
   const [lecturaDetalle, setLecturaDetalle] = useState<LecturaTermica | null>(null)
   const [evidencia, setEvidencia] = useState<EvidenciaInferencia | null>(null)
   const [cargandoEvidencia, setCargandoEvidencia] = useState(false)
@@ -81,6 +83,10 @@ export function HistorialPage() {
   const resumen = useMemo(() => resumenPeriodo(lecturas), [lecturas])
   const porDia = useMemo(() => resumenPorDia(lecturas), [lecturas])
   const variosEquipos = resumen.equipos.length > 1
+  // Ambiente y humedad solo caben como columnas desde 1536 px. Se montan (no
+  // se ocultan con CSS): con `hidden` seguían contando en el `colSpan` de la
+  // cabecera de día y la tabla abría dos columnas fantasma a la derecha.
+  const conAmbiente = useCoincideMedia('(min-width: 96rem)')
   const equiposVistos = useMemo(() => [...new Set(lecturas.map((l) => l.device_id))].sort(), [lecturas])
 
   // La curva se revela una sola vez por visita (un momento por página).
@@ -192,42 +198,59 @@ export function HistorialPage() {
 
   const barra = (
     <>
+      {/* Rejilla de filtros en pares: equipo y riesgo, desde y hasta, y las
+          acciones debajo (antes «Hasta» quedaba sola en una segunda fila). Con
+          el rail a la derecha (1280–1535 px) la columna no da para 4 campos sin
+          cortar «dd/mm/aaaa hh:mm». Bajo 640 px solo se ve el equipo; el resto
+          se despliega con «Filtros». */}
       <form
         role="search"
         aria-label={t('historial.filtro.etiqueta')}
-        className="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:px-4"
+        className="grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4 lg:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4"
         onSubmit={(e) => {
           e.preventDefault()
           consultarCon(filtros)
         }}
       >
-        <div className="w-full sm:w-48">
+        <div className="min-w-0">
           <Label htmlFor="f-device" className="text-meta text-muted">{t('historial.filtro.equipo')}</Label>
-          <div className="relative">
-            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-            <Input id="f-device" list="historial-equipos" className="h-9 pl-9 pointer-coarse:h-11" value={filtros.device_id ?? ''} onChange={(e) => actualizarFiltro('device_id', e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} />
-            <datalist id="historial-equipos">{equiposVistos.map((equipo) => <option key={equipo} value={equipo} />)}</datalist>
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
+              <Input id="f-device" list="historial-equipos" className="h-9 pl-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.device_id ?? ''} onChange={(e) => actualizarFiltro('device_id', e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} />
+              <datalist id="historial-equipos">{equiposVistos.map((equipo) => <option key={equipo} value={equipo} />)}</datalist>
+            </div>
+            <BotonMasFiltros
+              abierto={masFiltros}
+              onCambiar={setMasFiltros}
+              controla="historial-mas-filtros"
+              activos={(aplicados.riesgo_efectivo ? 1 : 0) + (aplicados.desde || aplicados.hasta ? 1 : 0)}
+              texto={t('historial.filtro.mas')}
+              textoActivos={(count) => t('historial.filtro.masActivos', { count })}
+            />
           </div>
         </div>
-        <div className="w-[calc(50%-6px)] sm:w-40">
-          <Label htmlFor="f-riesgo" className="text-meta text-muted">{t('historial.nivelRiesgo')}</Label>
-          <NativeSelect id="f-riesgo" className="h-9 pointer-coarse:h-11" value={filtros.riesgo_efectivo ?? ''} onChange={(e) => consultarCon({ ...filtros, riesgo_efectivo: e.target.value || undefined })}>
-            <option value="">{t('historial.todosNiveles')}</option>
-            {NIVELES_RIESGO.map((nivel) => <option key={nivel} value={nivel}>{t(`riesgo.${nivel}`)}</option>)}
-          </NativeSelect>
+        <div id="historial-mas-filtros" className={cn('grid grid-cols-1 gap-x-3 gap-y-2 min-[480px]:grid-cols-2 sm:contents', !masFiltros && 'max-sm:hidden')}>
+          <div className="min-w-0 min-[480px]:max-sm:col-span-2">
+            <Label htmlFor="f-riesgo" className="text-meta text-muted">{t('historial.nivelRiesgo')}</Label>
+            <NativeSelect id="f-riesgo" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.riesgo_efectivo ?? ''} onChange={(e) => consultarCon({ ...filtros, riesgo_efectivo: e.target.value || undefined })}>
+              <option value="">{t('historial.todosNiveles')}</option>
+              {NIVELES_RIESGO.map((nivel) => <option key={nivel} value={nivel}>{t(`riesgo.${nivel}`)}</option>)}
+            </NativeSelect>
+          </div>
+          <div className="min-w-0">
+            <Label htmlFor="f-desde" className="text-meta text-muted">{t('historial.desde')}</Label>
+            <SelectorFecha id="f-desde" conHora valor={filtros.desde ?? ''} onCambiar={(valor) => actualizarFiltro('desde', valor)} invalido={errorRango !== null} aria-describedby={errorRango ? 'historial-error-rango' : undefined} />
+          </div>
+          <div className="min-w-0">
+            <Label htmlFor="f-hasta" className="text-meta text-muted">{t('historial.hasta')}</Label>
+            <SelectorFecha id="f-hasta" conHora valor={filtros.hasta ?? ''} onCambiar={(valor) => actualizarFiltro('hasta', valor)} invalido={errorRango !== null} aria-describedby={errorRango ? 'historial-error-rango' : undefined} />
+          </div>
         </div>
-        <div className="w-full min-[480px]:w-[calc(50%-6px)] sm:w-52">
-          <Label htmlFor="f-desde" className="text-meta text-muted">{t('historial.desde')}</Label>
-          <SelectorFecha id="f-desde" conHora valor={filtros.desde ?? ''} onCambiar={(valor) => actualizarFiltro('desde', valor)} invalido={errorRango !== null} aria-describedby={errorRango ? 'historial-error-rango' : undefined} />
-        </div>
-        <div className="w-full min-[480px]:w-[calc(50%-6px)] sm:w-52">
-          <Label htmlFor="f-hasta" className="text-meta text-muted">{t('historial.hasta')}</Label>
-          <SelectorFecha id="f-hasta" conHora valor={filtros.hasta ?? ''} onCambiar={(valor) => actualizarFiltro('hasta', valor)} invalido={errorRango !== null} aria-describedby={errorRango ? 'historial-error-rango' : undefined} />
-        </div>
-        <div className="flex flex-1 items-center gap-2">
-          <Button type="submit" size="sm" className="h-9 pointer-coarse:h-11">{t('historial.aplicar')}</Button>
+        <div className="col-span-full flex flex-wrap items-center gap-2">
+          <Button type="submit" size="sm">{t('historial.aplicar')}</Button>
           {hayFiltros && (
-            <Button type="button" variant="ghost" size="sm" className="h-9 text-muted pointer-coarse:h-11" onClick={limpiar}>
+            <Button type="button" variant="ghost" size="sm" className="text-muted" onClick={limpiar}>
               <FilterX aria-hidden />
               {t('historial.limpiar')}
             </Button>
@@ -273,7 +296,7 @@ export function HistorialPage() {
     <div id="historial-datos-tabla">
       <TablaRegistros
         titulo={t('historial.titulo')}
-        columnas={variosEquipos ? 7 : 6}
+        columnas={4 + (variosEquipos ? 1 : 0) + (conAmbiente ? 2 : 0)}
         filas={visibles}
         clave={claveLectura}
         fechaDe={fechaDe}
@@ -302,9 +325,14 @@ export function HistorialPage() {
             {variosEquipos && <EncabezadoRegistro className="w-[136px]">{t('historial.dispositivo')}</EncabezadoRegistro>}
             <EncabezadoRegistro className="w-[144px] text-right">{t('historial.tempInterna')}</EncabezadoRegistro>
             <EncabezadoRegistro className="w-[144px]">{t('historial.riesgo')}</EncabezadoRegistro>
-            <EncabezadoRegistro className="w-[132px]">{t('historial.puerta')}</EncabezadoRegistro>
-            <EncabezadoRegistro className="hidden w-[112px] text-right 2xl:table-cell">{t('historial.tempAmbiental')}</EncabezadoRegistro>
-            <EncabezadoRegistro className="hidden w-[96px] text-right 2xl:table-cell">{t('historial.humedad')}</EncabezadoRegistro>
+            {/* Sin ancho fijo: toma el sobrante. Con 132 px la suma pasaba de 720 y a 768 px la tabla se desplazaba. */}
+            <EncabezadoRegistro>{t('historial.puerta')}</EncabezadoRegistro>
+            {conAmbiente && (
+              <>
+                <EncabezadoRegistro className="w-[112px] text-right">{t('historial.tempAmbiental')}</EncabezadoRegistro>
+                <EncabezadoRegistro className="w-[96px] text-right">{t('historial.humedad')}</EncabezadoRegistro>
+              </>
+            )}
           </>
         }
         renderCeldas={(lectura) => (
@@ -350,8 +378,12 @@ export function HistorialPage() {
                 </span>
               )}
             </CeldaRegistro>
-            <CeldaRegistro area="oculta" className="nums hidden text-right text-meta text-muted 2xl:table-cell">{cifra(lectura.temperatura_ambiental)} °C</CeldaRegistro>
-            <CeldaRegistro area="oculta" className="nums hidden text-right text-meta text-muted 2xl:table-cell">{cifra(lectura.humedad_ambiental, 0)} %</CeldaRegistro>
+            {conAmbiente && (
+              <>
+                <CeldaRegistro area="oculta" className="nums text-right text-meta text-muted">{cifra(lectura.temperatura_ambiental)} °C</CeldaRegistro>
+                <CeldaRegistro area="oculta" className="nums text-right text-meta text-muted">{cifra(lectura.humedad_ambiental, 0)} %</CeldaRegistro>
+              </>
+            )}
           </>
         )}
         renderDetalle={(lectura) => <DetalleLectura lectura={lectura} onVerOrigen={() => void abrirEvidencia(lectura)} />}
@@ -371,13 +403,17 @@ export function HistorialPage() {
       {conDatos && (
         <TiraEstado
           etiqueta={t('historial.resumen.etiqueta')}
+          apilarGuia
           guia={guia}
           segmentos={[
             { clave: 'lecturas', etiqueta: t('historial.resumen.lecturas'), valor: lecturas.length },
             { clave: 'rango', etiqueta: t('historial.resumen.enRango'), valor: resumen.pctEnRango == null ? '—' : `${formatearCifra(resumen.pctEnRango * 100, 1)} %` },
             { clave: 'excursiones', etiqueta: t('historial.resumen.excursiones'), valor: resumen.excursiones.length, tono: resumen.excursiones.length > 0 ? 'critico' : 'neutro' },
-            { clave: 'min', etiqueta: t('historial.resumen.minima'), valor: `${cifra(resumen.min)} °C` },
-            { clave: 'max', etiqueta: t('historial.resumen.maxima'), valor: `${cifra(resumen.max)} °C` },
+            // Bajo 1024 px mínima y máxima van juntas: con 5 segmentos la tira
+            // dejaba «Máxima» sola en otra fila (a 375 y a 768 px).
+            { clave: 'min', etiqueta: t('historial.resumen.minima'), valor: `${cifra(resumen.min)} °C`, className: 'max-lg:hidden' },
+            { clave: 'max', etiqueta: t('historial.resumen.maxima'), valor: `${cifra(resumen.max)} °C`, className: 'max-lg:hidden' },
+            { clave: 'minmax', etiqueta: t('historial.resumen.minMax'), valor: `${cifra(resumen.min)} – ${cifra(resumen.max)} °C`, className: 'lg:hidden' },
           ]}
         />
       )}

@@ -92,7 +92,7 @@ export function VacioAlertas({
       <Link
         to="/dashboard"
         data-accion-vacio
-        className="inline-flex h-11 items-center rounded-(--radius-field) border border-border-strong bg-surface px-3 text-[13px] font-medium text-foreground transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
+        className="inline-flex h-11 items-center rounded-(--radius-field) border border-border-strong bg-surface px-3 text-body font-medium text-foreground transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
       >
         {t('alertas.vacio.irMonitoreo')}
       </Link>

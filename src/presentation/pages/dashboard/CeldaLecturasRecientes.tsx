@@ -50,7 +50,7 @@ export const CeldaLecturasRecientes = memo(function CeldaLecturasRecientes({
           {recientes.map((lectura) => (
             <li
               key={lectura.id || `${lectura.device_id}-${lectura.timestamp}`}
-              className="grid min-h-9 grid-cols-[minmax(4.5rem,auto)_auto_1fr_auto] items-center gap-3 py-1.5"
+              className="grid min-h-9 grid-cols-[minmax(4.5rem,auto)_3.5rem_minmax(0,1fr)_auto] items-center gap-3 py-1.5"
             >
               <time dateTime={lectura.timestamp} title={fechaHora(lectura.timestamp)} className="nums text-meta whitespace-nowrap text-faint">
                 {esDeHoy(lectura.timestamp) ? hora(lectura.timestamp) : fechaHora(lectura.timestamp)}
@@ -64,7 +64,8 @@ export const CeldaLecturasRecientes = memo(function CeldaLecturasRecientes({
                 valor={lectura.temperatura_interna ?? null}
                 tono={lectura.temperatura_interna == null ? 'sin_datos' : tonoDesdeRiesgo(lectura.riesgo_efectivo)}
                 decorativa
-                className="justify-self-end"
+                // Junto a la cifra (no al otro extremo de la fila): se lee de un vistazo dónde cae.
+                className="w-full max-w-40"
               />
               <RiskBadge nivel={lectura.riesgo_efectivo} />
             </li>

@@ -61,7 +61,7 @@ describe('estadoVivoStore: selectores puros', () => {
     expect(aplicarLectura(ultimas, 'A', lectura(6, 'normal', '2026-11-14T10:01:00Z')).A.temperatura).toBe(6)
   })
 
-  it('resume alertas sin atender con críticas, truncado y las 3 más recientes', () => {
+  it('resume alertas sin atender con críticas, truncado y las 3 más urgentes', () => {
     const alerta = (id: string, nivel: AlertaTermica['nivel_riesgo'], creada: string) =>
       ({ id, device_id: 'A', nivel_riesgo: nivel, created_at: creada }) as AlertaTermica
     const resumen = resumirAlertas(
@@ -72,7 +72,8 @@ describe('estadoVivoStore: selectores puros', () => {
       200,
     )
     expect(resumen).toMatchObject({ total: 4, criticas: 1, truncado: false })
-    expect(resumen.recientes.map((a) => a.id)).toEqual(['3', '2', '1'])
+    // Orden de la bandeja: la crítica primero; las preventivas, la más antigua antes.
+    expect(resumen.recientes.map((a) => a.id)).toEqual(['1', '4', '2'])
     expect(resumirAlertas([[alerta('1', 'normal', '')]], 1).truncado).toBe(true)
   })
 
