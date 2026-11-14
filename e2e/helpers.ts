@@ -42,3 +42,15 @@ export async function abrirEquipo(page: Page, id: string, tab?: string) {
 export async function abrirOpcionesEquipo(page: Page, id: string) {
   await page.getByRole('button', { name: `Opciones: ${id}`, exact: true }).click()
 }
+
+/**
+ * axe mide el contraste del estado que ve en ese instante. Con datos en vivo
+ * (SSE/demo) una animación de entrada puede empezar justo al medir y reportar
+ * el color a medio fundido (p. ej. blanco al 85 % sobre azul). Para medir el
+ * estado en reposo se apagan animaciones y transiciones solo durante la prueba.
+ */
+export async function congelarAnimaciones(page: import('@playwright/test').Page) {
+  await page.addStyleTag({
+    content: '*,*::before,*::after{animation:none!important;transition:none!important}',
+  })
+}

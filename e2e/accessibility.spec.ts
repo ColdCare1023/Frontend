@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { irA } from './helpers'
+import { congelarAnimaciones, irA } from './helpers'
 
 /**
  * axe mide el color pintado: si corre durante una entrada de página o un
@@ -35,6 +35,7 @@ test('monitoreo, alertas e historial sin violaciones axe WCAG 2 A/AA', async ({ 
     await irA(page, route)
     await expect(page.locator('h1')).toBeVisible()
     await esperarAnimaciones(page)
+    await congelarAnimaciones(page)
     const result = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
       .analyze()
@@ -60,6 +61,7 @@ test('10 rutas disponibles para administración sin violaciones axe WCAG 2 A/AA'
     await irA(page, route)
     await expect(page.locator('h1')).toBeVisible()
     await esperarAnimaciones(page)
+    await congelarAnimaciones(page)
     const result = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
       .analyze()

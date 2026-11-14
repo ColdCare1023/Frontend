@@ -15,7 +15,7 @@ export type TemaResuelto = 'dark' | 'light'
 export const CLAVE_TEMA = 'coldcare-tema'
 const PREFERENCIAS: PreferenciaTema[] = ['dark', 'light', 'system']
 // Igual que --color-background de cada tema (index.css).
-const COLOR_BARRA: Record<TemaResuelto, string> = { dark: '#0a0d14', light: '#f5f7fa' }
+const COLOR_BARRA: Record<TemaResuelto, string> = { dark: '#0b0b0c', light: '#f5f7fa' }
 
 type Escucha = () => void
 const escuchas = new Set<Escucha>()
