@@ -28,6 +28,18 @@ test('monitoreo 1440×900: lectura, condiciones, equipo y curva sobre el pliegue
   const [a, c, e] = await Promise.all([lectura.boundingBox(), condiciones.boundingBox(), equipo.boundingBox()])
   expect(c!.x).toBeGreaterThan(a!.x + a!.width - 1)
   expect(e!.y).toBeGreaterThan(c!.y + c!.height - 1)
+  // Fila A de 288 px (DIRECTION §12): Condiciones y Equipo miden lo mismo y la Lectura no se estira.
+  expect(Math.abs(c!.height - e!.height)).toBeLessThanOrEqual(2)
+  expect(a!.height).toBeLessThanOrEqual(300)
+  // Estado de equipos: con 2 equipos, la cinta de 24 h de cada uno se ve sin desplazar la lista.
+  const estado = page.getByRole('region', { name: 'Estado operativo de equipos' })
+  const cajaLista = (await estado.getByRole('list').boundingBox())!
+  const cintas = estado.getByRole('img', { name: /^Últimas 24 h de / })
+  await expect(cintas).toHaveCount(2)
+  for (const cinta of await cintas.all()) {
+    const caja = (await cinta.boundingBox())!
+    expect(caja.y + caja.height).toBeLessThanOrEqual(cajaLista.y + cajaLista.height)
+  }
   await sinScrollHorizontal(page)
   if (process.env.CAPTURAS_P5C) await page.screenshot({ path: `${process.env.CAPTURAS_P5C}/dashboard-1440.png`, fullPage: true })
 })

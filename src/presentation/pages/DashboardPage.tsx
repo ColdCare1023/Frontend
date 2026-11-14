@@ -50,7 +50,9 @@ export function DashboardPage() {
   const { deviceId, elegir: setEquipoElegido } = useEquipoSeleccionado(equipos)
   const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana, deviceId)
   const alertas = useAlertasPendientes()
-  const ultimaAtendida = useUltimaAlertaAtendida(alertas.estado === 'listo' && alertas.total === 0)
+  // Contexto de «Alertas pendientes»: sin pendientes es el estado vacío y con
+  // menos de 3 completa la lista (misma consulta de lectura que Alertas).
+  const ultimaAtendida = useUltimaAlertaAtendida(alertas.estado === 'listo' && alertas.total < 3)
   const ultimasVivo = useEstadoVivoStore((s) => s.ultimas)
 
   const flota = equipos

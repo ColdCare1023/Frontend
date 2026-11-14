@@ -146,9 +146,10 @@
 
   /* Acento de marca en texto y series de las gráficas. */
   --color-marca-texto: #0b5cff;
-  /* Trazo interno = tinta de registrador; ambiente discontinuo. */
+  /* Trazo interno = tinta de registrador; ambiente discontinuo (3.6:1 sobre
+     blanco, mínimo de 3:1 para un trazo que hay que distinguir). */
   --color-grafica-1: #1b2b47;
-  --color-grafica-2: #8a97ab;
+  --color-grafica-2: #7a879c;
   /* Lienzo de marca del acceso: oscuro en ambos temas (no se redefine abajo). */
   --color-marca-noche: #050505;
 
@@ -321,7 +322,6 @@
     from {
       opacity: 0;
       transform: translateY(calc(0.3em * var(--dir, 1) * var(--mov, 1)));
-      filter: blur(calc(2px * var(--mov, 1)));
     }
   }
   @keyframes insignia {
@@ -400,10 +400,12 @@
   --color-accent-hover: #ffa9c3;
   --color-accent-tint: #2a1520;
 
-  --color-success-700: #4fdcff;
-  --color-success-600: #00b8e6;
-  --color-success-100: #062634;
-  --color-success-200: #0b4357;
+  /* Teal de gel pack desaturado: el cian de marca brillaba como neón y
+     competía con la cifra. 700: 8.9:1 y 600: 5.7:1 sobre la tarjeta. */
+  --color-success-700: #5cc6d4;
+  --color-success-600: #2a9fb3;
+  --color-success-100: #0d2a31;
+  --color-success-200: #164650;
 
   --color-warning-700: #f5b94f;
   --color-warning-600: #e4a23a;

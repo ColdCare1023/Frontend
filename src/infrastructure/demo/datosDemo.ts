@@ -295,6 +295,30 @@ function generarEstadoInicial(): EstadoDemo {
     }
   }
 
+  // Evidencia de cada alerta, como la registra el backend desde la migración
+  // 0035: inicio por hora de captura, la temperatura más alejada de 2–8 °C
+  // del episodio y su duración. Se deriva de las lecturas simuladas (nada
+  // inventado): el episodio dura mientras el riesgo no vuelve a «normal».
+  for (const alerta of alertas) {
+    const propias = lecturas.filter((l) => l.device_id === alerta.device_id)
+    const inicio = propias.findIndex((l) => (l.id ?? '') === alerta.reading_id)
+    if (inicio < 0) continue
+    let fin = inicio
+    while (fin + 1 < propias.length && (propias[fin + 1].nivel_riesgo ?? 'normal') !== 'normal') fin++
+    const desvio = (v: number) => (v > 8 ? v - 8 : v < 2 ? 2 - v : 0)
+    let pico: number | null = null
+    for (const l of propias.slice(inicio, fin + 1)) {
+      const v = l.temperatura_interna
+      if (v == null) continue
+      if (pico === null || desvio(v) > desvio(pico) || (desvio(v) === desvio(pico) && Math.abs(v - 5) > Math.abs(pico - 5))) pico = v
+    }
+    alerta.iniciada_en = propias[inicio].timestamp
+    alerta.temperatura_pico = pico === null ? null : redondear(pico, 1)
+    // Hasta la primera lectura de vuelta en «normal» (o la última, si sigue abierto).
+    const cierre = propias[fin + 1] ?? propias[fin]
+    alerta.duracion_s = Math.max(0, Math.round((Date.parse(cierre.timestamp) - Date.parse(propias[inicio].timestamp)) / 1000))
+  }
+
   const acciones: AccionCorrectiva[] = alertas
     .filter((a) => a.estado === 'atendida' && a.nivel_riesgo === 'excursion_critica')
     .map((a, i) => ({

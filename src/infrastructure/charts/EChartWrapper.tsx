@@ -69,22 +69,47 @@ export function EChartWrapper({
 }: EChartWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<echarts.ECharts | null>(null)
+  // Lo que la persona eligió en la leyenda (p. ej. mostrar «ambiental»): la
+  // opción se reconstruye con cada lectura y no debe deshacer esa elección.
+  const seleccionLeyenda = useRef<Record<string, boolean> | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
-    chartRef.current = echarts.init(containerRef.current)
-    const observer = new ResizeObserver(() => chartRef.current?.resize())
+    const chart = echarts.init(containerRef.current)
+    chartRef.current = chart
+    chart.on('legendselectchanged', (evento) => {
+      seleccionLeyenda.current = { ...(evento as { selected: Record<string, boolean> }).selected }
+    })
+    // PERFORMANCE C6: un solo resize al terminar de cambiar el tamaño (≈100 ms)
+    // en vez de uno por fotograma mientras el contenedor se ajusta.
+    let espera: ReturnType<typeof setTimeout> | undefined
+    const observer = new ResizeObserver(() => {
+      clearTimeout(espera)
+      espera = setTimeout(() => chartRef.current?.resize(), 100)
+    })
     observer.observe(containerRef.current)
     return () => {
+      clearTimeout(espera)
       observer.disconnect()
-      chartRef.current?.dispose()
+      chart.dispose()
       chartRef.current = null
     }
   }, [])
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    chartRef.current?.setOption({ ...option, ...(reducedMotion ? { animation: false } : {}) }, { notMerge: false })
+    const leyenda = (option as { legend?: unknown }).legend
+    const elegida = seleccionLeyenda.current
+    const conLeyenda =
+      elegida && leyenda && typeof leyenda === 'object' && !Array.isArray(leyenda)
+        ? { legend: { ...leyenda, selected: { ...((leyenda as { selected?: Record<string, boolean> }).selected ?? {}), ...elegida } } }
+        : {}
+    // `replaceMerge` sustituye las series: una que desaparece (los tramos fuera
+    // de rango, otro equipo) no queda dibujada de la opción anterior.
+    chartRef.current?.setOption(
+      { ...option, ...conLeyenda, ...(reducedMotion ? { animation: false } : {}) },
+      { replaceMerge: ['series'] },
+    )
   }, [option])
 
   return (

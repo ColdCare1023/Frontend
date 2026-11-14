@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { CircleCheck, Hourglass, Info, ShieldAlert, TriangleAlert, WifiOff } from 'lucide-react'
 
 import { umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
-import { porcentajeConDatos, tramosDisponibilidad } from '@/domain/value-objects/Disponibilidad'
+import { porcentajeConDatos, tramosDisponibilidad, type EstadoTramo } from '@/domain/value-objects/Disponibilidad'
 import { fechaHora, hora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { Badge } from '../../components/ui/badge'
@@ -14,6 +14,8 @@ import { CintaDisponibilidad } from './CintaDisponibilidad'
 import { FONDO_TRAMO } from './utilidades'
 import { ordenarEquipos, rangoEquipo, tieneIncidencia } from './equipos'
 import { useMinuto } from '../../hooks/useReloj'
+
+const ORDEN_LEYENDA: readonly EstadoTramo[] = ['operativo', 'sin_datos', 'perdida', 'falla_sensor', 'suspendido', 'sin_registro']
 
 export interface TemperaturaEquipo {
   valor: number | null
@@ -134,10 +136,12 @@ const FilaEquipo = memo(function FilaEquipo({
     <li
       aria-current={seleccionado ? 'true' : undefined}
       className={clsx(
-        'relative px-2 py-3',
+        'relative px-2 py-2',
         seleccionado && 'bg-primary-tint before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary',
       )}
     >
+      {/* Nombre a todo lo ancho (sin «Cámara fría de va…»): la cifra y la
+          Regla S van apiladas a la derecha y ocupan lo que la Regla. */}
       <div className="flex items-center gap-2">
         <IconoEquipo equipo={equipo} />
         <button
@@ -146,11 +150,15 @@ const FilaEquipo = memo(function FilaEquipo({
           aria-label={t('dashboard.mostrarEnMonitoreo', { equipo: nombre })}
           className="flex min-w-0 flex-1 cursor-pointer flex-col items-start rounded-(--radius-field) text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <span className="w-full truncate text-body font-medium text-foreground">{nombre}</span>
+          <span className="w-full text-body font-medium text-foreground sm:truncate" title={nombre}>
+            {nombre}
+          </span>
           {equipo.nombre && <span className="codigo w-full truncate text-meta text-faint">{equipo.id}</span>}
         </button>
-        <span className="nums shrink-0 text-body font-semibold text-foreground">{valor === null ? '—' : `${valor.toFixed(1)}°`}</span>
-        <Regla tamano="s" valor={valor} tono={valor === null ? 'sin_datos' : tonoDesdeRiesgo(temperatura?.riesgo)} decorativa />
+        <span className="flex shrink-0 flex-col items-end gap-1">
+          <span className="nums text-body font-semibold text-foreground">{valor === null ? '—' : `${valor.toFixed(1)}°`}</span>
+          <Regla tamano="s" valor={valor} tono={valor === null ? 'sin_datos' : tonoDesdeRiesgo(temperatura?.riesgo)} decorativa />
+        </span>
         <Button
           variant="ghost"
           size="sm"
@@ -162,9 +170,9 @@ const FilaEquipo = memo(function FilaEquipo({
         </Button>
       </div>
       <CintaDisponibilidad tramos={tramos} equipo={nombre} className="mt-2" />
-      <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-meta">
-        <BadgeEstadoOperativo equipo={equipo} />
-        <AvisoFila equipo={equipo} porcentaje={porcentaje} />
+      {/* Un aviso, dos líneas como máximo: la frase completa está en el panel de detalle. */}
+      <p className="mt-1.5 line-clamp-2 text-meta">
+        <BadgeEstadoOperativo equipo={equipo} /> <AvisoFila equipo={equipo} porcentaje={porcentaje} />
       </p>
     </li>
   )
@@ -193,7 +201,14 @@ export const CeldaEstadoEquipos = memo(function CeldaEstadoEquipos({
   const ahora = useMinuto()
   const ordenados = useMemo(() => ordenarEquipos(equipos), [equipos])
   const problemas = ordenados.filter(tieneIncidencia).length
-  const leyenda = (['operativo', 'sin_datos', 'perdida', 'falla_sensor'] as const).map((estado) => (
+  // La leyenda nombra solo los estados que aparecen en las cintas: con dos
+  // equipos sanos son dos muestras en una línea, no cuatro en tres.
+  const presentes = useMemo(() => {
+    const estados = new Set<EstadoTramo>()
+    for (const equipo of ordenados) for (const tramo of tramosDisponibilidad(equipo, ahora)) estados.add(tramo.estado)
+    return ORDEN_LEYENDA.filter((estado) => estados.has(estado))
+  }, [ordenados, ahora])
+  const leyenda = presentes.map((estado) => (
     <span key={estado} className="inline-flex items-center gap-1">
       <span aria-hidden className={clsx('size-2 rounded-[2px]', FONDO_TRAMO[estado])} />
       {t(`dashboard.cinta.${estado}`)}
@@ -216,7 +231,7 @@ export const CeldaEstadoEquipos = memo(function CeldaEstadoEquipos({
       </div>
       {ordenados.length > 0 && (
         <>
-          <ul className="mt-2 min-h-0 flex-1 divide-y divide-border lg:overflow-y-auto lg:overscroll-contain">
+          <ul className="mt-1 min-h-0 flex-1 divide-y divide-border lg:overflow-y-auto lg:overscroll-contain">
             {ordenados.map((equipo) => (
               <FilaEquipo
                 key={equipo.id}
@@ -229,11 +244,11 @@ export const CeldaEstadoEquipos = memo(function CeldaEstadoEquipos({
               />
             ))}
           </ul>
-          <div className="nums mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-micro text-faint">
-            <span aria-hidden>
-              {t('dashboard.cintaInicio')} · {t('dashboard.cintaMedio')} · {t('dashboard.ejeAhora')}
-            </span>
-            <span className="flex flex-wrap gap-x-2">{leyenda}</span>
+          {/* Eje de la cinta (de −24 h a ahora) con la leyenda en medio: una línea. */}
+          <div className="nums mt-2 flex items-center justify-between gap-x-3 px-2 text-micro text-faint">
+            <span aria-hidden className="shrink-0">{t('dashboard.cintaInicio')}</span>
+            <span className="flex min-w-0 flex-wrap justify-center gap-x-3 gap-y-0.5">{leyenda}</span>
+            <span aria-hidden className="shrink-0">{t('dashboard.ejeAhora')}</span>
           </div>
         </>
       )}

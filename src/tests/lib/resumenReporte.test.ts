@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { conteoAlertas, submuestrear, tiempoEnRango } from '@/lib/resumenReporte'
+import { conteoAlertas, curvasPorEquipo, submuestrear, tiempoEnRango } from '@/lib/resumenReporte'
 
 const BASE = Date.parse('2026-07-01T00:00:00Z')
 const MIN = 60_000
@@ -87,6 +87,22 @@ describe('submuestrear y conteoAlertas', () => {
     const valores = buckets.filter((b) => b !== null)
     expect(Math.max(...valores.map((b) => b!.max))).toBe(9.9)
     expect(Math.min(...valores.map((b) => b!.min))).toBe(1.1)
+  })
+
+  it('curva por equipo: una línea por refrigerador, sin mezclar sus temperaturas', () => {
+    const lecturas = [...serie(0, 600, () => 5, 'FARM-02'), ...serie(0, 600, (m) => (m === 300 ? 9.4 : 3.5), 'FARM-01')]
+    const { curvas } = curvasPorEquipo(lecturas, 30)
+    expect(curvas.map((c) => c.device_id)).toEqual(['FARM-01', 'FARM-02'])
+    const medias02 = curvas[1].puntos.filter((p) => p !== null).map((p) => p!.media)
+    expect(new Set(medias02)).toEqual(new Set([5]))
+    // El pico de FARM-01 queda en el máximo de su tramo aunque la media siga en rango.
+    expect(Math.max(...curvas[0].puntos.map((p) => p?.max ?? 0))).toBe(9.4)
+  })
+
+  it('curva por equipo: un tramo sin lecturas es un hueco', () => {
+    const lecturas = [...serie(0, 100, () => 5), ...serie(400, 500, () => 5)]
+    const { curvas } = curvasPorEquipo(lecturas, 20)
+    expect(curvas[0].puntos.some((p) => p === null)).toBe(true)
   })
 
   it('separa críticas, preventivas y pendientes', () => {

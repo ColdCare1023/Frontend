@@ -7,8 +7,10 @@ import { fechaCorta, hora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import type { CondicionLinea } from './condicionesLinea'
 
+// Por debajo de 640 px la frase puede ocupar 2 líneas (min. 44 px, nunca
+// menos): truncada a una sola perdía justo la parte que importa.
 const BASE =
-  'mb-3 flex h-11 w-full min-w-0 items-center gap-2 rounded-(--radius-card) border px-4 text-left text-body xl:mb-4 animate-(--animate-fade)'
+  'mb-3 flex min-h-11 w-full min-w-0 items-center gap-2 rounded-(--radius-card) border px-4 text-left text-body max-sm:py-2 sm:h-11 xl:mb-4 animate-(--animate-fade)'
 const ENFOQUE = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 function useFrase() {
@@ -66,7 +68,7 @@ export const LineaEstado = memo(function LineaEstado({
   const extra = secundaria && (
     <span className="truncate text-faint max-lg:hidden">· {frase(secundaria)}</span>
   )
-  const texto = <span className="min-w-0 truncate">{frase(principal)}</span>
+  const texto = <span className="min-w-0 max-sm:line-clamp-2 sm:truncate">{frase(principal)}</span>
 
   if (principal.tipo === 'criticas' || principal.tipo === 'pendientes') {
     const critica = principal.tipo === 'criticas'
