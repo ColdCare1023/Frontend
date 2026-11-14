@@ -44,7 +44,7 @@ export function RequireRoles({ roles }: { roles: Rol[] }) {
   if (!tienePermiso(usuario.rol, roles)) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-honey-100 text-honey-700">
+        <span className="flex size-12 items-center justify-center rounded-full bg-warning-100 text-warning-700">
           <ShieldAlert className="size-6" />
         </span>
         <p className="text-sm text-muted">{t('comunes.sinPermiso')}</p>

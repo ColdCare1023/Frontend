@@ -42,7 +42,7 @@ export function TablaAlternativa({
       onToggle={(evento) => setAbierto(evento.currentTarget.open)}
       className="mt-4 border-t border-border pt-3"
     >
-      <summary className="inline-flex cursor-pointer items-center gap-2 rounded-(--radius-field) text-[13px] font-medium text-pine-600 hover:text-pine-700">
+      <summary className="inline-flex cursor-pointer items-center gap-2 rounded-(--radius-field) text-[13px] font-medium text-brand-600 hover:text-brand-700">
         <TableProperties className="size-3.5" aria-hidden />
         {t('comunes.verDatosGrafica')}
       </summary>
@@ -50,7 +50,7 @@ export function TablaAlternativa({
       <div className="mt-3 max-h-72 overflow-auto rounded-(--radius-field) border border-border">
         <table className="w-full text-left text-[13px]">
           <caption className="sr-only">{titulo}</caption>
-          <thead className="sticky top-0 bg-cream-100">
+          <thead className="sticky top-0 bg-neutral-100">
             <tr>
               {columnas.map((columna) => (
                 <th

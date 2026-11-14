@@ -72,9 +72,9 @@ export function GoogleAuthSection({ onIdToken, onExito, className }: GoogleAuthS
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-xl border border-clay-100 bg-clay-100/70 p-3 text-xs text-clay-700 animate-fade"
+          className="flex items-center gap-2 rounded-xl border border-danger-100 bg-danger-100/70 p-3 text-xs text-danger-700 animate-fade"
         >
-          <AlertCircle className="size-4 shrink-0 text-clay-600" aria-hidden />
+          <AlertCircle className="size-4 shrink-0 text-danger-600" aria-hidden />
           <span className="flex-1">{error}</span>
         </div>
       )}

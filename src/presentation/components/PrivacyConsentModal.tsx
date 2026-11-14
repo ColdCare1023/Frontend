@@ -44,7 +44,7 @@ export function PrivacyConsentModal() {
   return (
     <DialogPrimitive.Root open modal>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-ink-900/50 backdrop-blur-[2px] data-[state=open]:animate-fade" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-foreground/50 backdrop-blur-[2px] data-[state=open]:animate-fade" />
         <DialogPrimitive.Content
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
@@ -65,7 +65,7 @@ export function PrivacyConsentModal() {
           </DialogPrimitive.Description>
 
           {error && (
-            <p role="alert" className="mt-3 rounded-(--radius-field) bg-clay-100 px-3 py-2 text-[13px] text-clay-700">
+            <p role="alert" className="mt-3 rounded-(--radius-field) bg-danger-100 px-3 py-2 text-[13px] text-danger-700">
               {t('privacidad.errorAceptar')}
             </p>
           )}

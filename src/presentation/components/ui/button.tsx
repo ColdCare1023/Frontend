@@ -14,8 +14,8 @@ const buttonVariants = cva(
       variant: {
         primary: 'coldcare-primary-action font-semibold',
         secondary:
-          'border border-border-strong bg-surface text-foreground shadow-(--shadow-card) hover:border-border-field hover:bg-cream-200/60',
-        ghost: 'text-muted hover:bg-cream-200/70 hover:text-foreground',
+          'border border-border-strong bg-surface text-foreground shadow-(--shadow-card) hover:border-border-field hover:bg-neutral-200/60',
+        ghost: 'text-muted hover:bg-neutral-200/70 hover:text-foreground',
         danger: 'bg-critical-solid font-semibold text-on-critical shadow-(--shadow-card) hover:brightness-110',
       },
       size: {

@@ -14,8 +14,8 @@ const badgeVariants = cva(
     variants: {
       variant: {
         neutral: 'bg-transparent px-0 text-muted ring-transparent',
-        ok: 'bg-transparent px-0 text-ink-700 ring-transparent',
-        warn: 'bg-honey-100 text-honey-700 ring-honey-600/30',
+        ok: 'bg-transparent px-0 text-subtle ring-transparent',
+        warn: 'bg-warning-100 text-warning-700 ring-warning-600/30',
         critical: 'bg-critical-solid font-semibold text-on-critical ring-transparent',
         outline: 'bg-transparent text-muted ring-border-strong',
       },

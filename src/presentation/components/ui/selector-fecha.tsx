@@ -140,7 +140,7 @@ export function SelectorFecha({
               type="button"
               disabled={disabled}
               aria-label={t('comunes.abrirCalendario')}
-              className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors duration-(--duration-micro) hover:bg-cream-200/70 hover:text-foreground data-[state=open]:text-primary disabled:pointer-events-none"
+              className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-faint transition-colors duration-(--duration-micro) hover:bg-neutral-200/70 hover:text-foreground data-[state=open]:text-primary disabled:pointer-events-none"
             >
               <CalendarDays className="size-4" aria-hidden />
             </button>
@@ -174,13 +174,13 @@ export function SelectorFecha({
                 month_caption: 'flex h-9 items-center justify-center',
                 caption_label: 'text-sm font-semibold capitalize',
                 nav: 'absolute inset-x-0 top-0 z-10 flex h-9 items-center justify-between',
-                button_previous: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground',
-                button_next: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground',
+                button_previous: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground',
+                button_next: 'flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground',
                 month_grid: 'mt-2 border-collapse',
                 weekday: 'size-9 text-[11px] font-medium uppercase text-faint',
                 day: 'p-0.5 text-center',
                 day_button:
-                  'nums size-9 cursor-pointer rounded-lg text-[13px] transition-[background-color,color,transform] duration-(--duration-micro) hover:bg-cream-200/70 active:scale-95 focus-visible:outline-2 focus-visible:outline-ring',
+                  'nums size-9 cursor-pointer rounded-lg text-[13px] transition-[background-color,color,transform] duration-(--duration-micro) hover:bg-neutral-200/70 active:scale-95 focus-visible:outline-2 focus-visible:outline-ring',
                 selected: '[&>button]:bg-primary [&>button]:font-semibold [&>button]:text-on-primary [&>button]:hover:bg-primary-hover',
                 today: '[&>button]:font-semibold [&>button]:ring-1 [&>button]:ring-inset [&>button]:ring-primary/45',
                 outside: 'text-faint/60',
@@ -204,7 +204,7 @@ export function SelectorFecha({
                       onClick={() => elegirHora(hora)}
                       className={cn(
                         'nums shrink-0 cursor-pointer rounded-lg px-3 py-2 text-[13px] transition-colors duration-(--duration-micro)',
-                        hora === horaActual ? 'bg-primary font-semibold text-on-primary' : 'text-muted hover:bg-cream-200/70 hover:text-foreground',
+                        hora === horaActual ? 'bg-primary font-semibold text-on-primary' : 'text-muted hover:bg-neutral-200/70 hover:text-foreground',
                       )}
                     >
                       {hora}
@@ -234,7 +234,7 @@ export function SelectorFecha({
                 setTexto('')
                 setAbierto(false)
               }}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-cream-200/70 hover:text-foreground"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground"
             >
               {t('comunes.limpiar')}
             </button>

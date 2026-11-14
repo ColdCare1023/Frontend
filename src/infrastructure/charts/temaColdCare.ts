@@ -17,16 +17,16 @@ export function temaGrafica(tema: TemaGrafica = 'light') {
     muted: colorToken('faint', oscuro ? '#8A95A8' : '#5B6B82'),
     surface: colorToken('surface', oscuro ? '#0A0F1A' : '#FFFFFF'),
     border: colorToken('border', oscuro ? '#182132' : '#DFE6F0'),
-    grid: colorToken('cream-200', oscuro ? '#131B2B' : '#EDF2F8'),
+    grid: colorToken('neutral-200', oscuro ? '#131B2B' : '#EDF2F8'),
     primary: colorToken('grafica-1', oscuro ? '#00D1FF' : '#0B5CFF'),
     secondary: colorToken('grafica-2', oscuro ? '#A78BFA' : '#08738F'),
     // Rango de referencia 2–8 °C: cian de rango seguro (DESIGN.md) con texto
     // en el tono «normal» para que la etiqueta sea legible sobre la franja.
     safe: colorToken('secondary', oscuro ? '#00D1FF' : '#00D1FF'),
-    safeText: colorToken('glacier-700', oscuro ? '#4FDCFF' : '#07546A'),
-    critical: colorToken('clay-700', oscuro ? '#FF7A87' : '#A4233F'),
+    safeText: colorToken('success-700', oscuro ? '#4FDCFF' : '#07546A'),
+    critical: colorToken('danger-700', oscuro ? '#FF7A87' : '#A4233F'),
     // Líneas adicionales cuando la curva compara varios equipos.
     accent: colorToken('accent', oscuro ? '#FF8FB1' : '#FF7AA2'),
-    warn: colorToken('honey-600', oscuro ? '#E9A93A' : '#B45F06'),
+    warn: colorToken('warning-600', oscuro ? '#E9A93A' : '#B45F06'),
   }
 }

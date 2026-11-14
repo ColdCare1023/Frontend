@@ -14,27 +14,23 @@
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
-  /* Neutrales de superficie (cream) y de texto (ink). */
-  --color-cream-50: #ffffff;
-  --color-cream-100: #f5f8fc;
-  --color-cream-200: #edf2f8;
-  --color-cream-300: #dde5ef;
-  --color-cream-400: #bdcadb;
+  /* Neutrales de superficie (neutral) y texto secundario intermedio (subtle). */
+  --color-neutral-50: #ffffff;
+  --color-neutral-100: #f5f8fc;
+  --color-neutral-200: #edf2f8;
+  --color-neutral-300: #dde5ef;
+  --color-neutral-400: #bdcadb;
+  --color-subtle: #334155;
 
-  --color-ink-900: #0f172a;
-  --color-ink-700: #334155;
-  --color-ink-500: #475569;
-  --color-ink-400: #5b6b82;
-
-  /* Alias `pine` retenido para compatibilidad con las clases existentes. */
-  --color-pine-900: #0f172a;
-  --color-pine-800: #12366f;
-  --color-pine-700: #1647a0;
-  --color-pine-600: #0b5cff;
-  --color-pine-500: #2677ff;
-  --color-pine-300: #b8d2ff;
-  --color-pine-200: #dbe8ff;
-  --color-pine-100: #eef4ff;
+  /* Escala de marca (azul ColdCare). Para acciones usar `primary`. */
+  --color-brand-900: #0f172a;
+  --color-brand-800: #12366f;
+  --color-brand-700: #1647a0;
+  --color-brand-600: #0b5cff;
+  --color-brand-500: #2677ff;
+  --color-brand-300: #b8d2ff;
+  --color-brand-200: #dbe8ff;
+  --color-brand-100: #eef4ff;
 
   --color-secondary: #00d1ff;
   --color-secondary-hover: #00afd8;
@@ -44,26 +40,23 @@
   --color-accent-tint: #fff0f4;
 
   /* ── Estados ──────────────────────────────────────────────
-     normal (success/glacier) · aviso (honey) · crítico (clay/critical).
+     normal (success) · aviso (warning) · crítico (danger / critical).
      Cada estado lleva además texto e icono: nunca solo color. */
   --color-success-700: #07546a;
   --color-success-600: #08738f;
   --color-success-100: #e6f8fb;
-  --color-glacier-700: #07546a;
-  --color-glacier-600: #08738f;
-  --color-glacier-200: #b9e9f3;
-  --color-glacier-100: #e6f8fb;
+  --color-success-200: #b9e9f3;
 
-  --color-honey-700: #8a4b06;
-  --color-honey-600: #b45f06;
-  --color-honey-100: #fff6e6;
-  --color-honey-200: #f6d9a8;
+  --color-warning-700: #8a4b06;
+  --color-warning-600: #b45f06;
+  --color-warning-100: #fff6e6;
+  --color-warning-200: #f6d9a8;
 
-  --color-clay-700: #a4233f;
-  --color-clay-600: #c2304f;
-  --color-clay-100: #fff0f3;
-  --color-clay-200: #ffd3dd;
-  --color-clay-50: #fff8fa;
+  --color-danger-700: #a4233f;
+  --color-danger-600: #c2304f;
+  --color-danger-100: #fff0f3;
+  --color-danger-200: #ffd3dd;
+  --color-danger-50: #fff8fa;
 
   /* ── Semánticos de superficie ───────────────────────────── */
   --color-background: #f4f7fb;
@@ -259,25 +252,21 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-cream-50: #0b111d;
-  --color-cream-100: #070b14;
-  --color-cream-200: #131b2b;
-  --color-cream-300: #1c2638;
-  --color-cream-400: #2b374d;
+  --color-neutral-50: #0b111d;
+  --color-neutral-100: #070b14;
+  --color-neutral-200: #131b2b;
+  --color-neutral-300: #1c2638;
+  --color-neutral-400: #2b374d;
+  --color-subtle: #c9d1de;
 
-  --color-ink-900: #eef2f8;
-  --color-ink-700: #c9d1de;
-  --color-ink-500: #a3adbd;
-  --color-ink-400: #8a95a8;
-
-  --color-pine-900: #eef2f8;
-  --color-pine-800: #d4d4d4;
-  --color-pine-700: #c2d4ff;
-  --color-pine-600: #8fb0ff;
-  --color-pine-500: #6e9bff;
-  --color-pine-300: #2b374d;
-  --color-pine-200: #13305e;
-  --color-pine-100: #131b2b;
+  --color-brand-900: #eef2f8;
+  --color-brand-800: #d4d4d4;
+  --color-brand-700: #c2d4ff;
+  --color-brand-600: #8fb0ff;
+  --color-brand-500: #6e9bff;
+  --color-brand-300: #2b374d;
+  --color-brand-200: #13305e;
+  --color-brand-100: #131b2b;
 
   --color-secondary: #00d1ff;
   --color-secondary-hover: #5ee2ff;
@@ -289,28 +278,25 @@
   --color-success-700: #4fdcff;
   --color-success-600: #00b8e6;
   --color-success-100: #062634;
-  --color-glacier-700: #4fdcff;
-  --color-glacier-600: #00b8e6;
-  --color-glacier-200: #0b4357;
-  --color-glacier-100: #062634;
+  --color-success-200: #0b4357;
 
-  --color-honey-700: #f5b94f;
-  --color-honey-600: #e4a23a;
-  --color-honey-100: #241b0b;
-  --color-honey-200: #4a3712;
+  --color-warning-700: #f5b94f;
+  --color-warning-600: #e4a23a;
+  --color-warning-100: #241b0b;
+  --color-warning-200: #4a3712;
 
-  --color-clay-700: #ff7a87;
-  --color-clay-600: #ff6b76;
-  --color-clay-100: #2a0f14;
-  --color-clay-200: #4d1c25;
-  --color-clay-50: #1a0a0e;
+  --color-danger-700: #ff7a87;
+  --color-danger-600: #ff6b76;
+  --color-danger-100: #2a0f14;
+  --color-danger-200: #4d1c25;
+  --color-danger-50: #1a0a0e;
 
-  --color-background: #05080f;
-  --color-surface: #0a0f1a;
-  --color-surface-raised: #0f1626;
-  --color-surface-sunken: #060a12;
-  --color-border: #182132;
-  --color-border-strong: #243046;
+  --color-background: #070b14;
+  --color-surface: #0e1522;
+  --color-surface-raised: #141d2e;
+  --color-surface-sunken: #0a101b;
+  --color-border: #1f2a3d;
+  --color-border-strong: #2c3a52;
   --color-foreground: #eef2f8;
   --color-muted: #a3adbd;
   --color-faint: #8a95a8;
@@ -328,7 +314,7 @@
   --color-on-critical: #1a0306;
   --color-overlay: #02040a;
   --color-ring: #00d1ff;
-  --color-riel: #070b14;
+  --color-riel: #0a101b;
   --color-marca-texto: #00d1ff;
   --color-grafica-1: #00d1ff;
   --color-grafica-2: #a78bfa;
@@ -339,11 +325,11 @@
 
 
   /* Liquid glass sobre negro: base grafito translúcida, filo especular frío. */
-  --cristal-base: #070b14;
+  --cristal-base: #0a101b;
   --cristal-borde: rgb(255 255 255 / 0.09);
   --cristal-filo: rgb(255 255 255 / 0.14);
   --cristal-sombra: 0 18px 40px -16px rgb(0 0 0 / 0.75);
-  --tarjeta-cristal: linear-gradient(180deg, #0e1524, #0a0f1a 64%);
+  --tarjeta-cristal: linear-gradient(180deg, #121a2b, #0e1522 64%);
   --tarjeta-borde: rgb(148 163 184 / 0.13);
   --ambiente-1: rgb(0 209 255 / 0.09);
   --ambiente-2: rgb(11 92 255 / 0.10);
@@ -388,8 +374,8 @@
   }
 
   ::selection {
-    background-color: var(--color-pine-200);
-    color: var(--color-ink-900);
+    background-color: var(--color-brand-200);
+    color: var(--color-foreground);
   }
 
   h1,
@@ -434,7 +420,7 @@
   }
 
   * {
-    scrollbar-color: var(--color-cream-400) transparent;
+    scrollbar-color: var(--color-neutral-400) transparent;
   }
   ::-webkit-scrollbar {
     width: 10px;
@@ -444,7 +430,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-cream-400);
+    background: var(--color-neutral-400);
     border-radius: 6px;
     border: 2px solid var(--color-background);
   }
@@ -546,7 +532,7 @@
   .esqueleto {
     position: relative;
     overflow: hidden;
-    background-color: var(--color-cream-200);
+    background-color: var(--color-neutral-200);
   }
   .esqueleto::after {
     content: '';
@@ -672,7 +658,7 @@
     position: relative;
     height: 8px;
     border-radius: 999px;
-    background: var(--color-cream-200);
+    background: var(--color-neutral-200);
     box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.25);
   }
   .regla-rango__zona {

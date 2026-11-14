@@ -41,7 +41,7 @@ export function CamposPasswordNueva({
           />
           <button
             type="button"
-            className="absolute right-0.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-cream-100 focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
+            className="absolute right-0.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-primary cursor-pointer"
             aria-label={t(visible ? 'login.ocultarPassword' : 'login.mostrarPassword')}
             onClick={() => setVisible((v) => !v)}
           >

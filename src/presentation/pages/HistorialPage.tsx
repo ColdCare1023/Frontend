@@ -54,7 +54,7 @@ function FechaYHora({ iso }: { iso: string | null }) {
 
 /** La cifra solo toma color cuando la lectura pide atención; la columna de riesgo lo dice en texto. */
 const CIFRA_RIESGO: Record<string, string> = {
-  riesgo_preventivo: 'text-honey-700',
+  riesgo_preventivo: 'text-warning-700',
   excursion_critica: 'text-critical',
 }
 
@@ -273,7 +273,7 @@ export function HistorialPage() {
                         <FechaYHora iso={lectura.timestamp} />
                       </TableCell>
                       <TableCell data-label={t('historial.codigoEquipo')} className={cn('whitespace-nowrap', RELLENO)}>
-                        <span className="nums text-[13px] text-ink-700">
+                        <span className="nums text-[13px] text-subtle">
                           {lectura.device_id}
                         </span>
                       </TableCell>
@@ -303,7 +303,7 @@ export function HistorialPage() {
                           {lectura.apertura_refrigerador === null ? (
                             <span role="img" className="text-faint" title={t('dashboard.puertaSinSensor')} aria-label={t('dashboard.puertaSinSensor')}>—</span>
                           ) : lectura.apertura_refrigerador ? (
-                            <span className="font-medium text-honey-700">{t('dashboard.puertaAbierta')}</span>
+                            <span className="font-medium text-warning-700">{t('dashboard.puertaAbierta')}</span>
                           ) : (
                             <span className="text-muted">{t('dashboard.puertaCerrada')}</span>
                           )}

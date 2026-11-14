@@ -75,11 +75,11 @@ export function EstadoVacio({
 
 export function EstadoError({ mensaje, children }: { mensaje: string; children?: React.ReactNode }) {
   return (
-    <Card className="animate-rise border-clay-200 bg-clay-100/60">
+    <Card className="animate-rise border-danger-200 bg-danger-100/60">
       <CardContent role="alert" className="flex items-start gap-3 p-5">
-        <CircleAlert className="mt-0.5 size-5 shrink-0 text-clay-700" aria-hidden />
+        <CircleAlert className="mt-0.5 size-5 shrink-0 text-danger-700" aria-hidden />
         <div>
-          <p className="text-sm leading-relaxed text-clay-700">{mensaje}</p>
+          <p className="text-sm leading-relaxed text-danger-700">{mensaje}</p>
           {children}
         </div>
       </CardContent>

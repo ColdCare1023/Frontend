@@ -3,17 +3,17 @@ import { cn } from '@/lib/utils'
 export type TonoKpi = 'neutro' | 'ok' | 'aviso' | 'critico' | 'info'
 
 const CHIP: Record<TonoKpi, string> = {
-  neutro: 'bg-cream-200 text-ink-700 ring-border',
+  neutro: 'bg-neutral-200 text-subtle ring-border',
   ok: 'bg-success-100 text-success-700 ring-success-600/25',
-  aviso: 'bg-honey-100 text-honey-700 ring-honey-600/30',
+  aviso: 'bg-warning-100 text-warning-700 ring-warning-600/30',
   critico: 'bg-critical-tint text-critical ring-critical/25',
-  info: 'bg-secondary-tint text-glacier-700 ring-glacier-200',
+  info: 'bg-secondary-tint text-success-700 ring-success-200',
 }
 
 const BARRA: Record<TonoKpi, string> = {
-  neutro: 'bg-ink-500',
+  neutro: 'bg-muted',
   ok: 'bg-success-600',
-  aviso: 'bg-honey-600',
+  aviso: 'bg-warning-600',
   critico: 'bg-critical-solid',
   info: 'bg-secondary',
 }
@@ -69,7 +69,7 @@ export function Kpi({
         {unidad && <span className={cn('font-medium text-muted', destacado ? 'text-xl' : 'text-sm')}>{unidad}</span>}
       </p>
       {proporcion !== null && (
-        <div aria-hidden className="mt-3 h-1.5 overflow-hidden rounded-full bg-cream-200">
+        <div aria-hidden className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
           <div className={cn('h-full rounded-full transition-[width] duration-500 ease-(--ease-out-soft)', BARRA[tono])} style={{ width: `${proporcion * 100}%` }} />
         </div>
       )}

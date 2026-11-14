@@ -56,9 +56,9 @@ const TIPOS_EVENTO = [
 /** El punto de cada tipo de registro: acompaña a su nombre, nunca lo reemplaza. */
 const PUNTO_EVENTO: Record<string, string> = {
   LECTURA_TERMICA: 'bg-secondary',
-  ALERTA_TERMICA: 'bg-honey-600',
+  ALERTA_TERMICA: 'bg-warning-600',
   ACCION_CORRECTIVA: 'bg-primary',
-  REPORTE_BPA: 'bg-pine-500',
+  REPORTE_BPA: 'bg-brand-500',
   AUDITORIA: 'bg-faint',
   CONECTIVIDAD: 'bg-accent',
 }
@@ -451,7 +451,7 @@ function ResultadoVerificacion({
           aria-hidden
           className={cn(
             'flex size-11 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-current/20',
-            integra ? 'bg-success-100 text-success-700' : rupturaAislada ? 'bg-honey-100 text-honey-700' : 'bg-critical-tint text-critical',
+            integra ? 'bg-success-100 text-success-700' : rupturaAislada ? 'bg-warning-100 text-warning-700' : 'bg-critical-tint text-critical',
           )}
         >
           <Icono className="size-[22px]" />
@@ -460,7 +460,7 @@ function ResultadoVerificacion({
           <p
             className={cn(
               'text-[18px] leading-6 font-semibold tracking-[-0.015em]',
-              integra ? 'text-success-700' : rupturaAislada ? 'text-honey-700' : 'text-critical',
+              integra ? 'text-success-700' : rupturaAislada ? 'text-warning-700' : 'text-critical',
             )}
           >
             {integra

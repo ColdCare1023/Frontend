@@ -93,7 +93,7 @@ export function AuditoriaPage() {
       {bloqueos > 0 && (
         <p
           role="status"
-          className="flex items-start gap-2.5 rounded-(--radius-card) border border-honey-600/25 bg-honey-100 px-4 py-3 text-[13px] leading-5 text-honey-700 sm:px-5"
+          className="flex items-start gap-2.5 rounded-(--radius-card) border border-warning-600/25 bg-warning-100 px-4 py-3 text-[13px] leading-5 text-warning-700 sm:px-5"
         >
           <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           {t('auditoria.bloqueosTemporales', { count: bloqueos })}
