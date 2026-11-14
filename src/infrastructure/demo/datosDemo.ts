@@ -1,5 +1,5 @@
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { estadoRiesgoDe, lecturaSinHora, type LecturaTermica, type OrigenHora } from '@/domain/entities/LecturaTermica'
 import { CAPACIDAD_BUFFER_LITTLEFS, type IncidenteOperativo } from '@/domain/entities/Dispositivo'
 import type { RegistroTrazabilidad } from '@/domain/entities/RegistroTrazabilidad'
 import type { RegistroAuditoria, Usuario } from '@/domain/entities/Usuario'
@@ -543,10 +543,59 @@ export function generarLecturasBuffer(
   })
 }
 
+/**
+ * Campos que el backend actual agrega a cada lectura (HU-07, HU-34): estado
+ * de riesgo a rotular, si tiene hora de captura y de dónde sale, y cuándo la
+ * recibió. Las lecturas simuladas se completan con la misma regla.
+ */
+export function completarLecturaDemo(lectura: LecturaTermica): LecturaTermica {
+  const sinHora = lecturaSinHora(lectura)
+  const origenHora: OrigenHora =
+    lectura.origen === 'manual' ? 'manual' : sinHora ? 'recepcion' : lectura.timestamp_estimado ? 'reconstruida' : 'nodo'
+  return {
+    ...lectura,
+    estado_riesgo: lectura.estado_riesgo ?? estadoRiesgoDe({ ...lectura, estado_riesgo: null }),
+    sin_hora: sinHora,
+    origen_hora: lectura.origen_hora ?? origenHora,
+    recibida_en: lectura.recibida_en ?? lectura.received_at ?? null,
+    origen: lectura.origen ?? 'dispositivo',
+  }
+}
+
 /* ── Lecturas en vivo para el stream simulado ───────────────────── */
 const rngVivo = crearRng(Date.now() % 2147483647)
 let empujeVivo = 0
 let secuenciaVivo = 20_000
+
+/**
+ * HU-35: estado de puerta fijado por el simulador. Mientras dura, el stream
+ * no abre ni cierra la puerta al azar: una puerta abierta sigue sumando
+ * segundos (`apertura_continua_segundos`) hasta que se simula el cierre.
+ */
+let puertaForzadaDemo: { abierta: boolean; desde: number; segundosIniciales: number } | null = null
+
+export function forzarPuertaDemo(abierta: boolean | null, segundosIniciales = 0): void {
+  puertaForzadaDemo = abierta === null ? null : { abierta, desde: Date.now(), segundosIniciales }
+}
+
+/**
+ * HU-07 (H2): el nodo arrancó sin hora sincronizada. Mientras dura, sus
+ * lecturas llegan `unsynced`, sin hora de captura y sin clasificación IA.
+ */
+let relojSinSincronizarDemo = false
+
+export function simularRelojSinSincronizarDemo(activo: boolean): void {
+  relojSinSincronizarDemo = activo
+  if (activo) return
+  // Al sincronizar, el backend reancla el arranque: las lecturas sin hora
+  // pasan a tener hora reconstruida (la de llegada menos el retardo típico).
+  for (const lectura of estadoDemo.lecturas) {
+    if (lectura.device_id !== DISPOSITIVO_DEMO || !lectura.sin_hora) continue
+    lectura.timestamp_estimado = new Date(Date.parse(lectura.timestamp) - 250).toISOString()
+    lectura.sin_hora = false
+    lectura.origen_hora = 'reconstruida'
+  }
+}
 
 export function generarLecturaEnVivo(): LecturaTermica {
   secuenciaVivo += 1
@@ -557,8 +606,16 @@ export function generarLecturaEnVivo(): LecturaTermica {
   const sensores = (equipo?.sensores ?? []) as Array<{ modelo?: string; estado?: string }>
   const fallaInterna = sensores.some((sensor) => sensor.modelo === 'DS18B20' && sensor.estado === 'error')
   const tieneMC38 = sensores.some((sensor) => sensor.modelo === 'MC-38' && sensor.estado === 'ok')
-  const puerta = tieneMC38 && rngVivo() < 0.04
-  if (puerta) empujeVivo = 0.8 + rngVivo() * 0.6
+  const forzada = tieneMC38 ? puertaForzadaDemo : null
+  const puerta = forzada ? forzada.abierta : tieneMC38 && rngVivo() < 0.04
+  if (puerta && !forzada) empujeVivo = 0.8 + rngVivo() * 0.6
+  const duracionPuerta = puerta ? Math.round(30 + rngVivo() * 400) : 0
+  const aperturaContinua = forzada?.abierta
+    ? forzada.segundosIniciales + Math.round((Date.now() - forzada.desde) / 1000)
+    : puerta
+      ? duracionPuerta
+      : null
+  const sinHora = relojSinSincronizarDemo
 
   let interna = basePrevia + (rngVivo() - 0.5) * 0.3 + empujeVivo * 0.4
   empujeVivo = Math.max(0, empujeVivo - 0.35)
@@ -569,30 +626,33 @@ export function generarLecturaEnVivo(): LecturaTermica {
   const lectura: LecturaTermica = {
     id: `lec-vivo-${Date.now()}`,
     device_id: DISPOSITIVO_DEMO,
+    // Sin hora sincronizada, `timestamp` es la llegada al backend (HU-07).
     timestamp: new Date().toISOString(),
     schema_version: 1,
-    boot_id: 'demo-boot-live-01',
+    boot_id: sinHora ? 'demo-boot-unsynced-01' : 'demo-boot-live-01',
     seq_no: secuenciaVivo,
-    captured_at: new Date().toISOString(),
+    captured_at: sinHora ? null : new Date().toISOString(),
     received_at: new Date(Date.now() + 250).toISOString(),
-    time_quality: 'synced',
+    time_quality: sinHora ? 'unsynced' : 'synced',
     temperatura_interna: fallaInterna ? null : redondear(interna, 1),
     temperatura_ambiental: redondear(21.8 + (rngVivo() - 0.5) * 1.4, 1),
     humedad_ambiental: redondear(62 + (rngVivo() - 0.5) * 5, 0),
     apertura_refrigerador: tieneMC38 ? puerta : null,
-    duracion_apertura_segundos: tieneMC38 ? (puerta ? Math.round(30 + rngVivo() * 400) : 0) : null,
+    duracion_apertura_segundos: tieneMC38 ? duracionPuerta : null,
+    apertura_continua_segundos: tieneMC38 ? aperturaContinua : null,
     umbral_puerta_abierta_segundos: typeof equipo?.umbral_puerta_abierta_segundos === 'number'
       ? equipo.umbral_puerta_abierta_segundos
       : 120,
     estado_conectividad: 'online',
-    nivel_riesgo: fallaInterna ? null : clasificar(interna),
+    // HU-18: sin hora sincronizada el modelo no clasifica; la regla 2-8 °C sí.
+    nivel_riesgo: fallaInterna || sinHora ? null : clasificar(interna),
     excursion_confirmada: !fallaInterna && (interna < 2 || interna > 8),
-    riesgo_efectivo: fallaInterna ? null : clasificar(interna),
-    confianza_ia: fallaInterna ? null : 0.9,
-    modelo_version: fallaInterna ? null : 'demo-3.0.0',
-    origen_clasificacion: fallaInterna ? 'fallo_sensor' : 'random_forest',
-    estado_inferencia: fallaInterna ? 'omitida' : 'completada',
-    motivo_no_inferencia: fallaInterna ? 'SENSOR_FAULT' : null,
+    riesgo_efectivo: fallaInterna ? null : sinHora ? (interna < 2 || interna > 8 ? 'excursion_critica' : 'normal') : clasificar(interna),
+    confianza_ia: fallaInterna || sinHora ? null : 0.9,
+    modelo_version: fallaInterna || sinHora ? null : 'demo-3.0.0',
+    origen_clasificacion: fallaInterna ? 'fallo_sensor' : sinHora ? 'dato_insuficiente' : 'random_forest',
+    estado_inferencia: fallaInterna || sinHora ? 'omitida' : 'completada',
+    motivo_no_inferencia: fallaInterna ? 'SENSOR_FAULT' : sinHora ? 'RELOJ_NO_SINCRONIZADO' : null,
     estado_sensores: {
       temperatura_interna: fallaInterna ? 'invalido' : 'valido',
       temperatura_ambiental: 'valido',
@@ -600,6 +660,7 @@ export function generarLecturaEnVivo(): LecturaTermica {
       apertura_refrigerador: tieneMC38 ? 'valido' : 'ausente',
     },
   }
+  Object.assign(lectura, completarLecturaDemo(lectura))
   estadoDemo.lecturas.push(lectura)
   if (equipo && equipo.estado_operativo !== 'SIN_DATOS') {
     equipo.ultimo_reporte_en = lectura.timestamp

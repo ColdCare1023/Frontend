@@ -1,14 +1,12 @@
 import { memo, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { fechaHora, hora } from '@/lib/formato'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { HoraLectura } from '../../components/HoraLectura'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Esqueleto } from '../../components/ui/esqueleto'
 import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
 import { Regla } from '../../components/ui/regla'
-
-const esDeHoy = (iso: string) => new Date(iso).toDateString() === new Date().toDateString()
 
 /**
  * Lecturas recientes del equipo en pantalla (HU-19), siempre visibles: de la
@@ -52,9 +50,8 @@ export const CeldaLecturasRecientes = memo(function CeldaLecturasRecientes({
               key={lectura.id || `${lectura.device_id}-${lectura.timestamp}`}
               className="grid min-h-9 grid-cols-[minmax(4.5rem,auto)_3.5rem_minmax(0,1fr)_auto] items-center gap-3 py-1.5"
             >
-              <time dateTime={lectura.timestamp} title={fechaHora(lectura.timestamp)} className="nums text-meta whitespace-nowrap text-faint">
-                {esDeHoy(lectura.timestamp) ? hora(lectura.timestamp) : fechaHora(lectura.timestamp)}
-              </time>
+              {/* HU-07: un arranque sin hora sincronizada se rotula «Sin hora». */}
+              <HoraLectura lectura={lectura} className="nums text-meta whitespace-nowrap text-faint" />
               <span className="nums text-body font-semibold text-foreground">
                 {lectura.temperatura_interna?.toFixed(1) ?? '—'}
                 <span className="ml-0.5 text-meta font-medium text-muted">°C</span>
@@ -62,12 +59,13 @@ export const CeldaLecturasRecientes = memo(function CeldaLecturasRecientes({
               <Regla
                 tamano="s"
                 valor={lectura.temperatura_interna ?? null}
-                tono={lectura.temperatura_interna == null ? 'sin_datos' : tonoDesdeRiesgo(lectura.riesgo_efectivo)}
+                tono={lectura.temperatura_interna == null ? 'sin_datos' : tonoDesdeRiesgo(estadoRiesgoDe(lectura))}
                 decorativa
                 // Junto a la cifra (no al otro extremo de la fila): se lee de un vistazo dónde cae.
                 className="w-full max-w-40"
               />
-              <RiskBadge nivel={lectura.riesgo_efectivo} />
+              {/* HU-34: sin clasificación IA no se rotula Normal. */}
+              <RiskBadge nivel={estadoRiesgoDe(lectura)} />
             </li>
           ))}
         </ol>

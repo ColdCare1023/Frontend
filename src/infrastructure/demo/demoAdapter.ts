@@ -7,7 +7,9 @@ import {
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import {
+  brechasRecientes,
   CAPACIDAD_BUFFER_LITTLEFS,
+  PATRON_DEVICE_ID,
   type BufferLittleFS,
   type Dispositivo,
   type HistorialConfiguracion,
@@ -18,12 +20,16 @@ import { MOTIVOS_DESACTIVACION, type Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { ROLES } from '@/domain/value-objects/Rol'
 import {
+  completarLecturaDemo,
   crearTokenDemo,
   estadoDemo,
+  forzarPuertaDemo,
   generarLecturaEnVivo,
   generarLecturasBuffer,
   METRICAS_IA_DEMO,
+  simularRelojSinSincronizarDemo,
 } from './datosDemo'
+import { ErrorSerieDemo, serieTermicaDemo } from './serieDemo'
 import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
 
 // Flujos que tienen estado propio del adapter durante la sesión demo.
@@ -299,8 +305,8 @@ function esperar(ms: number): Promise<void> {
   return new Promise((resolver) => setTimeout(resolver, ms))
 }
 
-function responder<T>(config: InternalAxiosRequestConfig, data: T, status = 200): AxiosResponse<T> {
-  return { data, status, statusText: 'OK', headers: {}, config }
+function responder<T>(config: InternalAxiosRequestConfig, data: T, status = 200, headers: Record<string, string> = {}): AxiosResponse<T> {
+  return { data, status, statusText: 'OK', headers, config }
 }
 
 function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: string): never {
@@ -347,7 +353,8 @@ function cuerpoJson(config: InternalAxiosRequestConfig): Record<string, unknown>
   return (config.data ?? {}) as Record<string, unknown>
 }
 
-function lecturasFiltradas(params: Record<string, string>): LecturaTermica[] {
+/** HU-31/HU-36: página pedida y total sin paginar (cabecera `X-Total-Count`). */
+function lecturasFiltradas(params: Record<string, string>): { pagina: LecturaTermica[]; total: number } {
   let resultado = [...estadoDemo.lecturas].reverse() // más recientes primero
   if (params.device_id) {
     resultado = resultado.filter((l) =>
@@ -359,7 +366,40 @@ function lecturasFiltradas(params: Record<string, string>): LecturaTermica[] {
   if (params.riesgo_efectivo) resultado = resultado.filter((l) => l.riesgo_efectivo === params.riesgo_efectivo)
   if (params.desde) resultado = resultado.filter((l) => l.timestamp >= params.desde)
   if (params.hasta) resultado = resultado.filter((l) => l.timestamp <= params.hasta)
-  return resultado.slice(0, Number(params.limite ?? 200))
+  const offset = Math.max(0, Number(params.offset ?? 0) || 0)
+  const pagina = resultado.slice(offset, offset + Number(params.limite ?? 200)).map(completarLecturaDemo)
+  return { pagina, total: resultado.length }
+}
+
+/** Brecha de buffer agotado con los campos del backend actual (HU-48). */
+function brechaBufferDemo(desde: string | null, hasta: string | null, perdidas: number, abierta: boolean, ahora: string) {
+  return {
+    desde,
+    hasta,
+    muestras_perdidas: perdidas,
+    perdidas,
+    causa: 'buffer_agotado' as const,
+    causa_nodo: 'buffer_lleno',
+    descripcion:
+      'El almacenamiento local (LittleFS) del nodo se llenó durante una desconexión prolongada y las muestras de este tramo no se pudieron guardar.',
+    abierta,
+    registrada_en: ahora,
+    actualizada_en: ahora,
+    cerrada_en: abierta ? null : ahora,
+  }
+}
+
+/** Buffer del estado operativo con los campos del backend actual (HU-48). */
+function bufferRespuestaDemo(buffer: BufferLittleFS | undefined): BufferLittleFS | undefined {
+  if (!buffer) return undefined
+  return {
+    ...buffer,
+    ocupacion_pct: buffer.limite > 0 ? Math.min(100, Math.round((buffer.pendientes / buffer.limite) * 100)) : null,
+    rango_estimado: buffer.rango_estimado ?? false,
+    cuarentena: buffer.cuarentena ?? 0,
+    // Como el backend: de la más reciente a la más antigua.
+    brechas: brechasRecientes(buffer),
+  }
 }
 
 function alertasFiltradas(params: Record<string, string>): AlertaTermica[] {
@@ -625,7 +665,34 @@ export const demoAdapter: AxiosAdapter = async (config) => {
 
   /* ── Lecturas y alertas ─────────────────────────────────────── */
   if (metodo === 'get' && url === '/api/lecturas') {
-    return responder(config, lecturasFiltradas(params))
+    const { pagina, total } = lecturasFiltradas(params)
+    return responder(config, pagina, 200, { 'x-total-count': String(total) })
+  }
+  // HU-31: serie agregada del periodo completo (mismas validaciones que el backend).
+  if (metodo === 'get' && url === '/api/lecturas/serie') {
+    if (!params.device_id || !PATRON_DEVICE_ID.test(params.device_id)) fallar(config, 422, 'device_id inválido')
+    const dispositivo = dispositivoDemo(params.device_id)
+    if (!dispositivo) fallar(config, 404, 'Dispositivo no encontrado')
+    const hasta = params.hasta ? Date.parse(params.hasta) : Date.now()
+    const desde = params.desde ? Date.parse(params.desde) : hasta - 24 * 60 * 60 * 1000
+    try {
+      return responder(
+        config,
+        serieTermicaDemo({
+          lecturas: estadoDemo.lecturas,
+          deviceId: dispositivo.id,
+          desde,
+          hasta,
+          bucket: params.bucket,
+          intervaloReporteSegundos: dispositivo.intervalo_reporte_segundos ?? 30,
+          brechasBuffer: dispositivo.buffer_littlefs?.brechas ?? [],
+          registradoEn: dispositivo.registrado_en ?? null,
+        }),
+      )
+    } catch (error) {
+      if (error instanceof ErrorSerieDemo) fallar(config, error.status, error.message)
+      throw error
+    }
   }
   if (metodo === 'get' && url === '/api/alertas') {
     return responder(config, alertasFiltradas(params))
@@ -987,9 +1054,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const respuesta = (esConsultaTodos ? equipos : equiposConIncidencias)
       .map((dispositivo) => ({
         ...dispositivo,
-        buffer_littlefs: dispositivo.buffer_littlefs
-          ? { ...dispositivo.buffer_littlefs, brechas: [...(dispositivo.buffer_littlefs.brechas ?? [])] }
-          : undefined,
+        buffer_littlefs: bufferRespuestaDemo(dispositivo.buffer_littlefs),
         incidencias_operativas: eventosRecientes.filter((evento) => evento.device_id === dispositivo.id),
       }))
     return responder(config, respuesta)
@@ -1114,6 +1179,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       buffer.pendientes = 12
       buffer.desde = momento(360_000)
       buffer.hasta = momento(0)
+      buffer.rango_estimado = false
+      buffer.reportado_en = momento(0)
     } else if (escenario === 'buffer_lleno') {
       dispositivo.estado_conectividad = 'offline'
       dispositivo.estado_operativo = 'OPERATIVO'
@@ -1121,16 +1188,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       buffer.pendientes = buffer.limite
       buffer.desde = momento(3_600_000)
       buffer.hasta = momento(0)
+      buffer.rango_estimado = false
+      buffer.reportado_en = momento(0)
       buffer.perdidas += 3
+      // HU-48 esc. 2: el episodio sigue abierto mientras el nodo no pueda almacenar.
       buffer.brechas = [
-        ...(buffer.brechas ?? []),
-        {
-          desde: momento(5 * 60_000),
-          hasta: momento(0),
-          muestras_perdidas: 3,
-          causa: 'buffer_agotado',
-          registrada_en: momento(0),
-        },
+        ...(buffer.brechas ?? []).map((b) => (b.abierta ? { ...b, abierta: false, cerrada_en: momento(5 * 60_000) } : b)),
+        brechaBufferDemo(momento(5 * 60_000), momento(0), 3, true, momento(0)),
       ]
     } else if (escenario === 'falla_sensor') {
       const sensor = sensores.find((item) => item.modelo === 'DS18B20')
@@ -1181,7 +1245,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       buffer.pendientes = 0
       buffer.desde = null
       buffer.hasta = null
+      buffer.rango_estimado = false
+      buffer.reportado_en = momento(0)
       buffer.ultima_sincronizacion_en = momento(0)
+      // HU-48 esc. 3: con la conexión de vuelta el episodio de buffer lleno se cierra.
+      buffer.brechas = (buffer.brechas ?? []).map((b) => (b.abierta ? { ...b, abierta: false, cerrada_en: momento(0), actualizada_en: momento(0) } : b))
+      // HU-07: el nodo sincroniza su reloj y el backend reancla las lecturas sin hora.
+      simularRelojSinSincronizarDemo(false)
       dispositivo.ultimo_evento = {
         schema_version: '1.0',
         boot_id: `demo-recovery-${Date.now()}`,
@@ -1194,9 +1264,17 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     } else if (escenario === 'puerta_abierta' || escenario === 'puerta_cerrada') {
       dispositivo.estado_conectividad = 'online'
       dispositivo.ultimo_reporte_en = momento(0)
-      const lectura = generarLecturaEnVivo()
-      lectura.apertura_refrigerador = escenario === 'puerta_abierta'
-      lectura.duracion_apertura_segundos = escenario === 'puerta_abierta' ? 240 : 0
+      // HU-35: la puerta queda así hasta el próximo escenario; abierta, sigue
+      // sumando segundos desde 4 min (más que el umbral por defecto).
+      forzarPuertaDemo(escenario === 'puerta_abierta', escenario === 'puerta_abierta' ? 240 : 0)
+      generarLecturaEnVivo()
+    } else if (escenario === 'sin_hora') {
+      // HU-07 (H2): arranque sin hora sincronizada. Las lecturas llegan sin
+      // hora de captura ni clasificación IA hasta «Recuperar y sincronizar».
+      dispositivo.estado_conectividad = 'online'
+      dispositivo.ultimo_reporte_en = momento(0)
+      simularRelojSinSincronizarDemo(true)
+      generarLecturaEnVivo()
     } else if (escenario === 'excursion_critica' || escenario === 'riesgo_preventivo') {
       // Una lectura fuera de rango (o junto al límite) y su alerta PENDIENTE
       // con evidencia, que llega a las pantallas abiertas por el stream demo,

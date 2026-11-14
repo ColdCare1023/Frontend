@@ -6,7 +6,7 @@ import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 const suscribirseLecturas = vi.hoisted(() => vi.fn())
 vi.mock('@/infrastructure/sse/sseClient', () => ({ suscribirseLecturas }))
 
-import { MAX_LECTURAS_EN_MEMORIA, useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
+import { MAX_LECTURAS_EN_MEMORIA, totalDeCabecera, useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { instalarAdaptadorFalso } from '@/tests/ayudas'
 
 /**
@@ -288,5 +288,84 @@ describe('useMonitoreoTermico por dispositivo (HU-31/HU-33)', () => {
 
     expect(result.current.serie).toHaveLength(0)
     expect(result.current.ultima).toBeNull()
+  })
+})
+
+describe('useMonitoreoTermico: cobertura del historial (HU-31, X-Total-Count)', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+
+  beforeEach(() => {
+    suscribirseLecturas.mockReset()
+    suscribirseLecturas.mockImplementation(() => vi.fn())
+  })
+
+  afterEach(() => adaptador.restaurar())
+
+  it('expone cuántas lecturas llegaron frente al total de la ventana', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({ data: [lectura(1), lectura(0)], headers: { 'x-total-count': '8640' } }))
+    const { result } = renderHook(() => useMonitoreoTermico(24, 'FARM-01-CDL'))
+    await act(async () => {})
+
+    expect(result.current.cobertura).toEqual({ recibidas: 2, total: 8640 })
+  })
+
+  it('sin la cabecera (backend anterior) el total es desconocido, no cero', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({ data: [lectura(0)] }))
+    const { result } = renderHook(() => useMonitoreoTermico(24, 'FARM-01-CDL'))
+    await act(async () => {})
+
+    expect(result.current.cobertura).toEqual({ recibidas: 1, total: null })
+  })
+})
+
+describe('totalDeCabecera', () => {
+  it('lee la cabecera de AxiosHeaders o de un objeto plano, y descarta valores inválidos', () => {
+    expect(totalDeCabecera({ 'x-total-count': '42' })).toBe(42)
+    expect(totalDeCabecera({ get: (n: string) => (n === 'x-total-count' ? '7' : null) })).toBe(7)
+    expect(totalDeCabecera({ 'x-total-count': 'abc' })).toBeNull()
+    expect(totalDeCabecera({ 'x-total-count': '-1' })).toBeNull()
+    expect(totalDeCabecera({})).toBeNull()
+    expect(totalDeCabecera(undefined)).toBeNull()
+  })
+})
+
+describe('useMonitoreoTermico: al reintentar o ampliar la ventana', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+
+  beforeEach(() => {
+    suscribirseLecturas.mockReset()
+    suscribirseLecturas.mockImplementation(() => vi.fn())
+  })
+
+  afterEach(() => adaptador.restaurar())
+
+  it('una lectura nueva del historial queda al final, no antes de lo ya mostrado', async () => {
+    let datos = [lectura(2), lectura(1)]
+    adaptador = instalarAdaptadorFalso(() => ({ data: datos }))
+    const { result } = renderHook(() => useMonitoreoTermico(24, 'FARM-01-CDL'))
+    await act(async () => {})
+    expect(result.current.serie.map((l) => l.id)).toEqual(['l-1', 'l-2'])
+
+    // Reintento: el backend devuelve además una lectura más nueva y otra más antigua.
+    datos = [lectura(3), lectura(2), lectura(1), lectura(0)]
+    await act(async () => result.current.reintentar())
+    expect(result.current.serie.map((l) => l.id)).toEqual(['l-0', 'l-1', 'l-2', 'l-3'])
+    expect(result.current.ultima?.id).toBe('l-3')
+  })
+
+  it('HU-07: si el servidor reancló una lectura sin hora, su versión reemplaza a la recibida antes', async () => {
+    const sinHora = lectura(5, { sin_hora: true, time_quality: 'unsynced', origen_hora: 'recepcion' })
+    let datos = [sinHora]
+    adaptador = instalarAdaptadorFalso(() => ({ data: datos }))
+    const { result } = renderHook(() => useMonitoreoTermico(24, 'FARM-01-CDL'))
+    await act(async () => {})
+    expect(result.current.ultima?.sin_hora).toBe(true)
+
+    const reanclada = { ...sinHora, sin_hora: false, origen_hora: 'reconstruida' as const, timestamp_estimado: sinHora.timestamp }
+    datos = [reanclada]
+    await act(async () => result.current.reintentar())
+    expect(result.current.serie).toHaveLength(1)
+    expect(result.current.serie[0].sin_hora).toBe(false)
+    expect(result.current.ultima?.origen_hora).toBe('reconstruida')
   })
 })

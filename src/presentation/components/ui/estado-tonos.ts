@@ -1,5 +1,6 @@
 import { CircleCheck, Hourglass, OctagonAlert, TriangleAlert, WifiOff, type LucideIcon } from 'lucide-react'
 
+import type { EstadoRiesgo } from '@/domain/entities/LecturaTermica'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 
 /**
@@ -48,10 +49,14 @@ export const COLOR_ESTADO: Record<TonoEstado, string> = {
   neutro: 'var(--color-faint)',
 }
 
-/** Riesgo efectivo de una lectura → tono. `null` (sin clasificación) es neutro. */
-export function tonoDesdeRiesgo(riesgo: NivelRiesgo | null | undefined): TonoEstado {
+/**
+ * Riesgo de una lectura → tono. `null` y «sin clasificación IA» son neutros
+ * (HU-34 esc. 4: no se pintan como Normal); una falla de sensor, sin datos.
+ */
+export function tonoDesdeRiesgo(riesgo: NivelRiesgo | EstadoRiesgo | null | undefined): TonoEstado {
   if (riesgo === 'excursion_critica') return 'critico'
   if (riesgo === 'riesgo_preventivo') return 'preventivo'
   if (riesgo === 'normal') return 'normal'
+  if (riesgo === 'falla_sensor') return 'sin_datos'
   return 'neutro'
 }

@@ -10,7 +10,7 @@ import {
 } from '@/application/stores/estadoVivoStore'
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 
@@ -19,7 +19,8 @@ const AGRUPAR_MS = 400
 const MAX_LECTURAS_EN_PARALELO = 8
 
 function aLecturaVivo(l: LecturaTermica): LecturaVivo {
-  return { temperatura: l.temperatura_interna, riesgo: l.riesgo_efectivo ?? l.nivel_riesgo, timestamp: l.timestamp }
+  // HU-34: además del riesgo, el estado a rotular (una lectura sin clasificación IA no es «Normal»).
+  return { temperatura: l.temperatura_interna, riesgo: l.riesgo_efectivo ?? l.nivel_riesgo, estadoRiesgo: estadoRiesgoDe(l), timestamp: l.timestamp }
 }
 
 /**

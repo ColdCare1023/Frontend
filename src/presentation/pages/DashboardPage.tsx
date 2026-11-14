@@ -5,9 +5,12 @@ import { FlaskConical } from 'lucide-react'
 import { useAlertasPendientes, useUltimaAlertaAtendida } from '@/application/hooks/useAlertasPendientes'
 import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
+import { useSerieTermica } from '@/application/hooks/useSerieTermica'
 import { useAuthStore } from '@/application/stores/authStore'
 import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { umbralSilencioSegundos } from '@/domain/entities/Dispositivo'
+import { estadoRiesgoDe } from '@/domain/entities/LecturaTermica'
+import { resumenCombinado } from '@/domain/entities/SerieTermica'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
@@ -48,7 +51,9 @@ export function DashboardPage() {
   // equipo que sin el parámetro, solo que incluye también los operativos.
   const { equipos, consultar: consultarEstadoOperativo } = useEstadoOperativo(true)
   const { deviceId, elegir: setEquipoElegido } = useEquipoSeleccionado(equipos)
-  const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana, deviceId)
+  const { ultima, serie, sseConectado, estadoHistorial, reintentar, cobertura = null } = useMonitoreoTermico(horasVentana, deviceId)
+  // HU-31: la curva y el resumen de 24 h y 7 d cubren el periodo completo.
+  const { serie: agregada, recargar: recargarSerie } = useSerieTermica(deviceId, horasVentana)
   const alertas = useAlertasPendientes()
   // Contexto de «Alertas pendientes»: sin pendientes es el estado vacío y con
   // menos de 3 completa la lista (misma consulta de lectura que Alertas).
@@ -74,15 +79,21 @@ export function DashboardPage() {
   const datoDesactualizado = estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' || (ultima !== null && vencido)
 
   const ventana = t(`dashboard.ventanaFrase.${horasVentana}`)
-  const resumen = useMemo(() => resumenVentana(serie), [serie])
+  const resumen = useMemo(() => (agregada ? resumenCombinado(agregada, serie) : resumenVentana(serie)), [agregada, serie])
+  // HU-31: el historial crudo (lista, aperturas) no cubre la ventana.
+  const recorte =
+    cobertura && cobertura.total !== null && cobertura.total > cobertura.recibidas
+      ? { mostradas: cobertura.recibidas, total: cobertura.total }
+      : null
+  const estadoRiesgo = estadoRiesgoDe(ultima)
   const extremos = useMemo(() => (resumen ? { minima: resumen.minima, maxima: resumen.maxima } : null), [resumen])
 
   const temperaturas = useMemo(() => {
     const mapa: Record<string, TemperaturaEquipo> = {}
     for (const [id, lectura] of Object.entries(ultimasVivo)) mapa[id] = { valor: lectura.temperatura, riesgo: lectura.riesgo }
-    if (ultima && deviceId) mapa[deviceId] = { valor: ultima.temperatura_interna ?? null, riesgo: ultima.riesgo_efectivo ?? ultima.nivel_riesgo }
+    if (ultima && deviceId) mapa[deviceId] = { valor: ultima.temperatura_interna ?? null, riesgo: estadoRiesgo }
     return mapa
-  }, [ultimasVivo, ultima, deviceId])
+  }, [ultimasVivo, ultima, deviceId, estadoRiesgo])
 
   const nombres = useMemo(() => new Map(flota.map((e) => [e.id, e.nombre || e.id])), [flota])
 
@@ -126,14 +137,16 @@ export function DashboardPage() {
   const actualizarDemo = useCallback(async () => {
     await consultarEstadoOperativo()
     reintentar()
-  }, [consultarEstadoOperativo, reintentar])
+    recargarSerie()
+  }, [consultarEstadoOperativo, reintentar, recargarSerie])
 
   return (
     <TooltipProvider delayDuration={300}>
       {/* RF-11 + WCAG 4.1.3: la excursión térmica que llega por SSE se anuncia.
-          HU-34: se anuncia el riesgo EFECTIVO, no la clase cruda de la IA. */}
+          HU-34: se anuncia el estado de riesgo (sin clasificación IA no es
+          Normal), no la clase cruda de la IA. */}
       <AnuncioRiesgo
-        nivel={datoDesactualizado ? null : (ultima?.riesgo_efectivo ?? null)}
+        nivel={datoDesactualizado ? null : estadoRiesgo}
         temperatura={datoDesactualizado ? null : ultima?.temperatura_interna}
       />
 
@@ -192,6 +205,8 @@ export function DashboardPage() {
           desactualizado={datoDesactualizado}
           ventana={ventana}
           horasVentana={horasVentana}
+          umbralPuertaEquipo={estadoIoTPrincipal?.umbral_puerta_abierta_segundos ?? null}
+          recorte={recorte}
         />
         <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
         <CeldaCurva
@@ -202,6 +217,9 @@ export function DashboardPage() {
           horasVentana={horasVentana}
           onCambiarVentana={setHorasVentana}
           ventana={ventana}
+          agregada={agregada}
+          resumen={resumen}
+          cobertura={cobertura}
         />
         <CeldaEstadoEquipos
           equipos={flota}

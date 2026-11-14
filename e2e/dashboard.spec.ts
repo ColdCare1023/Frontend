@@ -105,14 +105,94 @@ for (const perfil of ['Administrador', 'Químico Farmacéutico', 'Técnico de Fa
   })
 }
 
-test('simular puerta abierta: advertencia con role alert; recuperar la quita', async ({ page }) => {
-  await entrar(page, 'Administrador')
-  await page.getByRole('button', { name: /Probar estados del dashboard/ }).click()
+/** Abre el simulador de la demo y aplica un escenario; el panel queda abierto. */
+async function aplicarEscenario(page: Page, escenario: string) {
   const panel = page.getByRole('dialog')
-  await panel.getByRole('button', { name: 'Simular puerta abierta' }).click()
+  if (!(await panel.isVisible())) await page.getByRole('button', { name: /Probar estados del dashboard/ }).click()
+  await panel.getByRole('button', { name: escenario }).click()
   await expect(panel.getByRole('status')).toContainText('Escenario aplicado')
-  await panel.getByRole('button', { name: 'Cerrar', exact: true }).last().click()
-  await expect(page.getByTestId('puerta-advertencia')).toHaveAttribute('role', 'alert')
+}
+
+async function cerrarSimulador(page: Page) {
+  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).last().click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+}
+
+test('HU-35: simular puerta abierta avisa con role alert; al cerrarla el aviso desaparece y la apertura queda contada', async ({ page }) => {
+  await entrar(page, 'Administrador')
+  await aplicarEscenario(page, 'Simular puerta abierta')
+  await cerrarSimulador(page)
+  const advertencia = page.getByTestId('puerta-advertencia')
+  await expect(advertencia).toHaveAttribute('role', 'alert')
+  await expect(advertencia).toContainText('Abierta')
+
+  // Esc. 3: la puerta se cierra; la advertencia activa desaparece…
+  await aplicarEscenario(page, 'Simular puerta cerrada')
+  await cerrarSimulador(page)
+  await expect(page.getByTestId('puerta-advertencia')).toHaveCount(0)
+  const condiciones = page.getByRole('region', { name: 'Condiciones', exact: true })
+  await expect(condiciones.getByText('Cerrada', { exact: true })).toBeVisible()
+  // …y el evento histórico se conserva en el conteo de la ventana.
+  await expect(condiciones.getByText(/^≥?[1-9]\d* aperturas? · 24/)).toBeVisible()
+})
+
+test('HU-07/HU-34: un arranque sin hora se rotula «Sin hora» y «Sin clasificación IA», nunca Normal', async ({ page }) => {
+  await entrar(page, 'Administrador')
+  await aplicarEscenario(page, 'Simular arranque sin hora sincronizada')
+  await cerrarSimulador(page)
+  const lectura = page.getByTestId('celda-lectura')
+  await expect(lectura.getByTestId('riesgo-sin-clasificacion')).toContainText('Sin clasificación IA')
+  await expect(lectura.getByText('Normal', { exact: true })).toHaveCount(0)
+  await expect(lectura.getByText(/^Sin hora/)).toBeVisible()
+  const recientes = page.getByRole('region', { name: 'Lecturas recientes' })
+  await expect(recientes.getByText(/^Sin hora/).first()).toBeVisible()
+  await expect(page.getByTestId('aviso-curva-sin-hora')).toContainText('sin hora')
+
+  // Al sincronizar el reloj, las lecturas se reanclan: ya no quedan sin hora.
+  await aplicarEscenario(page, 'Recuperar y sincronizar')
+  await cerrarSimulador(page)
+  await expect(recientes.getByText(/^Sin hora/)).toHaveCount(0)
+})
+
+test('HU-31: 24 h y 7 d dibujan la serie agregada del periodo completo', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await entrar(page)
+  const curva = page.getByRole('region', { name: 'Cómo cambió la temperatura' })
+  const grafica = curva.locator('[role="img"][aria-label^="Gráfica de líneas"]')
+  await expect(grafica).toHaveAttribute('aria-label', /promedio cada 1 min con su mínimo y máximo/)
+  await expect(curva.getByText(/lecturas · promedio cada 1 min/)).toBeVisible()
+
+  const rangos = page.getByRole('group', { name: 'Rango de la curva térmica' })
+  await rangos.getByRole('button', { name: '7 d', exact: true }).click()
+  await expect(grafica).toHaveAttribute('aria-label', /los últimos 7 días, promedio cada 10 min/)
+  await expect(curva.getByText(/lecturas · promedio cada 10 min/)).toBeVisible()
+
+  // 1 h sigue con lecturas crudas.
+  await rangos.getByRole('button', { name: '1 h', exact: true }).click()
+  await expect(grafica).toHaveAttribute('aria-label', /de las últimas \d+ lecturas/)
+})
+
+test('HU-48: buffer lleno muestra el periodo en cola, las pérdidas y la brecha en curso', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await entrar(page, 'Administrador')
+  await aplicarEscenario(page, 'Simular buffer lleno y pérdidas')
+  await cerrarSimulador(page)
+  const equipo = page.getByRole('region', { name: 'Equipo', exact: true })
+  await expect(equipo.getByTestId('buffer-rango')).toContainText(/Periodo en cola: .+ – .+ · Perdidas: \d+/)
+  await equipo.getByRole('button', { name: 'Detalles' }).click()
+  const brechas = page.getByRole('dialog').getByRole('list', { name: 'Brechas por buffer lleno' })
+  await expect(brechas.getByRole('listitem').first()).toContainText(/Se perdieron 3 lecturas · buffer local lleno · en curso/)
+  await expect(brechas.getByRole('listitem').first()).toContainText(/Periodo afectado: .+ – .+/)
+  await page.keyboard.press('Escape')
+
+  // Esc. 3: al sincronizar, el indicador de pendientes desaparece y la brecha deja de estar en curso.
+  await aplicarEscenario(page, 'Recuperar y sincronizar')
+  await cerrarSimulador(page)
+  await expect(equipo.getByTestId('buffer-rango')).toHaveCount(0)
+  await equipo.getByRole('button', { name: 'Detalles' }).click()
+  const panel = page.getByRole('dialog')
+  await expect(panel.getByText(/Sin pendientes; sincronización recuperada/)).toBeVisible()
+  await expect(panel.getByRole('list', { name: 'Brechas por buffer lleno' }).getByRole('listitem').first()).not.toContainText('en curso')
 })
 
 test('simular silencio del equipo: Sin datos en la línea de estado y la fila', async ({ page }) => {

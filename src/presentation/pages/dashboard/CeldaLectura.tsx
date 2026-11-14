@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { Hourglass, ShieldQuestion, TriangleAlert } from 'lucide-react'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
-import { hora as formatearHora } from '@/lib/formato'
 import { clsx } from 'clsx'
+import { HoraLectura } from '../../components/HoraLectura'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -58,7 +58,9 @@ export const CeldaLectura = memo(function CeldaLectura({
 }) {
   const { t } = useTranslation()
   const segundosDesdeUltima = useSegundosDesde(ultima?.timestamp)
-  const riesgo = ultima?.riesgo_efectivo ?? null
+  // HU-34: se rotula el estado de riesgo, no `riesgo_efectivo`, que vale
+  // «normal» para una lectura en rango que el modelo no clasificó.
+  const riesgo = estadoRiesgoDe(ultima)
 
   const selector = equipos.length > 1 && (
     <label className="flex min-w-0 items-center gap-2 max-sm:basis-full sm:ml-auto">
@@ -124,6 +126,8 @@ export const CeldaLectura = memo(function CeldaLectura({
     )
   }
 
+  const estadoInferencia = ultima.estado_inferencia ? t(`ia.estado.${ultima.estado_inferencia}`, { defaultValue: '' }) : ''
+  const motivoSinClasificacion = [t('dashboard.sinClasificacionIaDetalle'), estadoInferencia].filter(Boolean).join(' · ')
   const lectura = ultima.temperatura_interna
   const lecturaFinita = lectura != null && Number.isFinite(lectura)
   const fueraDeEscala = lecturaFinita && (lectura < EJE_REGLA.minimo || lectura > EJE_REGLA.maximo)
@@ -147,22 +151,26 @@ export const CeldaLectura = memo(function CeldaLectura({
       <div className="flex flex-wrap items-center gap-2">
         {titulo}
         {/* HU-54 esc. 4: sin datos recientes no se presenta el equipo como Normal. */}
-        {desactualizado && riesgo === 'normal' ? (
+        {desactualizado && (riesgo === 'normal' || riesgo === 'sin_clasificacion_ia') ? (
           <Badge variant="neutral">
             <Hourglass aria-hidden className="size-3.5 text-nodata-700" />
             {t('dashboard.sinDatosRecientes')}
           </Badge>
-        ) : (
-          <RiskBadge nivel={riesgo} />
-        )}
-        {riesgo === 'normal' && !ultima.ia_experimental && !ultima.excursion_confirmada && ultima.nivel_riesgo === null && (
-          // Sin clase del modelo: «Normal» lo dice solo la regla 2-8 °C.
-          <Tooltip contenido={t('dashboard.sinClasificacionIaDetalle')} lado="top">
-            <button type="button" className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-              <Badge variant="outline">{t('dashboard.sinClasificacionIa')}</Badge>
-              <span className="sr-only">. {t('dashboard.sinClasificacionIaDetalle')}</span>
+        ) : riesgo === 'sin_clasificacion_ia' ? (
+          // HU-34 esc. 4: sin clase del modelo no se presenta como Normal,
+          // aunque la regla 2-8 °C no vea excursión. El motivo, en el detalle.
+          <Tooltip contenido={motivoSinClasificacion} lado="top">
+            <button
+              type="button"
+              data-testid="riesgo-sin-clasificacion"
+              className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <RiskBadge nivel={riesgo} />
+              <span className="sr-only">. {motivoSinClasificacion}</span>
             </button>
           </Tooltip>
+        ) : (
+          <RiskBadge nivel={riesgo} />
         )}
         {ultima.ia_experimental && !ultima.excursion_confirmada && (
           // HU-20 / B-1: la clase la produjo el modelo legado (datos sintéticos).
@@ -235,7 +243,7 @@ export const CeldaLectura = memo(function CeldaLectura({
       <p className="mt-3 text-pretty text-body text-muted">
         {riesgo
           ? desactualizado
-            ? t(riesgo === 'normal' ? 'dashboard.sinDatosRecientesDetalle' : 'dashboard.riesgoUltimaLectura')
+            ? t(riesgo === 'normal' || riesgo === 'sin_clasificacion_ia' ? 'dashboard.sinDatosRecientesDetalle' : 'dashboard.riesgoUltimaLectura')
             : t(`riesgo.detalle.${riesgo}`)
           : t('dashboard.sinClasificacion')}
       </p>
@@ -277,7 +285,8 @@ export const CeldaLectura = memo(function CeldaLectura({
         )}
         <span aria-hidden>·</span>
         <span className="sr-only">{t('dashboard.ultimaLecturaHora')}:</span>
-        <time dateTime={ultima.timestamp}>{formatearHora(ultima.timestamp)}</time>
+        {/* HU-07: un arranque sin hora sincronizada se rotula «Sin hora». */}
+        <HoraLectura lectura={ultima} formato="hora" />
       </p>
     </section>
   )

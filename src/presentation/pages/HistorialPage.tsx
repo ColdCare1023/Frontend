@@ -4,7 +4,7 @@ import { CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, 
 
 import { useHistorial, type FiltrosHistorial } from '@/application/hooks/useHistorial'
 import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
@@ -16,6 +16,7 @@ import { useCoincideMedia } from '@/presentation/hooks/useCoincideMedia'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { GraficaDiferida } from '../components/GraficaDiferida'
+import { HoraLectura } from '../components/HoraLectura'
 import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
 import { RiskBadge } from '../components/RiskBadge'
@@ -338,7 +339,8 @@ export function HistorialPage() {
         renderCeldas={(lectura) => (
           <>
             <CeldaRegistro area="a" className="nums text-body text-subtle sm:whitespace-nowrap">
-              {hora(lectura.timestamp)}
+              {/* HU-07: un arranque sin hora sincronizada se rotula «Sin hora». */}
+              <HoraLectura lectura={lectura} formato="hora" />
               {variosEquipos && <span className="codigo ml-2 whitespace-nowrap text-meta text-muted sm:hidden">{lectura.device_id}</span>}
             </CeldaRegistro>
             {variosEquipos && (
@@ -355,9 +357,9 @@ export function HistorialPage() {
                 )}
               </span>
             </CeldaRegistro>
-            {/* HU-34: el riesgo EFECTIVO, no la clase cruda de la IA. */}
+            {/* HU-34: el estado de riesgo (sin clasificación IA no es Normal), no la clase cruda de la IA. */}
             <CeldaRegistro area="b">
-              <RiskBadge nivel={lectura.riesgo_efectivo} />
+              <RiskBadge nivel={estadoRiesgoDe(lectura)} />
               {lectura.apertura_refrigerador && (
                 <span className="ml-2 text-meta text-warning-700 sm:hidden">{t('dashboard.puertaAbierta')}</span>
               )}

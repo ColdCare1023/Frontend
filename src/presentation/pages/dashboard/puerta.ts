@@ -1,8 +1,21 @@
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 
-// HU-35: el nodo entrega su umbral configurado; 120 s cubre respuestas de
-// backends anteriores que todavía no publican este campo.
-export const UMBRAL_PUERTA_ABIERTA_POR_DEFECTO = 120
+// HU-35: el umbral lo fija el backend (`PUERTA_UMBRAL_PROLONGADA_SEGUNDOS`) y
+// llega en cada lectura y en el estado operativo del equipo. Este valor solo
+// cubre backends que aún no lo publican: es el mismo por defecto del backend
+// (60 s), para no avisar más tarde de lo que avisa el servidor.
+export const UMBRAL_PUERTA_ABIERTA_POR_DEFECTO = 60
+
+const umbralValido = (valor: number | null | undefined): valor is number =>
+  typeof valor === 'number' && Number.isFinite(valor) && valor > 0
+
+/** Umbral efectivo: el de la lectura, el del equipo o el del backend por defecto. */
+export function umbralPuerta(lectura: Pick<LecturaTermica, 'umbral_puerta_abierta_segundos'> | null, umbralEquipo?: number | null): number {
+  const deLectura = lectura?.umbral_puerta_abierta_segundos
+  if (umbralValido(deLectura)) return deLectura
+  if (umbralValido(umbralEquipo)) return umbralEquipo
+  return UMBRAL_PUERTA_ABIERTA_POR_DEFECTO
+}
 
 export interface EstadoPuerta {
   /** Sin MC-38: `apertura_refrigerador === null`. */
@@ -28,12 +41,9 @@ export function estadoPuerta(
   ultima: LecturaTermica,
   segundosDesdeUltima: number | null,
   desactualizado: boolean,
+  umbralEquipo?: number | null,
 ): EstadoPuerta {
-  const configurado = ultima.umbral_puerta_abierta_segundos
-  const umbral =
-    typeof configurado === 'number' && Number.isFinite(configurado) && configurado > 0
-      ? configurado
-      : UMBRAL_PUERTA_ABIERTA_POR_DEFECTO
+  const umbral = umbralPuerta(ultima, umbralEquipo)
   const conAperturaContinua = ultima.apertura_continua_segundos !== undefined
   const abiertaAhora = conAperturaContinua
     ? (ultima.apertura_continua_segundos ?? 0) > 0
@@ -92,8 +102,23 @@ export function aperturasEnSerie(serie: readonly LecturaTermica[], umbral = UMBR
   return marcas
 }
 
-/** HU-33 criterio 3: el sensor de este campo falló (no es «aún no llegó»). */
+/** Rango físico de cada magnitud (el mismo con que el backend valida). */
+const RANGO_FISICO: Record<string, readonly [number, number]> = {
+  temperatura_interna: [-55, 125],
+  temperatura_ambiental: [-40, 125],
+  humedad_ambiental: [0, 100],
+}
+
+/**
+ * HU-33 criterio 3: el sensor de este campo falló (no es «aún no llegó»).
+ * Manda `estado_sensores` del backend; sin él, un valor imposible (fuera del
+ * rango físico o no finito) también es falla y no se muestra como dato.
+ */
 export function fallaSensor(lectura: LecturaTermica, campo: string): boolean {
   const estado = lectura.estado_sensores?.[campo]
-  return estado !== undefined && estado !== null && estado !== 'valido'
+  if (estado !== undefined && estado !== null) return estado !== 'valido'
+  const valor = (lectura as unknown as Record<string, unknown>)[campo]
+  if (typeof valor !== 'number') return false
+  const rango = RANGO_FISICO[campo]
+  return !Number.isFinite(valor) || (rango !== undefined && (valor < rango[0] || valor > rango[1]))
 }
