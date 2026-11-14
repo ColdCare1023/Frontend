@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import type { SerieTermica } from '@/domain/entities/SerieTermica'
 
 const useHistorial = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useHistorial', () => ({ useHistorial }))
@@ -38,8 +39,79 @@ function lectura(over: Partial<LecturaTermica> = {}): LecturaTermica {
   }
 }
 
-function montar(lecturas: LecturaTermica[], consultar = vi.fn()) {
-  useHistorial.mockReturnValue({ lecturas, cargando: false, consultar })
+/**
+ * Serie agregada mínima a partir de lecturas: un intervalo de 1 min por
+ * lectura (como si el backend agregara un periodo con pocas lecturas).
+ */
+function serieDe(lecturas: LecturaTermica[], extra: Partial<SerieTermica> = {}): SerieTermica[] {
+  const porEquipo = new Map<string, LecturaTermica[]>()
+  for (const l of lecturas) porEquipo.set(l.device_id, [...(porEquipo.get(l.device_id) ?? []), l])
+  return [...porEquipo.entries()].map(([device_id, propias]) => {
+    const asc = [...propias].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
+    const temps = asc.flatMap((l) => (l.temperatura_interna == null ? [] : [l.temperatura_interna]))
+    const est = (v: number | null) => ({ min: v, max: v, promedio: v, n: v == null ? 0 : 1 })
+    return {
+      device_id,
+      desde: '2026-07-19T00:00:00Z',
+      hasta: '2026-07-26T00:00:00Z',
+      bucket_segundos: 60,
+      bucket_automatico: true,
+      intervalo_reporte_segundos: 30,
+      umbral_brecha_segundos: 90,
+      total_lecturas: asc.length,
+      lecturas_sin_hora: 0,
+      lecturas_manuales: 0,
+      buckets: asc.map((l) => ({
+        inicio: l.timestamp,
+        fin: new Date(Date.parse(l.timestamp) + 60_000).toISOString(),
+        lecturas: 1,
+        temperatura_interna: est(l.temperatura_interna),
+        temperatura_ambiental: est(l.temperatura_ambiental),
+        humedad_ambiental: est(l.humedad_ambiental),
+        fuera_de_rango: l.temperatura_interna != null && (l.temperatura_interna < 2 || l.temperatura_interna > 8) ? 1 : 0,
+        excursiones: l.excursion_confirmada ? 1 : 0,
+      })),
+      brechas: [],
+      resumen: {
+        lecturas: asc.length,
+        temperatura_interna: { min: Math.min(...temps), max: Math.max(...temps), promedio: temps.reduce((a, b) => a + b, 0) / temps.length, n: temps.length },
+        temperatura_ambiental: { min: null, max: null, promedio: null, n: 0 },
+        humedad_ambiental: { min: null, max: null, promedio: null, n: 0 },
+        fuera_de_rango: temps.filter((t) => t < 2 || t > 8).length,
+        excursiones: asc.filter((l) => l.excursion_confirmada).length,
+      },
+      ...extra,
+    }
+  })
+}
+
+interface Opciones {
+  consultar?: ReturnType<typeof vi.fn>
+  irAPagina?: ReturnType<typeof vi.fn>
+  series?: SerieTermica[]
+  total?: number
+  errorSerie?: 'no_encontrado' | 'error' | null
+}
+
+function estadoHook(lecturas: LecturaTermica[], opciones: Opciones = {}) {
+  return {
+    lecturas,
+    total: opciones.total ?? lecturas.length,
+    pagina: 1,
+    irAPagina: opciones.irAPagina ?? vi.fn(),
+    cargando: false,
+    errorCarga: false,
+    consultar: opciones.consultar ?? vi.fn(),
+    series: opciones.series ?? serieDe(lecturas),
+    cargandoSerie: false,
+    errorSerie: opciones.errorSerie ?? null,
+    periodo: { desde: '2026-07-24T12:00:00.000Z', hasta: '2026-07-25T12:00:00.000Z', porDefecto: true },
+    equiposConocidos: [],
+  }
+}
+
+function montar(lecturas: LecturaTermica[], consultar = vi.fn(), opciones: Omit<Opciones, 'consultar'> = {}) {
+  useHistorial.mockReturnValue(estadoHook(lecturas, { ...opciones, consultar }))
   render(<HistorialPage />)
   return consultar
 }
@@ -76,9 +148,9 @@ describe('HistorialPage (RF-12, HU-36)', () => {
     expect(consultar).toHaveBeenCalled()
   })
 
-  it('avisa cuando no hay lecturas para el filtro', () => {
+  it('avisa con el texto literal del criterio cuando el rango no tiene datos (HU-36 esc. 2)', () => {
     montar([])
-    expect(screen.getByText(/no hay lecturas|sin lecturas|sin resultados/i)).toBeInTheDocument()
+    expect(screen.getByText('Sin datos registrados en el rango seleccionado')).toBeInTheDocument()
   })
 
   it('muestra la gráfica cuando hay lecturas (HU-36 criterio 1)', async () => {
@@ -197,14 +269,75 @@ describe('HistorialPage — rediseño P6 (registros)', () => {
     expect(dia.colSpan).toBe(columnas.length)
   })
 
-  it('el estado vacío sin filtros explica cuándo aparecerán las lecturas', () => {
+  it('el estado vacío dice qué periodo se consultó', () => {
     montar([])
-    expect(screen.getByText(/aún no hay lecturas registradas/i)).toBeInTheDocument()
+    expect(screen.getByText(/periodo consultado: últimas 24 h/i)).toBeInTheDocument()
+  })
+})
+
+describe('HistorialPage — HU-36: periodo completo, tabla paginada en el servidor', () => {
+  beforeEach(() => useHistorial.mockReset())
+
+  it('la tira y la curva usan la serie del periodo, no solo la página cargada', async () => {
+    // Una página de 1 fila de un periodo con 8640 lecturas.
+    const pagina = [lectura()]
+    const series = serieDe([lectura(), lectura({ id: 'l-2', timestamp: '2026-07-25T11:00:00Z', temperatura_interna: 9.1 })], { total_lecturas: 8640 })
+    series[0].resumen.lecturas = 8640
+    montar(pagina, vi.fn(), { series, total: 8640 })
+    const tira = screen.getByRole('region', { name: /resumen del periodo/i })
+    expect(tira).toHaveTextContent(/lecturas\s*8640/i)
+    expect(tira).toHaveTextContent(/máxima\s*9[.,]1/i)
+    expect(screen.getByText(/8640 lecturas en el periodo/i)).toBeInTheDocument()
+    expect(await screen.findByTestId('grafica')).toBeInTheDocument()
+  })
+
+  it('«Página siguiente» pide al servidor la página 2', async () => {
+    const irAPagina = vi.fn()
+    montar([lectura()], vi.fn(), { total: 30, irAPagina })
+    await userEvent.click(screen.getByRole('button', { name: /página siguiente/i }))
+    expect(irAPagina).toHaveBeenCalledWith(2)
+  })
+
+  it('«Ver en la tabla» acota la consulta al episodio de excursión y a su equipo', async () => {
+    const consultar = montar([
+      lectura({ id: 'l-1', timestamp: '2026-07-25T12:00:00Z', temperatura_interna: 9.4, excursion_confirmada: true, riesgo_efectivo: 'excursion_critica' }),
+      lectura({ id: 'l-2', timestamp: '2026-07-25T11:59:00Z', temperatura_interna: 9.1, excursion_confirmada: true, riesgo_efectivo: 'excursion_critica' }),
+    ])
+    consultar.mockClear()
+    await userEvent.click(screen.getByRole('button', { name: /ver en la tabla: FARM-01-CDL/i }))
+    expect(consultar).toHaveBeenCalledTimes(1)
+    const filtros = consultar.mock.calls[0][0]
+    expect(filtros.device_id).toBe('FARM-01-CDL')
+    expect(Date.parse(filtros.desde)).toBeLessThan(Date.parse('2026-07-25T11:59:00Z'))
+    expect(Date.parse(filtros.hasta)).toBeGreaterThan(Date.parse('2026-07-25T12:01:00Z'))
+  })
+
+  it('con filtro de riesgo y un periodo con datos, el vacío habla del filtro', async () => {
+    const consultar = montar([lectura()])
+    useHistorial.mockReturnValue(estadoHook([], { consultar, series: serieDe([lectura()]), total: 0 }))
+    await userEvent.selectOptions(screen.getByLabelText(/nivel de riesgo/i), 'excursion_critica')
+    expect(screen.getByText(/sin lecturas para estos filtros/i)).toBeInTheDocument()
+    expect(screen.queryByText('Sin datos registrados en el rango seleccionado')).not.toBeInTheDocument()
+  })
+
+  it('declara las lecturas que cuenta pero no dibuja (sin hora o manuales)', () => {
+    montar([lectura()], vi.fn(), { series: serieDe([lectura()], { lecturas_sin_hora: 2, lecturas_manuales: 1 }) })
+    expect(screen.getByText(/2 lecturas sin hora de captura/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 lectura manual/i)).toBeInTheDocument()
+  })
+
+  it('avisa cuando el equipo filtrado no existe en vez de dibujar una curva vacía', () => {
+    useHistorial.mockReturnValue({ ...estadoHook([lectura()], { series: [], errorSerie: 'no_encontrado' }) })
+    window.history.replaceState({}, '', '/historial?device_id=NO-EXISTE')
+    render(<HistorialPage />)
+    window.history.replaceState({}, '', '/')
+    expect(screen.getByText(/no encontramos el equipo «NO-EXISTE»/i)).toBeInTheDocument()
+    expect(screen.queryByTestId('grafica')).not.toBeInTheDocument()
   })
 })
 
 function montarOtraVez(lecturas: LecturaTermica[]) {
   document.body.innerHTML = ''
-  useHistorial.mockReturnValue({ lecturas, cargando: false, consultar: vi.fn() })
+  useHistorial.mockReturnValue(estadoHook(lecturas))
   render(<HistorialPage />)
 }

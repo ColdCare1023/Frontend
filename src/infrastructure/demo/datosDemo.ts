@@ -453,8 +453,11 @@ function generarEstadoInicial(): EstadoDemo {
     ['REPORTE_BPA_GENERADO', '/api/reportes/bpa', 'u-01', 'exitoso'],
     ['LOGIN_EXITOSO', '/api/auth/login', 'u-03', 'exitoso'],
     ['LOGIN_FALLIDO', '/api/auth/login', null, 'fallido'],
-    ['BLOQUEO_TEMPORAL', '/api/auth/login', null, 'bloqueado'],
+    // HU-50: el backend registra el bloqueo por intentos como este evento
+    // administrativo (nunca emitió BLOQUEO_TEMPORAL) y audita los 403 de RBAC.
+    ['UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO', 'auth/login', null, 'bloqueado'],
     ['RBAC_DENEGADO', '/api/usuarios', 'u-05', 'denegado'],
+    ['SESION_RECHAZADA', '/api/alertas', 'u-07', 'denegado'],
     ['USUARIO_CREADO', '/api/usuarios', 'u-02', 'exitoso'],
     ['ACCION_CORRECTIVA_REGISTRADA', '/api/alertas', 'u-01', 'exitoso'],
   ]

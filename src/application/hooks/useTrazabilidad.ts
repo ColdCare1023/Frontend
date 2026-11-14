@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios'
 
 import type {
+  CadenaTrazabilidad,
   EstadoCadena,
   RegistroTrazabilidad,
   VerificacionIntegridad,
@@ -9,6 +10,9 @@ import type {
 } from '@/domain/entities/RegistroTrazabilidad'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { rutaApi } from '@/lib/rutaApi'
+
+/** Por qué no se pudo verificar: la cadena elegida no tiene registros (404), cuota (429) u otro fallo. */
+export type ErrorVerificacion = 'sin_registros' | 'limite' | 'error'
 
 export function useTrazabilidad() {
   const [registros, setRegistros] = useState<RegistroTrazabilidad[]>([])
@@ -55,12 +59,38 @@ export function useTrazabilidad() {
     void consultarEstadoCadena()
   }, [consultarEstadoCadena])
 
-  const verificarIntegridad = useCallback(async () => {
-    setVerificando(true)
+  // HU-26: cadenas existentes (una por equipo y la de SISTEMA) para elegir el
+  // `chain_id`. Un backend anterior sin el endpoint deja la lista vacía y la
+  // verificación sigue disponible sobre todas las cadenas.
+  const [cadenas, setCadenas] = useState<CadenaTrazabilidad[]>([])
+  const consultarCadenas = useCallback(async () => {
     try {
-      const { data } = await apiClient.get<VerificacionIntegridad>('/api/trazabilidad/verificar')
+      const { data } = await apiClient.get<CadenaTrazabilidad[]>('/api/trazabilidad/cadenas')
+      setCadenas(Array.isArray(data) ? data : [])
+    } catch {
+      setCadenas([])
+    }
+  }, [])
+
+  useEffect(() => {
+    void consultarCadenas()
+  }, [consultarCadenas])
+
+  const [errorVerificacion, setErrorVerificacion] = useState<ErrorVerificacion | null>(null)
+
+  /** HU-26 esc. 1: verificación completa de UNA cadena (`chainId`) o de todas (sin él). */
+  const verificarIntegridad = useCallback(async (chainId?: string) => {
+    setVerificando(true)
+    setErrorVerificacion(null)
+    try {
+      const { data } = await apiClient.get<VerificacionIntegridad>('/api/trazabilidad/verificar', {
+        params: chainId ? { chain_id: chainId } : undefined,
+      })
       setVerificacion(data)
       await consultarEstadoCadena()
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined
+      setErrorVerificacion(status === 404 ? 'sin_registros' : status === 429 ? 'limite' : 'error')
     } finally {
       setVerificando(false)
     }
@@ -99,13 +129,14 @@ export function useTrazabilidad() {
   )
 
   const aislarCorrupcion = useCallback(
-    async (registroId: string): Promise<'ok' | 'error'> => {
+    async (registroId: string): Promise<'ok' | 'conflicto' | 'error'> => {
       try {
         await apiClient.post(rutaApi`/api/trazabilidad/corrupcion/${registroId}/aislar`)
         await consultarEstadoCadena()
         return 'ok'
-      } catch {
-        return 'error'
+      } catch (error) {
+        // 409: la verificación de esa cadena no concluyó (falta la clave v3).
+        return axios.isAxiosError(error) && error.response?.status === 409 ? 'conflicto' : 'error'
       }
     },
     [consultarEstadoCadena],
@@ -119,6 +150,8 @@ export function useTrazabilidad() {
     verificacion,
     verificando,
     verificarIntegridad,
+    errorVerificacion,
+    cadenas,
     estadoCadena,
     aislarCorrupcion,
     verificacionSegmento,

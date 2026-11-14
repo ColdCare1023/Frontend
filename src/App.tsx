@@ -49,6 +49,10 @@ const MetricasIAPage = diferida(
   'MetricasIAPage',
 )
 const AuditoriaPage = diferida(() => import('@/presentation/pages/AuditoriaPage'), 'AuditoriaPage')
+const ConfiguracionEquiposPage = diferida(
+  () => import('@/presentation/pages/ConfiguracionEquiposPage'),
+  'ConfiguracionEquiposPage',
+)
 const UsuariosPage = diferida(() => import('@/presentation/pages/UsuariosPage'), 'UsuariosPage')
 const DispositivosLayout = diferida(
   () => import('@/presentation/pages/dispositivos/DispositivosLayout'),
@@ -180,13 +184,17 @@ export function App() {
                   en auditoria_router.py). */}
               <Route element={<RequireRoles roles={['auditor']} />}>
                 <Route path="/auditoria" element={<Pagina><AuditoriaPage /></Pagina>} />
+                {/* HU-49: historial de configuración del hardware, de solo
+                    lectura (require_roles(ADMINISTRADOR, AUDITOR) en
+                    dispositivos_router.py /historial-configuracion). */}
+                <Route path="/configuracion-equipos" element={<Pagina><ConfiguracionEquiposPage /></Pagina>} />
               </Route>
 
               {/* Gestión de usuarios/dispositivos: sigue siendo
                   exclusiva del administrador — el backend no le da AUDITOR
                   acceso de escritura ni de lectura a estas pantallas
-                  completas (solo a un sub-recurso puntual de dispositivos,
-                  el historial de configuración, sin UI propia todavía). */}
+                  completas (su sub-recurso, el historial de configuración,
+                  tiene la vista propia de /configuracion-equipos). */}
               <Route element={<RequireRoles roles={[]} />}>
                 <Route path="/usuarios" element={<Pagina><UsuariosPage /></Pagina>} />
                 {/* Lista y detalle comparten la flota del layout (SPEC P5b §4.1). */}

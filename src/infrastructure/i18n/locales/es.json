@@ -82,8 +82,10 @@
       "metricasIA": "Evaluación del clasificador de riesgo",
       "auditoria": "Bitácora de acciones del sistema",
       "usuarios": "Cuentas y roles",
-      "dispositivos": "Equipos, calibración y credenciales"
-    }
+      "dispositivos": "Equipos, calibración y credenciales",
+      "configuracionEquipos": "Historial de cambios del hardware"
+    },
+    "configuracionEquipos": "Cambios de hardware"
   },
   "roles": {
     "administrador": "Administrador",
@@ -435,7 +437,7 @@
       "fallida": "Fallida",
       "modelo_no_disponible": "Modelo no disponible"
     },
-    "meta": "{{n}} lecturas · {{desde}} – {{hasta}}",
+    "meta": "{{n}} lecturas · {{periodo}}",
     "guia": {
       "enRango": "Todo el periodo se mantuvo en 2⁠–⁠8 °C.",
       "excursiones_one": "{{count}} excursión en el periodo: duró {{duracion}} en {{equipo}}.",
@@ -463,12 +465,28 @@
       "panelTitulo": "Filtrar el historial",
       "mas": "Filtros",
       "masActivos_one": "Filtros ({{count}})",
-      "masActivos_other": "Filtros ({{count}})"
+      "masActivos_other": "Filtros ({{count}})",
+      "resultadosPeriodo_one": "{{count}} lectura en el periodo",
+      "resultadosPeriodo_other": "{{count}} lecturas en el periodo"
     },
     "curva": {
       "titulo": "Curva del periodo",
       "meta": "{{equipo}} · {{n}} lecturas · rango 2⁠–⁠8 °C",
-      "equipo": "Equipo de la curva"
+      "equipo": "Equipo de la curva",
+      "banda": "Mín.–máx. del intervalo",
+      "bufferAgotado": "Buffer agotado",
+      "minimo": "mín.",
+      "maximo": "máx.",
+      "lecturas": "lecturas",
+      "agregada": "Promedio y mín.–máx. cada {{intervalo}}",
+      "etiqueta": "Gráfica de la temperatura interna del periodo ({{periodo}}): {{n}} lecturas agregadas por intervalo, con el rango de conservación 2⁠–⁠8 °C marcado",
+      "sinHora_one": "{{count}} lectura sin hora de captura se cuenta en el total, pero no se dibuja.",
+      "sinHora_other": "{{count}} lecturas sin hora de captura se cuentan en el total, pero no se dibujan.",
+      "manuales_one": "{{count}} lectura manual se cuenta en el total, pero no se dibuja en la curva.",
+      "manuales_other": "{{count}} lecturas manuales se cuentan en el total, pero no se dibujan en la curva.",
+      "brechasTruncadas": "El periodo tiene más de 500 brechas: se muestran las primeras 500.",
+      "equipoNoEncontrado": "No encontramos el equipo «{{equipo}}». Revisa el código para ver su curva.",
+      "error": "No pudimos cargar la curva del periodo. La tabla sigue disponible."
     },
     "dia": {
       "resumen": "{{n}} lecturas · mín {{min}} · máx {{max}} °C",
@@ -506,7 +524,7 @@
     "rail": {
       "etiqueta": "Contexto del periodo",
       "porEquipo": "Por equipo",
-      "porEquipoMeta": "Última lectura, mínima y máxima del periodo",
+      "porEquipoMeta": "Último intervalo, mínima y máxima del periodo",
       "porEquipoValor": "mín {{min}} · prom {{prom}} · máx {{max}} °C",
       "porEquipoRegla": "{{equipo}}: última {{ultima}} °C; mínima {{min}} °C; máxima {{max}} °C; rango 2⁠–⁠8 °C",
       "enRango": "{{pct}} en rango",
@@ -519,7 +537,9 @@
       "sinBrechas": "Registro continuo, sin brechas.",
       "brechaMayor": "Mayor: {{duracion}} ({{fecha}})",
       "brechasTotal_one": "{{count}} brecha en {{equipo}}",
-      "brechasTotal_other": "{{count}} brechas en {{equipo}}"
+      "brechasTotal_other": "{{count}} brechas en {{equipo}}",
+      "bufferAgotado_one": "{{count}} por buffer agotado ({{perdidas}} muestras perdidas)",
+      "bufferAgotado_other": "{{count}} por buffer agotado ({{perdidas}} muestras perdidas)"
     },
     "vacio": {
       "filtrosTitulo": "Sin lecturas para estos filtros",
@@ -527,7 +547,11 @@
       "ultimaLectura": "Última lectura registrada: {{fecha}}",
       "sinDatosTitulo": "Aún no hay lecturas registradas",
       "sinDatosDetalle": "Las lecturas aparecerán cuando un equipo transmita.",
-      "irMonitoreo": "Ir a Monitoreo"
+      "irMonitoreo": "Ir a Monitoreo",
+      "periodoDetalle": "Periodo consultado: {{periodo}}. Amplía el periodo o elige otro equipo."
+    },
+    "periodo": {
+      "ultimas24h": "Últimas 24 h"
     }
   },
   "alertas": {
@@ -570,7 +594,7 @@
     "rectificada": "Rectificada",
     "rectificaA": "Rectifica la acción del {{fecha}}",
     "motivo": "Motivo",
-    "rectificarAyuda": "La acción original no se modifica: se agrega una nueva versión con su motivo.",
+    "rectificarAyuda": "La acción original no se modifica: se agrega una nueva versión con su motivo. Corrige la decisión, la acción o la justificación; lo que no cambies se conserva.",
     "nuevaDescripcion": "Descripción corregida",
     "motivoRectificacion": "Motivo de la rectificación",
     "motivoRectificacionAyuda": "Entre 10 y 500 caracteres. Quedará en el historial junto a la corrección.",
@@ -695,7 +719,10 @@
       "motivoCorto": "El motivo necesita al menos 10 caracteres.",
       "descripcionVacia": "La descripción corregida no puede quedar vacía.",
       "rectificacionGuardada": "Rectificación guardada.",
-      "inicio": "Inicio"
+      "inicio": "Inicio",
+      "sinCambios": "Cambia la decisión, la acción o la justificación: una rectificación sin cambios no se registra.",
+      "decisionVacia": "La decisión corregida no puede quedar vacía.",
+      "justificacionVacia": "La justificación corregida no puede quedar vacía."
     },
     "vacio": {
       "enOrdenTitulo": "Todo en orden",
@@ -756,7 +783,9 @@
       "excursionCritica": "Simular excursión crítica",
       "riesgoPreventivo": "Simular riesgo preventivo",
       "error": "No se pudo simular la alerta."
-    }
+    },
+    "nuevaDecision": "Decisión corregida",
+    "nuevaJustificacion": "Justificación corregida"
   },
   "trazabilidad": {
     "titulo": "Integridad del historial",
@@ -799,7 +828,7 @@
     "totalRupturas": "Rupturas detectadas",
     "posterioresConsistentes": "Posteriores que siguen enlazados",
     "posterioresConsistentesValor": "{{c}} de {{n}}",
-    "alcanceVerificacion": "Esta verificación comprueba la consistencia de la cadena y detecta las alteraciones identificables con el mecanismo y las condiciones de seguridad empleados y, de existir una ruptura, en qué punto ocurrió. No equivale a inmutabilidad. No constituye una certificación sanitaria, regulatoria ni de conformidad DIGEMID sobre la conservación de los medicamentos.",
+    "alcanceVerificacion": "Esta verificación comprueba la consistencia de la cadena de trazabilidad y detecta las alteraciones identificables bajo el mecanismo de encadenamiento y las condiciones de seguridad empleados; de existir una ruptura, informa en qué punto ocurrió. En los eslabones v1/v2 (SHA-256 sin clave), una reescritura completa de la cadena con recálculo de todos los hashes posteriores podría no detectarse; en los v3 (HMAC-SHA256), la protección supone que la clave se mantenga secreta. El resultado no equivale a inmutabilidad, no certifica por sí mismo toda la historia del dato y no constituye una certificación sanitaria, regulatoria ni de conformidad DIGEMID sobre la conservación de los medicamentos.",
     "confirmarAislar": "Se marcará este registro como aislado y quedará excluido de la cadena verificable. La acción queda auditada y no se puede deshacer.",
     "verificarSegmento": "Verificar por dispositivo y periodo",
     "verificarSegmentoBoton": "Verificar segmento",
@@ -881,13 +910,23 @@
       "ultimo": "Último registro",
       "ultimaVerificacionEquipo": "Última verificación por equipo",
       "ninguna": "Ninguna registrada",
-      "integraDesde": "Íntegra desde"
+      "integraDesde": "Íntegra desde",
+      "noVerificables": "No verificables"
     },
     "segmento": {
       "ultima": "Última: {{device}} · {{fecha}} · {{resultado}}",
       "queRevisa": "Qué revisa esta verificación",
       "resultadoIntegro": "sin cambios",
-      "resultadoRoto": "con cambios"
+      "resultadoRoto": "con cambios",
+      "noConcluido": "Verificación del periodo no concluida",
+      "corruptas_one": "{{count}} corrupta.",
+      "corruptas_other": "{{count}} corruptas.",
+      "noVerificables_one": "{{count}} no verificable (falta la clave).",
+      "noVerificables_other": "{{count}} no verificables (falta la clave).",
+      "idRegistro": "ID del registro",
+      "integra": "Íntegra",
+      "corrupta": "Corrupta",
+      "noVerificable": "No verificable"
     },
     "composicion": {
       "titulo": "Composición de la cadena",
@@ -928,7 +967,25 @@
     "vacio": {
       "filtrosTitulo": "Sin registros para este filtro",
       "filtrosDetalle": "Elige otro tipo de evento o quita el filtro de equipo."
-    }
+    },
+    "noConcluida": "Verificación no concluida",
+    "noConcluidaDetalle_one": "{{count}} registro sellado con clave (v3) no se pudo verificar porque la clave no está disponible. El resultado no se informa como íntegro ni como alterado.",
+    "noConcluidaDetalle_other": "{{count}} registros sellados con clave (v3) no se pudieron verificar porque la clave no está disponible. El resultado no se informa como íntegro ni como alterado.",
+    "cadena": {
+      "etiqueta": "Cadena",
+      "todas": "Todas las cadenas",
+      "sistema": "Sistema (usuarios y bitácora)",
+      "opcion_one": "{{cadena}} · {{count}} registro",
+      "opcion_other": "{{cadena}} · {{count}} registros",
+      "ayuda": "Elige la cadena de un equipo o la del sistema para verificarla completa desde su primer registro.",
+      "verificada": "Cadena verificada",
+      "mecanismo": "Mecanismo de sellado",
+      "mecanismoSinClave": "SHA-256 sin clave (v1/v2)",
+      "mecanismoHmac": "HMAC-SHA256 con clave (v3)",
+      "sinRegistros": "La cadena «{{cadena}}» no tiene registros que verificar.",
+      "sistemaCorto": "Sistema"
+    },
+    "aislarNoConcluida": "No se puede aislar: la verificación de esa cadena no concluyó (falta la clave de sellado)."
   },
   "reportes": {
     "titulo": "Reportes de monitoreo",
@@ -1010,8 +1067,8 @@
     "filtros": "Filtros",
     "fecha": "Fecha",
     "accion": "Acción",
-    "accionPlaceholder": "Ej.: LOGIN",
-    "ayudaAccion": "Puedes filtrar por el nombre o el código exacto de la acción.",
+    "accionPlaceholder": "Ej.: LOGIN_FALLIDO",
+    "ayudaAccion": "Código exacto de la acción; elige uno de la lista.",
     "recurso": "Recurso",
     "usuario": "Usuario",
     "usuarioId": "ID de usuario",
@@ -1088,7 +1145,9 @@
       "MODELO_RECHAZADO": "Modelo rechazado",
       "INTENTO_MODIFICAR_INFERENCIA": "Intento de modificar una inferencia",
       "CADENA_CORRUPCION_AISLADA": "Registro corrupto aislado",
-      "RETENCION_INTENTOS_SUPRIMIDOS": "Intentos suprimidos por retención"
+      "RETENCION_INTENTOS_SUPRIMIDOS": "Intentos suprimidos por retención",
+      "SESION_RECHAZADA": "Sesión rechazada",
+      "EXPORTAR_BITACORA": "Bitácora exportada"
     },
     "meta": "{{n}} acciones · {{desde}} – {{hasta}}",
     "buscarAccion": "Buscar acción",
@@ -1107,10 +1166,8 @@
     },
     "filtroResultado": {
       "etiqueta": "Resultado",
-      "todas": "Todas",
-      "fallidas": "Fallidas o denegadas",
-      "bloqueos": "Bloqueos",
-      "ayuda": "Filtra solo las acciones ya cargadas."
+      "todas": "Todos",
+      "ayuda": "Consulta en el servidor solo las acciones con ese resultado."
     },
     "chip": {
       "accion": "Acción: {{valor}}",
@@ -1181,7 +1238,19 @@
       "filtrosTitulo": "Sin acciones para estos filtros",
       "filtrosDetalle": "Prueba con otro periodo o quita un filtro.",
       "sinDatosDetalle": "Las acciones de acceso, usuarios y equipos aparecerán aquí.",
-      "actualizar": "Actualizar"
+      "actualizar": "Actualizar",
+      "categoriaDetalle": "Ninguna acción cargada pertenece a esa categoría. Elige otra o muestra todas."
+    },
+    "errorFiltros": "Revisa los filtros: el usuario debe ser su identificador completo (UUID) y el periodo, válido.",
+    "usuarioAyuda": "Identificador completo del usuario (UUID). «Ver solo este usuario», en el detalle de una fila, lo rellena.",
+    "exportando": "Exportando…",
+    "exportarAyuda": "El servidor exporta la bitácora con los filtros de periodo, usuario, acción y resultado (hasta 10 000 filas); la categoría no se aplica. La exportación queda registrada en la bitácora.",
+    "exportarCuota": "Alcanzaste el límite de exportaciones por minuto. Espera un momento.",
+    "exportarError": "No pudimos exportar la bitácora. Intenta de nuevo.",
+    "limiteLista": "Se muestran las {{n}} acciones más recientes. Acota el periodo o exporta el CSV (hasta 10 000 filas).",
+    "kpi": {
+      "fallidos": "Fallidas",
+      "denegados": "Denegadas"
     }
   },
   "usuarios": {
@@ -1645,7 +1714,12 @@
       "responsable_nombre": "Responsable",
       "responsable_email": "Correo del responsable",
       "responsable_telefono": "Teléfono del responsable",
-      "intervalo_reporte_segundos": "Intervalo de reporte"
+      "intervalo_reporte_segundos": "Intervalo de reporte",
+      "responsable_contacto": "Contacto del responsable",
+      "reemplazado_por": "Reemplazado por",
+      "reemplaza_a": "Reemplaza a",
+      "baja": "Baja del equipo",
+      "sensores_habilitados": "Sensores habilitados"
     },
     "seguridadTab": {
       "actualizadaEl": "Actualizada el {{fecha}}",
@@ -1693,6 +1767,13 @@
       "duracion": "duró {{duracion}}",
       "sinMas": "Sin más actividad en los últimos 7 días",
       "verHistorial": "Ver historial"
+    },
+    "cambio": {
+      "actor": "Por {{actor}}",
+      "sinActor": "Por el sistema",
+      "origen": "origen: {{origen}}",
+      "vigenteEntre": "Vigente del {{desde}} al {{hasta}}",
+      "vigenteDesde": "Vigente desde el {{desde}} (actual)"
     }
   },
   "comunes": {
@@ -2243,5 +2324,49 @@
       "mensaje": "Ábrelo de nuevo desde el correo de ColdCare o escribe el código que aparece en el mensaje.",
       "irLogin": "Volver a ColdCare"
     }
+  },
+  "configuracionEquipos": {
+    "titulo": "Historial de configuración",
+    "descripcion": "Cambios del hardware con su autor y su vigencia. Solo lectura.",
+    "chipCategoria": "Categoría: {{valor}}",
+    "chipPeriodo": "Periodo: {{valor}}",
+    "filtro": {
+      "etiqueta": "Filtrar el historial de configuración",
+      "equipo": "Equipo",
+      "elegirEquipo": "Elige un equipo",
+      "categoria": "Categoría",
+      "todas": "Todas"
+    },
+    "categorias": {
+      "instalacion": "Instalación",
+      "calibracion": "Calibración",
+      "responsable": "Responsable",
+      "intervalo": "Intervalo de muestreo",
+      "sensores": "Sensores",
+      "reemplazo": "Reemplazo y baja",
+      "otro": "Otros"
+    },
+    "resultados_one": "{{count}} cambio",
+    "resultados_other": "{{count}} cambios",
+    "noEncontrado": "No encontramos el equipo «{{equipo}}».",
+    "sinEquipos": "Aún no hay equipos con historial",
+    "sinEquiposDetalle": "Cuando se registre un equipo, sus cambios de configuración aparecerán aquí.",
+    "vacioFiltros": "Sin cambios para estos filtros.",
+    "resumen": {
+      "etiqueta": "Resumen del historial",
+      "cambios": "Cambios",
+      "vigentes": "Vigentes",
+      "actores": "Personas distintas"
+    },
+    "rail": {
+      "etiqueta": "Alcance del historial",
+      "soloLectura": "Solo lectura",
+      "soloLecturaDetalle": "Este historial no se puede editar ni borrar: cada cambio de configuración agrega una entrada nueva con el valor anterior, el nuevo, quién lo hizo y cuándo.",
+      "telemetria": "Telemetría intacta",
+      "telemetriaDetalle": "Un cambio de configuración no recalcula ni reescribe las lecturas ya registradas ni sus sellos de integridad.",
+      "rango": "Rango 2⁠–⁠8 °C fijo",
+      "rangoDetalle": "El rango térmico objetivo de 2 a 8 °C es un parámetro de la investigación: no forma parte de la configuración editable del hardware."
+    },
+    "cambiosRegistrados": "Cambios registrados"
   }
 }

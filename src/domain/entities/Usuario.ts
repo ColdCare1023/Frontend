@@ -32,6 +32,13 @@ export interface PasswordTemporal {
 export const MOTIVOS_DESACTIVACION = ['renuncia', 'despido', 'jubilacion', 'otros'] as const
 export type MotivoDesactivacion = (typeof MOTIVOS_DESACTIVACION)[number]
 
+/**
+ * HU-42 esc. 1 / HU-50: resultado del evento según el backend (`exitoso`, o
+ * `fallido`, `denegado` por RBAC o sesión, `bloqueado` por un umbral temporal).
+ */
+export const RESULTADOS_AUDITORIA = ['exitoso', 'fallido', 'denegado', 'bloqueado'] as const
+export type ResultadoAuditoria = (typeof RESULTADOS_AUDITORIA)[number]
+
 export interface RegistroAuditoria {
   id: string
   usuario_id: string | null
@@ -39,6 +46,7 @@ export interface RegistroAuditoria {
   recurso: string
   detalle: Record<string, unknown> | null
   ip_origen: string | null
-  resultado?: string | null
+  /** Ausente solo en backends anteriores a la migración del resultado. */
+  resultado?: ResultadoAuditoria | string | null
   created_at: string
 }

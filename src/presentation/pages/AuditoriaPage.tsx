@@ -1,9 +1,11 @@
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CircleCheck, Download, FilterX, Info, Search, ShieldAlert, TriangleAlert } from 'lucide-react'
 
-import { useAuditoria, type FiltrosAuditoria } from '@/application/hooks/useAuditoria'
-import type { RegistroAuditoria } from '@/domain/entities/Usuario'
+import { useAuditoria, type FiltrosAuditoria, type ResultadoExportacion } from '@/application/hooks/useAuditoria'
+import { useAuthStore } from '@/application/stores/authStore'
+import { RESULTADOS_AUDITORIA, type RegistroAuditoria, type ResultadoAuditoria, type Usuario } from '@/domain/entities/Usuario'
+import { apiClient } from '@/infrastructure/api/apiClient'
 import { claveDia, contarPorDia } from '@/lib/agruparPorDia'
 import { fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
@@ -19,12 +21,34 @@ import { Button } from '../components/ui/button'
 import { Input, Label, NativeSelect } from '../components/ui/input'
 import { SelectorFecha } from '../components/ui/selector-fecha'
 import { TiraEstado } from '../components/ui/tira-estado'
-import { CATEGORIAS_AUDITORIA, clasificarAccion, ICONO_CATEGORIA, nombreAccion, type CategoriaAuditoria } from './auditoria/categoriasAuditoria'
+import { CATEGORIAS_AUDITORIA, clasificarAccion, CODIGOS_SEGURIDAD, ICONO_CATEGORIA, nombreAccion, type CategoriaAuditoria } from './auditoria/categoriasAuditoria'
 import { HistogramaActividad } from './auditoria/HistogramaActividad'
 import { esFallida } from './auditoria/categoriasAuditoria'
 
 const FILTROS_INICIALES: FiltrosAuditoria = {}
-type FiltroResultado = 'todas' | 'fallidas' | 'bloqueos'
+const esResultado = (valor: string): valor is ResultadoAuditoria => (RESULTADOS_AUDITORIA as readonly string[]).includes(valor)
+
+/**
+ * HU-50: el administrador ve el nombre de cada actor (`/api/usuarios` es solo
+ * suyo); el auditor ve el identificador, que es lo que guarda la bitácora.
+ */
+function useNombresUsuarios(habilitado: boolean): Map<string, string> {
+  const [nombres, setNombres] = useState<Map<string, string>>(() => new Map())
+  useEffect(() => {
+    if (!habilitado) return
+    let vigente = true
+    apiClient
+      .get<Usuario[]>('/api/usuarios')
+      .then(({ data }) => {
+        if (vigente && Array.isArray(data)) setNombres(new Map(data.map((u) => [u.id, u.nombre || u.email])))
+      })
+      .catch(() => {})
+    return () => {
+      vigente = false
+    }
+  }, [habilitado])
+  return nombres
+}
 
 // Los tres resultados negativos van en tinte (no sólido): en una tabla de
 // registros conviven muchos y el sólido se reserva para lo que pide actuar.
@@ -43,13 +67,15 @@ const humanizar = (clave: string) => clave.replaceAll('_', ' ').replace(/^\p{L}/
 
 export function AuditoriaPage() {
   const { t } = useTranslation()
-  const { registros, cargando, errorCarga, consultar } = useAuditoria()
+  const { registros, cargando, errorCarga, motivoError, consultar, exportar, exportando, limite } = useAuditoria()
+  const rol = useAuthStore((s) => s.usuario?.rol)
+  const nombres = useNombresUsuarios(rol === 'administrador')
+  const [resultadoExportacion, setResultadoExportacion] = useState<ResultadoExportacion | null>(null)
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   const [filtros, setFiltros] = useState<FiltrosAuditoria>(FILTROS_INICIALES)
   const [aplicados, setAplicados] = useState<FiltrosAuditoria>(FILTROS_INICIALES)
   const [diaHistograma, setDiaHistograma] = useState<string | null>(null)
-  const [resultado, setResultado] = useState<FiltroResultado>('todas')
   const [categoria, setCategoria] = useState<CategoriaAuditoria | null>(null)
   const [expandida, setExpandida] = useState<string | null>(null)
   const [masFiltros, setMasFiltros] = useState(false)
@@ -60,18 +86,12 @@ export function AuditoriaPage() {
   const [baseHistograma, setBaseHistograma] = useState<RegistroAuditoria[]>(registros)
   if (sinPeriodo && baseHistograma !== registros && !cargando) setBaseHistograma(registros)
 
-  // Filtros locales (sobre las filas ya cargadas): diferidos para no bloquear la escritura.
-  const resultadoDiferido = useDeferredValue(resultado)
+  // HU-42/HU-50: el resultado se filtra en el SERVIDOR (`resultado`); la
+  // categoría, sobre las filas ya cargadas (diferida para no bloquear la escritura).
   const categoriaDiferida = useDeferredValue(categoria)
   const filtradas = useMemo(
-    () =>
-      registros.filter((r) => {
-        if (resultadoDiferido === 'fallidas' && !esFallida(r)) return false
-        if (resultadoDiferido === 'bloqueos' && r.accion !== 'BLOQUEO_TEMPORAL') return false
-        if (categoriaDiferida && clasificarAccion(r.accion).categoria !== categoriaDiferida) return false
-        return true
-      }),
-    [registros, resultadoDiferido, categoriaDiferida],
+    () => registros.filter((r) => !categoriaDiferida || clasificarAccion(r.accion).categoria === categoriaDiferida),
+    [registros, categoriaDiferida],
   )
   // La firma evita reiniciar la vista cuando llega la misma lista otra vez.
   const firma = `${filtradas.length}:${filtradas[0]?.id}:${filtradas.at(-1)?.id}`
@@ -84,7 +104,8 @@ export function AuditoriaPage() {
   const visibles = useMemo(() => filtradas.slice(...rangoPagina(pagina, tamanoPagina)), [filtradas, pagina, tamanoPagina])
   const porDia = useMemo(() => contarPorDia(filtradas, fechaDe), [filtradas])
 
-  const consultarCon = (nuevos: FiltrosAuditoria, dia: string | null = null) => {
+  const consultarCon = (crudos: FiltrosAuditoria, dia: string | null = null) => {
+    const nuevos = { ...crudos, usuario_id: crudos.usuario_id?.trim() || undefined, accion: crudos.accion?.trim() || undefined }
     setFiltros(nuevos)
     setAplicados(nuevos)
     setDiaHistograma(dia)
@@ -94,47 +115,42 @@ export function AuditoriaPage() {
     setFiltros((previos) => ({ ...previos, [campo]: valor || undefined }))
   }
   const limpiar = () => {
-    setResultado('todas')
     setCategoria(null)
     consultarCon(FILTROS_INICIALES)
   }
 
-  // Exporta las filas visibles (filtro de servidor + filtros locales), con la
-  // fila final de alcance (HU-50 esc. 4) y protección contra fórmulas.
-  const exportar = () => {
-    const columnas = [t('auditoria.fecha'), t('auditoria.usuarioId'), t('auditoria.accion'), t('auditoria.recurso'), t('auditoria.resultado'), t('auditoria.ip')]
-    const csvCell = (value: unknown) => {
-      let text = String(value ?? '')
-      if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`
-      return `"${text.replaceAll('"', '""')}"`
-    }
-    const rows = filtradas.map((r) => [r.created_at, r.usuario_id, r.accion, r.recurso, r.resultado, r.ip_origen])
-    const blob = new Blob([`\uFEFF${[columnas, ...rows, [t('auditoria.alcancePanel')]].map((row) => row.map(csvCell).join(',')).join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
-    const href = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = href
-    link.download = 'coldcare-auditoria.csv'
-    link.click()
-    URL.revokeObjectURL(href)
+  // HU-42 esc. 1 / HU-50 esc. 4: el SERVIDOR exporta la bitácora con los
+  // filtros aplicados (hasta 10 000 filas), declara el alcance en la primera
+  // línea y deja la exportación auditada (EXPORTAR_BITACORA).
+  const exportarCsv = async () => {
+    setResultadoExportacion(null)
+    setResultadoExportacion(await exportar(aplicados))
   }
 
-  const bloqueos = registros.filter((r) => r.accion === 'BLOQUEO_TEMPORAL').length
-  const fallidos = registros.filter(esFallida).length
+  // HU-50: KPIs del resultado REAL que registra el backend (antes se contaba
+  // un BLOQUEO_TEMPORAL que el backend nunca emite).
+  const contar = (valor: ResultadoAuditoria) => registros.filter((r) => r.resultado === valor).length
+  const bloqueos = contar('bloqueado')
+  const fallidos = contar('fallido')
+  const denegados = contar('denegado')
   const usuarios = new Set(registros.flatMap((r) => (r.usuario_id ? [r.usuario_id] : []))).size
+  const nombreUsuario = (id: string) => nombres.get(id)
+  const codigosAccion = useMemo(() => [...new Set([...CODIGOS_SEGURIDAD, ...registros.map((r) => r.accion)])].sort(), [registros])
+  const usuariosVistos = useMemo(() => [...new Set(registros.flatMap((r) => (r.usuario_id ? [r.usuario_id] : [])))].sort(), [registros])
 
   const etiquetaResultado = (valor: string | null | undefined) =>
     valor ? t(`auditoria.resultados.${valor}`, { defaultValue: valor }) : '—'
 
   const chips: Chip[] = []
   if (aplicados.accion) chips.push({ clave: 'accion', texto: t('auditoria.chip.accion', { valor: aplicados.accion }), quitar: () => consultarCon({ ...aplicados, accion: undefined }, diaHistograma) })
-  if (aplicados.usuario_id) chips.push({ clave: 'usuario', texto: t('auditoria.chip.usuario', { valor: aplicados.usuario_id }), quitar: () => consultarCon({ ...aplicados, usuario_id: undefined }, diaHistograma) })
+  if (aplicados.usuario_id) chips.push({ clave: 'usuario', texto: t('auditoria.chip.usuario', { valor: nombreUsuario(aplicados.usuario_id) ?? aplicados.usuario_id }), quitar: () => consultarCon({ ...aplicados, usuario_id: undefined }, diaHistograma) })
+  if (aplicados.resultado) chips.push({ clave: 'resultado', texto: t('auditoria.chip.resultado', { valor: t(`auditoria.resultados.${aplicados.resultado}`) }), quitar: () => consultarCon({ ...aplicados, resultado: undefined }, diaHistograma) })
   if (aplicados.desde || aplicados.hasta) {
     const desde = aplicados.desde ? fechaHora(aplicados.desde) : ''
     const hasta = aplicados.hasta ? fechaHora(aplicados.hasta) : ''
     const valor = desde && hasta ? t('comunes.periodo.rango', { desde, hasta }) : desde ? t('comunes.periodo.desdeSolo', { desde }) : t('comunes.periodo.hastaSolo', { hasta })
     chips.push({ clave: 'periodo', texto: t('auditoria.chip.periodo', { valor }), quitar: () => consultarCon({ ...aplicados, desde: undefined, hasta: undefined }) })
   }
-  if (resultado !== 'todas') chips.push({ clave: 'resultado', texto: t('auditoria.chip.resultado', { valor: t(`auditoria.filtroResultado.${resultado}`) }), quitar: () => setResultado('todas') })
   if (categoria) chips.push({ clave: 'categoria', texto: t('auditoria.chip.categoria', { valor: t(`auditoria.categorias.${categoria}`) }), quitar: () => setCategoria(null) })
   const hayFiltros = chips.length > 0
 
@@ -144,10 +160,10 @@ export function AuditoriaPage() {
         <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warning-700" />
         {t('auditoria.bloqueosTemporales', { count: bloqueos })}
       </span>
-    ) : fallidos > 0 ? (
+    ) : fallidos + denegados > 0 ? (
       <span className="flex items-start gap-2">
         <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-critical" />
-        {t('auditoria.guia.fallidos', { count: fallidos })}
+        {t('auditoria.guia.fallidos', { count: fallidos + denegados })}
       </span>
     ) : (
       <span className="flex items-start gap-2">
@@ -212,13 +228,14 @@ export function AuditoriaPage() {
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1">
               <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-              <Input id="fa-accion" className="h-9 pl-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.accion ?? ''} onChange={(e) => actualizarFiltro('accion', e.target.value)} placeholder={t('auditoria.accionPlaceholder')} aria-describedby="fa-accion-ayuda" />
+              <Input id="fa-accion" list="fa-accion-codigos" className="h-9 pl-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.accion ?? ''} onChange={(e) => actualizarFiltro('accion', e.target.value)} placeholder={t('auditoria.accionPlaceholder')} aria-describedby="fa-accion-ayuda" />
+              <datalist id="fa-accion-codigos">{codigosAccion.map((codigo) => <option key={codigo} value={codigo} label={nombreAccion(codigo, t)} />)}</datalist>
             </div>
             <BotonMasFiltros
               abierto={masFiltros}
               onCambiar={setMasFiltros}
               controla="auditoria-mas-filtros"
-              activos={(aplicados.usuario_id ? 1 : 0) + (resultado !== 'todas' ? 1 : 0) + (aplicados.desde || aplicados.hasta ? 1 : 0)}
+              activos={(aplicados.usuario_id ? 1 : 0) + (aplicados.resultado ? 1 : 0) + (aplicados.desde || aplicados.hasta ? 1 : 0)}
               texto={t('auditoria.filtro.mas')}
               textoActivos={(count) => t('auditoria.filtro.masActivos', { count })}
             />
@@ -228,14 +245,21 @@ export function AuditoriaPage() {
         <div id="auditoria-mas-filtros" className={cn('grid grid-cols-1 gap-x-3 gap-y-2 min-[480px]:grid-cols-2 sm:contents', !masFiltros && 'max-sm:hidden')}>
           <div className="min-w-0">
             <Label htmlFor="fa-usuario" className="text-meta text-muted">{t('auditoria.usuario')}</Label>
-            <Input id="fa-usuario" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.usuario_id ?? ''} onChange={(e) => actualizarFiltro('usuario_id', e.target.value)} placeholder={t('auditoria.usuarioPlaceholder')} />
+            <Input id="fa-usuario" list="fa-usuario-ids" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.usuario_id ?? ''} onChange={(e) => actualizarFiltro('usuario_id', e.target.value)} placeholder={t('auditoria.usuarioPlaceholder')} aria-describedby="fa-usuario-ayuda" />
+            <datalist id="fa-usuario-ids">{usuariosVistos.map((id) => <option key={id} value={id} label={nombreUsuario(id) ?? id} />)}</datalist>
+            <p id="fa-usuario-ayuda" className="sr-only">{t('auditoria.usuarioAyuda')}</p>
           </div>
           <div className="min-w-0">
             <Label htmlFor="fa-resultado" className="text-meta text-muted">{t('auditoria.filtroResultado.etiqueta')}</Label>
-            <NativeSelect id="fa-resultado" className="h-9 max-sm:h-11 pointer-coarse:h-11" aria-describedby="fa-resultado-ayuda" value={resultado} onChange={(e) => setResultado(e.target.value as FiltroResultado)}>
-              <option value="todas">{t('auditoria.filtroResultado.todas')}</option>
-              <option value="fallidas">{t('auditoria.filtroResultado.fallidas')}</option>
-              <option value="bloqueos">{t('auditoria.filtroResultado.bloqueos')}</option>
+            <NativeSelect
+              id="fa-resultado"
+              className="h-9 max-sm:h-11 pointer-coarse:h-11"
+              aria-describedby="fa-resultado-ayuda"
+              value={filtros.resultado ?? ''}
+              onChange={(e) => consultarCon({ ...filtros, resultado: esResultado(e.target.value) ? e.target.value : undefined }, diaHistograma)}
+            >
+              <option value="">{t('auditoria.filtroResultado.todas')}</option>
+              {RESULTADOS_AUDITORIA.map((valor) => <option key={valor} value={valor}>{t(`auditoria.resultados.${valor}`)}</option>)}
             </NativeSelect>
             <p id="fa-resultado-ayuda" className="sr-only">{t('auditoria.filtroResultado.ayuda')}</p>
           </div>
@@ -270,7 +294,7 @@ export function AuditoriaPage() {
       <EstadoCarga />
     ) : errorCarga ? (
       <div className="p-3 sm:p-4">
-        <EstadoError mensaje={t('comunes.errorCargar')}>
+        <EstadoError mensaje={motivoError === 'validacion' ? t('auditoria.errorFiltros') : t('comunes.errorCargar')}>
           <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar(aplicados)}>
             {t('comunes.reintentar')}
           </Button>
@@ -290,8 +314,8 @@ export function AuditoriaPage() {
       </div>
     ) : filtradas.length === 0 ? (
       <div className="p-3 sm:p-4">
-        <EstadoVacio ilustracion="sin-resultados" titulo={t('auditoria.vacio.filtrosTitulo')} detalle={t('auditoria.filtroResultado.ayuda')}>
-          <Button variant="secondary" size="sm" onClick={() => { setResultado('todas'); setCategoria(null) }}>{t('comunes.mostrarTodas')}</Button>
+        <EstadoVacio ilustracion="sin-resultados" titulo={t('auditoria.vacio.filtrosTitulo')} detalle={t('auditoria.vacio.categoriaDetalle')}>
+          <Button variant="secondary" size="sm" onClick={() => setCategoria(null)}>{t('comunes.mostrarTodas')}</Button>
         </EstadoVacio>
       </div>
     ) : (
@@ -345,12 +369,16 @@ export function AuditoriaPage() {
                   </div>
                 </CeldaRegistro>
                 <CeldaRegistro area="c">
-                  <Badge dot={r.resultado === 'exitoso'} className="capitalize" variant={(r.resultado && VARIANTE_RESULTADO[r.resultado]) || 'neutral'}>
-                    {r.resultado ?? '—'}
+                  <Badge dot={r.resultado === 'exitoso'} variant={(r.resultado && VARIANTE_RESULTADO[r.resultado]) || 'neutral'}>
+                    {etiquetaResultado(r.resultado)}
                   </Badge>
                 </CeldaRegistro>
-                <CeldaRegistro area="oculta" className="codigo truncate text-meta text-muted">
-                  {r.usuario_id ? abreviarId(r.usuario_id) : <span className="text-faint">{t('auditoria.sinUsuario')}</span>}
+                <CeldaRegistro area="oculta" className="truncate text-meta text-muted">
+                  {r.usuario_id ? (
+                    nombreUsuario(r.usuario_id) ? <span title={r.usuario_id}>{nombreUsuario(r.usuario_id)}</span> : <span className="codigo">{abreviarId(r.usuario_id)}</span>
+                  ) : (
+                    <span className="text-faint">{t('auditoria.sinUsuario')}</span>
+                  )}
                 </CeldaRegistro>
               </>
             )
@@ -365,7 +393,9 @@ export function AuditoriaPage() {
                 <Dato etiqueta={t('auditoria.recurso')} className="codigo break-all">{r.recurso}</Dato>
                 <Dato etiqueta={t('auditoria.ip')} className="codigo">{r.ip_origen ?? '—'}</Dato>
                 <Dato etiqueta={t('auditoria.detalle.usuarioCompleto')} className="flex min-w-0 items-center gap-1">
-                  <span className="codigo min-w-0 break-all">{r.usuario_id ?? t('auditoria.sinUsuario')}</span>
+                  <span className="codigo min-w-0 break-all">
+                    {r.usuario_id ? `${nombreUsuario(r.usuario_id) ? `${nombreUsuario(r.usuario_id)} · ` : ''}${r.usuario_id}` : t('auditoria.sinUsuario')}
+                  </span>
                   {r.usuario_id && <BotonCopiar valor={r.usuario_id} campo={t('auditoria.usuarioId')} />}
                 </Dato>
                 <Dato etiqueta={t('auditoria.detalle.idRegistro')} className="codigo break-all text-meta">{r.id}</Dato>
@@ -406,11 +436,31 @@ export function AuditoriaPage() {
   return (
     <div className="space-y-4">
       <PageHeader titulo={t('auditoria.titulo')} descripcion={t('auditoria.descripcion')} meta={meta}>
-        <Button variant="secondary" onClick={exportar} disabled={cargando || filtradas.length === 0} aria-label={t('auditoria.exportar')}>
+        <Button
+          variant="secondary"
+          onClick={() => void exportarCsv()}
+          disabled={cargando || exportando || registros.length === 0}
+          aria-label={t('auditoria.exportar')}
+          aria-describedby="auditoria-exportar-ayuda"
+          title={t('auditoria.exportarAyuda')}
+        >
           <Download aria-hidden />
-          <span className="max-sm:sr-only">{t('auditoria.exportar')}</span>
+          <span className="max-sm:sr-only">{exportando ? t('auditoria.exportando') : t('auditoria.exportar')}</span>
         </Button>
+        <p id="auditoria-exportar-ayuda" className="sr-only">{t('auditoria.exportarAyuda')}</p>
       </PageHeader>
+
+      {resultadoExportacion && resultadoExportacion !== 'ok' && (
+        <p role="alert" className="rounded-(--radius-field) bg-critical-tint px-3 py-2 text-meta text-critical">
+          {resultadoExportacion === 'cuota' ? t('auditoria.exportarCuota') : t('auditoria.exportarError')}
+        </p>
+      )}
+      {limite != null && registros.length >= limite && (
+        <p role="status" className="flex items-center gap-1.5 text-meta text-faint">
+          <Info aria-hidden className="size-3.5 shrink-0" />
+          {t('auditoria.limiteLista', { n: limite })}
+        </p>
+      )}
 
       {registros.length > 0 && (
         <TiraEstado
@@ -419,7 +469,8 @@ export function AuditoriaPage() {
           guia={guia}
           segmentos={[
             { clave: 'eventos', etiqueta: t('auditoria.totalEventos'), valor: registros.length },
-            { clave: 'fallidos', etiqueta: t('auditoria.fallidos'), valor: fallidos, tono: fallidos > 0 ? 'critico' : 'neutro' },
+            { clave: 'fallidos', etiqueta: t('auditoria.kpi.fallidos'), valor: fallidos, tono: fallidos > 0 ? 'critico' : 'neutro' },
+            { clave: 'denegados', etiqueta: t('auditoria.kpi.denegados'), valor: denegados, tono: denegados > 0 ? 'critico' : 'neutro' },
             { clave: 'bloqueos', etiqueta: t('auditoria.bloqueos'), valor: bloqueos, tono: bloqueos > 0 ? 'aviso' : 'neutro' },
             { clave: 'usuarios', etiqueta: t('auditoria.usuariosDistintos'), valor: usuarios },
           ]}

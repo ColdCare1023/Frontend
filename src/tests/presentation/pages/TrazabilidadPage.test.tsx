@@ -246,3 +246,129 @@ describe('TrazabilidadPage — rediseño P6 (veredicto y registros)', () => {
     expect(detalle).toHaveTextContent(/contenido del registro/i)
   })
 })
+
+describe('TrazabilidadPage — HU-26: verificación por chain_id', () => {
+  const cadenas = [
+    { chain_id: 'SISTEMA', es_sistema: true, total_registros: 12, ultimo_registro_en: '2026-07-25T12:00:00Z' },
+    { chain_id: 'FARM-01-CDL', es_sistema: false, total_registros: 340, ultimo_registro_en: '2026-07-25T12:00:00Z' },
+  ]
+
+  beforeEach(() => {
+    useTrazabilidad.mockReset()
+    useAuthStore.setState({ usuario: { id: 'u-9', email: 'a@upc.pe', rol: 'auditor', expiraEn: Date.now() + 3600_000 } as never, autenticado: true })
+  })
+
+  it('ofrece las cadenas de los equipos y la del sistema, y verifica la elegida', async () => {
+    const verificarIntegridad = vi.fn()
+    montar({ cadenas, verificarIntegridad })
+    const selector = screen.getByLabelText(/^cadena$/i)
+    const opciones = [...(selector as HTMLSelectElement).options].map((o) => o.textContent)
+    expect(opciones).toEqual(['Todas las cadenas', 'FARM-01-CDL · 340 registros', 'Sistema · 12 registros'])
+
+    await userEvent.selectOptions(selector, 'SISTEMA')
+    await userEvent.click(screen.getByRole('button', { name: /revisar integridad/i }))
+    expect(verificarIntegridad).toHaveBeenCalledWith('SISTEMA')
+  })
+
+  it('sin elegir cadena verifica todas (comportamiento anterior)', async () => {
+    const verificarIntegridad = vi.fn()
+    montar({ cadenas, verificarIntegridad })
+    await userEvent.click(screen.getByRole('button', { name: /revisar integridad/i }))
+    expect(verificarIntegridad).toHaveBeenCalledWith(undefined)
+  })
+
+  it('informa «no concluida» sin alarma ni opción de aislar cuando falta la clave v3', () => {
+    useAuthStore.setState({ usuario: { id: 'u-1', email: 'admin@upc.pe', rol: 'administrador', expiraEn: Date.now() + 3600_000 } as never, autenticado: true })
+    montar({
+      cadenas,
+      verificacion: {
+        integra: false,
+        estado: 'no_concluida',
+        chain_id: 'FARM-01-CDL',
+        total_registros: 340,
+        total_no_verificables: 3,
+        versiones_hash: [2, 3],
+        primer_registro_inconsistente: null,
+        detalle_inconsistencia: null,
+        registros_posteriores_afectados: 0,
+        alcance: 'Alcance del backend con v1/v2 y v3.',
+      },
+    })
+    expect(screen.getByRole('heading', { name: /verificación no concluida/i })).toBeInTheDocument()
+    expect(screen.getByText(/3 registros sellados con clave \(v3\) no se pudieron verificar/i)).toBeInTheDocument()
+    expect(screen.queryByText(/alteración detectada/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /aislar registro corrupto/i })).not.toBeInTheDocument()
+    expect(screen.getByText('FARM-01-CDL', { selector: '.codigo' })).toBeInTheDocument()
+    expect(screen.getByText(/SHA-256 sin clave \(v1\/v2\) · HMAC-SHA256 con clave \(v3\)/)).toBeInTheDocument()
+  })
+
+  it('el alcance del backend se declara junto al resultado, a la vista (esc. 4)', () => {
+    montar({
+      verificacion: {
+        integra: true, estado: 'integra', chain_id: 'SISTEMA', total_registros: 12, primer_registro_inconsistente: null,
+        detalle_inconsistencia: null, registros_posteriores_afectados: 0, alcance: 'No constituye una certificación DIGEMID.',
+      },
+    })
+    const alcance = screen.getByTestId('alcance-verificacion')
+    expect(alcance).toBeVisible()
+    expect(alcance).toHaveTextContent('No constituye una certificación DIGEMID.')
+    expect(screen.getByText('Sistema (usuarios y bitácora)')).toBeInTheDocument()
+  })
+
+  it('una cadena sin registros (404) se explica en vez de darse por íntegra', () => {
+    montar({ cadenas, errorVerificacion: 'sin_registros' })
+    expect(screen.getByRole('alert')).toHaveTextContent(/no tiene registros que verificar/i)
+    expect(screen.queryByText(/no se detectaron cambios/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('TrazabilidadPage — HU-37: verificación por dispositivo y periodo', () => {
+  beforeEach(() => {
+    useTrazabilidad.mockReset()
+    useAuthStore.setState({ usuario: { id: 'u-9', email: 'qf@upc.pe', rol: 'farmaceutico', expiraEn: Date.now() + 3600_000 } as never, autenticado: true })
+  })
+
+  it('rotula «Corrupta» la lectura alterada, con su ID corto copiable, y sigue con el resto', async () => {
+    montar({
+      verificacionSegmento: {
+        device_id: 'FARM-01-CDL',
+        desde: '2026-07-25T00:00:00Z',
+        hasta: '2026-07-25T23:59:59Z',
+        integra: false,
+        estado: 'corrupta',
+        total_bloques_verificados: 3,
+        total_corruptos: 1,
+        primer_registro_inconsistente: '9f8e7d6c-1111-2222-3333-444455556666',
+        registros_del_dispositivo: [
+          { id: 'aaaaaaaa-1111-2222-3333-444455556666', tipo_evento: 'LECTURA_TERMICA', timestamp: '2026-07-25T10:00:00Z', integro: true, estado: 'integro' },
+          { id: '9f8e7d6c-1111-2222-3333-444455556666', tipo_evento: 'LECTURA_TERMICA', timestamp: '2026-07-25T11:00:00Z', integro: false, estado: 'corrupto', tipo_discrepancia: 'payload_alterado' },
+          { id: 'bbbbbbbb-1111-2222-3333-444455556666', tipo_evento: 'LECTURA_TERMICA', timestamp: '2026-07-25T12:00:00Z', integro: true, estado: 'integro' },
+        ],
+      },
+    })
+    const resultado = screen.getByTestId('resultado-segmento')
+    expect(resultado).toHaveTextContent(/se detectó un cambio en el periodo/i)
+    expect(resultado).toHaveTextContent(/1 corrupta/i)
+    const filas = resultado.querySelectorAll('li')
+    expect(filas).toHaveLength(3)
+    expect(filas[1]).toHaveTextContent('Corrupta')
+    expect(filas[1]).toHaveTextContent('9f8e7d6c')
+    expect(filas[1]).toHaveTextContent(/contenido modificado/i)
+    expect(filas[0]).toHaveTextContent('Íntegra')
+    expect(filas[2]).toHaveTextContent('Íntegra')
+    const copiar = screen.getByRole('button', { name: /copiar id del registro/i })
+    expect(copiar).toBeInTheDocument()
+  })
+
+  it('backends previos (solo `integro: false`) también se rotulan «Corrupta»', () => {
+    montar({
+      verificacionSegmento: {
+        device_id: 'FARM-01-CDL', desde: '2026-07-25T00:00:00Z', hasta: '2026-07-25T23:59:59Z', integra: false,
+        total_bloques_verificados: 1, primer_registro_inconsistente: 'r-9',
+        registros_del_dispositivo: [{ id: 'r-9', tipo_evento: 'LECTURA_TERMICA', timestamp: '2026-07-25T11:00:00Z', integro: false }],
+      },
+    })
+    expect(screen.getByTestId('resultado-segmento').querySelector('li')).toHaveTextContent(/Corrupta.*|r-9/)
+    expect(screen.getByTestId('resultado-segmento')).toHaveTextContent('r-9')
+  })
+})

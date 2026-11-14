@@ -31,6 +31,8 @@ export interface BucketSerie {
 
 /** «sin_datos»: el nodo calló; «buffer_agotado»: LittleFS lleno (HU-48). */
 export type CausaBrechaSerie = 'sin_datos' | 'buffer_agotado'
+/** Alias usado por el Historial (HU-36). */
+export type CausaBrecha = CausaBrechaSerie
 
 export interface BrechaSerie {
   desde: string
@@ -74,15 +76,21 @@ export interface SerieTermica {
   resumen: ResumenSerie
 }
 
+/** Mismos topes que `consultar_serie_termica.py` del backend. */
+export const SERIE_RANGO_MAXIMO_DIAS = 366
+/** HU-31 esc. 4 / HU-36: sin rango, las últimas 24 horas. */
+export const SERIE_VENTANA_POR_DEFECTO_MS = 24 * 60 * 60 * 1000
 /** Intervalos candidatos del modo `auto` del backend, en segundos. */
 export const CANDIDATOS_BUCKET_AUTO = [60, 120, 300, 600, 900, 1800, 3600, 7200, 14_400, 21_600, 43_200, 86_400] as const
+export const SERIE_BUCKETS_AUTOMATICOS = CANDIDATOS_BUCKET_AUTO
 /** Tope de intervalos del modo `auto`. */
 export const MAX_BUCKETS_AUTO = 1500
+export const SERIE_MAX_BUCKETS_AUTO = MAX_BUCKETS_AUTO
 
-/** Mismo criterio que el backend: el menor candidato que deja la serie en ≤ 1500 intervalos. */
+/** Mismo criterio que `elegir_bucket` del backend: el menor candidato que deja la serie en ≤ 1500 intervalos. */
 export function bucketAutomatico(desdeMs: number, hastaMs: number): number {
-  const lapso = Math.max(0, hastaMs - desdeMs) / 1000
-  return CANDIDATOS_BUCKET_AUTO.find((b) => Math.ceil(lapso / b) <= MAX_BUCKETS_AUTO) ?? CANDIDATOS_BUCKET_AUTO.at(-1)!
+  const segundos = Math.max(1, (hastaMs - desdeMs) / 1000)
+  return CANDIDATOS_BUCKET_AUTO.find((b) => segundos / b <= MAX_BUCKETS_AUTO) ?? CANDIDATOS_BUCKET_AUTO[CANDIDATOS_BUCKET_AUTO.length - 1]
 }
 
 /** Mínima, máxima, promedio y excursiones confirmadas de lo que muestra la curva. */

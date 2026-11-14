@@ -1,7 +1,8 @@
-import type { BrechaTelemetria } from '@/domain/entities/Dispositivo'
+import { PATRON_DEVICE_ID, type BrechaTelemetria } from '@/domain/entities/Dispositivo'
 import { instanteCaptura, lecturaSinHora, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import {
   bucketAutomatico,
+  SERIE_VENTANA_POR_DEFECTO_MS,
   type BrechaSerie,
   type BucketSerie,
   type EstadisticaMagnitud,
@@ -190,5 +191,51 @@ export function serieTermicaDemo(p: ParametrosSerieDemo): SerieTermica {
     brechas: brechas.slice(0, MAX_BRECHAS),
     brechas_truncadas: brechas.length > MAX_BRECHAS,
     resumen,
+  }
+}
+
+/** Equipo de la demo con lo que la serie necesita (intervalo, alta y buffer). */
+export interface EquipoSerieDemo {
+  id: string
+  intervalo_reporte_segundos?: number | null
+  registrado_en?: string | null
+  buffer_littlefs?: { brechas?: BrechaTelemetria[] } | null
+}
+
+export type ResultadoSerieDemo = { ok: true; serie: SerieTermica } | { ok: false; status: number; detalle: string }
+
+/**
+ * Punto de entrada del adaptador (HU-31 / HU-36): valida `device_id` (422) y
+ * el equipo (404) como el backend, aplica la ventana por defecto de 24 h y
+ * delega el cálculo en `serieTermicaDemo`. Devuelve el cuerpo o el error.
+ */
+export function calcularSerieDemo(
+  params: Record<string, string>,
+  equipo: EquipoSerieDemo | undefined,
+  todas: readonly LecturaTermica[],
+  ahora = Date.now(),
+): ResultadoSerieDemo {
+  const deviceId = params.device_id ?? ''
+  if (!PATRON_DEVICE_ID.test(deviceId)) return { ok: false, status: 422, detalle: 'device_id no válido' }
+  if (!equipo) return { ok: false, status: 404, detalle: 'Dispositivo no encontrado' }
+  const hasta = params.hasta ? Date.parse(params.hasta) : ahora
+  const desde = params.desde ? Date.parse(params.desde) : hasta - SERIE_VENTANA_POR_DEFECTO_MS
+  try {
+    return {
+      ok: true,
+      serie: serieTermicaDemo({
+        lecturas: todas,
+        deviceId: equipo.id,
+        desde,
+        hasta,
+        bucket: params.bucket,
+        intervaloReporteSegundos: equipo.intervalo_reporte_segundos ?? 30,
+        brechasBuffer: equipo.buffer_littlefs?.brechas ?? [],
+        registradoEn: equipo.registrado_en ?? null,
+      }),
+    }
+  } catch (error) {
+    if (error instanceof ErrorSerieDemo) return { ok: false, status: error.status, detalle: error.message }
+    throw error
   }
 }

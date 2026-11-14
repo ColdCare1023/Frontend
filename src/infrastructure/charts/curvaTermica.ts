@@ -346,7 +346,7 @@ export type TipoTrazo = 'solid' | 'dashed' | 'dotted' | number[]
  * equipos sin depender solo del color (WCAG 1.4.1) y ninguno usa el teal de
  * la franja, el carmesí de la excursión ni los colores de marca.
  */
-function trazoEquipo(colores: ColoresGrafica, indice: number): { color: string; type: TipoTrazo } {
+export function trazoEquipo(colores: ColoresGrafica, indice: number): { color: string; type: TipoTrazo } {
   const trazos: Array<{ color: string; type: TipoTrazo }> = [
     { color: colores.primary, type: 'solid' },
     { color: colores.secondary, type: 'dashed' },

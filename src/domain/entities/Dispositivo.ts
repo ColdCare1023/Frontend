@@ -230,14 +230,28 @@ export interface SobreTelemetria {
 export type TimeQualityContrato = 'sntp_synced' | 'sntp_backfilled' | 'unsynced'
 
 // HU-49: un cambio de configuración/instalación/calibración/responsable.
+/** HU-49: grupo de un cambio de configuración (filtro del auditor). */
+export const CATEGORIAS_HISTORIAL = ['instalacion', 'calibracion', 'responsable', 'intervalo', 'sensores', 'reemplazo', 'otro'] as const
+export type CategoriaHistorial = (typeof CATEGORIAS_HISTORIAL)[number]
+
 export interface HistorialConfiguracion {
   id: string
   device_id: string
+  /** Puede llevar el origen: «intervalo_reporte_segundos (administrador)». */
   campo: string
   valor_anterior: string | null
   valor_nuevo: string | null
   actor_id: string | null
   created_at: string
+  /** HU-49 esc. 2 (backends recientes): campo sin el origen y su categoría. */
+  campo_base?: string | null
+  origen?: string | null
+  categoria?: CategoriaHistorial | string | null
+  /** Desde cuándo y hasta cuándo estuvo vigente (null: sigue vigente). */
+  vigente_desde?: string | null
+  vigente_hasta?: string | null
+  /** Quién hizo el cambio, ya resuelto por el backend. */
+  actor_nombre?: string | null
 }
 
 /**

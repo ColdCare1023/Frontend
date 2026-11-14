@@ -25,8 +25,12 @@ export interface DetalleInconsistencia {
 
 export type TipoDiscrepancia = 'payload_alterado' | 'enlace_roto' | 'no_verificable'
 
-/** HU-26: con todas las rupturas aisladas, la cadena vuelve a ser verificable. */
-export type EstadoVerificacion = 'integra' | 'ruptura_aislada' | 'ruptura_detectada'
+/**
+ * HU-26: con todas las rupturas aisladas, la cadena vuelve a ser verificable.
+ * `no_concluida`: hay eslabones v3 (HMAC) y la clave no está disponible; no se
+ * informa como íntegra ni como alterada (esc. 1) y no dispara la alarma.
+ */
+export type EstadoVerificacion = 'integra' | 'ruptura_aislada' | 'ruptura_detectada' | 'no_concluida'
 
 export interface VerificacionIntegridad {
   integra: boolean
@@ -41,6 +45,23 @@ export interface VerificacionIntegridad {
   integra_desde?: string | null
   /** HU-26 escenario 4: qué certifica el resultado (no es certificación DIGEMID). */
   alcance?: string
+  /** Cadena verificada (null: todas a la vez). */
+  chain_id?: string | null
+  /** Versiones de fórmula de los eslabones verificados (1/2: SHA-256; 3: HMAC). */
+  versiones_hash?: number[]
+  /** Eslabones v3 que no se pudieron verificar por falta de clave. */
+  total_no_verificables?: number
+  no_verificables?: DetalleInconsistencia[]
+  hash_final?: string | null
+}
+
+/** HU-26: una cadena existente para elegir el `chain_id` a verificar. */
+export interface CadenaTrazabilidad {
+  chain_id: string
+  /** La cadena de SISTEMA (usuarios, bitácora): no pertenece a un equipo. */
+  es_sistema: boolean
+  total_registros: number
+  ultimo_registro_en?: string | null
 }
 
 export interface EstadoCadena {
@@ -54,7 +75,13 @@ export interface EstadoRegistroSegmento {
   tipo_evento: string
   timestamp: string
   integro: boolean
+  /** HU-37 esc. 2: «corrupto» se rotula «Corrupta» con su ID; `no_verificable` no es alteración. */
+  estado?: 'integro' | 'corrupto' | 'no_verificable'
+  tipo_discrepancia?: TipoDiscrepancia | null
+  chain_seq?: number | null
 }
+
+export type EstadoSegmento = 'integra' | 'corrupta' | 'no_concluida'
 
 export interface VerificacionSegmento {
   device_id: string
@@ -65,4 +92,9 @@ export interface VerificacionSegmento {
   registros_del_dispositivo: EstadoRegistroSegmento[]
   primer_registro_inconsistente: string | null
   alcance?: string
+  estado?: EstadoSegmento
+  total_corruptos?: number
+  total_no_verificables?: number
+  versiones_hash?: number[]
+  hash_ancla?: string | null
 }
