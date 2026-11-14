@@ -7,6 +7,7 @@ import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { fechaCorta, fechaHora } from '@/lib/formato'
+import { cn } from '@/lib/utils'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../../components/EstadoPagina'
 import { Button } from '../../components/ui/button'
@@ -24,6 +25,8 @@ import { TabSeguridad } from './detalle/TabSeguridad'
 import { TabUbicacion } from './detalle/TabUbicacion'
 
 const ID_PESTANAS = 'equipo'
+/** Dato de la línea meta con su «·» delante (ver el recorte en la cabecera). */
+const SEPARADO = "relative pl-4 before:absolute before:top-1/2 before:left-[5px] before:-translate-y-1/2 before:content-['·']"
 
 /**
  * `/dispositivos/:deviceId`: cada acción del antiguo menú de 11 entradas vive
@@ -123,17 +126,22 @@ export function DetalleDispositivoPage() {
               <IconoEquipo estado={estado} className="size-5" />
               <span className="codigo">{dispositivo.id}</span>
             </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-faint">
-              <span>{[dispositivo.nombre, dispositivo.ubicacion].filter(Boolean).join(' · ') || '—'}</span>
-              <span aria-hidden>·</span>
-              <BadgeConectividad estado={dispositivo.estado_conectividad} desde={dispositivo.conectividad_cambiada_en} />
-              {dispositivo.ultimo_reporte_en && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span className="nums">{t('dispositivos.ultimoReporte')}: {fechaHora(dispositivo.ultimo_reporte_en)}</span>
-                </>
-              )}
-            </p>
+            {/* Separadores que no quedan colgando al partir la línea: cada «·» va
+                delante de su dato y, al empezar una línea nueva, cae fuera del
+                recorte del contenedor (desplazado 16 px a la izquierda). */}
+            <div className="mt-1 overflow-hidden">
+              <p className="-ml-4 flex flex-wrap items-center gap-y-1 text-meta text-faint">
+                <span className="pl-4">{[dispositivo.nombre, dispositivo.ubicacion].filter(Boolean).join(' · ') || '—'}</span>
+                <span className={SEPARADO}>
+                  <BadgeConectividad estado={dispositivo.estado_conectividad} desde={dispositivo.conectividad_cambiada_en} />
+                </span>
+                {dispositivo.ultimo_reporte_en && (
+                  <span className={cn(SEPARADO, 'nums')}>
+                    {t('dispositivos.ultimoReporte')}: {fechaHora(dispositivo.ultimo_reporte_en)}
+                  </span>
+                )}
+              </p>
+            </div>
             <p className="mt-2 max-w-[68ch] text-body text-subtle">{guia(dispositivo, estado, t)}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

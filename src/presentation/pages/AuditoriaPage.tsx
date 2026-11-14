@@ -26,10 +26,12 @@ import { esFallida } from './auditoria/categoriasAuditoria'
 const FILTROS_INICIALES: FiltrosAuditoria = {}
 type FiltroResultado = 'todas' | 'fallidas' | 'bloqueos'
 
-const VARIANTE_RESULTADO: Record<string, 'ok' | 'critical' | 'warn'> = {
+// Los tres resultados negativos van en tinte (no sólido): en una tabla de
+// registros conviven muchos y el sólido se reserva para lo que pide actuar.
+const VARIANTE_RESULTADO: Record<string, 'ok' | 'criticalTint' | 'warn'> = {
   exitoso: 'ok',
-  fallido: 'critical',
-  denegado: 'critical',
+  fallido: 'criticalTint',
+  denegado: 'criticalTint',
   bloqueado: 'warn',
 }
 

@@ -16,5 +16,5 @@
   raiz.setAttribute('data-theme', oscuro ? 'dark' : 'light')
   raiz.style.colorScheme = oscuro ? 'dark' : 'light'
   var meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.setAttribute('content', oscuro ? '#000000' : '#F4F7FB')
+  if (meta) meta.setAttribute('content', oscuro ? '#0a0d14' : '#f5f7fa')
 })()

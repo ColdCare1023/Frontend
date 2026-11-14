@@ -140,7 +140,10 @@ export const CeldaEquipo = memo(function CeldaEquipo({
   const ultimoReporte = equipo?.ultimo_reporte_en
 
   return (
-    <section aria-labelledby="equipo-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 lg:col-span-5 xl:p-5">
+    // <640 va al final (DIRECTION §12: Lectura, Condiciones, Curva, Estado de
+    // equipos, Alertas, Recientes, Equipo). Solo cambia el orden visual en
+    // móvil; el DOM sigue el orden del bento de escritorio.
+    <section aria-labelledby="equipo-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 max-sm:order-last lg:col-span-5 xl:p-5">
       <div className="flex h-6 min-w-0 items-center gap-2">
         <h2 id="equipo-titulo" className="eyebrow">
           {t('dashboard.equipo')}

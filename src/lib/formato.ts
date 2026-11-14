@@ -38,11 +38,14 @@ export function fechaHora(iso: string | null | undefined): string {
   return horaSinCortes(fecha.toLocaleString(localeActual()))
 }
 
-/** Solo la hora, con segundos: el eje temporal del monitoreo en vivo. */
+/**
+ * Solo la hora, con segundos: el eje temporal del monitoreo en vivo. La hora
+ * va sin cero a la izquierda («1:57:27 p. m.»), igual que en `fechaHora`.
+ */
 export function hora(iso: string): string {
   return horaSinCortes(
     new Date(iso).toLocaleTimeString(localeActual(), {
-      hour: '2-digit',
+      hour: 'numeric',
       minute: '2-digit',
       second: '2-digit',
     }),
@@ -81,14 +84,18 @@ function formatoFecha(clave: string, opciones: Intl.DateTimeFormatOptions): Intl
   return formato
 }
 
-/** «13/11 07:48»: día, mes y hora sin año ni segundos, para la línea 2 de una fila. */
+/**
+ * «13/11 7:48 a. m.»: día, mes y hora sin año ni segundos, para la línea 2 de
+ * una fila. Mismo reloj de 12 h que `hora` y `fechaHora` (antes iba en 24 h y
+ * convivía con «01:57 p. m.» en la misma pantalla).
+ */
 export function fechaHoraCompacta(iso: string | null | undefined): string {
   if (!iso) return '—'
   const fecha = new Date(iso)
   if (Number.isNaN(fecha.getTime())) return '—'
   const dia = formatoFecha('dm', { day: '2-digit', month: '2-digit' }).format(fecha)
-  const horaMin = formatoFecha('hm', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(fecha)
-  return `${dia}\u00a0${horaMin}`
+  const horaMin = formatoFecha('hm', { hour: 'numeric', minute: '2-digit' }).format(fecha)
+  return `${dia}\u00a0${horaSinCortes(horaMin)}`
 }
 
 /**

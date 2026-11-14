@@ -171,97 +171,106 @@ export function ListaDispositivosPage() {
         <div className="grid grid-cols-12 gap-3 xl:gap-4">
           <TiraEstado
             className="col-span-12"
+            apilarGuia
             etiqueta={t('dispositivos.resumenIoT')}
             guia={<TextoGuia frase={fraseGuia(resumen, dispositivos)} />}
             segmentos={segmentosTira(resumen, t)}
           />
 
-          <div className="col-span-12 min-w-0 space-y-3 self-start xl:col-span-8 xl:space-y-4">
-          <section aria-labelledby="titulo-lista" className="superficie min-w-0 overflow-hidden">
-            <h2 id="titulo-lista" className="sr-only">{t('dispositivos.lista.etiqueta')}</h2>
-            <BarraFiltros
-              className="items-center"
-              etiqueta={t('dispositivos.lista.filtrar')}
-              resultado={
-                // En móvil el segmentado ocupa la fila: el conteo solo se anuncia.
-                <span className="max-sm:sr-only">
-                  {t(filtradas.length === 1 ? 'dispositivos.lista.conteoUno' : 'dispositivos.lista.conteoVarios', { n: filtradas.length })}
-                </span>
-              }
-              hayFiltros={hayFiltros}
-              alLimpiar={() => cambiar({ filtro: null, q: null, pagina: null })}
-            >
-              <Segmentado<Filtro>
+          {/* Lista y rail en su propia grilla: el rail fijo (sticky) no puede
+              salirse de ella y montarse sobre la actividad de debajo. */}
+          <div className="col-span-12 grid grid-cols-12 gap-3 xl:gap-4">
+            <section aria-labelledby="titulo-lista" className="superficie col-span-12 min-w-0 self-start overflow-hidden xl:col-span-8 2xl:col-span-9">
+              <h2 id="titulo-lista" className="sr-only">{t('dispositivos.lista.etiqueta')}</h2>
+              <BarraFiltros
+                className="items-center"
                 etiqueta={t('dispositivos.lista.filtrar')}
-                valor={filtro}
-                onCambiar={(valor) => cambiar({ filtro: valor === 'todos' ? null : valor, pagina: null })}
-                opciones={(['todos', 'atencion', 'baja'] as const).map((valor) => ({
-                  valor,
-                  etiqueta: t(`dispositivos.lista.filtro.${valor}`),
-                  conteo: conteos[valor],
-                  descripcionConteo: t(conteos[valor] === 1 ? 'dispositivos.lista.conteoUno' : 'dispositivos.lista.conteoVarios', { n: conteos[valor] }),
-                }))}
-                className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto"
-                botonClassName="px-1.5 text-xs sm:px-3 sm:text-[13px]"
-              />
-              <label className="relative w-full sm:w-56">
-                <span className="sr-only">{t('dispositivos.lista.buscar')}</span>
-                <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-                <Input
-                  type="search"
-                  className="pl-9"
-                  placeholder={t('dispositivos.lista.buscarMarcador')}
-                  value={consulta}
-                  onChange={(e) => cambiar({ q: e.target.value || null, pagina: null })}
+                resultado={
+                  // En móvil el segmentado ocupa la fila: el conteo solo se anuncia.
+                  <span className="max-sm:sr-only">
+                    {t(filtradas.length === 1 ? 'dispositivos.lista.conteoUno' : 'dispositivos.lista.conteoVarios', { n: filtradas.length })}
+                  </span>
+                }
+                hayFiltros={hayFiltros}
+                alLimpiar={() => cambiar({ filtro: null, q: null, pagina: null })}
+              >
+                <Segmentado<Filtro>
+                  etiqueta={t('dispositivos.lista.filtrar')}
+                  valor={filtro}
+                  onCambiar={(valor) => cambiar({ filtro: valor === 'todos' ? null : valor, pagina: null })}
+                  opciones={(['todos', 'atencion', 'baja'] as const).map((valor) => ({
+                    valor,
+                    etiqueta: t(`dispositivos.lista.filtro.${valor}`),
+                    conteo: conteos[valor],
+                    descripcionConteo: t(conteos[valor] === 1 ? 'dispositivos.lista.conteoUno' : 'dispositivos.lista.conteoVarios', { n: conteos[valor] }),
+                  }))}
+                  className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto"
+                  botonClassName="px-1.5 text-meta sm:px-3 sm:text-body"
                 />
-              </label>
-            </BarraFiltros>
+                {/* 176 px entre 1280 y 1439: con 224 la búsqueda bajaba a otra fila. */}
+                <label className="relative w-full sm:w-56 xl:max-[1439px]:w-44">
+                  <span className="sr-only">{t('dispositivos.lista.buscar')}</span>
+                  <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
+                  <Input
+                    type="search"
+                    className="pl-9"
+                    placeholder={t('dispositivos.lista.buscarMarcador')}
+                    value={consulta}
+                    onChange={(e) => cambiar({ q: e.target.value || null, pagina: null })}
+                  />
+                </label>
+              </BarraFiltros>
 
-            <div className={`grid gap-x-4 ${COLUMNAS_LISTA}`}>
-              <div aria-hidden className="col-span-full hidden h-9 grid-cols-subgrid items-center border-b border-border bg-surface-sunken px-4 text-meta font-medium text-muted sm:grid">
-                <span>{t('dispositivos.lista.columnaEquipo')}</span>
-                <span>{t('dispositivos.lista.columnaLectura')}</span>
-                <span className="hidden lg:block">{t('dispositivos.lista.ultimas24h')}</span>
-                <span className="text-right">{t('comunes.acciones')}</span>
+              <div className={`grid gap-x-4 ${COLUMNAS_LISTA}`}>
+                <div aria-hidden className="col-span-full hidden h-9 grid-cols-subgrid items-center border-b border-border bg-surface-sunken px-4 text-meta font-medium text-muted sm:grid">
+                  <span>{t('dispositivos.lista.columnaEquipo')}</span>
+                  <span>{t('dispositivos.lista.columnaLectura')}</span>
+                  <span className="hidden lg:block">{t('dispositivos.lista.ultimas24h')}</span>
+                  <span className="text-right">{t('comunes.acciones')}</span>
+                </div>
+
+                {filtradas.length === 0 ? (
+                  <EstadoVacio
+                    ilustracion="sin-resultados"
+                    titulo={t('dispositivos.lista.sinResultados')}
+                    className="col-span-full m-4"
+                  >
+                    <Button variant="secondary" size="sm" className="mt-3" onClick={() => cambiar({ filtro: null, q: null, pagina: null })}>
+                      {t('dispositivos.lista.limpiarFiltros')}
+                    </Button>
+                  </EstadoVacio>
+                ) : (
+                  <ul aria-labelledby="titulo-lista" className="col-span-full grid grid-cols-subgrid divide-y divide-border">
+                    {visibles.map(({ d, ultima, estado }) => (
+                      <FilaDispositivo
+                        key={d.id}
+                        dispositivo={d}
+                        estado={estado}
+                        ultima={ultima}
+                        desde={desde}
+                        alProbarIoT={setSimulando}
+                        tendencia={tendencias.get(d.id)}
+                        cinta={cintas.get(d.id)}
+                      />
+                    ))}
+                  </ul>
+                )}
               </div>
+              <div className="border-t border-border px-4 py-2 empty:hidden">
+                <Paginacion
+                  total={filtradas.length}
+                  pagina={pagina}
+                  onCambiar={(p) => cambiar({ pagina: p > 1 ? String(p) : null })}
+                  tamano={tamanoPagina}
+                />
+              </div>
+            </section>
 
-              {filtradas.length === 0 ? (
-                <EstadoVacio
-                  ilustracion="sin-resultados"
-                  titulo={t('dispositivos.lista.sinResultados')}
-                  className="col-span-full m-4"
-                >
-                  <Button variant="secondary" size="sm" className="mt-3" onClick={() => cambiar({ filtro: null, q: null, pagina: null })}>
-                    {t('dispositivos.lista.limpiarFiltros')}
-                  </Button>
-                </EstadoVacio>
-              ) : (
-                <ul aria-labelledby="titulo-lista" className="col-span-full grid grid-cols-subgrid divide-y divide-border">
-                  {visibles.map(({ d, ultima, estado }) => (
-                    <FilaDispositivo
-                      key={d.id}
-                      dispositivo={d}
-                      estado={estado}
-                      ultima={ultima}
-                      desde={desde}
-                      alProbarIoT={setSimulando}
-                      tendencia={tendencias.get(d.id)}
-                      cinta={cintas.get(d.id)}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="border-t border-border px-4 py-2 empty:hidden">
-              <Paginacion
-                total={filtradas.length}
-                pagina={pagina}
-                onCambiar={(p) => cambiar({ pagina: p > 1 ? String(p) : null })}
-                tamano={tamanoPagina}
-              />
-            </div>
-          </section>
+            <RailContexto dispositivos={dispositivos} />
+          </div>
 
+          {/* Con pocas filas, la actividad de la flota va a todo lo ancho bajo la
+              lista y el rail: así ambas columnas terminan casi a la par. */}
           {visibles.length <= FILAS_CON_ACTIVIDAD && (
             <ActividadReciente
               id="actividad-flota"
@@ -270,19 +279,17 @@ export function ListaDispositivosPage() {
               cargando={actividad.cargando}
               error={actividad.error}
               ahora={ahora}
+              className="col-span-12"
               accion={
                 <Link
                   to="/alertas"
-                  className="inline-flex h-11 items-center rounded-(--radius-field) px-3 text-[13px] font-medium text-primary-text transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
+                  className="inline-flex h-11 items-center rounded-(--radius-field) px-3 text-body font-medium text-primary-text transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
                 >
                   {t('dispositivos.actividad.verAlertas')}
                 </Link>
               }
             />
           )}
-          </div>
-
-          <RailContexto dispositivos={dispositivos} />
         </div>
       )}
 
@@ -303,7 +310,7 @@ function segmentosTira(resumen: ReturnType<typeof resumenFlota>, t: TFunction): 
         .filter(Boolean)
         .join(' · '),
     },
-    { clave: 'sinDatos', etiqueta: t('dispositivos.sinDatos'), valor: resumen.sinDatos, tono: resumen.sinDatos > 0 ? 'aviso' : 'neutro' },
+    { clave: 'sinDatos', etiqueta: t('dispositivos.sinDatos'), valor: resumen.sinDatos, tono: resumen.sinDatos > 0 ? 'sinDatos' : 'neutro' },
     { clave: 'fallas', etiqueta: t('dispositivos.fallasSensor'), valor: resumen.fallas, tono: resumen.fallas > 0 ? 'aviso' : 'neutro' },
     { clave: 'buffer', etiqueta: t('dispositivos.bufferPendiente'), valor: resumen.buffer },
     {
@@ -311,14 +318,13 @@ function segmentosTira(resumen: ReturnType<typeof resumenFlota>, t: TFunction): 
       etiqueta: t('dispositivos.tira.calibracion'),
       valor: calibracion,
       tono: resumen.calibracionVencidas > 0 ? 'critico' : calibracion > 0 ? 'aviso' : 'neutro',
-      detalle: calibracion > 0 ? t('dispositivos.tira.porAtender') : undefined,
+      detalle: resumen.calibracionVencidas > 0 ? t('dispositivos.tira.vencidas', { count: resumen.calibracionVencidas }) : undefined,
     },
     {
       clave: 'consola',
       etiqueta: t('dispositivos.tira.consola'),
       valor: resumen.consola,
       tono: resumen.consola > 0 ? 'aviso' : 'neutro',
-      detalle: resumen.consola > 0 ? t('dispositivos.tira.pendientes') : undefined,
     },
   ]
 }

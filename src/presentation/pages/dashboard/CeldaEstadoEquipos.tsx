@@ -28,7 +28,7 @@ export function BadgeEstadoOperativo({ equipo }: { equipo: Dispositivo }) {
   const incidenteActivo = equipo.incidencias_operativas?.find((i) => i.estado === 'activo' && i.tipo === 'sin_datos')
   if (equipo.estado_operativo === 'SIN_DATOS')
     return (
-      <Badge variant="warn">
+      <Badge variant="nodata">
         {t('dashboard.estadoSinDatos', { segundos: incidenteActivo?.umbral_silencio_segundos ?? umbralSilencioSegundos(equipo) })}
       </Badge>
     )
@@ -63,7 +63,7 @@ function AvisoFila({ equipo, porcentaje }: { equipo: Dispositivo; porcentaje: nu
   const silencio = incidentes.find((i) => i.estado === 'activo' && i.tipo === 'sin_datos')
   if (silencio)
     return (
-      <span role="status" className="font-medium text-warning-700">
+      <span role="status" className="font-medium text-nodata-700">
         {t('dashboard.alertaSilencio', { fecha: fechaHora(silencio.detectado_en), segundos: silencio.umbral_silencio_segundos })}
       </span>
     )
@@ -140,8 +140,8 @@ const FilaEquipo = memo(function FilaEquipo({
         seleccionado && 'bg-primary-tint before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary',
       )}
     >
-      {/* Nombre a todo lo ancho (sin «Cámara fría de va…»): la cifra y la
-          Regla S van apiladas a la derecha y ocupan lo que la Regla. */}
+      {/* Nombre a todo lo ancho y en hasta dos líneas (sin «Cámara fría de
+          va…»): la cifra y la Regla S van apiladas a la derecha. */}
       <div className="flex items-center gap-2">
         <IconoEquipo equipo={equipo} />
         <button
@@ -150,7 +150,7 @@ const FilaEquipo = memo(function FilaEquipo({
           aria-label={t('dashboard.mostrarEnMonitoreo', { equipo: nombre })}
           className="flex min-w-0 flex-1 cursor-pointer flex-col items-start rounded-(--radius-field) text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <span className="w-full text-body font-medium text-foreground sm:truncate" title={nombre}>
+          <span className="line-clamp-2 w-full text-body font-medium text-foreground" title={nombre}>
             {nombre}
           </span>
           {equipo.nombre && <span className="codigo w-full truncate text-meta text-faint">{equipo.id}</span>}
@@ -170,8 +170,9 @@ const FilaEquipo = memo(function FilaEquipo({
         </Button>
       </div>
       <CintaDisponibilidad tramos={tramos} equipo={nombre} className="mt-2" />
-      {/* Un aviso, dos líneas como máximo: la frase completa está en el panel de detalle. */}
-      <p className="mt-1.5 line-clamp-2 text-meta">
+      {/* Un aviso, dos líneas como máximo (tres a 1024–1279, donde la columna es
+          estrecha): la frase completa está en el panel de detalle. */}
+      <p className="mt-1.5 line-clamp-3 text-meta xl:line-clamp-2">
         <BadgeEstadoOperativo equipo={equipo} /> <AvisoFila equipo={equipo} porcentaje={porcentaje} />
       </p>
     </li>

@@ -16,7 +16,11 @@ const badgeVariants = cva(
         neutral: 'bg-transparent px-0 text-muted ring-transparent',
         ok: 'bg-transparent px-0 text-subtle ring-transparent',
         warn: 'bg-warning-100 text-warning-700 ring-warning-600/30',
+        /** Sin datos: estado operativo en acero, nunca ámbar ni rojo (HU-54). */
+        nodata: 'bg-nodata-100 text-nodata-700 ring-nodata-600/30',
         critical: 'bg-critical-solid font-semibold text-on-critical ring-transparent',
+        /** Crítico en tinte, para registros (p. ej. «Fallido» en Auditoría) que no piden acción inmediata. */
+        criticalTint: 'bg-critical-tint text-critical ring-critical/30',
         outline: 'bg-transparent text-muted ring-border-strong',
       },
     },
@@ -34,7 +38,9 @@ const PUNTO: Record<NonNullable<BadgeProps['variant']>, string> = {
   neutral: 'bg-faint',
   ok: 'bg-success-600',
   warn: 'bg-current',
+  nodata: 'bg-current',
   critical: 'bg-current',
+  criticalTint: 'bg-current',
   outline: 'bg-current',
 }
 

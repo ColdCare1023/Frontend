@@ -99,7 +99,6 @@ export function GuiaPage() {
               </p>
             )}
           </nav>
-          {esLg && <PreguntasFrecuentes />}
         </div>
 
         <div className="min-w-0 lg:col-span-7">
@@ -163,7 +162,9 @@ export function GuiaPage() {
             )
           })}
         </div>
-        {!esLg && <PreguntasFrecuentes />}
+        {/* A todo lo ancho bajo el stepper y el paso: en la columna izquierda
+            dejaba ~230 px vacíos bajo el panel del paso. */}
+        <PreguntasFrecuentes className="lg:col-span-12" />
       </div>
       <p className="mt-4 flex items-start gap-2 text-meta text-muted">
         <ShieldCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />

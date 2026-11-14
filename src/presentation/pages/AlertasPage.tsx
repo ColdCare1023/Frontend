@@ -272,110 +272,133 @@ export function AlertasPage() {
           ahora={ahora}
         />
 
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-12 xl:gap-4">
-          <div className="min-w-0 space-y-3 xl:col-span-8 2xl:col-span-9">
-            <AvisoAlertas
-              aviso={aviso}
-              onCerrar={() => setAviso(null)}
-              errorRefresco={errorRefresco}
-              horaDatos={horaDatos}
-              onReintentar={reintentar}
-            />
+        <div className="flex flex-col gap-3 xl:gap-4">
+          {/* Bandeja y rail en su propia grilla: el rail fijo (sticky) no puede
+              salirse de ella y montarse sobre lo que va debajo. */}
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-12 xl:gap-4">
+            <div className="min-w-0 space-y-3 xl:col-span-8 2xl:col-span-9">
+              <AvisoAlertas
+                aviso={aviso}
+                onCerrar={() => setAviso(null)}
+                errorRefresco={errorRefresco}
+                horaDatos={horaDatos}
+                onReintentar={reintentar}
+              />
 
-            <div ref={listaRef} className="superficie overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border p-2 sm:min-h-12 sm:px-3 sm:py-1.5">
-                <Segmentado
-                  etiqueta={t('alertas.filtroEstado')}
-                  valor={filtro}
-                  onCambiar={cambiarFiltro}
-                  opciones={FILTROS.map((opcion) => ({
-                    valor: opcion,
-                    etiqueta: t(`alertas.filtro.${opcion}`),
-                    conteo: conteos[opcion] ?? null,
-                    descripcionConteo:
-                      conteos[opcion] != null ? t('alertas.filtroConteo', { count: conteos[opcion] }) : undefined,
-                  }))}
-                  className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
-                  botonClassName="px-1.5 text-xs sm:px-3 sm:text-[13px]"
-                />
-                <p className="hidden pr-1 text-meta text-faint sm:block">
-                  {ordenEsTriage(filtro) ? t('alertas.ordenUrgencia') : t('alertas.ordenReciente')}
-                </p>
+              <div ref={listaRef} className="superficie overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border p-2 sm:min-h-12 sm:px-3 sm:py-1.5">
+                  <Segmentado
+                    etiqueta={t('alertas.filtroEstado')}
+                    valor={filtro}
+                    onCambiar={cambiarFiltro}
+                    opciones={FILTROS.map((opcion) => ({
+                      valor: opcion,
+                      etiqueta: t(`alertas.filtro.${opcion}`),
+                      conteo: conteos[opcion] ?? null,
+                      descripcionConteo:
+                        conteos[opcion] != null ? t('alertas.filtroConteo', { count: conteos[opcion] }) : undefined,
+                    }))}
+                    className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
+                    botonClassName="px-1.5 text-meta sm:px-3 sm:text-body"
+                  />
+                  <p className="hidden pr-1 text-meta text-faint sm:block">
+                    {ordenEsTriage(filtro) ? t('alertas.ordenUrgencia') : t('alertas.ordenReciente')}
+                  </p>
+                </div>
+
+                {errorCarga ? (
+                  <div className="p-3">
+                    <EstadoError mensaje={t('alertas.errorCargar')}>
+                      <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
+                        {t('comunes.reintentar')}
+                      </Button>
+                    </EstadoError>
+                  </div>
+                ) : !cargando && ordenadas.length === 0 ? (
+                  <VacioAlertas
+                    filtro={filtro}
+                    revisadas={resumen?.revisadas ?? 0}
+                    ultimaAtendida={ultimaAtendida}
+                    incidentesActivos={incidentesActivos ?? 0}
+                    onFiltro={cambiarFiltro}
+                  />
+                ) : (
+                  <>
+                    <div key={filtro} className="animate-(--animate-fade)">
+                      <Table
+                        variante="embebida"
+                        mobileLayout="stack"
+                        className="min-w-0"
+                        titulo={t('alertas.titulo')}
+                        cargando={cargando}
+                      >
+                        <TableHeader className="bg-surface-sunken">
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="h-9 pr-3 pl-4 font-medium text-muted sm:pr-3 sm:pl-4">{t('alertas.columnaAlerta')}</TableHead>
+                            <TableHead className="hidden h-9 w-36 px-3 font-medium text-muted sm:px-3 md:table-cell">
+                              {t('alertas.columnaExcursion')}
+                            </TableHead>
+                            <TableHead className="h-9 w-px pr-4 pl-3 text-right font-medium text-muted sm:pr-4 sm:pl-3">{t('alertas.acciones')}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {cargando ? (
+                            <FilasCargando puedeReconocer={puedeReconocer} puedeRegistrar={puedeRegistrarAccion} />
+                          ) : (
+                            visibles.map((alerta, indice) => (
+                              <FilaAlerta
+                                key={alerta.id}
+                                alerta={alerta}
+                                filtro={filtro}
+                                puedeReconocer={puedeReconocer}
+                                puedeRegistrar={puedeRegistrarAccion}
+                                seleccionada={panel?.alerta.id === alerta.id}
+                                revisando={revisando.has(alerta.id)}
+                                nueva={nuevos.has(alerta.id)}
+                                indice={indice}
+                                primaria={alerta.id === idPrimaria}
+                                onRevisar={revisar}
+                                onAbrir={abrirPanel}
+                              />
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {!cargando && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 [&>*]:mt-0">
+                        <Paginacion total={ordenadas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+                        {limiteAlcanzado && (
+                          <p className="text-meta text-faint">{t('alertas.limiteResultados', { limite: 200 })}</p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
-              {errorCarga ? (
-                <div className="p-3">
-                  <EstadoError mensaje={t('alertas.errorCargar')}>
-                    <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
-                      {t('comunes.reintentar')}
-                    </Button>
-                  </EstadoError>
-                </div>
-              ) : !cargando && ordenadas.length === 0 ? (
-                <VacioAlertas
-                  filtro={filtro}
-                  revisadas={resumen?.revisadas ?? 0}
-                  ultimaAtendida={ultimaAtendida}
-                  incidentesActivos={incidentesActivos ?? 0}
-                  onFiltro={cambiarFiltro}
-                />
-              ) : (
-                <>
-                  <div key={filtro} className="animate-(--animate-fade)">
-                    <Table
-                      variante="embebida"
-                      mobileLayout="stack"
-                      className="min-w-0"
-                      titulo={t('alertas.titulo')}
-                      cargando={cargando}
-                    >
-                      <TableHeader className="bg-surface-sunken">
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="h-9 pr-3 pl-4 font-medium text-muted sm:pr-3 sm:pl-4">{t('alertas.columnaAlerta')}</TableHead>
-                          <TableHead className="hidden h-9 w-36 px-3 font-medium text-muted sm:px-3 md:table-cell">
-                            {t('alertas.columnaExcursion')}
-                          </TableHead>
-                          <TableHead className="h-9 w-px pr-4 pl-3 text-right font-medium text-muted sm:pr-4 sm:pl-3">{t('alertas.acciones')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {cargando ? (
-                          <FilasCargando puedeReconocer={puedeReconocer} puedeRegistrar={puedeRegistrarAccion} />
-                        ) : (
-                          visibles.map((alerta, indice) => (
-                            <FilaAlerta
-                              key={alerta.id}
-                              alerta={alerta}
-                              filtro={filtro}
-                              puedeReconocer={puedeReconocer}
-                              puedeRegistrar={puedeRegistrarAccion}
-                              seleccionada={panel?.alerta.id === alerta.id}
-                              revisando={revisando.has(alerta.id)}
-                              nueva={nuevos.has(alerta.id)}
-                              indice={indice}
-                              primaria={alerta.id === idPrimaria}
-                              onRevisar={revisar}
-                              onAbrir={abrirPanel}
-                            />
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  {!cargando && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 [&>*]:mt-0">
-                      <Paginacion total={ordenadas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
-                      {limiteAlcanzado && (
-                        <p className="text-meta text-faint">{t('alertas.limiteResultados', { limite: 200 })}</p>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
+              {pocasFilas && <EquiposAhora ahora={ahora} />}
             </div>
 
-            {pocasFilas && <EquiposAhora ahora={ahora} />}
+            <aside
+              aria-label={t('alertas.rail.region')}
+              className="grid grid-cols-1 content-start gap-3 md:grid-cols-2 xl:sticky xl:top-[calc(var(--alto-cabecera)+24px)] xl:col-span-4 xl:grid-cols-1 xl:gap-4 xl:self-start 2xl:col-span-3"
+            >
+              <IncidentesOperativos
+                incidentes={incidentes}
+                cargando={incidentesConsulta.cargando}
+                errorCarga={incidentesConsulta.errorCarga}
+                onReintentar={() => void incidentesConsulta.consultar()}
+                ahora={ahora}
+              />
+              <Cinta24hAlertas cintas={cintas} cargando={estadoResumen === 'cargando' && atendidas.estado === 'cargando'} />
+            </aside>
+          </div>
 
+          {/* Lo recién atendido y la guía van a todo lo ancho, después del rail:
+              la bandeja y el rail terminan casi a la par (sin hueco junto al
+              rail) y en móvil los incidentes quedan antes que el historial. */}
+          <div className="min-w-0 space-y-3 empty:hidden xl:space-y-4">
             <AtendidasRecientes
               alertas={atendidas.alertas}
               cantidad={mostrarAtendidas}
@@ -387,20 +410,6 @@ export function AlertasPage() {
 
             {pocasFilas && sinAtendidas && <GuiaAtencion />}
           </div>
-
-          <aside
-            aria-label={t('alertas.rail.region')}
-            className="grid grid-cols-1 content-start gap-3 md:grid-cols-2 xl:sticky xl:top-[calc(var(--alto-cabecera)+24px)] xl:col-span-4 xl:grid-cols-1 xl:gap-4 xl:self-start 2xl:col-span-3"
-          >
-            <IncidentesOperativos
-              incidentes={incidentes}
-              cargando={incidentesConsulta.cargando}
-              errorCarga={incidentesConsulta.errorCarga}
-              onReintentar={() => void incidentesConsulta.consultar()}
-              ahora={ahora}
-            />
-            <Cinta24hAlertas cintas={cintas} cargando={estadoResumen === 'cargando' && atendidas.estado === 'cargando'} />
-          </aside>
         </div>
 
         <p role="status" aria-live="polite" className="sr-only">

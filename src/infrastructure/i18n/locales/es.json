@@ -27,7 +27,7 @@
     "errorServidor": "No se pudo conectar con el servidor. Intenta de nuevo.",
     "mostrarPassword": "Mostrar contraseña",
     "ocultarPassword": "Ocultar contraseña",
-    "rango": "Cadena de frío farmacéutica · 2–8 °C",
+    "rango": "Cadena de frío farmacéutica · 2⁠–⁠8 °C",
     "rangoCadenaFrio": "Cadena de frío farmacéutica · 2 °C – 8 °C",
     "marcaEslogan": "Protege cada dosis. En cada grado.",
     "marcaDescripcion": "Supervisa tus equipos, recibe alertas oportunas y conserva registros trazables para cada revisión.",
@@ -96,9 +96,9 @@
     "riesgo_preventivo": "Riesgo preventivo",
     "excursion_critica": "Excursión crítica",
     "detalle": {
-      "normal": "Temperatura dentro del rango esperado de 2–8 °C",
+      "normal": "Temperatura dentro del rango esperado de 2⁠–⁠8 °C",
       "riesgo_preventivo": "Se acerca al límite: vigilar el refrigerador",
-      "excursion_critica": "La temperatura salió del rango 2–8 °C. Revisa el refrigerador."
+      "excursion_critica": "La temperatura salió del rango 2⁠–⁠8 °C. Revisa el refrigerador."
     }
   },
   "ia": {
@@ -128,7 +128,7 @@
     "estadoRefrigerador": "Temperatura actual",
     "ultimaTemperatura": "Última temperatura recibida",
     "conexionEquipo": "Conexión del equipo",
-    "rangoEsperadoCorto": "Rango esperado · 2–8 °C",
+    "rangoEsperadoCorto": "Rango esperado · 2⁠–⁠8 °C",
     "ejeAhora": "Ahora",
     "graficaExcursion": "Excursión confirmada",
     "graficaSinDatos": "Sin datos",
@@ -143,7 +143,7 @@
     "sinLecturaDisponible": "Sin lectura disponible para esta métrica.",
     "sinClasificacion": "Sin lectura de temperatura para calcular el riesgo.",
     "riesgoUltimaLectura": "Riesgo de la última lectura. Espera un dato nuevo para confirmar el estado actual.",
-    "excursionConfirmada": "La temperatura salió del rango esperado de 2–8 °C.",
+    "excursionConfirmada": "La temperatura salió del rango esperado de 2⁠–⁠8 °C.",
     "clasificacionIaDivergente": "El análisis automático sugiere revisar la lectura, pero la temperatura sigue dentro del rango. No se confirma una salida.",
     "puerta": "Puerta",
     "puertaAbierta": "Abierta",
@@ -162,7 +162,7 @@
     "lecturasRecientesTitulo": "Lecturas recientes",
     "lecturasRecientesAyuda": "Últimos registros del periodo seleccionado.",
     "ultimasLecturas": "últimas {{n}} lecturas",
-    "rangoConservacion": "Rango 2–8 °C",
+    "rangoConservacion": "Rango 2⁠–⁠8 °C",
     "lecturaSobreEscala": "Lectura sobre la escala del indicador (0–10 °C). Valor real: {{temperatura}} °C.",
     "lecturaBajoEscala": "Lectura bajo la escala del indicador (0 °C). Valor real: {{temperatura}} °C.",
     "ultimaActualizacion": "Última actualización",
@@ -183,8 +183,8 @@
     "resumenMinima": "Mínima",
     "resumenMaxima": "Máxima",
     "resumenPromedio": "Promedio",
-    "resumenFueraRango": "Lecturas fuera de rango · 2–8 °C",
-    "graficaEtiqueta": "Gráfica de líneas: temperatura interna y ambiental de las últimas {{n}} lecturas, con el rango de conservación 2–8 °C marcado",
+    "resumenFueraRango": "Lecturas fuera de rango · 2⁠–⁠8 °C",
+    "graficaEtiqueta": "Gráfica de líneas: temperatura interna y ambiental de las últimas {{n}} lecturas, con el rango de conservación 2⁠–⁠8 °C marcado",
     "anuncioRiesgo": "{{nivel}}. Temperatura interna {{temperatura}} °C.",
     "anuncioRiesgoSinTemp": "{{nivel}}. Sin lectura de temperatura interna.",
     "datoDesactualizado": "Sin lectura nueva hace {{s}} s",
@@ -205,7 +205,7 @@
     "sinPendientes": "Sin pendientes; sincronización recuperada: {{fecha}}.",
     "brechaBuffer": "Se perdieron {{n}} lecturas",
     "causaBufferAgotado": "buffer local lleno",
-    "periodoBrecha": "Periodo afectado: {{desde}} — {{hasta}}",
+    "periodoBrecha": "Periodo afectado: {{desde}} – {{hasta}}",
     "incidentesRecientes": "Incidentes recuperados ({{n}})",
     "incidenteRecuperado": "Conexión de datos recuperada: {{fecha}}.",
     "puertaSuperaUmbral": "Abierta más de {{segundos}} s. Revisa el cierre.",
@@ -273,7 +273,7 @@
     "vistaCurva": "Vista de la curva",
     "vistaGrafica": "Gráfica",
     "vistaLista": "Lista",
-    "resumenCurva": "En {{ventana}}: mínima {{min}} °C, máxima {{max}} °C, promedio {{prom}} °C y {{fuera}} lecturas fuera de 2–8 °C.",
+    "resumenCurva": "En {{ventana}}: mínima {{min}} °C, máxima {{max}} °C, promedio {{prom}} °C y {{fuera}} lecturas fuera de 2⁠–⁠8 °C.",
     "curvaSinLecturas": "Sin lecturas en {{ventana}}.",
     "equiposResumen_one": "{{count}} equipo · {{problemas}} con incidencias",
     "equiposResumen_other": "{{count}} equipos · {{problemas}} con incidencias",
@@ -400,7 +400,7 @@
     },
     "meta": "{{n}} lecturas · {{desde}} – {{hasta}}",
     "guia": {
-      "enRango": "Todo el periodo se mantuvo en 2–8 °C.",
+      "enRango": "Todo el periodo se mantuvo en 2⁠–⁠8 °C.",
       "excursiones_one": "{{count}} excursión en el periodo: duró {{duracion}} en {{equipo}}.",
       "excursiones_other": "{{count}} excursiones en el periodo; la más larga duró {{duracion}} en {{equipo}}.",
       "brechas_one": "Sin excursiones; hay {{count}} brecha sin datos.",
@@ -430,7 +430,7 @@
     },
     "curva": {
       "titulo": "Curva del periodo",
-      "meta": "{{equipo}} · {{n}} lecturas · rango 2–8 °C",
+      "meta": "{{equipo}} · {{n}} lecturas · rango 2⁠–⁠8 °C",
       "equipo": "Equipo de la curva"
     },
     "dia": {
@@ -471,10 +471,10 @@
       "porEquipo": "Por equipo",
       "porEquipoMeta": "Última lectura, mínima y máxima del periodo",
       "porEquipoValor": "mín {{min}} · prom {{prom}} · máx {{max}} °C",
-      "porEquipoRegla": "{{equipo}}: última {{ultima}} °C; mínima {{min}} °C; máxima {{max}} °C; rango 2–8 °C",
+      "porEquipoRegla": "{{equipo}}: última {{ultima}} °C; mínima {{min}} °C; máxima {{max}} °C; rango 2⁠–⁠8 °C",
       "enRango": "{{pct}} en rango",
       "excursiones": "Excursiones del periodo",
-      "sinExcursiones": "Sin excursiones: todo el periodo en 2–8 °C.",
+      "sinExcursiones": "Sin excursiones: todo el periodo en 2⁠–⁠8 °C.",
       "excursionValor": "{{duracion}} · máx {{max}} °C",
       "verEnTabla": "Ver en la tabla",
       "masExcursiones": "y {{n}} más",
@@ -644,7 +644,7 @@
       "secciones": "Secciones de la alerta",
       "tabCronologia": "Cronología",
       "evidencia": "Evidencia de la excursión",
-      "reglaPico": "Pico de {{valor}} frente al rango 2–8 °C",
+      "reglaPico": "Pico de {{valor}} frente al rango 2⁠–⁠8 °C",
       "sinEvidencia": "Esta alerta es anterior al registro de evidencia (pico, duración e inicio).",
       "camposObligatorios": "Los tres campos son obligatorios y quedan en el registro.",
       "faltan": "Falta completar: {{campos}}.",
@@ -670,7 +670,7 @@
       "verPendientes": "Ver pendientes",
       "verTodas": "Ver todas",
       "irMonitoreo": "Ir a Monitoreo",
-      "todasDetalle": "Cuando un equipo salga del rango 2–8 °C, la alerta aparecerá aquí.",
+      "todasDetalle": "Cuando un equipo salga del rango 2⁠–⁠8 °C, la alerta aparecerá aquí.",
       "incidentes_one": "1 equipo tiene un incidente operativo activo (no es una alerta térmica).",
       "incidentes_other": "{{count}} equipos tienen un incidente operativo activo (no son alertas térmicas)."
     },
@@ -699,7 +699,7 @@
     "incidenteActivoDesde": "Activo desde {{hace}}",
     "ahora": {
       "titulo": "Equipos ahora",
-      "ayuda": "Lectura actual: ¿el equipo ya volvió a 2–8 °C?",
+      "ayuda": "Lectura actual: ¿el equipo ya volvió a 2⁠–⁠8 °C?",
       "lectura": "lectura {{hace}}"
     },
     "guiaAtencion": {
@@ -709,7 +709,7 @@
       "registrar": "Registrar la acción correctiva",
       "registrarDetalle": "Decisión adoptada, acción ejecutada y justificación (BPA).",
       "verificar": "Verificar el retorno",
-      "verificarDetalle": "Comprueba que el equipo volvió a 2–8 °C.",
+      "verificarDetalle": "Comprueba que el equipo volvió a 2⁠–⁠8 °C.",
       "irHistorial": "Ver Historial"
     },
     "demo": {
@@ -937,14 +937,14 @@
     "todosLosEquipos": "Todos los equipos",
     "queIncluye": "Qué incluye",
     "vistaDesactualizada": "La vista previa muestra {{periodo}}. Genera el reporte para ver el periodo editado.",
-    "tiempoEnRango": "Tiempo en 2–8 °C",
+    "tiempoEnRango": "Tiempo en 2⁠–⁠8 °C",
     "tramos": {
       "enRango": "En rango",
       "fuera": "Fuera de rango",
       "sinDatos": "Sin datos"
     },
     "tramoValor": "{{tramo}} {{porcentaje}} · {{duracion}}",
-    "barraTiempoAria": "Tiempo en 2–8 °C: {{enRango}}. Fuera de rango: {{fuera}}. Sin datos: {{sinDatos}}.",
+    "barraTiempoAria": "Tiempo en 2⁠–⁠8 °C: {{enRango}}. Fuera de rango: {{fuera}}. Sin datos: {{sinDatos}}.",
     "calculoParcial": "Calculado solo con los datos recibidos: {{desde}} – {{hasta}}.",
     "curvaTitulo": "Temperatura interna",
     "curvaResumen": "Mín. {{minimo}} · Prom. {{promedio}} · Máx. {{maximo}}",
@@ -1096,7 +1096,8 @@
       "exitosas": "Exitosas",
       "fallidas": "Fallidas o denegadas",
       "barra": "{{dia}}: {{total}} acciones, {{fallidas}} fallidas o denegadas. Filtrar este día.",
-      "base": "Según las {{n}} acciones cargadas"
+      "base": "Según las {{n}} acciones cargadas",
+      "semana": "Del {{desde}} al {{hasta}}"
     },
     "dia": {
       "resumen_one": "{{count}} acción",
@@ -1370,7 +1371,7 @@
     "registroEquipo": "Registro de equipo",
     "registrarEquipo": "Registrar",
     "codigoDeEquipo": "Código del equipo",
-    "rangoBuffer": "Periodo en cola: {{desde}} — {{hasta}}",
+    "rangoBuffer": "Periodo en cola: {{desde}} – {{hasta}}",
     "ultimoReporte": "Último reporte",
     "motivoCredencial": "Motivo",
     "motivoCredencialAyuda": "Queda registrado en la auditoría (máx. 200 caracteres).",
@@ -1485,10 +1486,8 @@
     "tira": {
       "enLinea": "{{n}} en línea",
       "deBaja": "{{n}} de baja",
-      "calibracion": "Calibración",
-      "porAtender": "por atender",
-      "consola": "Consola",
-      "pendientes": "pendientes",
+      "calibracion": "Por calibrar",
+      "consola": "Consola pendiente",
       "fraseNormal": "Todos los equipos reportan con normalidad · {{n}} en línea",
       "fraseRetenida": "{{id}}: telemetría retenida hasta confirmar la consola",
       "fraseSinDatos": "{{n}} de {{total}} equipos sin datos desde las {{hora}}",
@@ -1497,7 +1496,9 @@
       "fraseFallaVarios": "{{n}} equipos con falla de sensor",
       "fraseCalibracion": "Calibración vencida en {{id}}",
       "fraseConsolaUno": "1 operación pendiente en la consola del broker",
-      "fraseConsolaVarios": "{{n}} operaciones pendientes en la consola del broker"
+      "fraseConsolaVarios": "{{n}} operaciones pendientes en la consola del broker",
+      "vencidas_one": "{{count}} vencida",
+      "vencidas_other": "{{count}} vencidas"
     },
     "rail": {
       "etiqueta": "Contexto de los equipos",
@@ -1520,13 +1521,13 @@
       "volverLista": "Volver a equipos",
       "fueraDeServicio": "Equipo fuera de servicio: se muestra su último dato.",
       "guia": {
-        "normal": "Temperatura dentro de 2–8 °C · reporta cada {{s}} s",
+        "normal": "Temperatura dentro de 2⁠–⁠8 °C · reporta cada {{s}} s",
         "sin_datos": "Sin datos desde {{hora}} · el nodo guarda {{n}} lecturas en su buffer",
         "sin_conexion": "Sin conexión desde {{hora}}",
         "retenida": "Telemetría retenida: confirma la consola y espera la prueba de posesión.",
         "falla_sensor": "Falla de sensor: revisa el {{sensor}}.",
-        "critico": "Fuera de 2–8 °C: revisa la alerta pendiente.",
-        "preventivo": "Cerca del límite de 2–8 °C.",
+        "critico": "Fuera de 2⁠–⁠8 °C: revisa la alerta pendiente.",
+        "preventivo": "Cerca del límite de 2⁠–⁠8 °C.",
         "esperando": "Esperando el primer reporte del nodo.",
         "baja": "Dado de baja el {{fecha}}."
       }
@@ -1552,12 +1553,12 @@
       "minimo": "Mín",
       "maximo": "Máx",
       "promedio": "Promedio",
-      "enRango": "En rango 2–8 °C",
+      "enRango": "En rango 2⁠–⁠8 °C",
       "interna": "Interna",
       "ambiente": "Ambiente",
       "humedad": "Humedad",
       "riesgo": "Riesgo",
-      "resumen24hOk": "Las 24 h dentro de 2–8 °C y con datos.",
+      "resumen24hOk": "Las 24 h dentro de 2⁠–⁠8 °C y con datos.",
       "puerta": "Puerta",
       "puertaAbierta": "Abierta",
       "puertaCerrada": "Cerrada",
@@ -1652,7 +1653,9 @@
       "vacio": "Sin alertas ni incidentes en los últimos 7 días.",
       "error": "No pudimos cargar la actividad reciente.",
       "recuperado": "Recuperado: {{tipo}}",
-      "duracion": "duró {{duracion}}"
+      "duracion": "duró {{duracion}}",
+      "sinMas": "Sin más actividad en los últimos 7 días",
+      "verHistorial": "Ver historial"
     }
   },
   "comunes": {
@@ -1787,7 +1790,7 @@
       "hora_evento": "Hora del evento",
       "estado_conectividad_online": "Estado de conexión del equipo"
     },
-    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2–8 °C; no es una probabilidad del modelo.",
+    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2⁠–⁠8 °C; no es una probabilidad del modelo.",
     "meta": "{{modelo}} · versión {{version}} · entrenado el {{fecha}}",
     "ilustrativo": "Ilustrativo",
     "umbralCriterio": "Criterio del prototipo",
@@ -1872,7 +1875,7 @@
       }
     },
     "alertaPermisos": "El personal técnico puede registrar una acción correctiva; el personal farmacéutico también puede marcar una alerta como revisada. Auditoría es de solo lectura.",
-    "ejemploTitulo": "Ejemplo ilustrativo · rango de 2–8 °C",
+    "ejemploTitulo": "Ejemplo ilustrativo · rango de 2⁠–⁠8 °C",
     "ejemplo": "4,3 °C está dentro del rango. Una lectura de 8,4 °C está fuera: revisa la alerta, aplica el procedimiento de tu farmacia y registra la respuesta.",
     "pantallasTitulo": "Encuentra una pantalla",
     "pantallasDescripcion": "Los enlaces disponibles se adaptan a tu rol.",

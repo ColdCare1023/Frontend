@@ -15,8 +15,10 @@ const DIAS = 14
  * sobre la última carga sin periodo. Pulsar una barra filtra ese día en el
  * servidor; volver a pulsarla lo quita. Sin escalonado ni animación de
  * entrada (MOTION §3.9): solo color en hover y anillo de selección.
- * Bajo `sm` las 14 barras van en dos filas de 7 para que cada una mida al
- * menos 24 px de ancho (WCAG 2.5.8, tamaño mínimo del objetivo).
+ * Bajo `sm` las 14 barras van en dos filas de 7 (una por semana, cada una con
+ * sus fechas) para que cada barra mida al menos 24 px de ancho (WCAG 2.5.8,
+ * tamaño mínimo del objetivo); desde `sm` las dos semanas van seguidas.
+ * Las exitosas van en `faint` (≥ 3:1 sobre la superficie, WCAG 1.4.11).
  */
 export function HistogramaActividad({
   registros,
@@ -48,51 +50,63 @@ export function HistogramaActividad({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registros, claveDia(ahora.toISOString())])
   const maximo = Math.max(1, ...dias.map((d) => d.total))
-  const medio = dias[Math.floor(DIAS / 2)]
+  const semanas = [dias.slice(0, DIAS / 2), dias.slice(DIAS / 2)]
 
   return (
     <section aria-labelledby="auditoria-actividad-titulo" className="superficie p-4">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <h2 id="auditoria-actividad-titulo" className="text-title text-foreground">{t('auditoria.actividad.titulo')}</h2>
         <div className="flex items-center gap-3 text-meta text-muted">
-          <span className="inline-flex items-center gap-1.5"><span aria-hidden className="size-2 rounded-full bg-border-strong" />{t('auditoria.actividad.exitosas')}</span>
+          <span className="inline-flex items-center gap-1.5"><span aria-hidden className="size-2 rounded-full bg-faint" />{t('auditoria.actividad.exitosas')}</span>
           <span className="inline-flex items-center gap-1.5"><span aria-hidden className="size-2 rounded-full bg-critical" />{t('auditoria.actividad.fallidas')}</span>
         </div>
       </div>
-      <ol aria-label={t('auditoria.actividad.titulo')} className="mt-3 grid grid-cols-7 items-end gap-x-1.5 gap-y-2 sm:h-16 sm:grid-cols-[repeat(14,minmax(0,1fr))] sm:gap-1">
-        {dias.map((dia) => {
-          const activo = diaSeleccionado === dia.clave
-          const alto = (dia.total / maximo) * 100
-          const altoFallidas = dia.total ? (dia.fallidas / dia.total) * 100 : 0
+      <div className="mt-3 grid gap-y-3 sm:grid-cols-2 sm:gap-x-1">
+        {semanas.map((semana) => {
+          const desde = diaCorto(semana[0].inicio.toISOString())
+          const hasta = diaCorto(semana[semana.length - 1].inicio.toISOString())
           return (
-            <li key={dia.clave} className="h-12 sm:h-full">
-              <button
-                type="button"
-                aria-pressed={activo}
-                aria-label={t('auditoria.actividad.barra', { dia: diaCorto(dia.inicio.toISOString()), total: dia.total, fallidas: dia.fallidas })}
-                onClick={() => onSeleccionar(activo ? null : dia.clave, dia.inicio)}
-                className={cn(
-                  'group flex h-full w-full cursor-pointer flex-col justify-end rounded-[3px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
-                  activo && 'ring-2 ring-primary ring-offset-1 ring-offset-surface',
-                )}
+            <div key={semana[0].clave} className="min-w-0">
+              <ol
+                aria-label={t('auditoria.actividad.semana', { desde, hasta })}
+                className="grid h-12 grid-cols-7 items-end gap-x-1.5 sm:h-16 sm:gap-x-1"
               >
-                {dia.total === 0 ? (
-                  <span aria-hidden className="block h-0.5 w-full rounded-full bg-border" />
-                ) : (
-                  <span aria-hidden className="flex w-full flex-col overflow-hidden rounded-t-[2px]" style={{ height: `${Math.max(6, alto)}%` }}>
-                    <span className="block w-full flex-1 bg-border-strong transition-colors duration-(--duration-micro) group-hover:bg-faint" />
-                    {dia.fallidas > 0 && <span className="block w-full bg-critical" style={{ height: `${altoFallidas}%` }} />}
-                  </span>
-                )}
-              </button>
-            </li>
+                {semana.map((dia) => {
+                  const activo = diaSeleccionado === dia.clave
+                  const alto = (dia.total / maximo) * 100
+                  const altoFallidas = dia.total ? (dia.fallidas / dia.total) * 100 : 0
+                  return (
+                    <li key={dia.clave} className="h-full">
+                      <button
+                        type="button"
+                        aria-pressed={activo}
+                        aria-label={t('auditoria.actividad.barra', { dia: diaCorto(dia.inicio.toISOString()), total: dia.total, fallidas: dia.fallidas })}
+                        onClick={() => onSeleccionar(activo ? null : dia.clave, dia.inicio)}
+                        className={cn(
+                          'group flex h-full w-full cursor-pointer flex-col justify-end rounded-[3px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
+                          activo && 'ring-2 ring-primary ring-offset-1 ring-offset-surface',
+                        )}
+                      >
+                        {dia.total === 0 ? (
+                          <span aria-hidden className="block h-0.5 w-full rounded-full bg-border-strong" />
+                        ) : (
+                          <span aria-hidden className="flex w-full flex-col overflow-hidden rounded-t-[2px]" style={{ height: `${Math.max(6, alto)}%` }}>
+                            <span className="block w-full flex-1 bg-faint transition-colors duration-(--duration-micro) group-hover:bg-muted" />
+                            {dia.fallidas > 0 && <span className="block w-full bg-critical" style={{ height: `${altoFallidas}%` }} />}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ol>
+              <div aria-hidden className="mt-1.5 flex items-center justify-between gap-2 text-micro text-faint">
+                <span>{desde}</span>
+                <span>{hasta}</span>
+              </div>
+            </div>
           )
         })}
-      </ol>
-      <div className="mt-1.5 flex items-center justify-between text-micro text-faint">
-        <span>{diaCorto(dias[0].inicio.toISOString())}</span>
-        <span className="max-sm:hidden">{diaCorto(medio.inicio.toISOString())}</span>
-        <span>{diaCorto(dias[DIAS - 1].inicio.toISOString())}</span>
       </div>
       <p className="nums mt-1 text-meta text-faint">{t('auditoria.actividad.base', { n: registros.length })}</p>
     </section>

@@ -433,7 +433,8 @@
   --color-faint: #7f8ba0;
 
   --color-primary: #0b5cff;
-  --color-primary-hover: #2a6fff;
+  /* Hover más profundo también en oscuro: #2a6fff con texto blanco daba 4.36:1. */
+  --color-primary-hover: #084ad1;
   --color-primary-tint: #0f1d3a;
   --color-primary-text: #7aa7ff;
   --color-on-primary: #ffffff;
@@ -466,6 +467,7 @@
 
   /* Rejilla de puntos del acceso (AuthShell). */
   --punto: rgb(255 255 255 / 0.09);
+  --icono-desplegar: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237f8ba0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 @layer base {
@@ -478,6 +480,8 @@
     --ancho-riel-colapsado: 72px;
     --ancho-contenido-max: 1600px;
     --punto: rgb(15 23 42 / 0.09);
+    /* Chevron de los desplegables nativos (select y datalist), en el tono faint. */
+    --icono-desplegar: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6b82' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
   html {
@@ -564,6 +568,20 @@
   }
   [data-theme='dark'] input::-webkit-calendar-picker-indicator {
     filter: invert(0.85);
+  }
+  /* Campos con sugerencias (datalist): el triángulo negro del navegador se
+     cambia por el mismo chevron de los select. */
+  input[list]::-webkit-calendar-picker-indicator {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    color: transparent;
+    background: var(--icono-desplegar) center / 12px 12px no-repeat;
+    opacity: 1;
+    filter: none;
+    cursor: pointer;
   }
 
   * {

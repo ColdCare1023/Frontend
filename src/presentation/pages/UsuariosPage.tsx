@@ -124,8 +124,10 @@ export function UsuariosPage() {
             ]}
           />
           <div className="grid items-start gap-3 xl:grid-cols-12 xl:gap-4">
-            <div className="min-w-0 xl:col-span-8 2xl:col-span-9">
-              <Table mobileLayout="stack" titulo={t('usuarios.titulo')}>
+            {/* El recuento y la paginación van dentro de la tarjeta, como en
+                Alertas y Dispositivos (antes quedaban sueltos debajo). */}
+            <div className="superficie min-w-0 overflow-hidden xl:col-span-8 2xl:col-span-9">
+              <Table variante="embebida" mobileLayout="stack" titulo={t('usuarios.titulo')}>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[48%]">{t('usuarios.nombre')}</TableHead>
@@ -228,7 +230,9 @@ export function UsuariosPage() {
                   })}
                 </TableBody>
               </Table>
-              <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+              <div className="border-t border-border px-4 py-2 empty:hidden [&>*]:mt-0">
+                <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+              </div>
             </div>
             <RielUsuarios usuarios={usuarios} />
           </div>

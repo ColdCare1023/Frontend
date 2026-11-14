@@ -93,7 +93,8 @@ export const FilaDispositivo = memo(function FilaDispositivo({
             {dispositivo.id}
           </Link>
         </h3>
-        <p className="mt-0.5 truncate text-meta text-muted">
+        {/* Hasta dos líneas: a 1440 «Sala de dispensación» se cortaba con sitio de sobra debajo. */}
+        <p className="mt-0.5 line-clamp-2 text-meta text-muted">
           {[dispositivo.nombre, dispositivo.ubicacion].filter(Boolean).join(' · ') || '—'}
         </p>
         <div id={idEstado} className="relative z-10 mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-meta">

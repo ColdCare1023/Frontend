@@ -14,6 +14,7 @@ import { TableCell, TableRow } from '../../components/ui/table'
 import { Tooltip } from '../../components/ui/tooltip'
 import { AvisosEvidencia, EvidenciaFila, PicoExcursion } from './EvidenciaAlerta'
 import type { PestanaPanel } from './tipos'
+import { tituloAlerta } from './tituloAlerta'
 
 /**
  * Filo izquierdo de 3 px con el color del riesgo: la gravedad se lee al
@@ -69,7 +70,8 @@ export const FilaAlerta = memo(function FilaAlerta({
   onRevisar,
   onAbrir,
 }: PropsFilaAlerta) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const titulo = tituloAlerta(alerta, t, i18n.resolvedLanguage)
   const tono = tonoDesdeRiesgo(alerta.nivel_riesgo)
   const IconoRiesgo = ICONO_ESTADO[tono]
   const fecha = fechaHoraCompacta(alerta.created_at)
@@ -101,10 +103,10 @@ export const FilaAlerta = memo(function FilaAlerta({
             {alerta.nivel_riesgo ? `${t(`riesgo.${alerta.nivel_riesgo}`)} — ${t(`riesgo.detalle.${alerta.nivel_riesgo}`)}` : ''}
           </span>
           <p
-            title={alerta.mensaje}
+            title={titulo}
             className="min-w-0 text-body font-medium text-foreground max-sm:line-clamp-3 sm:line-clamp-2 sm:text-pretty"
           >
-            {alerta.mensaje}
+            {titulo}
           </p>
         </div>
         <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 pl-6 text-meta text-faint sm:flex-nowrap sm:overflow-hidden sm:whitespace-nowrap">

@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
+import { ordenarAlertas } from '@/lib/ordenAlertas'
 
 /**
  * Estado en vivo del shell (píldora de la cabecera y contador del riel). Lo
@@ -43,7 +44,7 @@ export interface ResumenAlertas {
   criticas: number
   /** Alguna página volvió llena (200): el total es un mínimo. */
   truncado: boolean
-  /** Las más recientes primero (máx. 3) para el panel. */
+  /** Las 3 más urgentes (orden de triage de Alertas) para el panel. */
   recientes: AlertaTermica[]
   /**
    * Pendientes y revisadas tal como llegaron (Alertas: tira de estado y cinta
@@ -113,7 +114,9 @@ export function resumirAlertas(paginas: AlertaTermica[][], limite = 200): Resume
     total: alertas.length,
     criticas: alertas.filter((a) => a.nivel_riesgo === 'excursion_critica').length,
     truncado: paginas.some((p) => p.length >= limite),
-    recientes: [...alertas].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')).slice(0, 3),
+    // Mismo orden que la bandeja de Alertas: críticas primero y, en cada nivel,
+    // la que más lleva esperando.
+    recientes: ordenarAlertas(alertas, 'pendiente').slice(0, 3),
     pendientes: paginas[0] ?? [],
     revisadas: paginas[1] ?? [],
   }

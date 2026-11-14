@@ -23,6 +23,7 @@ import { CronologiaAtencion } from './CronologiaAtencion'
 import { EvidenciaPanel } from './EvidenciaAlerta'
 import { FormularioAccionCorrectiva } from './FormularioAccionCorrectiva'
 import { BORRADOR_VACIO, type BorradorAccion, type PestanaPanel, type PuedeRectificar } from './tipos'
+import { tituloAlerta } from './tituloAlerta'
 
 /** «Registrada» se ve un instante antes de pasar a la cronología. */
 const PAUSA_REGISTRADA_MS = 600
@@ -88,7 +89,7 @@ function ContenidoPanel({
   obtenerCiclo,
   rectificarAccion,
 }: PropsPanelAlerta & { alerta: AlertaTermica }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const idBase = useId()
   // La pestaña Acción existe si el rol puede registrar y la alerta no estaba
   // atendida al abrir; tras registrar desaparece (la alerta ya está atendida).
@@ -172,7 +173,7 @@ function ContenidoPanel({
             {t(`alertas.estadoAlerta.${alerta.estado}`)}
           </span>
         </div>
-        <SidePanelTitle className="mt-2 text-balance">{alerta.mensaje}</SidePanelTitle>
+        <SidePanelTitle className="mt-2 text-balance">{tituloAlerta(alerta, t, i18n.resolvedLanguage)}</SidePanelTitle>
         <SidePanelDescription className="nums mt-1 text-meta text-faint">
           <span className="codigo">{alerta.device_id}</span> · {fechaHora(alerta.created_at)}
         </SidePanelDescription>

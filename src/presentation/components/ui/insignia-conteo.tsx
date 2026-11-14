@@ -44,7 +44,7 @@ export function InsigniaConteo({
       data-critico={critico || undefined}
       className={cn(
         'nums inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold leading-none',
-        tamano === 'md' ? 'h-5 min-w-5 px-1.5 text-micro' : 'h-4 min-w-4 px-1 text-[10px]',
+        tamano === 'md' ? 'h-5 min-w-5 px-1.5 text-micro' : 'h-4 min-w-4 px-1 text-micro',
         critico ? 'bg-critical-solid text-on-critical' : 'bg-neutral-300 text-subtle',
         className,
       )}

@@ -18,7 +18,7 @@ interface OpcionSegmento<T> {
 const PASTILLA = 'nums ml-1.5 hidden min-w-4 justify-center rounded-full bg-surface-sunken px-1.5 text-meta text-muted sm:inline-flex'
 
 const BOTON =
-  'relative h-11 min-w-0 cursor-pointer whitespace-nowrap rounded-(--radius-small) px-3 text-[13px] font-medium sm:h-8 sm:pointer-coarse:h-10'
+  'relative h-11 min-w-0 cursor-pointer whitespace-nowrap rounded-(--radius-small) px-3 text-body font-medium sm:h-8 sm:pointer-coarse:h-10'
 
 /**
  * Control segmentado con indicador compartido (MOTION 4.10, 21st «Animated

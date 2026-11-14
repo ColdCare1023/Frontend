@@ -62,7 +62,7 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
       </div>
       {plegado && (
         <p className="nums mt-1 text-meta text-muted sm:hidden">
-          {(atajo ? t(`reportes.presets.${atajo}`) : `${fechaCorta(desde)} — ${fechaCorta(hasta)}`)} ·{' '}
+          {(atajo ? t(`reportes.presets.${atajo}`) : `${fechaCorta(desde)} – ${fechaCorta(hasta)}`)} ·{' '}
           {deviceId || t('reportes.todosLosEquipos')}
         </p>
       )}

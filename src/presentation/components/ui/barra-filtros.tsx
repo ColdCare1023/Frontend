@@ -31,11 +31,15 @@ export function BarraFiltros({
     <div
       role="group"
       aria-label={etiqueta}
-      className={cn('flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-border px-4 py-3', className)}
+      className={cn('flex flex-wrap items-end gap-x-3 border-b border-border px-4 py-3 sm:gap-y-2', className)}
     >
-      <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">{children}</div>
+      {/* Bajo 640 px los controles ocupan su fila y «Limpiar» baja a la siguiente:
+          en la misma línea, el bloque `shrink-0` les dejaba ~200 px. */}
+      <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3 max-sm:basis-full">{children}</div>
       {(resultado || (alLimpiar && hayFiltros)) && (
-        <div className="flex shrink-0 items-center gap-3 text-meta text-faint">
+        // En móvil el resultado puede ser solo para lectores de pantalla: la fila
+        // separada solo toma aire cuando lleva «Limpiar» visible.
+        <div className={cn('flex shrink-0 items-center gap-3 text-meta text-faint', alLimpiar && hayFiltros && 'max-sm:mt-2')}>
           {resultado && (
             <p aria-live="polite" className="nums">
               {resultado}

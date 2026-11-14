@@ -32,7 +32,7 @@ export function Detalles({
         aria-expanded={abierto}
         aria-controls={id}
         onClick={() => setAbierto((previo) => !previo)}
-        className="group flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-lg text-left text-[13px] font-medium text-muted transition-colors duration-(--duration-micro) hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="group flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 rounded-lg text-left text-body font-medium text-muted transition-colors duration-(--duration-micro) hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <span>{titulo ?? (abierto ? t('comunes.ocultarDetalles') : t('comunes.verDetalles'))}</span>
         <ChevronDown

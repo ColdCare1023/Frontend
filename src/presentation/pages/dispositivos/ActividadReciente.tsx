@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { CircleCheck, Hourglass, KeyRound, Link2, OctagonAlert, ShieldAlert, Thermometer, TriangleAlert, type LucideIcon } from 'lucide-react'
@@ -43,6 +43,7 @@ export function ActividadReciente({
   conEquipo = true,
   accion,
   desplazable = false,
+  pie,
   className,
 }: {
   id: string
@@ -59,10 +60,13 @@ export function ActividadReciente({
    * par de la curva en el detalle); entonces es enfocable para el teclado.
    */
   desplazable?: boolean
+  /** Línea final bajo la lista (p. ej. «Sin más actividad en 7 días»). */
+  pie?: ReactNode
   className?: string
 }) {
   const { t } = useTranslation()
   const idTitulo = `${id}-titulo`
+  const masAbajo = useHayMasAbajo(desplazable, eventos.length)
 
   let cuerpo: ReactNode
   if (cargando && eventos.length === 0) {
@@ -85,7 +89,14 @@ export function ActividadReciente({
   } else {
     cuerpo = (
       <ol
-        className={cn('divide-y divide-border', desplazable && 'min-h-0 flex-1 overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring')}
+        ref={masAbajo.ref}
+        className={cn(
+          'divide-y divide-border',
+          desplazable && 'min-h-0 flex-1 overflow-y-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+          // Una fila cortada sin pista no dice que la lista sigue: el borde
+          // inferior se funde mientras quede contenido por debajo.
+          masAbajo.activo && '[mask-image:linear-gradient(to_bottom,#000_calc(100%-32px),transparent)]',
+        )}
         {...(desplazable ? { tabIndex: 0, 'aria-labelledby': idTitulo } : {})}
       >
         {eventos.map((evento) => (
@@ -127,8 +138,30 @@ export function ActividadReciente({
         {accion}
       </header>
       {cuerpo}
+      {pie && <div className="shrink-0 border-t border-border px-4 py-2.5 text-meta text-faint">{pie}</div>}
     </section>
   )
+}
+
+/** ¿La lista desplazable tiene contenido por debajo del borde visible? */
+function useHayMasAbajo(activo: boolean, filas: number) {
+  const ref = useRef<HTMLOListElement>(null)
+  const [hayMas, setHayMas] = useState(false)
+  useEffect(() => {
+    const lista = ref.current
+    if (!activo || !lista) return
+    const medir = () => setHayMas(lista.scrollHeight - lista.clientHeight - lista.scrollTop > 2)
+    medir()
+    lista.addEventListener('scroll', medir, { passive: true })
+    if (typeof ResizeObserver === 'undefined') return () => lista.removeEventListener('scroll', medir)
+    const observador = new ResizeObserver(medir)
+    observador.observe(lista)
+    return () => {
+      lista.removeEventListener('scroll', medir)
+      observador.disconnect()
+    }
+  }, [activo, filas])
+  return { ref, activo: activo && hayMas }
 }
 
 type T = (clave: string, opciones?: Record<string, unknown>) => string

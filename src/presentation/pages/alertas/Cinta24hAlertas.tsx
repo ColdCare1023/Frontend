@@ -8,7 +8,9 @@ const LEYENDA = [
   { clase: 'bg-critical-solid', clave: 'alertas.rail.leyendaCritica' },
   { clase: 'bg-warning-600', clave: 'alertas.rail.leyendaPreventiva' },
   { clase: 'trama-sin-datos', clave: 'alertas.rail.leyendaSinDatos' },
-  { clase: 'bg-nodata-100', clave: 'alertas.rail.leyendaSinEventos' },
+  // El gris liso del tramo sin eventos apenas se distingue de la superficie
+  // (1.24:1): en la leyenda lleva un contorno ≥ 3:1 para poder identificarlo.
+  { clase: 'bg-nodata-100 ring-1 ring-inset ring-nodata-600', clave: 'alertas.rail.leyendaSinEventos' },
 ] as const
 
 /**

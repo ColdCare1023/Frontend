@@ -294,14 +294,14 @@ function marcasRango(colores: ColoresGrafica, etiquetas: EtiquetasCurvaTermica) 
     markArea: {
       silent: true,
       itemStyle: { color: colores.banda, opacity: 1 },
-      label: { show: true, position: 'insideTop', color: colores.safeText, fontSize: 10, fontFamily: fuente, formatter: etiquetas.rangoEsperado },
+      label: { show: true, position: 'insideTop', color: colores.safeText, fontSize: 11, fontFamily: fuente, formatter: etiquetas.rangoEsperado },
       data: [[{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }]],
     },
     markLine: {
       silent: true,
       symbol: 'none',
       lineStyle: { color: colores.safe, type: 'dashed', width: 1, opacity: 1 },
-      label: { color: colores.safeText, fontSize: 10, fontFamily: fuente, formatter: '{c} °C' },
+      label: { color: colores.safeText, fontSize: 11, fontFamily: fuente, formatter: '{c} °C' },
       data: [{ yAxis: RANGO_TERMICO.minimo }, { yAxis: RANGO_TERMICO.maximo }],
     },
   }
@@ -532,7 +532,7 @@ export function construirOpcionCurvaTermica(
                   show: huecoConEtiqueta([inicio, fin]),
                   position: 'insideBottom',
                   color: colores.nodataTexto,
-                  fontSize: 10,
+                  fontSize: 11,
                   fontFamily: fuente,
                   formatter: etiquetas.sinDatos,
                 },
@@ -546,7 +546,7 @@ export function construirOpcionCurvaTermica(
               silent: true,
               symbol: 'none',
               lineStyle: { color: colores.muted, type: 'solid', width: 1, opacity: 0.5 },
-              label: { position: 'end', color: colores.muted, fontSize: 10, fontFamily: fuente, formatter: etiquetas.ahora },
+              label: { position: 'end', color: colores.muted, fontSize: 11, fontFamily: fuente, formatter: etiquetas.ahora },
               data: [{ xAxis: ventana.hasta }],
             }
           : undefined,

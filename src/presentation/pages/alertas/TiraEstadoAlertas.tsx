@@ -72,7 +72,9 @@ export function TiraEstadoAlertas({
       valor: atendidasDisponibles
         ? valor(resumen?.atencionMedia7d != null ? duracionLegible(resumen.atencionMedia7d) : '—')
         : noDisponible,
-      className: 'hidden lg:flex',
+      // Entre 1024 y 1279 no cabe en la fila de la frase guía y quedaba sola
+      // en una segunda fila.
+      className: 'hidden xl:flex',
     },
   ]
 

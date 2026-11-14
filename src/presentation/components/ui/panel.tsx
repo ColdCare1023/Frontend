@@ -35,10 +35,10 @@ export function Panel({
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-b border-border px-4 py-3.5 sm:px-5">
           <div className="flex min-w-0 items-start gap-3">
             <div className="min-w-0">
-              <Titulo id={idTitulo} className="text-[15px] leading-6 font-semibold tracking-tight text-foreground">
+              <Titulo id={idTitulo} className="text-title text-foreground">
                 {titulo}
               </Titulo>
-              {descripcion && <p className="mt-0.5 text-[13px] leading-5 text-muted">{descripcion}</p>}
+              {descripcion && <p className="mt-0.5 text-body text-muted">{descripcion}</p>}
             </div>
           </div>
           {acciones && <div className="flex flex-wrap items-center gap-2">{acciones}</div>}

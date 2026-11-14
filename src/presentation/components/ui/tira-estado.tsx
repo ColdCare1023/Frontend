@@ -1,8 +1,9 @@
-import { OctagonAlert, TriangleAlert } from 'lucide-react'
+import { Hourglass, OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
-export type TonoSegmento = 'neutro' | 'vivo' | 'aviso' | 'critico'
+/** `sinDatos` es un estado operativo, no un riesgo: acero y reloj de arena (DIRECTION §3/§14). */
+export type TonoSegmento = 'neutro' | 'vivo' | 'aviso' | 'critico' | 'sinDatos'
 
 export interface SegmentoTira {
   clave: string
@@ -20,6 +21,7 @@ const VALOR: Record<TonoSegmento, string> = {
   vivo: 'text-foreground',
   aviso: 'text-warning-700',
   critico: 'text-critical',
+  sinDatos: 'text-nodata-700',
 }
 
 /**
@@ -48,6 +50,9 @@ export function TiraEstado({
   apilarGuia?: boolean
   className?: string
 }) {
+  // Con algún «detalle» (tercera línea), los segmentos se alinean arriba: si
+  // no, el valor del que lo lleva quedaba más alto que el de sus vecinos.
+  const conDetalle = segmentos.some((s) => s.detalle)
   return (
     <section aria-label={etiqueta} className={cn('superficie overflow-hidden', className)}>
       <div className="-mt-px -ml-px flex flex-wrap">
@@ -67,7 +72,8 @@ export function TiraEstado({
               key={clave}
               data-tono={tono}
               className={cn(
-                'flex min-h-16 min-w-0 flex-[1_1_8rem] flex-col justify-center border-t border-l border-border px-4 py-2.5',
+                'flex min-h-16 min-w-0 flex-[1_1_8rem] flex-col border-t border-l border-border px-4 py-2.5',
+                conDetalle ? 'justify-start' : 'justify-center',
                 apilarGuia ? 'min-[1440px]:flex-none' : 'sm:flex-none',
                 claseSegmento,
               )}
@@ -76,6 +82,7 @@ export function TiraEstado({
               <dd className={cn('nums flex items-center gap-1.5 text-page', VALOR[tono])}>
                 {tono === 'critico' && <OctagonAlert aria-hidden className="size-4 shrink-0" />}
                 {tono === 'aviso' && <TriangleAlert aria-hidden className="size-4 shrink-0" />}
+                {tono === 'sinDatos' && <Hourglass aria-hidden className="size-4 shrink-0" />}
                 <span className="min-w-0 truncate">{valor}</span>
               </dd>
               {detalle && <dd className="truncate text-meta text-faint">{detalle}</dd>}

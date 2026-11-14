@@ -36,31 +36,35 @@ export function ResultadosPorClase({ metricas: m, className }: { metricas: Metri
       {clases.length === 0 ? (
         <p className="mt-3 text-body text-muted">{t('metricasIA.sinClases')}</p>
       ) : (
-        <Table mobileLayout="stack" className="mt-3 min-w-0" titulo={t('metricasIA.porClaseTabla')}>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('metricasIA.situacion')}</TableHead>
-              <TableHead>F1</TableHead>
-              <TableHead>{t('metricasIA.precision')}</TableHead>
-              <TableHead>{t('metricasIA.deteccion')}</TableHead>
-              <TableHead>{t('metricasIA.casosEvaluados')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clases.map((clase) => {
-              const fila = m.classification_report[clase] as MetricasPorClase
-              return (
-                <TableRow key={clase}>
-                  <TableCell data-label={t('metricasIA.situacion')} className="font-medium">{t(`riesgo.${clase}`)}</TableCell>
-                  <TableCell data-label="F1" className="nums">{pct(fila['f1-score'])}</TableCell>
-                  <TableCell data-label={t('metricasIA.precision')} className="nums">{pct(fila.precision)}</TableCell>
-                  <TableCell data-label={t('metricasIA.deteccion')} className="nums">{pct(fila.recall)}</TableCell>
-                  <TableCell data-label={t('metricasIA.casosEvaluados')} className="nums text-muted">{entero(fila.support)}</TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+        // El margen va en un contenedor: dentro de `Table` acababa en la <table>,
+        // bajo el borde de la región, y el borde quedaba pegado al párrafo.
+        <div className="mt-3 min-w-0">
+          <Table mobileLayout="stack" className="min-w-0" titulo={t('metricasIA.porClaseTabla')}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('metricasIA.situacion')}</TableHead>
+                <TableHead>F1</TableHead>
+                <TableHead>{t('metricasIA.precision')}</TableHead>
+                <TableHead>{t('metricasIA.deteccion')}</TableHead>
+                <TableHead>{t('metricasIA.casosEvaluados')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clases.map((clase) => {
+                const fila = m.classification_report[clase] as MetricasPorClase
+                return (
+                  <TableRow key={clase}>
+                    <TableCell data-label={t('metricasIA.situacion')} className="font-medium">{t(`riesgo.${clase}`)}</TableCell>
+                    <TableCell data-label="F1" className="nums">{pct(fila['f1-score'])}</TableCell>
+                    <TableCell data-label={t('metricasIA.precision')} className="nums">{pct(fila.precision)}</TableCell>
+                    <TableCell data-label={t('metricasIA.deteccion')} className="nums">{pct(fila.recall)}</TableCell>
+                    <TableCell data-label={t('metricasIA.casosEvaluados')} className="nums text-muted">{entero(fila.support)}</TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
       <p className="mt-auto flex items-start gap-2 pt-3 text-meta text-muted">
         <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import { Cpu, DoorClosed, DoorOpen, Droplets, ThermometerSun } from 'lucide-react'
 
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
@@ -44,7 +45,15 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
     const desde = Date.now() - DIA_MS
     return dia.serie.filter((l) => Date.parse(l.timestamp) >= desde)
   }, [dia.serie])
-  const segmentos = useMemo(() => segmentarLecturas(ultimas24h), [ultimas24h])
+  const segmentos = useMemo(() => {
+    const tramos = segmentarLecturas(ultimas24h)
+    // Sin datos ahora: el tramo en curso guarda la última lectura, pero el
+    // equipo ya no reporta. Se marca como en la cinta de la lista, para que la
+    // cinta no diga «las 24 h con datos» bajo «Sin datos desde…».
+    if (estado !== 'sin_datos' || tramos.length === 0) return tramos
+    const ultimo = tramos[tramos.length - 1]
+    return [...tramos.slice(0, -1), { ...ultimo, tono: 'sin_datos' as const, minimo: null, maximo: null }]
+  }, [ultimas24h, estado])
   const temperaturas = ultimas24h.map((l) => l.temperatura_interna).filter((v): v is number => typeof v === 'number')
   const minimo = temperaturas.length ? Math.min(...temperaturas) : null
   const maximo = temperaturas.length ? Math.max(...temperaturas) : null
@@ -58,6 +67,9 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
   )
   const fuera = segmentos.filter((s) => s.tono === 'critico' || s.tono === 'preventivo').length
   const sinDatos = segmentos.filter((s) => s.tono === 'sin_datos').length
+  // Con una o dos filas, una caja de 360 px quedaba casi vacía: la columna toma
+  // su alto natural y cierra con «Sin más actividad» y el enlace al historial.
+  const pocaActividad = !actividad.cargando && !actividad.error && eventos.length <= 2
 
   return (
     <div className="grid grid-cols-12 gap-3 xl:gap-4">
@@ -161,7 +173,12 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
       </div>
 
       {/* A ≥1280 la columna mide lo mismo que la curva (360 px): la actividad se desplaza dentro. */}
-      <div className="col-span-12 grid min-w-0 content-start gap-3 sm:grid-cols-2 xl:col-span-4 xl:h-[360px] xl:grid-cols-1 xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch xl:gap-4">
+      <div
+        className={cn(
+          'col-span-12 grid min-w-0 content-start gap-3 sm:grid-cols-2 xl:col-span-4 xl:grid-cols-1 xl:gap-4',
+          !pocaActividad && 'xl:h-[360px] xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch',
+        )}
+      >
         <section aria-labelledby="monitoreo-24h" className="superficie min-w-0 p-4">
           <h2 id="monitoreo-24h" className="text-title text-foreground">{t('dispositivos.monitoreo.ultimas24h')}</h2>
           {dia.estadoHistorial === 'cargando' && dia.serie.length === 0 ? (
@@ -197,8 +214,22 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
           error={actividad.error}
           ahora={ahora}
           conEquipo={false}
-          desplazable
+          desplazable={!pocaActividad}
           className="xl:min-h-0"
+          pie={
+            pocaActividad && eventos.length > 0 ? (
+              <>
+                {t('dispositivos.actividad.sinMas')}
+                {' · '}
+                <Link
+                  to={`/historial?device_id=${encodeURIComponent(dispositivo.id)}`}
+                  className="font-medium text-primary-text underline-offset-2 hover:underline"
+                >
+                  {t('dispositivos.actividad.verHistorial')}
+                </Link>
+              </>
+            ) : undefined
+          }
         />
       </div>
     </div>
