@@ -274,6 +274,7 @@ export function UsuariosPage() {
                             variant="secondary"
                             size="sm"
                             aria-label={t('usuarios.desactivarA', { nombre: usuario.nombre })}
+                            data-peligro
                             disabled={ultimoAdmin}
                             title={ultimoAdmin ? t('usuarios.ultimoAdmin') : undefined}
                             onClick={() => {

@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { Paginacion } from '../components/Paginacion'
 import { BadgeConectividad } from '../components/BadgeConectividad'
-import { ActionMenu } from '../components/ActionMenu'
+import { ActionMenu, ActionMenuLabel, ActionMenuSeparator } from '../components/ActionMenu'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { CifrasResumen } from './compartido/CifrasResumen'
@@ -534,6 +534,7 @@ export function DispositivosPage() {
                       </TableCell>
                       <TableCell data-label={t('comunes.acciones')} className="mobile-actions text-right">
                         <ActionMenu label={dispositivo.id}>
+                          <ActionMenuLabel>{t('dispositivos.grupoEquipo')}</ActionMenuLabel>
                           <Button variant="ghost" size="sm" onClick={() => abrirSensores(dispositivo)}>
                             <HardDrive />
                             {t('dispositivos.sensores')}
@@ -570,6 +571,7 @@ export function DispositivosPage() {
                             <History />
                             {t('dispositivos.historialConfiguracion')}
                           </Button>
+                          <ActionMenuLabel>{t('dispositivos.grupoSeguridad')}</ActionMenuLabel>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -603,12 +605,14 @@ export function DispositivosPage() {
                               variant="ghost"
                               size="sm"
                               title={t('dispositivos.revocarCredencial')}
+                              data-peligro
                               onClick={() => abrirCredencial(dispositivo, 'revocar')}
                             >
                               <PowerOff />
                               {t('dispositivos.revocarCredencial')}
                             </Button>
                           )}
+                          {MODO_DEMO && <ActionMenuLabel>{t('dispositivos.grupoDemo')}</ActionMenuLabel>}
                           {MODO_DEMO && (
                             <Button
                               variant="secondary"
@@ -619,10 +623,12 @@ export function DispositivosPage() {
                               {t('dispositivos.probarIoT')}
                             </Button>
                           )}
+                          {dispositivo.activo && <ActionMenuSeparator />}
                           {dispositivo.activo && (
                             <Button
                               variant="secondary"
                               size="sm"
+                              data-peligro
                               onClick={() => abrirBaja(dispositivo)}
                             >
                               <PowerOff />
