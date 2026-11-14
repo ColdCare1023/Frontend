@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -14,9 +15,9 @@ function sesionCon(rol: Rol) {
   })
 }
 
-function montar() {
+function montar(ruta = '/guia') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[ruta]}>
       <GuiaPage />
     </MemoryRouter>,
   )
@@ -48,7 +49,7 @@ describe('GuiaPage', () => {
 
   it('a un técnico solo le describe pantallas comunes que puede abrir', () => {
     sesionCon('tecnico')
-    montar()
+    montar('/guia?paso=pantallas')
 
     expect(enlaceA('/dashboard', /Monitoreo/i)).toBeInTheDocument()
     expect(enlaceA('/alertas', /Alertas/i)).toBeInTheDocument()
@@ -58,7 +59,7 @@ describe('GuiaPage', () => {
 
   it('muestra al farmacéutico reportes y resultados del clasificador', () => {
     sesionCon('farmaceutico')
-    montar()
+    montar('/guia?paso=pantallas')
 
     expect(enlaceA('/reportes', /reportes de monitoreo/i)).toBeInTheDocument()
     expect(enlaceA('/metricas-ia', /cómo se comporta el clasificador/i)).toBeInTheDocument()
@@ -67,7 +68,7 @@ describe('GuiaPage', () => {
 
   it('muestra al auditor todas sus rutas de solo lectura', () => {
     sesionCon('auditor')
-    montar()
+    montar('/guia?paso=pantallas')
 
     expect(enlaceA('/dashboard', /monitoreo/i)).toBeInTheDocument()
     expect(enlaceA('/reportes', /reportes de monitoreo/i)).toBeInTheDocument()
@@ -79,16 +80,64 @@ describe('GuiaPage', () => {
 
   it('administra todas las secciones disponibles para el rol administrador', () => {
     sesionCon('administrador')
-    montar()
+    montar('/guia?paso=pantallas')
 
     expect(enlaceA('/usuarios', /usuarios y roles/i)).toBeInTheDocument()
     expect(enlaceA('/auditoria', /bitácora de auditoría/i)).toBeInTheDocument()
   })
 
-  it('ofrece navegación local a las secciones largas de la guía', () => {
+  it('ofrece la guía como pasos navegables (tablist)', async () => {
     montar()
+    const user = userEvent.setup()
 
-    const nav = screen.getByRole('navigation', { name: /secciones de la guía/i })
-    expect(within(nav).getByRole('link', { name: /responder a una alerta/i })).toHaveAttribute('href', '#guia-alerta-titulo')
+    const pasos = screen.getByRole('tablist', { name: /pasos de la guía/i })
+    await user.click(within(pasos).getByRole('tab', { name: /responder a una alerta/i }))
+    expect(screen.getByRole('tabpanel')).toHaveTextContent(/revisa la lectura/i)
+  })
+
+  it('sincroniza el paso con ?paso= y acepta anclajes antiguos', () => {
+    const { unmount } = montar('/guia?paso=estados')
+    expect(screen.getByRole('tab', { name: /temperatura y estados/i })).toHaveAttribute('aria-selected', 'true')
+    unmount()
+    montar('/guia#guia-alerta-titulo')
+    expect(screen.getByRole('tab', { name: /responder a una alerta/i })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('las flechas mueven entre pasos y Inicio/Fin van a los extremos', async () => {
+    montar()
+    const user = userEvent.setup()
+    const primero = screen.getByRole('tab', { name: /empezar/i })
+    primero.focus()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByRole('tab', { name: /temperatura y estados/i })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: /temperatura y estados/i })).toHaveFocus()
+    await user.keyboard('{End}')
+    expect(screen.getByRole('tab', { name: /palabras útiles/i })).toHaveAttribute('aria-selected', 'true')
+    await user.keyboard('{Home}')
+    expect(primero).toHaveAttribute('aria-selected', 'true')
+    expect(primero).toHaveAttribute('tabindex', '0')
+  })
+
+  it('«Siguiente» lleva el foco al título del paso nuevo', async () => {
+    montar()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /siguiente: temperatura y estados/i }))
+    expect(screen.getByRole('heading', { name: /lee la temperatura y su estado/i })).toHaveFocus()
+  })
+
+  it('explica «Sin datos» como un estado distinto de la excursión', () => {
+    montar('/guia?paso=estados')
+    const panel = screen.getByRole('tabpanel')
+    expect(within(panel).getByText('Sin datos')).toBeInTheDocument()
+    expect(within(panel).getByText(/no es una excursión/i)).toBeInTheDocument()
+  })
+
+  it('el paso 1 enlaza a Monitoreo, Alertas e Historial para cualquier rol', () => {
+    sesionCon('auditor')
+    montar()
+    const panel = screen.getByRole('tabpanel')
+    expect(within(panel).getByRole('link', { name: /abrir monitoreo/i })).toHaveAttribute('href', '/dashboard')
+    expect(within(panel).getByRole('link', { name: /abrir alertas/i })).toHaveAttribute('href', '/alertas')
+    expect(within(panel).getByRole('link', { name: /abrir historial/i })).toHaveAttribute('href', '/historial')
   })
 })

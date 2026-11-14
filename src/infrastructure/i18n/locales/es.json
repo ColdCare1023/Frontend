@@ -890,7 +890,45 @@
     "incluyeLecturas": "Lecturas del periodo",
     "incluyeAlertas": "Alertas registradas",
     "incluyeTrazabilidad": "Registros de trazabilidad",
-    "formatosDisponibles": "Formatos disponibles"
+    "formatosDisponibles": "Formatos disponibles",
+    "presets": {
+      "etiqueta": "Periodo rápido",
+      "dias7": "7 días",
+      "dias30": "30 días",
+      "mes": "Este mes"
+    },
+    "cambiarPeriodo": "Cambiar periodo",
+    "todosLosEquipos": "Todos los equipos",
+    "queIncluye": "Qué incluye",
+    "vistaDesactualizada": "La vista previa muestra {{periodo}}. Genera el reporte para ver el periodo editado.",
+    "tiempoEnRango": "Tiempo en 2–8 °C",
+    "tramos": {
+      "enRango": "En rango",
+      "fuera": "Fuera de rango",
+      "sinDatos": "Sin datos"
+    },
+    "tramoValor": "{{tramo}} {{porcentaje}} · {{duracion}}",
+    "barraTiempoAria": "Tiempo en 2–8 °C: {{enRango}}. Fuera de rango: {{fuera}}. Sin datos: {{sinDatos}}.",
+    "calculoParcial": "Calculado solo con los datos recibidos: {{desde}} – {{hasta}}.",
+    "curvaTitulo": "Temperatura interna",
+    "curvaResumen": "Mín. {{minimo}} · Prom. {{promedio}} · Máx. {{maximo}}",
+    "curvaAria": "Temperatura interna del periodo: mínima {{minimo}}, promedio {{promedio}}, máxima {{maximo}}.",
+    "alertasDesglose": {
+      "criticas_one": "{{count}} crítica",
+      "criticas_other": "{{count}} críticas",
+      "preventivas_one": "{{count}} preventiva",
+      "preventivas_other": "{{count}} preventivas",
+      "pendientes_one": "{{count}} pendiente",
+      "pendientes_other": "{{count}} pendientes"
+    },
+    "porEquipo": "Por equipo",
+    "masEquipos_one": "y {{count}} equipo más",
+    "masEquipos_other": "y {{count}} equipos más",
+    "sinLecturas": "No hay lecturas en este periodo.",
+    "sinLecturasDetalle": "Prueba con un periodo más amplio o revisa el código del equipo.",
+    "usar30": "Usar 30 días",
+    "generadoAnuncio": "Reporte generado: {{lecturas}} lecturas, {{alertas}} alertas y {{registros}} registros de trazabilidad.",
+    "descargas": "Descargas"
   },
   "auditoria": {
     "titulo": "Bitácora de auditoría",
@@ -1082,7 +1120,7 @@
     "nombre": "Nombre completo",
     "email": "Correo electrónico",
     "telefono": "Celular (opcional)",
-    "telefonoAyuda": "Formato internacional, p. ej. +51999888777. Recibirá un SMS de bienvenida.",
+    "telefonoAyuda": "Formato internacional, p. ej. +51999888777.",
     "password": "Contraseña",
     "rol": "Rol",
     "crear": "Crear usuario",
@@ -1119,7 +1157,50 @@
     "reactivarConfirmar": "{{nombre}} volverá a tener acceso con una contraseña temporal.",
     "copiar": "Copiar",
     "copiado": "Copiado",
-    "confirmar": "Confirmar"
+    "confirmar": "Confirmar",
+    "meta_one": "{{count}} cuenta",
+    "meta_other": "{{count}} cuentas",
+    "guiaPendientes_one": "{{count}} persona aún no elige su contraseña.",
+    "guiaPendientes_other": "{{count}} personas aún no eligen su contraseña.",
+    "guiaTodoEnOrden": "Todas las cuentas activas tienen contraseña propia.",
+    "pendientePassword": "Contraseña pendiente",
+    "motivoFecha": "{{motivo}} · {{fecha}}",
+    "rielEtiqueta": "Contexto de las cuentas",
+    "rielPorRol": "Cuentas activas por rol",
+    "rielPendientes": "Contraseña pendiente",
+    "rielPendientesVacio": "Ninguna cuenta pendiente.",
+    "rielPendientesAyuda": "Si su código venció, puede pedir uno nuevo en «¿Olvidaste tu contraseña?». También puedes restablecer su contraseña.",
+    "rielSinAccesoVacio": "Ninguna cuenta desactivada.",
+    "nuevoDescripcion": "Recibirá un correo para activar su cuenta y elegir su contraseña.",
+    "emailAyuda": "Será su usuario. Ahí recibirá el código de activación.",
+    "rolAyuda": {
+      "administrador": "Gestiona usuarios, equipos y toda la información.",
+      "farmaceutico": "Atiende alertas, registra acciones y genera reportes.",
+      "tecnico": "Revisa el monitoreo, las alertas y el historial de los equipos.",
+      "auditor": "Solo consulta: reportes, métricas y bitácora."
+    },
+    "passwordProvisional": "Contraseña provisional",
+    "passwordProvisionalAyuda": "Al menos 10 caracteres, con letras y números. Solo hace falta si el correo no llega: al activar su cuenta, la persona elige la suya.",
+    "generarPassword": "Generar",
+    "passwordGenerada": "Contraseña generada y visible.",
+    "datosOpcionales": "Datos opcionales",
+    "errorPolitica": "La contraseña no cumple la política: al menos 10 caracteres, con letras y números.",
+    "exito": {
+      "titulo": "Cuenta creada para {{nombre}}",
+      "pasoCorreo": "Correo enviado",
+      "pasoPasswordProvisional": "Contraseña provisional",
+      "pasoCodigo": "Escribe el código",
+      "pasoElegir": "Elige su contraseña",
+      "vence48": "Vence en 48 h",
+      "conCorreo": "Enviamos a {{email}} un código de activación. Vence en 48 horas.",
+      "sinCorreo": "El servidor no tiene el correo configurado. Entrega la contraseña provisional por un canal seguro; deberá cambiarla al ingresar.",
+      "desconocido": "Si el correo está habilitado, {{email}} recibirá un código de activación válido por 48 horas. Si no le llega, entrégale la contraseña provisional.",
+      "codigoVencido": "Si el código vence, puede pedir uno nuevo en «¿Olvidaste tu contraseña?»."
+    },
+    "crearOtro": "Crear otro",
+    "listo": "Listo",
+    "grupoCuenta": "Cuenta",
+    "grupoRiesgo": "Zona de riesgo"
   },
   "privacidad": {
     "titulo": "Aviso de privacidad",
@@ -1636,7 +1717,17 @@
       "hora_evento": "Hora del evento",
       "estado_conectividad_online": "Estado de conexión del equipo"
     },
-    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2–8 °C; no es una probabilidad del modelo."
+    "reglaIndependiente": "Random Forest clasifica Normal o Riesgo preventivo. La excursión crítica se confirma por la regla independiente de 2–8 °C; no es una probabilidad del modelo.",
+    "meta": "{{modelo}} · versión {{version}} · entrenado el {{fecha}}",
+    "ilustrativo": "Ilustrativo",
+    "umbralCriterio": "Criterio del prototipo",
+    "umbralValor": "{{umbral}} o más",
+    "queMide": "Qué mide cada cifra",
+    "promedio": "Promedio",
+    "dispersionAria": "F1 ponderado por partición: {{valores}}. Promedio {{promedio}}. Criterio {{umbral}}.",
+    "fichaTitulo": "Identificación del modelo",
+    "anilloSr": "F1 ponderado {{valor}}. {{estado}}",
+    "sinClases": "No hay resultados por clase en esta evaluación."
   },
   "sesion": {
     "porExpirar": "Tu sesión expirará en {{restante}}. Guarda lo que estés haciendo."
@@ -1646,13 +1737,14 @@
     "titulo": "Consulta y usa ColdCare",
     "descripcion": "Qué revisar, cómo responder a un aviso y dónde consultar los registros.",
     "inicioEyebrow": "Durante tu jornada",
-    "navegacion": "Secciones de la guía",
+    "navegacion": "Pasos de la guía",
     "nav": {
       "inicio": "Empezar",
       "estados": "Temperatura y estados",
       "alertas": "Responder a una alerta",
       "pantallas": "Encontrar una pantalla",
-      "dudas": "Dudas frecuentes"
+      "dudas": "Dudas frecuentes",
+      "conceptos": "Palabras útiles"
     },
     "inicioTitulo": "Revisa, responde y deja registro",
     "inicioDescripcion": "Empieza por el estado del refrigerador. Si aparece un aviso, revisa la lectura y sigue el procedimiento de tu farmacia.",
@@ -1684,6 +1776,10 @@
       "critico": {
         "titulo": "Excursión crítica",
         "descripcion": "La lectura salió del rango permitido. Revisa el refrigerador y sigue el procedimiento de tu farmacia."
+      },
+      "sinDatos": {
+        "titulo": "Sin datos",
+        "descripcion": "El equipo no envió lecturas a tiempo. No es una excursión: revisa su conexión."
       }
     },
     "rangoNota": "Consulta en Monitoreo el rango permitido para el equipo y compara la lectura con su fecha y hora.",
@@ -1791,7 +1887,21 @@
         "respuesta": "No. Resumen cómo se evaluó el clasificador con casos de prueba; no muestran la temperatura ni las alertas actuales."
       }
     },
-    "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema."
+    "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema.",
+    "metaRol": "Adaptada a tu rol: {{rol}}",
+    "resumenPasos": {
+      "inicio": "Revisa, responde y deja registro",
+      "estados": "Normal, preventivo, crítico y sin datos",
+      "alertas": "Revisar, actuar y registrar",
+      "pantallas": "Las pantallas de tu rol",
+      "conceptos": "Rango, excursión, integridad y BPA"
+    },
+    "pasoDe": "Paso {{actual}} de {{total}}",
+    "anterior": "Anterior",
+    "siguientePaso": "Siguiente: {{titulo}}",
+    "irMonitoreo": "Ir a Monitoreo",
+    "abrirPantalla": "Abrir {{pantalla}}",
+    "reglaAria": "Rango de referencia de 2 a 8 °C con dos ejemplos: 4,3 °C dentro del rango y 8,4 °C fuera."
   },
   "recuperarContrasena": {
     "email": "Correo electrónico",

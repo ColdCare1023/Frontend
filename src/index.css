@@ -330,6 +330,21 @@
       transform: translateY(calc(60% * var(--dir, 1) * var(--mov, 1)));
     }
   }
+  /* Revelado de izquierda a derecha por clip-path (MOTION 4.11). */
+  @keyframes revelar-x {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+  /* Resalte de la fila recién creada (MOTION 4.4). */
+  @keyframes fila-resalte {
+    from {
+      background-color: var(--color-primary-tint);
+    }
+  }
   @keyframes anillo-estado {
     from {
       opacity: 0.5;
@@ -591,8 +606,12 @@
     .pagina-entra,
     .pulso-vivo,
     .animate-ping,
-    .esqueleto::after {
+    .esqueleto::after,
+    .revelar-x {
       animation: none !important;
+    }
+    .fila-resaltada {
+      animation: fila-entra var(--duration-reveal) var(--ease-out) both !important;
     }
   }
 }
@@ -742,6 +761,28 @@
     display: inline-block;
     animation: var(--animate-cifra);
     animation-delay: calc(var(--i, 0) * 25ms);
+  }
+
+  /* Barra y curva de Reportes al llegar un reporte (un solo momento). */
+  .revelar-x {
+    animation: revelar-x var(--duration-reveal) var(--ease-out) both;
+  }
+
+  /* Fila nueva tras un alta: entra y se resalta una vez. */
+  .fila-resaltada {
+    animation:
+      fila-entra var(--duration-reveal) var(--ease-out) both,
+      fila-resalte 1200ms linear 200ms both;
+  }
+
+  /* Esqueleto que solo aparece si la espera supera 150 ms (MOTION 4.13). */
+  .esqueleto-diferido {
+    animation: fade var(--duration-pop) var(--ease-out) 150ms both;
+  }
+
+  /* Panel que entra por el eje X compartido (Guía, alta de usuario). */
+  .panel-eje-x {
+    animation: var(--animate-pestana);
   }
 
   /* Punto «En vivo»: el único bucle decorativo. */

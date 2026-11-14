@@ -890,7 +890,45 @@
     "incluyeLecturas": "Readings in period",
     "incluyeAlertas": "Recorded alerts",
     "incluyeTrazabilidad": "Traceability records",
-    "formatosDisponibles": "Available formats"
+    "formatosDisponibles": "Available formats",
+    "presets": {
+      "etiqueta": "Quick period",
+      "dias7": "7 days",
+      "dias30": "30 days",
+      "mes": "This month"
+    },
+    "cambiarPeriodo": "Change period",
+    "todosLosEquipos": "All devices",
+    "queIncluye": "What it includes",
+    "vistaDesactualizada": "The preview shows {{periodo}}. Generate the report to see the edited period.",
+    "tiempoEnRango": "Time within 2–8 °C",
+    "tramos": {
+      "enRango": "In range",
+      "fuera": "Out of range",
+      "sinDatos": "No data"
+    },
+    "tramoValor": "{{tramo}} {{porcentaje}} · {{duracion}}",
+    "barraTiempoAria": "Time within 2–8 °C: {{enRango}}. Out of range: {{fuera}}. No data: {{sinDatos}}.",
+    "calculoParcial": "Calculated only from the data received: {{desde}} – {{hasta}}.",
+    "curvaTitulo": "Internal temperature",
+    "curvaResumen": "Min {{minimo}} · Avg {{promedio}} · Max {{maximo}}",
+    "curvaAria": "Internal temperature for the period: minimum {{minimo}}, average {{promedio}}, maximum {{maximo}}.",
+    "alertasDesglose": {
+      "criticas_one": "{{count}} critical",
+      "criticas_other": "{{count}} critical",
+      "preventivas_one": "{{count}} preventive",
+      "preventivas_other": "{{count}} preventive",
+      "pendientes_one": "{{count}} pending",
+      "pendientes_other": "{{count}} pending"
+    },
+    "porEquipo": "By device",
+    "masEquipos_one": "and {{count}} more device",
+    "masEquipos_other": "and {{count}} more devices",
+    "sinLecturas": "There are no readings in this period.",
+    "sinLecturasDetalle": "Try a wider period or check the device code.",
+    "usar30": "Use 30 days",
+    "generadoAnuncio": "Report generated: {{lecturas}} readings, {{alertas}} alerts and {{registros}} traceability records.",
+    "descargas": "Downloads"
   },
   "auditoria": {
     "titulo": "Audit log",
@@ -1082,7 +1120,7 @@
     "nombre": "Full name",
     "email": "Email address",
     "telefono": "Mobile (optional)",
-    "telefonoAyuda": "International format, e.g. +51999888777. They will get a welcome SMS.",
+    "telefonoAyuda": "International format, e.g. +51999888777.",
     "password": "Password",
     "rol": "Role",
     "crear": "Create user",
@@ -1119,7 +1157,50 @@
     "reactivarConfirmar": "{{nombre}} will regain access with a temporary password.",
     "copiar": "Copy",
     "copiado": "Copied",
-    "confirmar": "Confirm"
+    "confirmar": "Confirm",
+    "meta_one": "{{count}} account",
+    "meta_other": "{{count}} accounts",
+    "guiaPendientes_one": "{{count}} person hasn't chosen a password yet.",
+    "guiaPendientes_other": "{{count}} people haven't chosen a password yet.",
+    "guiaTodoEnOrden": "Every active account has its own password.",
+    "pendientePassword": "Password pending",
+    "motivoFecha": "{{motivo}} · {{fecha}}",
+    "rielEtiqueta": "Account context",
+    "rielPorRol": "Active accounts by role",
+    "rielPendientes": "Password pending",
+    "rielPendientesVacio": "No pending accounts.",
+    "rielPendientesAyuda": "If their code expired, they can request a new one under \"Forgot your password?\". You can also reset their password.",
+    "rielSinAccesoVacio": "No deactivated accounts.",
+    "nuevoDescripcion": "They will get an email to activate their account and choose a password.",
+    "emailAyuda": "This is their username. The activation code is sent here.",
+    "rolAyuda": {
+      "administrador": "Manages users, devices and all information.",
+      "farmaceutico": "Handles alerts, records actions and creates reports.",
+      "tecnico": "Reviews monitoring, alerts and device history.",
+      "auditor": "Read-only: reports, metrics and audit log."
+    },
+    "passwordProvisional": "Temporary password",
+    "passwordProvisionalAyuda": "At least 10 characters, with letters and numbers. Only needed if the email doesn't arrive: when activating the account, they choose their own.",
+    "generarPassword": "Generate",
+    "passwordGenerada": "Password generated and shown.",
+    "datosOpcionales": "Optional details",
+    "errorPolitica": "The password doesn't meet the policy: at least 10 characters, with letters and numbers.",
+    "exito": {
+      "titulo": "Account created for {{nombre}}",
+      "pasoCorreo": "Email sent",
+      "pasoPasswordProvisional": "Temporary password",
+      "pasoCodigo": "Enter the code",
+      "pasoElegir": "Choose a password",
+      "vence48": "Expires in 48 h",
+      "conCorreo": "We sent an activation code to {{email}}. It expires in 48 hours.",
+      "sinCorreo": "Email isn't configured on the server. Share the temporary password through a secure channel; they must change it when signing in.",
+      "desconocido": "If email is enabled, {{email}} will get an activation code valid for 48 hours. If it doesn't arrive, share the temporary password.",
+      "codigoVencido": "If the code expires, they can request a new one under \"Forgot your password?\"."
+    },
+    "crearOtro": "Create another",
+    "listo": "Done",
+    "grupoCuenta": "Account",
+    "grupoRiesgo": "Danger zone"
   },
   "privacidad": {
     "titulo": "Privacy notice",
@@ -1636,7 +1717,17 @@
       "hora_evento": "Time of event",
       "estado_conectividad_online": "Device connection status"
     },
-    "reglaIndependiente": "Random Forest classifies Normal or Preventive risk. A critical excursion is confirmed by the independent 2–8 °C rule; it is not a model probability."
+    "reglaIndependiente": "Random Forest classifies Normal or Preventive risk. A critical excursion is confirmed by the independent 2–8 °C rule; it is not a model probability.",
+    "meta": "{{modelo}} · version {{version}} · trained on {{fecha}}",
+    "ilustrativo": "Illustrative",
+    "umbralCriterio": "Prototype criterion",
+    "umbralValor": "{{umbral}} or more",
+    "queMide": "What each figure measures",
+    "promedio": "Mean",
+    "dispersionAria": "Weighted F1 per fold: {{valores}}. Mean {{promedio}}. Criterion {{umbral}}.",
+    "fichaTitulo": "Model identification",
+    "anilloSr": "Weighted F1 {{valor}}. {{estado}}",
+    "sinClases": "This evaluation has no per-class results."
   },
   "sesion": {
     "porExpirar": "Your session expires in {{restante}}. Save your work."
@@ -1646,13 +1737,14 @@
     "titulo": "Using ColdCare",
     "descripcion": "What to check, how to respond to an alert, and where to find records.",
     "inicioEyebrow": "During your shift",
-    "navegacion": "Guide sections",
+    "navegacion": "Guide steps",
     "nav": {
       "inicio": "Get started",
       "estados": "Temperature and status",
       "alertas": "Respond to an alert",
       "pantallas": "Find a screen",
-      "dudas": "Frequently asked questions"
+      "dudas": "Frequently asked questions",
+      "conceptos": "Useful terms"
     },
     "inicioTitulo": "Review, respond, and record",
     "inicioDescripcion": "Start with the refrigerator status. If an alert appears, review the reading and follow your pharmacy's procedure.",
@@ -1684,6 +1776,10 @@
       "critico": {
         "titulo": "Critical excursion",
         "descripcion": "The reading is outside the allowed range. Check the refrigerator and follow your pharmacy's procedure."
+      },
+      "sinDatos": {
+        "titulo": "No data",
+        "descripcion": "The device didn't send readings in time. It isn't an excursion: check its connection."
       }
     },
     "rangoNota": "Check the allowed range in Monitoring and compare the reading with its date and time.",
@@ -1791,7 +1887,21 @@
         "respuesta": "No. They summarize how a classifier performed on test cases; they do not show current temperatures or alerts."
       }
     },
-    "nota": "Available screens depend on your role. Actions that change records also follow your system permissions."
+    "nota": "Available screens depend on your role. Actions that change records also follow your system permissions.",
+    "metaRol": "Tailored to your role: {{rol}}",
+    "resumenPasos": {
+      "inicio": "Check, respond and keep a record",
+      "estados": "Normal, preventive, critical and no data",
+      "alertas": "Review, act and record",
+      "pantallas": "The screens for your role",
+      "conceptos": "Range, excursion, integrity and GSP"
+    },
+    "pasoDe": "Step {{actual}} of {{total}}",
+    "anterior": "Previous",
+    "siguientePaso": "Next: {{titulo}}",
+    "irMonitoreo": "Go to Monitoring",
+    "abrirPantalla": "Open {{pantalla}}",
+    "reglaAria": "Reference range from 2 to 8 °C with two examples: 4.3 °C within range and 8.4 °C outside."
   },
   "recuperarContrasena": {
     "email": "Email address",

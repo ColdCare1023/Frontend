@@ -47,7 +47,7 @@ describe('MetricasIAPage', () => {
   it('presenta el F1 en porcentaje con contexto de evaluación', () => {
     montar()
     expect(screen.getAllByText(/F1 ponderado/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/96[.,]71 %/)).toBeInTheDocument()
+    expect(screen.getByTestId('f1-valor')).toHaveTextContent(/96[.,]71/)
     expect(screen.getByText(/no son mediciones de temperatura/i)).toBeInTheDocument()
   })
 
@@ -84,7 +84,7 @@ describe('MetricasIAPage', () => {
 
   it('identifica la versión del modelo para poder auditar qué clasificó', () => {
     montar()
-    expect(screen.getByText(/3\.0\.0-reproducible/)).toBeInTheDocument()
+    expect(screen.getAllByText(/3\.0\.0-reproducible/).length).toBeGreaterThan(0)
   })
 
   it('mantiene la cantidad de casos de prueba separada del total de registros', () => {
