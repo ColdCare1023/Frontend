@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { abrirOpciones, accionPrimeraFila, irA } from './helpers'
+import { abrirOpciones, accionAlerta, irA } from './helpers'
 
 async function entrarComo(page: import('@playwright/test').Page, perfil: string) {
   await page.goto('/login')
@@ -109,17 +109,21 @@ test('admin actualiza dispositivo, consulta historial y registra baja de reempla
 test('farmacéutico revisa alerta y genera reporte', async ({ page }) => {
   await entrarComo(page, 'Químico Farmacéutico')
   await irA(page, '/alertas')
-  await page.getByRole('button', { name: 'Todas' }).click()
+  await page.getByRole('button', { name: 'Todas', exact: true }).click()
 
-  // Las acciones de cada alerta viven en su menú «Opciones» (ActionMenu).
-  await accionPrimeraFila(page, 'Acción correctiva')
+  // Las acciones de cada alerta van visibles en su fila; la acción correctiva
+  // se registra en el panel lateral, que no se cierra al guardar.
+  await accionAlerta(page, /registrar acción correctiva/i)
   const dialogoAccion = page.getByRole('dialog')
   await dialogoAccion.getByLabel('Decisión adoptada').fill('Inmovilizar el lote')
   await dialogoAccion.getByLabel('Justificación').fill('Lectura fuera de rango')
   await dialogoAccion.getByLabel('Descripción de la acción correctiva')
     .fill('Se verificó cierre de puerta en QA demo.')
   await dialogoAccion.getByRole('button', { name: 'Guardar acción' }).click()
-  await expect(dialogoAccion.getByRole('status')).toContainText('Acción correctiva registrada.')
+  await expect(dialogoAccion.getByText('Acción correctiva registrada.')).toBeVisible()
+  await expect(dialogoAccion.getByRole('heading', { name: 'Cronología de atención' })).toBeVisible()
+  await expect(dialogoAccion.getByText('Se verificó cierre de puerta en QA demo.')).toBeVisible()
+  await dialogoAccion.getByRole('button', { name: 'Cerrar', exact: true }).first().click()
 
   await irA(page, '/reportes')
   await page.getByRole('button', { name: 'Generar reporte' }).click()

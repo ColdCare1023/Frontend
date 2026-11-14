@@ -14,9 +14,14 @@ interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   /** Consulta en curso: marca la región como ocupada (WCAG 4.1.3). */
   cargando?: boolean
   mobileLayout?: 'scroll' | 'stack'
+  /**
+   * `embebida`: sin borde, radio ni fondo propios, para una tabla que vive
+   * dentro de una superficie con su barra de filtros (Beautiful UI Filter Table).
+   */
+  variante?: 'tarjeta' | 'embebida'
 }
 
-export function Table({ className, titulo, cargando, mobileLayout = 'scroll', children, ...props }: TableProps) {
+export function Table({ className, titulo, cargando, mobileLayout = 'scroll', variante = 'tarjeta', children, ...props }: TableProps) {
   const { t } = useTranslation()
   const hintId = useId()
   const regionRef = useRef<HTMLDivElement>(null)
@@ -67,7 +72,10 @@ export function Table({ className, titulo, cargando, mobileLayout = 'scroll', ch
         event.preventDefault()
         region.scrollTo({ left: Math.max(0, Math.min(maxScroll, destino)), behavior: 'auto' })
       }}
-      className="coldcare-table-region w-full overflow-x-auto rounded-(--radius-card) border border-border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className={cn(
+        'coldcare-table-region w-full overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        variante === 'embebida' ? 'focus-visible:-outline-offset-2' : 'rounded-(--radius-card) border border-border bg-surface',
+      )}
     >
       <table role="table" className={cn('w-full min-w-[640px] caption-bottom text-sm', className)} {...props}>
         {titulo && <caption className="sr-only">{titulo}</caption>}
