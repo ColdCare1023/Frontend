@@ -120,7 +120,57 @@ describe('AlertasPage — HU-28: rectificación trazable', () => {
     await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Hora equivocada en el registro.')
     await usuario.click(guardar)
 
-    expect(rectificar).toHaveBeenCalledWith('ac-1', 'Traslado del lote a las 03:10.', 'Hora equivocada en el registro.')
+    // Solo viaja lo que cambió; la decisión y la justificación se heredan.
+    expect(rectificar).toHaveBeenCalledWith('ac-1', { descripcion: 'Traslado del lote a las 03:10.' }, 'Hora equivocada en el registro.')
+  })
+
+  it('HU-28 esc. 2: corrige la justificación y la decisión, no solo la descripción', async () => {
+    sesionCon('farmaceutico')
+    const rectificar = montar([{ ...ORIGINAL, decision: 'Trasladar el lote', justificacion: 'Excursión de 40 min' }])
+    const { usuario, dialogo } = await abrirCronologia()
+
+    await usuario.click(await within(dialogo).findByRole('button', { name: /^rectificar$/i }))
+    const justificacion = within(dialogo).getByLabelText(/justificación corregida/i)
+    expect(justificacion).toHaveValue('Excursión de 40 min')
+    await usuario.clear(justificacion)
+    await usuario.type(justificacion, 'Excursión de 55 min según el registrador')
+    const decision = within(dialogo).getByLabelText(/decisión corregida/i)
+    await usuario.clear(decision)
+    await usuario.type(decision, 'Trasladar y poner en cuarentena el lote')
+    await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Duración mal calculada al registrar.')
+    await usuario.click(within(dialogo).getByRole('button', { name: /guardar rectificación/i }))
+
+    expect(rectificar).toHaveBeenCalledWith(
+      'ac-1',
+      { decision: 'Trasladar y poner en cuarentena el lote', justificacion: 'Excursión de 55 min según el registrador' },
+      'Duración mal calculada al registrar.',
+    )
+  })
+
+  it('sin ningún cambio no se puede guardar y dice por qué', async () => {
+    sesionCon('farmaceutico')
+    const rectificar = montar([{ ...ORIGINAL, decision: 'Trasladar el lote', justificacion: 'Excursión de 40 min' }])
+    const { usuario, dialogo } = await abrirCronologia()
+
+    await usuario.click(await within(dialogo).findByRole('button', { name: /^rectificar$/i }))
+    await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Motivo suficientemente largo.')
+    const guardar = within(dialogo).getByRole('button', { name: /guardar rectificación/i })
+    expect(guardar).toHaveAttribute('aria-disabled', 'true')
+    expect(guardar).toHaveAccessibleDescription(/rectificación sin cambios no se registra/i)
+    await usuario.click(guardar)
+    expect(rectificar).not.toHaveBeenCalled()
+  })
+
+  it('una justificación registrada no puede quedar vacía', async () => {
+    sesionCon('farmaceutico')
+    montar([{ ...ORIGINAL, justificacion: 'Excursión de 40 min' }])
+    const { usuario, dialogo } = await abrirCronologia()
+
+    await usuario.click(await within(dialogo).findByRole('button', { name: /^rectificar$/i }))
+    await usuario.clear(within(dialogo).getByLabelText(/justificación corregida/i))
+    await usuario.type(within(dialogo).getByLabelText(/descripción corregida/i), ' Además se avisó al QF.')
+    await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Motivo suficientemente largo.')
+    expect(within(dialogo).getByRole('button', { name: /guardar rectificación/i })).toHaveAccessibleDescription(/justificación corregida no puede quedar vacía/i)
   })
 
   it('exige 10 caracteres de motivo y muestra el contador', async () => {
@@ -151,6 +201,7 @@ describe('AlertasPage — HU-28: rectificación trazable', () => {
     const { usuario, dialogo } = await abrirCronologia()
 
     await usuario.click(await within(dialogo).findByRole('button', { name: /^rectificar$/i }))
+    await usuario.type(within(dialogo).getByLabelText(/descripción corregida/i), ' Corregido.')
     await usuario.type(within(dialogo).getByLabelText(/motivo de la rectificación/i), 'Hora equivocada en el registro.')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar rectificación/i }))
 

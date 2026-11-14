@@ -1,4 +1,4 @@
-import { Activity, Bell, BookOpen, Brain, FileText, HardDrive, History, Link2, ScrollText, Users, type LucideIcon } from 'lucide-react'
+import { Activity, Bell, BookOpen, Brain, FileText, HardDrive, History, Link2, ScrollText, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
 
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
 
@@ -42,6 +42,8 @@ export const SECCIONES: SeccionNav[] = [
       { ruta: '/trazabilidad', icono: Link2, claveI18n: 'nav.trazabilidad', claveDescripcion: 'nav.descripciones.trazabilidad', roles: ['farmaceutico', 'tecnico', 'auditor'] },
       { ruta: '/reportes', icono: FileText, claveI18n: 'nav.reportes', claveDescripcion: 'nav.descripciones.reportes', roles: ['farmaceutico', 'auditor'] },
       { ruta: '/metricas-ia', icono: Brain, claveI18n: 'nav.metricasIA', claveDescripcion: 'nav.descripciones.metricasIA', roles: ['farmaceutico', 'auditor'] },
+      // HU-49: el auditor consulta el historial de configuración del hardware (solo lectura).
+      { ruta: '/configuracion-equipos', icono: SlidersHorizontal, claveI18n: 'nav.configuracionEquipos', claveDescripcion: 'nav.descripciones.configuracionEquipos', roles: ['auditor'] },
     ],
   },
   {

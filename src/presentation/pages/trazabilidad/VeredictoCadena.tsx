@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Shield, ShieldAlert, ShieldCheck, ShieldHalf } from 'lucide-react'
+import { Loader2, Shield, ShieldAlert, ShieldCheck, ShieldHalf, ShieldQuestion } from 'lucide-react'
 
 import type { DetalleInconsistencia, EstadoCadena, RegistroTrazabilidad, VerificacionIntegridad } from '@/domain/entities/RegistroTrazabilidad'
 import { primerCaracterDistinto } from '@/lib/compararSellos'
@@ -10,7 +11,7 @@ import { Button } from '../../components/ui/button'
 import { Detalles } from '../../components/ui/detalles'
 import { etiquetaEvento } from './iconosEvento'
 
-type Estado = 'sin_verificar' | 'integra' | 'ruptura_aislada' | 'ruptura_detectada' | 'comprometida'
+type Estado = 'sin_verificar' | 'integra' | 'ruptura_aislada' | 'ruptura_detectada' | 'no_concluida' | 'comprometida'
 
 const PRESENTACION: Record<Estado, { icono: typeof Shield; color: string; borde: string }> = {
   // Sin verificar no es un estado de alarma, pero el título no va en gris:
@@ -19,6 +20,8 @@ const PRESENTACION: Record<Estado, { icono: typeof Shield; color: string; borde:
   integra: { icono: ShieldCheck, color: 'text-success-700', borde: 'border-l-success-600' },
   ruptura_aislada: { icono: ShieldHalf, color: 'text-warning-700', borde: 'border-l-warning-600' },
   ruptura_detectada: { icono: ShieldAlert, color: 'text-critical', borde: 'border-l-critical' },
+  // HU-26 esc. 1: sin la clave v3 no se puede concluir; no es alarma ni «íntegra».
+  no_concluida: { icono: ShieldQuestion, color: 'text-warning-700', borde: 'border-l-warning-600' },
   comprometida: { icono: ShieldAlert, color: 'text-critical', borde: 'border-l-critical' },
 }
 
@@ -36,6 +39,8 @@ export function VeredictoCadena({
   onVerificar,
   onAislar,
   onVerEnTabla,
+  selectorCadena,
+  error,
 }: {
   verificacion: VerificacionIntegridad | null
   estadoCadena: EstadoCadena | null
@@ -45,6 +50,10 @@ export function VeredictoCadena({
   /** Presente solo si el rol puede aislar y hay un registro señalado. */
   onAislar?: () => void
   onVerEnTabla?: () => void
+  /** HU-26: selector del `chain_id` a verificar (equipos y SISTEMA). */
+  selectorCadena?: ReactNode
+  /** Mensaje de un intento de verificación fallido. */
+  error?: string | null
 }) {
   const { t } = useTranslation()
   const detalle = verificacion?.detalle_inconsistencia ?? null
@@ -56,6 +65,25 @@ export function VeredictoCadena({
       : 'sin_verificar'
   const { icono: Icono, color, borde } = PRESENTACION[estado]
   const alerta = estado === 'ruptura_detectada' || estado === 'comprometida'
+  // Qué cadena se verificó y con qué mecanismo (HU-26 esc. 1 y 4).
+  const cadenaVerificada = verificacion
+    ? verificacion.chain_id
+      ? verificacion.chain_id === 'SISTEMA'
+        ? t('trazabilidad.cadena.sistema')
+        : verificacion.chain_id
+      : t('trazabilidad.cadena.todas')
+    : null
+  const versiones = verificacion?.versiones_hash ?? []
+  const mecanismo = [
+    versiones.some((v) => v < 3) ? t('trazabilidad.cadena.mecanismoSinClave') : null,
+    versiones.some((v) => v >= 3) ? t('trazabilidad.cadena.mecanismoHmac') : null,
+  ].filter(Boolean).join(' · ')
+  const datosCadena = verificacion && (
+    <>
+      <Dato etiqueta={t('trazabilidad.cadena.verificada')}><span className="codigo">{cadenaVerificada}</span></Dato>
+      {mecanismo && <Dato etiqueta={t('trazabilidad.cadena.mecanismo')}>{mecanismo}</Dato>}
+    </>
+  )
 
   const titulo = verificando
     ? t('trazabilidad.veredicto.verificandoTitulo')
@@ -64,6 +92,7 @@ export function VeredictoCadena({
         integra: t('trazabilidad.cadenaIntegra'),
         ruptura_aislada: t('trazabilidad.rupturaAislada'),
         ruptura_detectada: t('trazabilidad.cadenaRota'),
+        no_concluida: t('trazabilidad.noConcluida'),
         comprometida: t('trazabilidad.cadenaComprometida'),
       }[estado]
 
@@ -72,6 +101,7 @@ export function VeredictoCadena({
     integra: t('trazabilidad.cadenaIntegraDetalle', { n: verificacion?.total_registros }),
     ruptura_aislada: t('trazabilidad.rupturaAisladaDetalle', { n: verificacion?.total_rupturas ?? 1, fecha: fechaHora(verificacion?.integra_desde) }),
     ruptura_detectada: t('trazabilidad.cadenaRotaDetalle', { n: verificacion?.primer_registro_inconsistente }),
+    no_concluida: t('trazabilidad.noConcluidaDetalle', { count: verificacion?.total_no_verificables ?? 0 }),
     comprometida: `${t('trazabilidad.cadenaComprometidaDetalle')} ${t('trazabilidad.veredicto.comprometidaAccion')}`,
   }[estado]
 
@@ -111,7 +141,8 @@ export function VeredictoCadena({
           </h2>
           <p className="mt-1 text-body text-muted text-pretty">{texto}</p>
         </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto">
+          {selectorCadena}
           {onAislar && (
             <Button variant="danger" size="sm" className="max-sm:w-full" onClick={onAislar}>
               {t('trazabilidad.aislar')}
@@ -136,6 +167,10 @@ export function VeredictoCadena({
         </div>
       </div>
 
+      {error && (
+        <p role="alert" className="mt-3 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-meta text-critical">{error}</p>
+      )}
+
       {estado === 'ruptura_detectada' && detalle ? (
         <div data-testid="detalle-inconsistencia" className="mt-4 border-t border-border pt-3">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
@@ -156,11 +191,12 @@ export function VeredictoCadena({
             {(verificacion?.total_rupturas ?? 0) > 1 && (
               <Dato etiqueta={t('trazabilidad.totalRupturas')} className="nums text-critical">{verificacion?.total_rupturas}</Dato>
             )}
+            {datosCadena}
           </dl>
           <Detalles className="mt-2">
             <ComparacionSellos detalle={detalle} />
-            <AlcanceVerificacion texto={verificacion?.alcance} className="mt-3" />
           </Detalles>
+          <AlcanceVerificacion texto={verificacion?.alcance} className="mt-3" />
         </div>
       ) : (
         <>
@@ -176,6 +212,11 @@ export function VeredictoCadena({
                 <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
                 <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
               </>
+            ) : estado === 'no_concluida' ? (
+              <>
+                <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
+                <Dato etiqueta={t('trazabilidad.datos.noVerificables')} className="nums text-warning-700">{verificacion?.total_no_verificables ?? 0}</Dato>
+              </>
             ) : (
               <>
                 <Dato etiqueta={t('trazabilidad.datos.registros')} className="nums">{registros.length >= 200 ? '200+' : registros.length}</Dato>
@@ -183,13 +224,11 @@ export function VeredictoCadena({
                 <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
               </>
             )}
+            {datosCadena}
             <Dato etiqueta={t('trazabilidad.datos.ultimaVerificacionEquipo')}>{textoUltima}</Dato>
           </dl>
-          {verificacion && (
-            <Detalles className="mt-2">
-              <AlcanceVerificacion texto={verificacion.alcance} />
-            </Detalles>
-          )}
+          {/* HU-26 esc. 4: el alcance se declara junto al resultado, a la vista. */}
+          {verificacion && <AlcanceVerificacion texto={verificacion.alcance} className="mt-3" />}
         </>
       )}
     </section>

@@ -50,7 +50,7 @@ const REGLAS: ReadonlyArray<readonly [RegExp, CategoriaAuditoria, LucideIcon]> =
   [/^LOGOUT$/, 'acceso', LogOut],
   [/^(PASSWORD_|RECUPERACION_|RESTABLECER_PASSWORD|CODIGO_|SEGUNDO_FACTOR)|_CODIGO/, 'acceso', KeyRound],
   [/^(BLOQUEO_TEMPORAL|UMBRAL_INTENTOS)/, 'acceso', Lock],
-  [/^RBAC_DENEGADO$/, 'acceso', ShieldX],
+  [/^(RBAC_DENEGADO|SESION_RECHAZADA)$/, 'acceso', ShieldX],
   [/RETENCION_INTENTOS/, 'acceso', Lock],
   [/CREAR_USUARIO|USUARIO_CREADO/, 'usuarios', UserPlus],
   [/DESACTIVAR_USUARIO/, 'usuarios', UserX],
@@ -68,7 +68,7 @@ const REGLAS: ReadonlyArray<readonly [RegExp, CategoriaAuditoria, LucideIcon]> =
   [/EXCURSION_NO_VERIFICADA/, 'alertas', TriangleAlert],
   [/ACCION_CORRECTIVA/, 'alertas', ClipboardCheck],
   [/ALERTA/, 'alertas', Bell],
-  [/REPORTE_BPA/, 'reportes', FileDown],
+  [/REPORTE_BPA|^EXPORTAR_BITACORA$/, 'reportes', FileDown],
   [/CHECKLIST_BPA/, 'reportes', ListChecks],
   [/MODELO|INFERENCIA/, 'ia', Brain],
   [/CADENA_CORRUPCION/, 'integridad', ShieldAlert],
@@ -106,6 +106,22 @@ export function nombreAccion(codigo: string, t: (clave: string, opciones?: Recor
       .replace(/^\p{L}/u, (letra) => letra.toLocaleUpperCase()),
   })
 }
+
+/**
+ * HU-50: códigos de seguridad que el backend registra (para sugerirlos en el
+ * filtro de acción, que en el backend es por código exacto). El bloqueo por
+ * intentos es UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO: el backend nunca emitió
+ * BLOQUEO_TEMPORAL.
+ */
+export const CODIGOS_SEGURIDAD: readonly string[] = [
+  'LOGIN_FALLIDO',
+  'LOGIN_CODIGO_FALLIDO',
+  'LOGIN_GOOGLE_FALLIDO',
+  'UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO',
+  'RBAC_DENEGADO',
+  'SESION_RECHAZADA',
+  'EXPORTAR_BITACORA',
+]
 
 /** Fallida, denegada o bloqueada: todo lo que no fue `exitoso`. */
 export const esFallida = (r: { resultado?: string | null }) => Boolean(r.resultado && r.resultado !== 'exitoso')

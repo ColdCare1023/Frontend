@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Fingerprint, FlaskConical, Link2, Search, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { Fingerprint, FlaskConical, Link2, Search, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
 
 import { useTrazabilidad } from '@/application/hooks/useTrazabilidad'
 import { useAuthStore } from '@/application/stores/authStore'
@@ -36,9 +36,11 @@ export function TrazabilidadPage() {
   const { t } = useTranslation()
   const {
     registros, cargando, errorCarga, consultar,
-    verificacion, verificando, verificarIntegridad, estadoCadena, aislarCorrupcion,
+    verificacion, verificando, verificarIntegridad, errorVerificacion, cadenas = [], estadoCadena, aislarCorrupcion,
     verificacionSegmento, verificandoSegmento, errorSegmento, verificarPorDispositivo,
   } = useTrazabilidad()
+  // HU-26: cadena a verificar ('' = todas a la vez).
+  const [cadenaElegida, setCadenaElegida] = useState('')
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   // HU-37: verificación acotada a un dispositivo y periodo.
@@ -53,7 +55,7 @@ export function TrazabilidadPage() {
   const [expandida, setExpandida] = useState<string | null>(null)
   const [aislando, setAislando] = useState(false)
   const [confirmarAislar, setConfirmarAislar] = useState(false)
-  const [errorAislar, setErrorAislar] = useState(false)
+  const [errorAislar, setErrorAislar] = useState<'error' | 'conflicto' | null>(null)
   const [fueraDeLista, setFueraDeLista] = useState(false)
   const usuario = useAuthStore((s) => s.usuario)
   const idEquipos = useId()
@@ -68,7 +70,10 @@ export function TrazabilidadPage() {
   }
   const visibles = useMemo(() => registros.slice(...rangoPagina(pagina, tamanoPagina)), [registros, pagina, tamanoPagina])
   const porDia = useMemo(() => contarPorDia(registros, fechaDe), [registros])
-  const equiposVistos = useMemo(() => [...new Set(registros.flatMap((r) => (r.device_id ? [r.device_id] : [])))].sort(), [registros])
+  const equiposVistos = useMemo(
+    () => [...new Set([...cadenas.filter((c) => !c.es_sistema).map((c) => c.chain_id), ...registros.flatMap((r) => (r.device_id ? [r.device_id] : []))])].sort(),
+    [cadenas, registros],
+  )
   const composicion = useMemo(() => {
     const mapa = new Map<string, number>()
     for (const r of registros) mapa.set(r.tipo_evento, (mapa.get(r.tipo_evento) ?? 0) + 1)
@@ -96,12 +101,44 @@ export function TrazabilidadPage() {
   const aislar = async () => {
     if (!detalle) return
     setAislando(true)
-    setErrorAislar(false)
+    setErrorAislar(null)
     const resultado = await aislarCorrupcion(detalle.id)
     setAislando(false)
     if (resultado === 'ok') setConfirmarAislar(false)
-    else setErrorAislar(true)
+    else setErrorAislar(resultado === 'conflicto' ? 'conflicto' : 'error')
   }
+
+  const verificarCadena = () => void verificarIntegridad(cadenaElegida || undefined)
+  const mensajeVerificacion = errorVerificacion
+    ? {
+        sin_registros: t('trazabilidad.cadena.sinRegistros', { cadena: cadenaElegida }),
+        limite: t('trazabilidad.limiteVerificaciones'),
+        error: t('trazabilidad.errorVerificar'),
+      }[errorVerificacion]
+    : null
+  const selectorCadena = (
+    <div className="w-full sm:w-56">
+      <Label htmlFor="cadena-verificar" className="text-meta text-muted">{t('trazabilidad.cadena.etiqueta')}</Label>
+      <NativeSelect
+        id="cadena-verificar"
+        className="h-9 pointer-coarse:h-11"
+        value={cadenaElegida}
+        disabled={verificando}
+        aria-describedby="cadena-verificar-ayuda"
+        onChange={(e) => setCadenaElegida(e.target.value)}
+      >
+        <option value="">{t('trazabilidad.cadena.todas')}</option>
+        {[...cadenas]
+          .sort((a, b) => Number(a.es_sistema) - Number(b.es_sistema) || a.chain_id.localeCompare(b.chain_id))
+          .map((c) => (
+            <option key={c.chain_id} value={c.chain_id}>
+              {t('trazabilidad.cadena.opcion', { cadena: c.es_sistema ? t('trazabilidad.cadena.sistemaCorto') : c.chain_id, count: c.total_registros })}
+            </option>
+          ))}
+      </NativeSelect>
+      <p id="cadena-verificar-ayuda" className="sr-only">{t('trazabilidad.cadena.ayuda')}</p>
+    </div>
+  )
 
   const verificarSegmento = () => {
     // «Desde» es obligatorio: el campo se marca y recibe el foco.
@@ -183,7 +220,7 @@ export function TrazabilidadPage() {
               className="h-9 pointer-coarse:h-11"
               onClick={async () => {
                 await apiClient.post('/api/demo/trazabilidad/simular-inconsistencia')
-                await verificarIntegridad()
+                await verificarIntegridad(cadenaElegida || undefined)
               }}
             >
               <FlaskConical aria-hidden />
@@ -332,9 +369,11 @@ export function TrazabilidadPage() {
               estadoCadena={estadoCadena}
               verificando={verificando}
               registros={registros}
-              onVerificar={() => void verificarIntegridad()}
+              onVerificar={verificarCadena}
               onAislar={puedeAislar ? () => setConfirmarAislar(true) : undefined}
               onVerEnTabla={detalle ? () => irAFila(detalle.id) : undefined}
+              selectorCadena={selectorCadena}
+              error={mensajeVerificacion}
             />
             {fueraDeLista && (
               <p role="status" className="flex flex-wrap items-center gap-2 text-meta text-muted">
@@ -427,12 +466,12 @@ export function TrazabilidadPage() {
       />
 
       {/* Aislar un registro inconsistente es irreversible: siempre con confirmación. */}
-      <Dialog open={confirmarAislar} onOpenChange={(abierto) => { setConfirmarAislar(abierto); if (!abierto) setErrorAislar(false) }}>
+      <Dialog open={confirmarAislar} onOpenChange={(abierto) => { setConfirmarAislar(abierto); if (!abierto) setErrorAislar(null) }}>
         <DialogContent destructivo>
           <DialogTitle>{t('trazabilidad.aislar')}</DialogTitle>
           <DialogDescription>{t('trazabilidad.confirmarAislar')}</DialogDescription>
           {detalle && <p className="codigo mt-3 break-all rounded-(--radius-field) bg-surface-sunken px-3 py-2 text-meta">{detalle.id}</p>}
-          {errorAislar && <p role="alert" className="mt-3 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-meta text-critical">{t('comunes.error')}</p>}
+          {errorAislar && <p role="alert" className="mt-3 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-meta text-critical">{errorAislar === 'conflicto' ? t('trazabilidad.aislarNoConcluida') : t('comunes.error')}</p>}
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setConfirmarAislar(false)} disabled={aislando}>{t('comunes.cancelar')}</Button>
             <Button variant="danger" onClick={() => void aislar()} disabled={aislando}>
@@ -513,30 +552,70 @@ function DetalleRegistro({
   )
 }
 
-/** HU-37: resultado de la verificación por dispositivo y periodo. */
+/** Primeros 8 caracteres de un UUID: lo bastante para ubicarlo, el completo se copia. */
+const idCorto = (id: string) => (id.length > 10 ? id.slice(0, 8) : id)
+
+/**
+ * HU-37: resultado de la verificación por dispositivo y periodo. Esc. 2: una
+ * lectura alterada se rotula «Corrupta» con su ID (copiable) y su fecha, y la
+ * lista sigue con el resto del segmento. Un eslabón v3 sin clave es «No
+ * verificable», no corrupto.
+ */
 function ResultadoSegmento({ resultado }: { resultado: VerificacionSegmento }) {
   const { t } = useTranslation()
   const idResumen = useId()
-  const Icono = resultado.integra ? ShieldCheck : ShieldAlert
+  const estadoDe = (r: VerificacionSegmento['registros_del_dispositivo'][number]) => r.estado ?? (r.integro ? 'integro' : 'corrupto')
+  const corruptos = resultado.total_corruptos ?? resultado.registros_del_dispositivo.filter((r) => estadoDe(r) === 'corrupto').length
+  const estado = resultado.estado ?? (resultado.integra ? 'integra' : 'corrupta')
+  const Icono = estado === 'integra' ? ShieldCheck : estado === 'no_concluida' ? ShieldQuestion : ShieldAlert
+  const color = estado === 'integra' ? 'text-success-700' : estado === 'no_concluida' ? 'text-warning-700' : 'text-critical'
+  const titulo = {
+    integra: t('trazabilidad.segmentoIntegro'),
+    corrupta: t('trazabilidad.segmentoRoto'),
+    no_concluida: t('trazabilidad.segmento.noConcluido'),
+  }[estado]
   return (
-    <div role="status" className="mt-4 border-t border-border pt-3">
-      <p key={String(resultado.integra)} className={cn('cambio-texto flex items-center gap-2 text-body font-semibold', resultado.integra ? 'text-success-700' : 'text-critical')}>
+    <div role="status" data-testid="resultado-segmento" className="mt-4 border-t border-border pt-3">
+      <p key={estado} className={cn('cambio-texto flex items-center gap-2 text-body font-semibold', color)}>
         <Icono className="size-4 shrink-0" aria-hidden />
-        {resultado.integra ? t('trazabilidad.segmentoIntegro') : t('trazabilidad.segmentoRoto')}
+        {titulo}
       </p>
       <p id={idResumen} className="mt-0.5 text-meta text-muted">
         {t('trazabilidad.segmentoResumen', { n: resultado.total_bloques_verificados, device: resultado.device_id })}
+        {corruptos > 0 && <span className="text-critical"> {t('trazabilidad.segmento.corruptas', { count: corruptos })}</span>}
+        {(resultado.total_no_verificables ?? 0) > 0 && (
+          <span className="text-warning-700"> {t('trazabilidad.segmento.noVerificables', { count: resultado.total_no_verificables })}</span>
+        )}
       </p>
       {resultado.registros_del_dispositivo.length > 0 && (
         // Lista con desplazamiento propio: alcanzable con el teclado.
         <ul tabIndex={0} aria-labelledby={idResumen} className="mt-2 max-h-56 divide-y divide-border overflow-y-auto rounded-md text-meta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-          {resultado.registros_del_dispositivo.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
-              <span className="nums shrink-0 text-muted">{fechaHora(r.timestamp)}</span>
-              <span className="min-w-0 flex-1 font-medium">{etiquetaEvento(r.tipo_evento, t)}</span>
-              <Badge dot variant={r.integro ? 'ok' : 'critical'}>{r.integro ? t('trazabilidad.integro') : t('trazabilidad.corrupto')}</Badge>
-            </li>
-          ))}
+          {resultado.registros_del_dispositivo.map((r) => {
+            const estadoRegistro = estadoDe(r)
+            return (
+              <li key={r.id} data-estado={estadoRegistro} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+                <span className="nums shrink-0 text-muted">{fechaHora(r.timestamp)}</span>
+                <span className="min-w-0 flex-1 font-medium">{etiquetaEvento(r.tipo_evento, t)}</span>
+                {estadoRegistro !== 'integro' && (
+                  <span className="flex w-full items-center gap-1 sm:w-auto">
+                    <span className="sr-only">{t('trazabilidad.segmento.idRegistro')}: </span>
+                    <span className="codigo text-faint" title={r.id}>{idCorto(r.id)}</span>
+                    <BotonCopiar valor={r.id} campo={t('trazabilidad.segmento.idRegistro')} />
+                  </span>
+                )}
+                <Badge dot variant={estadoRegistro === 'integro' ? 'ok' : estadoRegistro === 'corrupto' ? 'critical' : 'warn'}>
+                  {{
+                    integro: t('trazabilidad.segmento.integra'),
+                    corrupto: t('trazabilidad.segmento.corrupta'),
+                    no_verificable: t('trazabilidad.segmento.noVerificable'),
+                  }[estadoRegistro]}
+                </Badge>
+                {estadoRegistro === 'corrupto' && r.tipo_discrepancia && (
+                  <span className="w-full text-faint">{t(`trazabilidad.discrepancia_${r.tipo_discrepancia}`)}</span>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

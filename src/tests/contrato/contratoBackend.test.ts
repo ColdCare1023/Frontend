@@ -91,3 +91,21 @@ describe('contrato con el backend — Dispositivos', () => {
     expect([...valores].sort()).toEqual([...TIME_QUALITY_LECTURA].sort())
   })
 })
+
+describe('contrato con el backend — HU-28 rectificación', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+  afterEach(() => adaptador?.restaurar())
+
+  it('la rectificación envía solo campos que AccionCorrectivaRectificarRequest acepta', async () => {
+    const { useAlertas } = await import('@/application/hooks/useAlertas')
+    adaptador = instalarAdaptadorFalso(() => ({ data: [] }))
+    const { result } = renderHook(() => useAlertas())
+    await act(async () => {
+      await result.current.rectificarAccion('3f2b9c1e-7d4a-4f6b-9a0e-1c2d3e4f5a6b', { justificacion: 'Excursión de 55 min', decision: 'Cuarentena' }, 'Duración mal calculada.')
+    })
+    const peticion = adaptador.peticiones.find((p) => p.method === 'post')!
+    const cuerpo = JSON.parse(peticion.data as string)
+    expect(cuerpo).toEqual({ justificacion: 'Excursión de 55 min', decision: 'Cuarentena', motivo_rectificacion: 'Duración mal calculada.' })
+    expect(errores(cuerpo, esquemaPeticion('post', peticion.url))).toEqual([])
+  })
+})

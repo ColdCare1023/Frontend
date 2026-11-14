@@ -11,6 +11,16 @@ import { rutaApi } from '@/lib/rutaApi'
 export type ResultadoAccionAlerta = 'ok' | 'conflicto' | 'error'
 export type ResultadoRectificacion = ResultadoAccionAlerta | 'prohibido'
 
+/**
+ * HU-28 esc. 2: qué se corrige de la versión vigente. Lo que no se envía se
+ * hereda de ella (el backend exige al menos un cambio real).
+ */
+export interface CambiosRectificacion {
+  decision?: string
+  descripcion?: string
+  justificacion?: string
+}
+
 // HU-23: filtro por la máquina de estados, no por el booleano `revisada`
 // (que el backend conserva solo por compatibilidad hacia atrás).
 export type FiltroEstado = 'todas' | EstadoAlerta
@@ -180,15 +190,17 @@ export function useAlertas() {
   }, [])
 
   // HU-28: rectificar crea una acción nueva que referencia a la anterior; la
-  // original no se toca. 409: ya no es la versión vigente (alguien la
-  // rectificó antes). 403: ni autor ni farmacéutico.
+  // original no se toca. Esc. 2: se puede corregir la decisión, la acción y/o
+  // la justificación; solo se envía lo que cambia. 409: ya no es la versión
+  // vigente (alguien la rectificó antes). 403: ni autor ni farmacéutico.
   const rectificarAccion = useCallback(
-    async (accionId: string, descripcion: string, motivo: string): Promise<ResultadoRectificacion> => {
+    async (accionId: string, cambios: CambiosRectificacion, motivo: string): Promise<ResultadoRectificacion> => {
       try {
-        await apiClient.post(rutaApi`/api/alertas/acciones-correctivas/${accionId}/rectificar`, {
-          descripcion,
-          motivo_rectificacion: motivo,
-        })
+        const cuerpo: Record<string, string> = { motivo_rectificacion: motivo }
+        for (const campo of ['decision', 'descripcion', 'justificacion'] as const) {
+          if (cambios[campo] !== undefined) cuerpo[campo] = cambios[campo]
+        }
+        await apiClient.post(rutaApi`/api/alertas/acciones-correctivas/${accionId}/rectificar`, cuerpo)
         return 'ok'
       } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status === 409) return 'conflicto'

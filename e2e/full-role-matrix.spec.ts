@@ -17,7 +17,7 @@ const roles = [
     boton: 'Administrador',
     rutas: [
       '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
-      '/reportes', '/metricas-ia', '/auditoria',
+      '/reportes', '/metricas-ia', '/auditoria', '/configuracion-equipos',
       '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL',
     ],
   },
@@ -25,14 +25,14 @@ const roles = [
     boton: 'Auditor Consulta de registros',
     rutas: [
       '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
-      '/reportes', '/metricas-ia', '/auditoria',
+      '/reportes', '/metricas-ia', '/auditoria', '/configuracion-equipos',
     ],
   },
 ] as const
 
 const todasLasRutas = [
   '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
-  '/reportes', '/metricas-ia', '/auditoria',
+  '/reportes', '/metricas-ia', '/auditoria', '/configuracion-equipos',
   '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL',
 ] as const
 
@@ -43,7 +43,7 @@ async function iniciarSesionDemo(page: import('@playwright/test').Page, boton: s
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
 }
 
-test('matriz completa de permisos: 10 rutas protegidas × 4 roles', async ({ page }) => {
+test('matriz completa de permisos: 12 rutas protegidas × 4 roles', async ({ page }) => {
   test.setTimeout(240_000)
 
   for (const perfil of roles) {

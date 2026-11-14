@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { CircleCheck } from 'lucide-react'
 
-import type { ResultadoAccionAlerta, ResultadoRectificacion } from '@/application/hooks/useAlertas'
+import type { CambiosRectificacion, ResultadoAccionAlerta, ResultadoRectificacion } from '@/application/hooks/useAlertas'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { fechaHora } from '@/lib/formato'
 import { RiskBadge } from '../../components/RiskBadge'
@@ -42,7 +42,7 @@ export interface PropsPanelAlerta {
   onDevolverFoco: () => void
   registrarAccion: (alertaId: string, datos: BorradorAccion) => Promise<ResultadoAccionAlerta>
   obtenerCiclo: (alertaId: string) => Promise<AccionCorrectiva[]>
-  rectificarAccion?: (accionId: string, descripcion: string, motivo: string) => Promise<ResultadoRectificacion>
+  rectificarAccion?: (accionId: string, cambios: CambiosRectificacion, motivo: string) => Promise<ResultadoRectificacion>
 }
 
 /**
