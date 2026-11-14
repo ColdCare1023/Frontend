@@ -1014,19 +1014,43 @@
     "nota": "Las pantallas disponibles dependen de tu rol. Las acciones de escritura también respetan los permisos del sistema."
   },
   "recuperarContrasena": {
-    "titulo": "Recuperar contraseña",
-    "subtitulo": "Ingresa tu correo institucional y te enviaremos instrucciones seguras para restablecer tu acceso.",
-    "email": "Correo electrónico institucional",
+    "email": "Correo electrónico",
     "emailPlaceholder": "tu.correo@farmacia.pe",
-    "enviar": "Enviar instrucciones",
-    "enviando": "Enviando instrucciones…",
-    "exitoTitulo": "Instrucciones enviadas",
-    "exitoMensaje": "Si la dirección {{email}} corresponde a una cuenta activa, recibirás un enlace seguro para restablecer tu contraseña en los próximos minutos.",
-    "notaSeguridad": "Si tu correo está registrado, recibirás un enlace de un solo uso que vence en 30 minutos.",
+    "enviar": "Enviar código",
+    "enviando": "Enviando código…",
+    "notaSeguridad": "Por seguridad no confirmamos si el correo está registrado.",
     "volverLogin": "Volver a iniciar sesión",
-    "errorEmail": "Ingresa un correo electrónico válido.",
     "noDisponible": "La recuperación por correo no está disponible. Pide al administrador que restablezca tu contraseña.",
-    "enviarOtro": "Intentar con otra dirección de correo"
+    "cambiarEmail": "Usar otro correo",
+    "reenviado": "Si el correo corresponde a una cuenta activa, te llegará un código nuevo. El anterior ya no sirve.",
+    "errorCodigo": "El código no es válido o ya caducó. Pide uno nuevo.",
+    "irLogin": "Ir a iniciar sesión",
+    "progreso": "Progreso",
+    "pasoDe": "Paso {{actual}} de {{total}} · {{nombre}}",
+    "pasos": {
+      "correo": "Correo",
+      "codigo": "Código",
+      "listo": "Listo"
+    },
+    "recuperacion": {
+      "titulo": "Recuperar contraseña",
+      "subtitulo": "Te enviaremos un código de 6 dígitos para que crees una contraseña nueva.",
+      "tituloCodigo": "Crea tu nueva contraseña",
+      "subtituloCodigo": "Si <email>{{email}}</email> tiene una cuenta activa, recibirás un código válido por 10 minutos.",
+      "boton": "Guardar contraseña",
+      "exitoTitulo": "Contraseña actualizada",
+      "exitoMensaje": "Ya puedes ingresar con tu nueva contraseña. Cerramos las sesiones que tenías abiertas."
+    },
+    "activacion": {
+      "titulo": "Activa tu cuenta",
+      "subtitulo": "Escribe tu correo y te enviaremos un código de activación.",
+      "tituloCodigo": "Activa tu cuenta",
+      "subtituloCodigo": "Escribe el código del correo de bienvenida enviado a <email>{{email}}</email> y crea tu contraseña. Vale 48 horas.",
+      "subtituloCodigoNuevo": "Si <email>{{email}}</email> corresponde a una cuenta, te llegará un código para activarla. Vale 10 minutos.",
+      "boton": "Activar cuenta",
+      "exitoTitulo": "Cuenta activada",
+      "exitoMensaje": "Tu cuenta está lista. Ingresa con tu correo y la contraseña que acabas de crear."
+    }
   },
   "restablecerContrasena": {
     "titulo": "Restablecer contraseña",
@@ -1047,6 +1071,12 @@
       "corta": "La contraseña debe tener al menos 10 caracteres.",
       "sin_letras_y_digitos": "La contraseña debe combinar letras y números.",
       "demasiado_larga": "La contraseña es demasiado larga (máximo 72 bytes)."
+    },
+    "reglas": {
+      "longitud": "Al menos 10 caracteres",
+      "combinacion": "Letras y números",
+      "cumple": "(cumplido)",
+      "pendiente": "(pendiente)"
     }
   },
   "cambiarPassword": {
@@ -1106,5 +1136,36 @@
     "cambiar": "Cambiar idioma",
     "es": "Español",
     "en": "English"
+  },
+  "codigo": {
+    "etiqueta": "Código de verificación",
+    "digito": "Dígito {{n}} de {{total}}"
+  },
+  "loginCodigo": {
+    "titulo": "Revisa tu correo",
+    "subtitulo": "Enviamos un código de 6 dígitos a <email>{{email}}</email>. Escríbelo para entrar.",
+    "verificar": "Verificar y entrar",
+    "verificando": "Verificando…",
+    "verificado": "Código verificado",
+    "venceEn": "Vence en {{tiempo}}",
+    "vencido": "Código vencido",
+    "reenviar": "Reenviar código",
+    "reenviarEn": "Reenviar en {{segundos}} s",
+    "reenviando": "Enviando…",
+    "reenviado": "Te enviamos un código nuevo. El anterior ya no sirve.",
+    "volver": "Usar otra cuenta",
+    "volverIniciar": "Volver a iniciar sesión",
+    "ayuda": "¿No llega? Revisa la carpeta de spam o pide un código nuevo.",
+    "errorIncompleto": "Escribe los 6 dígitos del código.",
+    "errorIncorrecto": "El código no es correcto. Revisa el correo e inténtalo de nuevo.",
+    "errorAgotado": "Se agotaron los intentos para este código. Vuelve a iniciar sesión.",
+    "errorCaducado": "La verificación caducó o ya no es válida. Vuelve a iniciar sesión.",
+    "errorVencido": "El código venció. Vuelve a iniciar sesión para recibir uno nuevo.",
+    "errorBloqueado": "Demasiados intentos con códigos para esta cuenta. Intenta más tarde.",
+    "errorEsperaReenvio": "Espera {{segundos}} s antes de pedir otro código.",
+    "errorNoDisponible": "No pudimos enviar el código por correo. Intenta en unos minutos o contacta al administrador.",
+    "errorReenvioNoEnviado": "No pudimos enviar el código nuevo y el anterior ya no sirve. Vuelve a pedirlo en un minuto.",
+    "demoCodigo": "Código de demostración:",
+    "demoUsar": "Usar código"
   }
 }

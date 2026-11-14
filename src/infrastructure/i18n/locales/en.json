@@ -1014,19 +1014,43 @@
     "nota": "Available screens depend on your role. Actions that change records also follow your system permissions."
   },
   "recuperarContrasena": {
-    "titulo": "Recover password",
-    "subtitulo": "Enter your institutional email and we will send you secure instructions to reset your access.",
-    "email": "Institutional email address",
+    "email": "Email address",
     "emailPlaceholder": "your.email@pharmacy.pe",
-    "enviar": "Send instructions",
-    "enviando": "Sending instructions…",
-    "exitoTitulo": "Instructions sent",
-    "exitoMensaje": "If {{email}} matches an active account, you will receive a secure link to reset your password in the next few minutes.",
-    "notaSeguridad": "If your email is registered you will receive a single-use link that expires in 30 minutes.",
+    "enviar": "Send code",
+    "enviando": "Sending code…",
+    "notaSeguridad": "For your security we do not confirm whether the email is registered.",
     "volverLogin": "Back to sign in",
-    "errorEmail": "Enter a valid email address.",
     "noDisponible": "Email recovery is not available. Ask the administrator to reset your password.",
-    "enviarOtro": "Try another email address"
+    "cambiarEmail": "Use another email",
+    "reenviado": "If the email matches an active account, a new code is on its way. The previous one no longer works.",
+    "errorCodigo": "The code is not valid or has expired. Request a new one.",
+    "irLogin": "Go to sign in",
+    "progreso": "Progress",
+    "pasoDe": "Step {{actual}} of {{total}} · {{nombre}}",
+    "pasos": {
+      "correo": "Email",
+      "codigo": "Code",
+      "listo": "Done"
+    },
+    "recuperacion": {
+      "titulo": "Recover password",
+      "subtitulo": "We will send you a 6-digit code so you can create a new password.",
+      "tituloCodigo": "Create your new password",
+      "subtituloCodigo": "If <email>{{email}}</email> has an active account, you will receive a code valid for 10 minutes.",
+      "boton": "Save password",
+      "exitoTitulo": "Password updated",
+      "exitoMensaje": "You can now sign in with your new password. We closed any sessions you had open."
+    },
+    "activacion": {
+      "titulo": "Activate your account",
+      "subtitulo": "Enter your email and we will send you an activation code.",
+      "tituloCodigo": "Activate your account",
+      "subtituloCodigo": "Enter the code from the welcome email sent to <email>{{email}}</email> and create your password. It is valid for 48 hours.",
+      "subtituloCodigoNuevo": "If <email>{{email}}</email> matches an account, you will receive a code to activate it. It is valid for 10 minutes.",
+      "boton": "Activate account",
+      "exitoTitulo": "Account activated",
+      "exitoMensaje": "Your account is ready. Sign in with your email and the password you just created."
+    }
   },
   "restablecerContrasena": {
     "titulo": "Reset password",
@@ -1047,6 +1071,12 @@
       "corta": "The password must be at least 10 characters long.",
       "sin_letras_y_digitos": "The password must combine letters and numbers.",
       "demasiado_larga": "The password is too long (72 bytes maximum)."
+    },
+    "reglas": {
+      "longitud": "At least 10 characters",
+      "combinacion": "Letters and numbers",
+      "cumple": "(met)",
+      "pendiente": "(pending)"
     }
   },
   "cambiarPassword": {
@@ -1106,5 +1136,36 @@
     "cambiar": "Change language",
     "es": "Español",
     "en": "English"
+  },
+  "codigo": {
+    "etiqueta": "Verification code",
+    "digito": "Digit {{n}} of {{total}}"
+  },
+  "loginCodigo": {
+    "titulo": "Check your email",
+    "subtitulo": "We sent a 6-digit code to <email>{{email}}</email>. Enter it to sign in.",
+    "verificar": "Verify and sign in",
+    "verificando": "Verifying…",
+    "verificado": "Code verified",
+    "venceEn": "Expires in {{tiempo}}",
+    "vencido": "Code expired",
+    "reenviar": "Resend code",
+    "reenviarEn": "Resend in {{segundos}} s",
+    "reenviando": "Sending…",
+    "reenviado": "We sent you a new code. The previous one no longer works.",
+    "volver": "Use another account",
+    "volverIniciar": "Back to sign in",
+    "ayuda": "Not there? Check your spam folder or request a new code.",
+    "errorIncompleto": "Enter all 6 digits of the code.",
+    "errorIncorrecto": "That code is not correct. Check your email and try again.",
+    "errorAgotado": "No attempts left for this code. Sign in again.",
+    "errorCaducado": "The verification expired or is no longer valid. Sign in again.",
+    "errorVencido": "The code expired. Sign in again to get a new one.",
+    "errorBloqueado": "Too many code attempts for this account. Try again later.",
+    "errorEsperaReenvio": "Wait {{segundos}} s before requesting another code.",
+    "errorNoDisponible": "We could not email the code. Try again in a few minutes or contact the administrator.",
+    "errorReenvioNoEnviado": "We could not send the new code, and the previous one no longer works. Request it again in a minute.",
+    "demoCodigo": "Demo code:",
+    "demoUsar": "Use code"
   }
 }

@@ -5,7 +5,9 @@ import {
   decodificarSesion,
   loginConGoogle as loginConGoogleService,
   login as loginService,
+  verificarCodigoLogin,
 } from '@/infrastructure/auth/authService'
+import type { DesafioCodigo } from '@/domain/value-objects/codigoVerificacion'
 import type { SesionUsuario } from '@/infrastructure/auth/authService'
 import { limpiarSesionActiva, marcarSesionActiva } from '@/infrastructure/auth/avisoSesion'
 import { cambiarPassword as cambiarPasswordService } from '@/infrastructure/auth/credencialesService'
@@ -21,7 +23,13 @@ interface AuthState {
   requiereCambioPassword: boolean
   /** FE-005: falta el consentimiento de la política de privacidad vigente. */
   requierePrivacidad: boolean
-  login: (email: string, password: string) => Promise<void>
+  /**
+   * Abre sesión, o devuelve el desafío cuando el backend exige el código
+   * enviado por correo (OTP_LOGIN_ENABLED). `null` = sesión abierta.
+   */
+  login: (email: string, password: string, opciones?: { accesoRapidoDemo?: boolean }) => Promise<DesafioCodigo | null>
+  /** Segundo paso del login con código: abre la sesión con el token emitido. */
+  verificarCodigo: (desafio: string, codigo: string) => Promise<void>
   /**
    * FE-001: la sesión solo se abre con un token que el backend acaba de
    * emitir (contraseña o ID token de Google verificado en el servidor). No
@@ -65,8 +73,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   requiereCambioPassword: false,
   requierePrivacidad: false,
 
-  login: async (email, password) => {
-    const { accessToken, ...requisitos } = await loginService(email, password)
+  login: async (email, password, opciones) => {
+    const respuesta = await loginService(email, password, opciones)
+    if (respuesta.tipo === 'codigo') return respuesta.desafio
+    const { accessToken, ...requisitos } = respuesta.sesion
+    aplicarSesion(set, accessToken, requisitos)
+    return null
+  },
+
+  verificarCodigo: async (desafio, codigo) => {
+    const { accessToken, ...requisitos } = await verificarCodigoLogin(desafio, codigo)
     aplicarSesion(set, accessToken, requisitos)
   },
 

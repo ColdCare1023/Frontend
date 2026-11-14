@@ -1,6 +1,9 @@
 import { useState, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eye, EyeOff, KeyRound } from 'lucide-react'
+import { Check, Eye, EyeOff } from 'lucide-react'
+
+import { PASSWORD_MIN_CARACTERES } from '@/domain/value-objects/politicaPassword'
+import { cn } from '@/lib/utils'
 
 import { Input, Label } from '../ui/input'
 
@@ -60,10 +63,39 @@ export function CamposPasswordNueva({
           required
         />
       </div>
-      <p id="requisitos-password" className="flex items-center gap-1.5 text-xs text-muted">
-        <KeyRound className="size-3.5 shrink-0 text-faint" aria-hidden />
-        <span>{t('restablecerContrasena.requisitos')}</span>
-      </p>
+      {/* Requisitos en vivo: los mismos que valida el backend (PasswordNueva). */}
+      <ul id="requisitos-password" aria-label={t('restablecerContrasena.requisitos')} className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+        <Requisito cumple={password.length >= PASSWORD_MIN_CARACTERES} texto={t('restablecerContrasena.reglas.longitud')} />
+        <Requisito
+          cumple={/\p{L}/u.test(password) && /\d/.test(password)}
+          texto={t('restablecerContrasena.reglas.combinacion')}
+        />
+      </ul>
     </>
+  )
+}
+
+function Requisito({ cumple, texto }: { cumple: boolean; texto: string }) {
+  const { t } = useTranslation()
+  return (
+    <li className={cn('flex items-center gap-1.5', cumple ? 'text-success-700' : 'text-muted')}>
+      <span
+        aria-hidden
+        className={cn(
+          'relative flex size-4 items-center justify-center rounded-full ring-1 ring-inset',
+          cumple ? 'bg-success-100 ring-success-600/40' : 'ring-border-strong',
+        )}
+      >
+        <Check
+          className={cn(
+            'size-2.5 transition-[opacity,transform] duration-(--duration-ui) ease-(--ease-ui)',
+            cumple ? 'scale-100 opacity-100' : 'scale-50 opacity-0',
+          )}
+          strokeWidth={3}
+        />
+      </span>
+      <span>{texto}</span>
+      <span className="sr-only">{cumple ? t('restablecerContrasena.reglas.cumple') : t('restablecerContrasena.reglas.pendiente')}</span>
+    </li>
   )
 }
