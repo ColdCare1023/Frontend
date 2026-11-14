@@ -73,7 +73,7 @@ const DISPOSITIVOS_DEMO: Record<string, unknown>[] = [
     estado_conectividad: 'online',
     estado_operativo: 'OPERATIVO',
     ultimo_reporte_en: new Date().toISOString(),
-    registrado_en: new Date().toISOString(),
+    registrado_en: new Date(Date.now() - 120 * DIA_MS).toISOString(),
     intervalo_reporte_segundos: 30,
     umbral_sin_datos_segundos: 90,
     umbral_puerta_abierta_segundos: 120,

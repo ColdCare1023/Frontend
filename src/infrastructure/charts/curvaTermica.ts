@@ -128,11 +128,18 @@ function baseCurva(colores: ColoresGrafica, ventana?: { desde: number; hasta: nu
     tooltip: {
       confine: true,
       trigger: 'axis',
+      // Crosshair (Finance Bento): sigue al puntero sin transición (MOTION #15).
+      transitionDuration: 0,
       axisPointer: {
-        type: 'line',
+        type: 'cross',
         lineStyle: { color: colores.border },
-        label: { formatter: ({ value }: { value: number }) => fechaHora(new Date(value).toISOString()) },
+        crossStyle: { color: colores.border },
+        label: {
+          formatter: ({ value, axisDimension }: { value: number; axisDimension?: string }) =>
+            axisDimension === 'y' ? `${Number(value).toFixed(1)} °C` : fechaHora(new Date(value).toISOString()),
+        },
       },
+      extraCssText: 'box-shadow: var(--shadow-float);',
       backgroundColor: colores.surface,
       borderColor: colores.border,
       textStyle: { color: colores.foreground, fontSize: 12, fontFamily: fuente },
