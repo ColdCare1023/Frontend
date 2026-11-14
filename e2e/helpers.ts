@@ -24,3 +24,11 @@ export async function cerrarSesion(page: Page) {
   await page.getByRole('button', { name: /^Menú de usuario/ }).click()
   await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click()
 }
+
+/**
+ * Alertas: las acciones van visibles en cada fila (Revisar, Registrar acción y
+ * Cronología). Pulsa la acción `nombre` de la fila `indice` con acciones.
+ */
+export async function accionAlerta(page: Page, nombre: RegExp, indice = 0) {
+  await page.getByRole('row').getByRole('button', { name: nombre }).nth(indice).click()
+}

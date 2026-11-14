@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 import { hora } from '@/lib/formato'
-import { FONDO_ESTADO } from './estado-tonos'
+import { FONDO_ESTADO, type TonoEstado } from './estado-tonos'
 import { formatearTemperatura } from './formato-cifra'
 import type { SegmentoCinta } from './segmentar-lecturas'
 
@@ -15,17 +15,23 @@ import type { SegmentoCinta } from './segmentar-lecturas'
 export function Cinta24h({
   segmentos,
   etiqueta,
+  resumen: resumenPropio,
+  textoTono,
   className,
 }: {
   segmentos: readonly SegmentoCinta[]
   /** Nombre accesible del resumen, p. ej. «Últimas 24 h de Refrigerador 1». */
   etiqueta: string
+  /** Resumen accesible propio (sustituye al genérico). */
+  resumen?: string
+  /** Texto de cada tono en el tooltip (p. ej. «Sin eventos» en vez de «Sin clasificar»). */
+  textoTono?: Partial<Record<TonoEstado, string>>
   className?: string
 }) {
   const { t } = useTranslation()
   const fuera = segmentos.filter((s) => s.tono === 'critico' || s.tono === 'preventivo').length
   const sinDatos = segmentos.filter((s) => s.tono === 'sin_datos').length
-  const resumen = t('cinta.resumen', { etiqueta, fuera, sinDatos, total: segmentos.length })
+  const resumen = resumenPropio ?? t('cinta.resumen', { etiqueta, fuera, sinDatos, total: segmentos.length })
 
   return (
     <div
@@ -40,7 +46,7 @@ export function Cinta24h({
           data-tono={segmento.tono}
           title={[
             hora(segmento.inicio),
-            t(`cinta.estado.${segmento.tono}`),
+            textoTono?.[segmento.tono] ?? t(`cinta.estado.${segmento.tono}`),
             segmento.minimo !== null && segmento.maximo !== null
               ? `${formatearTemperatura(segmento.minimo)} – ${formatearTemperatura(segmento.maximo)}`
               : null,

@@ -886,3 +886,28 @@
   .coldcare-data-stack td[colspan] { padding: 20px 0; }
   .coldcare-data-stack td.mobile-actions > div { display: flex; flex-wrap: wrap; justify-content: flex-start; }
 }
+
+/*
+ * Alertas (P5a). Resalte de una entrada nueva de la cronología: solo color de
+ * fondo, 1200 ms lineal tras 200 ms (excepción de pintura, MOTION 3.1); se
+ * mantiene con movimiento reducido porque no desplaza nada. La fila que sale
+ * de su pestaña (revisada en Pendientes) se funde tras mostrar «Revisada».
+ */
+@keyframes resalte-entrada {
+  from {
+    background-color: var(--resalte, var(--color-success-100));
+  }
+}
+@keyframes fila-sale {
+  to {
+    opacity: 0;
+  }
+}
+@layer utilities {
+  .resalte-entrada {
+    animation: resalte-entrada 1200ms linear 200ms both;
+  }
+  [data-saliendo] {
+    animation: fila-sale var(--duration-pop) var(--ease-out) 600ms both;
+  }
+}

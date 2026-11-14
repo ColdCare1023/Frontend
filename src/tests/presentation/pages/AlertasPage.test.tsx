@@ -1,14 +1,19 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { estadoNotificacion, type AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { useAuthStore } from '@/application/stores/authStore'
+import { resumirAlertas, useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import type { Rol } from '@/domain/value-objects/Rol'
 
 const useAlertas = vi.hoisted(() => vi.fn())
+const useIncidentesOperativos = vi.hoisted(() => vi.fn())
+const useAtendidasRecientes = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useAlertas', () => ({ useAlertas }))
+vi.mock('@/application/hooks/useIncidentesOperativos', () => ({ useIncidentesOperativos }))
+vi.mock('@/application/hooks/useAtendidasRecientes', () => ({ useAtendidasRecientes }))
 
 import { AlertasPage } from '@/presentation/pages/AlertasPage'
 
@@ -33,28 +38,40 @@ function sesionCon(rol: Rol) {
   useAuthStore.setState({
     usuario: { id: 'u-1', email: `${rol}@upc.pe`, rol, expiraEn: Date.now() + 3600_000 },
     autenticado: true,
-
   })
 }
 
-function montar(alertas: AlertaTermica[]) {
-  const reconocerAlerta = vi.fn()
-  useAlertas.mockReturnValue({
+function montar(alertas: AlertaTermica[], over: Record<string, unknown> = {}) {
+  const valor = {
     alertas,
     cargando: false,
+    errorCarga: false,
     filtro: 'pendiente',
     setFiltro: vi.fn(),
-    reconocerAlerta,
-    registrarAccionCorrectiva: vi.fn(),
+    reintentar: vi.fn(),
+    reconocerAlerta: vi.fn().mockResolvedValue('ok'),
+    registrarAccionCorrectiva: vi.fn().mockResolvedValue('ok'),
     obtenerCicloAtencion: vi.fn().mockResolvedValue([]),
-  })
-  render(<MemoryRouter><AlertasPage /></MemoryRouter>)
-  return reconocerAlerta
+    rectificarAccion: vi.fn().mockResolvedValue('ok'),
+    ...over,
+  }
+  useAlertas.mockReturnValue(valor)
+  render(
+    <MemoryRouter>
+      <AlertasPage />
+    </MemoryRouter>,
+  )
+  return valor
 }
+
+const fila = () => screen.getAllByRole('row')[1]
 
 describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
   beforeEach(() => {
     useAlertas.mockReset()
+    useIncidentesOperativos.mockReturnValue({ incidentes: [], cargando: false, errorCarga: false, consultar: vi.fn() })
+    useAtendidasRecientes.mockReturnValue({ alertas: [], estado: 'listo', limite: 50, recargar: vi.fn() })
+    useEstadoVivoStore.getState().reiniciar()
     sesionCon('farmaceutico')
   })
 
@@ -62,139 +79,214 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     montar([alerta()])
 
     expect(screen.getByText('FARM-01-CDL')).toBeInTheDocument()
-    // `getAllByText`: el detalle del semáforo de riesgo («Fuera del rango
-    // 2–8 °C…») se expone ahora como texto para lector de pantalla dentro de
-    // la píldora, así que la frase aparece también fuera del mensaje.
     expect(screen.getAllByText(/fuera del rango/i).length).toBeGreaterThan(0)
     expect(screen.getByRole('cell', { name: /fuera del rango 2-8/i })).toBeInTheDocument()
   })
 
-  it('ofrece los cuatro filtros de la máquina de estados', () => {
+  it('ofrece los cuatro filtros de la máquina de estados con aria-pressed', () => {
     montar([alerta()])
 
-    const nombres = screen.getAllByRole('button').map((b) => b.textContent)
-    expect(nombres).toEqual(
-      expect.arrayContaining(['Pendientes', 'Revisadas', 'Atendidas', 'Todas']),
-    )
+    const grupo = screen.getByRole('group', { name: 'Filtrar alertas por estado de seguimiento' })
+    for (const nombre of ['Pendientes', 'Revisadas', 'Atendidas', 'Todas']) {
+      expect(within(grupo).getByRole('button', { name: nombre, exact: true } as never)).toBeInTheDocument()
+    }
+    expect(within(grupo).getByRole('button', { name: 'Pendientes' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('permite a un farmacéutico marcar una alerta pendiente como revisada', async () => {
-    sesionCon('farmaceutico')
-    montar([alerta({ estado: 'pendiente' })])
+  it('muestra el conteo de Pendientes y Revisadas sin cambiar su nombre accesible', () => {
+    useEstadoVivoStore.setState({
+      carga: 'listo',
+      alertas: resumirAlertas([[alerta(), alerta({ id: 'al-2' })], [alerta({ id: 'al-3', estado: 'reconocida' })]]),
+    })
+    montar([alerta()])
 
-    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
-    expect(screen.getByRole('menuitem', { name: /marcar como revisada/i })).toBeInTheDocument()
+    const pendientes = screen.getByRole('button', { name: 'Pendientes' })
+    expect(pendientes).toHaveAccessibleDescription('2 alertas')
+    expect(screen.getByRole('button', { name: 'Revisadas' })).toHaveAccessibleDescription('1 alerta')
   })
 
-  it('abre detalle de alerta pendiente para consulta, incluso con rol auditor', async () => {
+  it('farmacéutico ve Revisar, Registrar acción y Cronología en una pendiente', () => {
+    montar([alerta()])
+
+    expect(within(fila()).getByRole('button', { name: /revisar alerta de FARM-01-CDL/i })).toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /cronología de atención: FARM-01-CDL/i })).toBeInTheDocument()
+    // El menú «Opciones» desaparece: las acciones están a la vista (H4).
+    expect(screen.queryByRole('button', { name: /^opciones/i })).not.toBeInTheDocument()
+  })
+
+  it('administrador ve las mismas acciones que el farmacéutico (RBAC jerárquico)', () => {
+    sesionCon('administrador')
+    montar([alerta()])
+
+    expect(within(fila()).getByRole('button', { name: /revisar alerta/i })).toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
+  })
+
+  it('técnico ve Registrar acción pero no Revisar (HU-23/41)', () => {
+    sesionCon('tecnico')
+    montar([alerta()])
+
+    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
+  })
+
+  it('auditor solo ve Cronología (HU-41)', () => {
     sesionCon('auditor')
-    montar([alerta({ estado: 'pendiente' })])
+    montar([alerta()])
 
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /opciones/i }))
-    await user.click(screen.getByRole('menuitem', { name: /cronología de atención.*FARM-01-CDL/i }))
+    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).queryByRole('button', { name: /registrar acción/i })).not.toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /cronología de atención/i })).toBeInTheDocument()
+  })
+
+  it('alerta revisada ofrece Registrar acción y no Revisar', () => {
+    montar([alerta({ estado: 'reconocida' })], { filtro: 'reconocida' })
+
+    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
+  })
+
+  it('alerta atendida solo ofrece la cronología', () => {
+    montar([alerta({ estado: 'atendida' })], { filtro: 'atendida' })
+
+    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).queryByRole('button', { name: /registrar acción/i })).not.toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /cronología de atención/i })).toBeInTheDocument()
+  })
+
+  it('Revisar llama a reconocerAlerta y anuncia el resultado', async () => {
+    const { reconocerAlerta } = montar([alerta()])
+
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /revisar alerta/i }))
+
+    expect(reconocerAlerta).toHaveBeenCalledWith('al-1')
+    expect(await screen.findByText('Alerta de FARM-01-CDL marcada como revisada.')).toBeInTheDocument()
+  })
+
+  it('avisa cuando otro usuario ya reconoció la alerta (HU-27 Escenario 2)', async () => {
+    montar([alerta()], { reconocerAlerta: vi.fn().mockResolvedValue('conflicto') })
+
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /revisar alerta/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/actualizada por otra persona/i)
+  })
+
+  it('informa error de red al revisar', async () => {
+    montar([alerta()], { reconocerAlerta: vi.fn().mockResolvedValue('error') })
+
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /revisar alerta/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo marcar la alerta de FARM-01-CDL/i)
+  })
+
+  it('ordena pendientes por gravedad y antigüedad', () => {
+    montar([
+      alerta({ id: 'p-nueva', nivel_riesgo: 'riesgo_preventivo', mensaje: 'Preventiva', created_at: '2026-07-25T08:00:00Z' }),
+      alerta({ id: 'c-nueva', mensaje: 'Crítica nueva', created_at: '2026-07-25T12:00:00Z' }),
+      alerta({ id: 'c-vieja', mensaje: 'Crítica vieja', created_at: '2026-07-24T12:00:00Z' }),
+    ])
+
+    const filas = screen.getAllByRole('row').slice(1).map((f) => within(f).getAllByRole('cell')[0].textContent)
+    expect(filas[0]).toContain('Crítica vieja')
+    expect(filas[1]).toContain('Crítica nueva')
+    expect(filas[2]).toContain('Preventiva')
+  })
+
+  it('Todo en orden: vacío de pendientes con la última atendida y una acción', () => {
+    useAtendidasRecientes.mockReturnValue({
+      alertas: [alerta({ id: 'at-1', estado: 'atendida', atendida_en: '2026-07-25T13:00:00Z', device_id: 'FARM-02-CDL' })],
+      estado: 'listo',
+      limite: 50,
+      recargar: vi.fn(),
+    })
+    montar([])
+
+    expect(screen.getByText('Todo en orden')).toBeInTheDocument()
+    expect(screen.getByText(/Última atendida: FARM-02-CDL/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ver atendidas' })).toBeInTheDocument()
+  })
+
+  it.each([
+    ['reconocida', /no hay alertas marcadas como revisadas/i, 'Ver pendientes'],
+    ['atendida', /no hay alertas con acción registrada/i, 'Ver todas'],
+    ['todas', /todavía no hay alertas registradas/i, 'Ir a Monitoreo'],
+  ])('vacío por filtro %s: texto y acción', (filtro, texto, accion) => {
+    montar([], { filtro })
+
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.getByRole(filtro === 'todas' ? 'link' : 'button', { name: accion })).toBeInTheDocument()
+  })
+
+  it('no muestra esqueleto durante un refresco en segundo plano', () => {
+    montar([alerta()], { cargando: false, refrescando: true })
+
+    expect(screen.getByText('Temperatura fuera del rango 2-8 °C')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Alertas' })).not.toHaveAttribute('aria-busy')
+    expect(screen.queryByText('Cargando…')).not.toBeInTheDocument()
+  })
+
+  it('muestra aviso de límite con 200 resultados', () => {
+    montar([alerta()], { limiteAlcanzado: true })
+
+    expect(screen.getByText(/se muestran las 200 alertas más recientes/i)).toBeInTheDocument()
+  })
+
+  it('error de carga ofrece volver a intentar', async () => {
+    const { reintentar } = montar([], { errorCarga: true })
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Volver a intentar' }))
+    expect(reintentar).toHaveBeenCalled()
+  })
+
+  it('abre la cronología, incluso con rol auditor, con enlace a Historial', async () => {
+    sesionCon('auditor')
+    montar([alerta()])
+
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /cronología de atención.*FARM-01-CDL/i }))
 
     const dialogo = await screen.findByRole('dialog')
     expect(dialogo).toHaveTextContent('FARM-01-CDL')
-    expect(screen.getByRole('link', { name: /historial/i })).toHaveAttribute('href', '/historial')
+    expect(within(dialogo).queryByRole('tab', { name: /acción correctiva/i })).not.toBeInTheDocument()
+    expect(within(dialogo).getByRole('link', { name: /historial/i })).toHaveAttribute('href', '/historial')
   })
 
   it('informa fallo al cargar cronología sin afirmar que no hay acciones', async () => {
     sesionCon('auditor')
-    montar([alerta()])
-    useAlertas.mock.results[0].value.obtenerCicloAtencion.mockRejectedValue(new Error('red caída'))
+    montar([alerta()], { obtenerCicloAtencion: vi.fn().mockRejectedValue(new Error('red caída')) })
 
-    const user = userEvent.setup()
-    await user.click(screen.getByRole('button', { name: /opciones/i }))
-    await user.click(screen.getByRole('menuitem', { name: /cronología de atención.*FARM-01-CDL/i }))
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /cronología de atención.*FARM-01-CDL/i }))
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    const dialogo = await screen.findByRole('dialog')
+    expect(await within(dialogo).findByRole('alert')).toBeInTheDocument()
+    expect(within(dialogo).getByRole('button', { name: 'Volver a intentar' })).toBeInTheDocument()
     expect(screen.queryByText(/sin acciones/i)).not.toBeInTheDocument()
-  })
-
-  it('no ofrece el botón de reconocer a un técnico (RBAC en la vista)', async () => {
-    // El backend ya rechaza la acción por rol (require_roles(FARMACEUTICO));
-    // la vista no debe ofrecer un botón que solo puede terminar en un 403.
-    sesionCon('tecnico')
-    montar([alerta({ estado: 'pendiente' })])
-
-    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
-    expect(screen.queryByRole('menuitem', { name: /marcar como revisada/i })).not.toBeInTheDocument()
-  })
-
-  it('un técnico sí puede registrar la acción correctiva aunque no reconozca', async () => {
-    // HU-23: registrar la acción marca ATENDIDA directamente desde
-    // PENDIENTE, sin exigir el paso de reconocimiento.
-    sesionCon('tecnico')
-    montar([alerta({ estado: 'pendiente' })])
-
-    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
-    expect(screen.getByRole('menuitem', { name: /acción correctiva/i })).toBeInTheDocument()
-  })
-
-  it('no ofrece ninguna acción a un auditor (rol de solo lectura)', async () => {
-    sesionCon('auditor')
-    montar([alerta({ estado: 'pendiente' })])
-
-    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
-    expect(screen.queryByRole('menuitem', { name: /marcar como revisada/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: /acción correctiva/i })).not.toBeInTheDocument()
-  })
-
-  it('no ofrece ninguna acción sobre una alerta ya atendida', async () => {
-    sesionCon('farmaceutico')
-    montar([alerta({ estado: 'atendida' })])
-
-    await userEvent.setup().click(screen.getByRole('button', { name: /opciones/i }))
-    expect(screen.queryByRole('menuitem', { name: /marcar como revisada/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('menuitem', { name: /acción correctiva/i })).not.toBeInTheDocument()
-  })
-
-  it('avisa cuando no hay alertas para el filtro activo', () => {
-    montar([])
-    expect(screen.getByText(/no hay alertas|sin alertas/i)).toBeInTheDocument()
-  })
-
-  it('avisa cuando otro usuario ya reconoció la alerta (HU-27 Escenario 2)', async () => {
-    const usuario = userEvent.setup()
-    const reconocerAlerta = vi.fn().mockResolvedValue('conflicto')
-    useAlertas.mockReturnValue({
-      alertas: [alerta({ estado: 'pendiente' })],
-      cargando: false,
-      filtro: 'pendiente',
-      setFiltro: vi.fn(),
-      reconocerAlerta,
-      registrarAccionCorrectiva: vi.fn(),
-      obtenerCicloAtencion: vi.fn().mockResolvedValue([]),
-    })
-    render(<MemoryRouter><AlertasPage /></MemoryRouter>)
-
-    await usuario.click(screen.getByRole('button', { name: /opciones/i }))
-    await usuario.click(screen.getByRole('menuitem', { name: /marcar como revisada/i }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(/actualizada por otra persona/i)
   })
 })
 
 describe('Evidencia de la excursión y estado del correo (outcomes 2 y 6)', () => {
   beforeEach(() => {
     useAlertas.mockReset()
+    useIncidentesOperativos.mockReturnValue({ incidentes: [], cargando: false, errorCarga: false, consultar: vi.fn() })
+    useAtendidasRecientes.mockReturnValue({ alertas: [], estado: 'listo', limite: 50, recargar: vi.fn() })
     sesionCon('farmaceutico')
   })
 
-  it('muestra pico, duración e insignia «Histórica»', () => {
-    montar([alerta({ temperatura_pico: 11.5, duracion_s: 185, historica: true })])
+  it('muestra pico (1 decimal), duración legible e Histórica', () => {
+    montar([alerta({ temperatura_pico: 11.54, duracion_s: 185, historica: true })])
 
-    expect(screen.getByText('Histórica')).toBeInTheDocument()
-    expect(screen.getByText(/Pico 11\.50 °C/)).toBeInTheDocument()
-    expect(screen.getByText(/Duración 3:05/)).toBeInTheDocument()
+    expect(screen.getAllByText('Histórica').length).toBeGreaterThan(0)
+    expect(document.body.textContent).toMatch(/11\.5\u202F°C/)
+    expect(document.body.textContent).toMatch(/3\u00a0min 5\u00a0s/)
+    expect(document.body.textContent).not.toMatch(/3:05/)
   })
 
   it('no inventa evidencia en alertas anteriores a la migración', () => {
     montar([alerta()])
 
     expect(screen.queryByText('Histórica')).not.toBeInTheDocument()
-    expect(screen.queryByText(/Pico/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Pico/)).not.toBeInTheDocument()
+    expect(screen.getByText('Sin pico registrado')).toBeInTheDocument()
   })
 
   it.each([
@@ -205,10 +297,13 @@ describe('Evidencia de la excursión y estado del correo (outcomes 2 y 6)', () =
   ])('estado del correo %#', (campos, estado, texto) => {
     expect(estadoNotificacion(alerta(campos))).toBe(estado)
     montar([alerta(campos)])
-    expect(screen.getByText(texto)).toBeInTheDocument()
+    // Icono + texto para lector en la fila; texto con su ayuda visible en móvil.
+    expect(screen.getAllByText(texto).length).toBeGreaterThan(0)
   })
 
   it('una alerta preventiva no muestra estado de correo', () => {
     expect(estadoNotificacion(alerta({ nivel_riesgo: 'riesgo_preventivo' }))).toBeNull()
+    montar([alerta({ nivel_riesgo: 'riesgo_preventivo' })])
+    expect(screen.queryByText(/correo/i)).not.toBeInTheDocument()
   })
 })

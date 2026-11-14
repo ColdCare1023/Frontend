@@ -45,6 +45,12 @@ export interface ResumenAlertas {
   truncado: boolean
   /** Las más recientes primero (máx. 3) para el panel. */
   recientes: AlertaTermica[]
+  /**
+   * Pendientes y revisadas tal como llegaron (Alertas: tira de estado y cinta
+   * 24 h sin volver a pedirlas). Opcional para no romper resúmenes armados a mano.
+   */
+  pendientes?: AlertaTermica[]
+  revisadas?: AlertaTermica[]
 }
 
 export type CargaVivo = 'cargando' | 'listo' | 'parcial' | 'error'
@@ -108,6 +114,8 @@ export function resumirAlertas(paginas: AlertaTermica[][], limite = 200): Resume
     criticas: alertas.filter((a) => a.nivel_riesgo === 'excursion_critica').length,
     truncado: paginas.some((p) => p.length >= limite),
     recientes: [...alertas].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '')).slice(0, 3),
+    pendientes: paginas[0] ?? [],
+    revisadas: paginas[1] ?? [],
   }
 }
 
