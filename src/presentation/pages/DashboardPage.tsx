@@ -1,804 +1,70 @@
-import { memo, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarClock, ChevronDown, Clock3, DoorClosed, DoorOpen, Droplets, FlaskConical, RadioTower, ShieldQuestion, TableProperties, Wind } from 'lucide-react'
+import { FlaskConical } from 'lucide-react'
 
-import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
-import { useAlertasPendientes } from '@/application/hooks/useAlertasPendientes'
+import { useAlertasPendientes, useUltimaAlertaAtendida } from '@/application/hooks/useAlertasPendientes'
 import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
-import { CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { apiClient } from '@/infrastructure/api/apiClient'
-import { EChartWrapper } from '@/infrastructure/charts/EChartWrapper'
-import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { Segmentado } from '@/presentation/components/ui/segmentado'
-import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
+import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
+import { useAuthStore } from '@/application/stores/authStore'
+import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
+import { umbralSilencioSegundos } from '@/domain/entities/Dispositivo'
+import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
-import { duracionBreve, fechaCorta, fechaHora, hora as formatearHora } from '@/lib/formato'
-import { cn } from '@/lib/utils'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
-import { BadgeConectividad } from '../components/BadgeConectividad'
-import { EstadoCarga, EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
-import { RiskBadge } from '../components/RiskBadge'
-import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
-import { Detalles } from '../components/ui/detalles'
-import { rutaApi } from '@/lib/rutaApi'
+import { TooltipProvider } from '../components/ui/tooltip'
+import { CeldaAlertasPendientes } from './dashboard/CeldaAlertasPendientes'
+import { CeldaCondiciones } from './dashboard/CeldaCondiciones'
+import { CeldaCurva } from './dashboard/CeldaCurva'
+import { CeldaEquipo } from './dashboard/CeldaEquipo'
+import { CeldaEstadoEquipos, type TemperaturaEquipo } from './dashboard/CeldaEstadoEquipos'
+import { CeldaLectura } from './dashboard/CeldaLectura'
+import { CeldaLecturasRecientes } from './dashboard/CeldaLecturasRecientes'
+import { LineaEstado } from './dashboard/LineaEstado'
+import { PanelDetalleEquipo } from './dashboard/PanelDetalleEquipo'
+import { PanelSimulador } from './dashboard/PanelSimulador'
+import { unirEquipos } from './dashboard/equipos'
+import { condicionesLineaEstado } from './dashboard/condicionesLinea'
+import { useEquipoSeleccionado } from './dashboard/useEquipoSeleccionado'
+import { ROLES_SIMULADOR, resumenVentana } from './dashboard/utilidades'
 
-// HU-35: el nodo entrega su umbral configurado; 120 s cubre respuestas de
-// backends anteriores que todavía no publican este campo.
-const UMBRAL_PUERTA_ABIERTA_POR_DEFECTO = 120
-
-
-// HU-31 criterio 4: opciones de rango para la curva térmica del dashboard.
-// 24 h es el valor por defecto exigido por el criterio; las demás son la
-// forma de "ampliar o modificar el rango" que pide el mismo criterio sin
-// duplicar el panel de filtros completo de HU-36 (ese vive en Historial,
-// sobre datos ya cerrados — este es el propio monitoreo en vivo).
-const OPCIONES_VENTANA_HORAS = [1, 24, 24 * 7] as const
-
-function TarjetaMetrica({
-  etiqueta,
-  valor,
-  unidad,
-  icono: Icono,
-  delta,
-  retraso = 0,
-  destacada = false,
-  // HU-33 criterio 3: cuando el sensor de ESTA métrica falla, no se muestra
-  // un valor null como si fuera "sin dato" genérico — se dice explícitamente
-  // que el sensor falló, para no confundirlo con "todavía no llegó nada".
-  fallaSensor = false,
-  textoFallaSensor,
-  sinLectura = false,
-  textoSinLectura,
-  // HU-33 criterio 2: dato presente pero desactualizado — distinto de
-  // `fallaSensor` (dato ausente porque el sensor falló). Se atenúa la
-  // tarjeta y se avisa, en vez de mostrar un número viejo como si fuera
-  // vigente.
-  desactualizado = false,
-  textoDesactualizado,
-  textoDelta,
-  // HU-32 criterio 4: indicador "En vivo/Tiempo real" JUNTO AL VALOR (no solo
-  // en la cabecera de la página), con el timestamp de la última
-  // actualización, para que no haya ambigüedad entre una lectura activa y
-  // una desconectada/congelada. Solo se pasa en la tarjeta principal.
-  enVivo,
-}: {
-  etiqueta: string
-  valor: string
-  unidad: string
-  icono: React.ComponentType<{ className?: string }>
-  delta?: number | null
-  retraso?: number
-  destacada?: boolean
-  fallaSensor?: boolean
-  textoFallaSensor?: string
-  sinLectura?: boolean
-  textoSinLectura?: string
-  desactualizado?: boolean
-  textoDesactualizado?: string
-  textoDelta?: string
-  enVivo?: { conectado: boolean; texto: string }
-}) {
-  return (
-    <Card
-      className={cn(
-        'h-full rounded-none border-0 bg-transparent shadow-none',
-        destacada && !fallaSensor && !sinLectura && !desactualizado && 'border-brand-200 bg-primary-tint/50',
-        (fallaSensor || sinLectura) && 'border-danger-200 bg-danger-50/40',
-        !fallaSensor && !sinLectura && desactualizado && 'opacity-60',
-      )}
-      style={{ animationDelay: `${retraso}ms` }}
-    >
-      <CardContent className="flex h-full flex-col p-5 sm:p-6">
-        <div className="flex min-h-5 items-center justify-between gap-2">
-          <p className="text-[13px] leading-5 font-medium text-muted">{etiqueta}</p>
-          {/* El icono solo aparece cuando hay algo que mirar; en reposo era adorno. */}
-          {fallaSensor || sinLectura || desactualizado
-            ? <AlertTriangle className="size-4 text-accent" aria-hidden />
-            : <Icono className="size-4 text-faint" aria-hidden />}
-        </div>
-        {fallaSensor || sinLectura ? (
-          <p role={fallaSensor ? 'alert' : 'status'} className="mt-4 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-2 text-sm font-medium leading-snug text-danger-700">
-            {fallaSensor ? textoFallaSensor : textoSinLectura}
-          </p>
-        ) : (
-          <>
-            <p className="mt-4 flex flex-wrap items-baseline gap-x-1.5 gap-y-2">
-              <span className="nums text-[34px] font-semibold leading-none tracking-[-0.035em] text-foreground sm:text-[40px]">
-                {valor}
-              </span>
-              <span className="text-base font-medium text-muted">{unidad}</span>
-            </p>
-            {delta != null && Math.abs(delta) >= 0.05 && (
-              <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                <span className="nums inline-flex items-center gap-0.5 font-semibold text-foreground">
-                  {delta > 0 ? <ArrowUpRight aria-hidden className="size-3.5" /> : <ArrowDownRight aria-hidden className="size-3.5" />}
-                  {Math.abs(delta).toFixed(1)} °C
-                </span>
-                {textoDelta && <span>{textoDelta}</span>}
-              </p>
-            )}
-            {desactualizado && (
-              <p className="mt-2.5 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium leading-snug text-danger-700">
-                {textoDesactualizado}
-              </p>
-            )}
-            {enVivo && !desactualizado && (
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                <span className="relative flex size-1.5">
-                  {enVivo.conectado && (
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success-600 opacity-60" />
-                  )}
-                  <span
-                    className={cn(
-                      'relative inline-flex size-1.5 rounded-full',
-                      enVivo.conectado ? 'bg-success-600' : 'bg-faint',
-                    )}
-                  />
-                </span>
-                {enVivo.texto}
-              </p>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-function EstadoPrincipal({
-  ultima,
-  equipo,
-  riesgo,
-  segundosDesdeUltima,
-  desactualizado,
-}: {
-  ultima: LecturaTermica
-  equipo?: Dispositivo
-  riesgo: LecturaTermica['riesgo_efectivo']
-  segundosDesdeUltima: number | null
-  desactualizado: boolean
-}) {
-  const { t } = useTranslation()
-  const lectura = ultima.temperatura_interna
-  const minimoIndicador = 0
-  const maximoIndicador = 10
-  const lecturaFinita = lectura != null && Number.isFinite(lectura)
-  const fueraDeEscala = lecturaFinita && (lectura < minimoIndicador || lectura > maximoIndicador)
-  const porcentaje = !lecturaFinita
-    ? 50
-    : Math.max(minimoIndicador, Math.min(maximoIndicador, lectura)) * 10
-  const colorIndicador = riesgo === 'excursion_critica'
-    ? 'var(--color-danger-600)'
-    : riesgo === 'riesgo_preventivo'
-      ? 'var(--color-warning-600)'
-      : 'var(--color-secondary)'
-  const sensorFallido = fallaSensor(ultima, 'temperatura_interna')
-  const sinLectura = lectura == null
-  const umbralConfigurado = ultima.umbral_puerta_abierta_segundos
-  const umbralPuerta = typeof umbralConfigurado === 'number' && Number.isFinite(umbralConfigurado) && umbralConfigurado > 0
-    ? umbralConfigurado
-    : UMBRAL_PUERTA_ABIERTA_POR_DEFECTO
-  // HU-35: `apertura_refrigerador` dice si HUBO apertura en la ventana de
-  // muestreo y `duracion_apertura_segundos` cuánto duró dentro de ella (nunca
-  // más que el intervalo). Lo que lleva abierta la puerta sin cerrarse viene
-  // en `apertura_continua_segundos`; con backends anteriores se conserva el
-  // criterio previo.
-  const conAperturaContinua = ultima.apertura_continua_segundos !== undefined
-  const abiertaAhora = conAperturaContinua
-    ? (ultima.apertura_continua_segundos ?? 0) > 0
-    : ultima.apertura_refrigerador === true
-  // Mientras el dato es fresco, el contador sigue avanzando entre lecturas.
-  const aperturaEnCurso = abiertaAhora && ultima.apertura_continua_segundos != null
-    ? ultima.apertura_continua_segundos + (desactualizado ? 0 : (segundosDesdeUltima ?? 0))
-    : null
-  const huboAperturaCerrada = conAperturaContinua && !abiertaAhora && ultima.apertura_refrigerador === true
-  const aperturaProlongada = conAperturaContinua
-    ? aperturaEnCurso != null && aperturaEnCurso >= umbralPuerta
-    : ultima.apertura_refrigerador === true &&
-      ultima.duracion_apertura_segundos != null && ultima.duracion_apertura_segundos >= umbralPuerta
-
-  return (
-    <Card
-      className="tarjeta-lectura relative overflow-hidden"
-      data-riesgo={desactualizado || sensorFallido || sinLectura ? 'sinDatos' : (riesgo ?? 'sinDatos')}
-    >
-      <CardContent className="grid gap-6 p-5 sm:p-7 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] sm:items-center">
-        <section aria-labelledby="resumen-termico-titulo" className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p id="resumen-termico-titulo" className="text-[15px] font-semibold tracking-tight text-foreground">
-              {desactualizado ? t('dashboard.ultimaTemperatura') : t('dashboard.estadoRefrigerador')}
-            </p>
-            {/* HU-54 esc. 4: sin datos recientes no se presenta el equipo como Normal. */}
-            {desactualizado && riesgo === 'normal'
-              ? <Badge dot variant="neutral">{t('dashboard.sinDatosRecientes')}</Badge>
-              : <RiskBadge nivel={riesgo} />}
-            {riesgo === 'normal' && !ultima.ia_experimental && !ultima.excursion_confirmada && ultima.nivel_riesgo === null && (
-              // Sin clase del modelo (omitida, fallida o sin modelo): «Normal» lo dice solo la regla
-              // 2-8 °C; que no parezca una lectura evaluada por la IA.
-              <Badge variant="outline" title={t('dashboard.sinClasificacionIaDetalle')}>{t('dashboard.sinClasificacionIa')}</Badge>
-            )}
-            {ultima.ia_experimental && !ultima.excursion_confirmada && (
-              // HU-20 / B-1: la clase la produjo el modelo legado (datos sintéticos).
-              <Badge variant="outline" title={t('dashboard.iaExperimentalDetalle')}>{t('dashboard.iaExperimental')}</Badge>
-            )}
-          </div>
-          {riesgo
-            ? <p className="mt-1.5 text-sm text-muted">
-                {desactualizado
-                  ? t(riesgo === 'normal' ? 'dashboard.sinDatosRecientesDetalle' : 'dashboard.riesgoUltimaLectura')
-                  : t(`riesgo.detalle.${riesgo}`)}
-              </p>
-            : <p className="mt-1.5 text-sm text-muted">{t('dashboard.sinClasificacion')}</p>}
-          {ultima.excursion_confirmada && (
-            <p className="mt-1.5 text-xs font-semibold text-danger-700">{t('dashboard.excursionConfirmada')}</p>
-          )}
-          {!ultima.excursion_confirmada && ultima.nivel_riesgo === 'excursion_critica' && riesgo !== 'excursion_critica' && (
-            <p className="mt-1.5 flex items-start gap-1.5 text-xs text-warning-700">
-              <ShieldQuestion className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-              {t('dashboard.clasificacionIaDivergente')}
-            </p>
-          )}
-          <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
-            {sensorFallido || sinLectura ? (
-              <p role={sensorFallido ? 'alert' : 'status'} className="text-sm font-medium text-danger-700">
-                {sensorFallido ? t('dashboard.fallaSensor') : t('dashboard.sinLecturaDisponible')}
-              </p>
-            ) : (
-              <>
-                <p
-                  className={cn(
-                    'lectura-cifra nums text-[76px] font-semibold leading-[0.9] tracking-[-0.045em] sm:text-[104px]',
-                    riesgo === 'excursion_critica' && !desactualizado ? 'text-danger-700' : 'text-foreground',
-                    desactualizado && 'opacity-70',
-                  )}
-                >
-                  {lectura?.toFixed(1) ?? '—'}
-                </p>
-                <span className="pb-2 text-2xl font-medium tracking-tight text-muted">°C</span>
-              </>
-            )}
-          </div>
-          {/* Regla de 0 a 10 °C con la zona segura 2–8 °C: la marca dice dónde está la lectura. */}
-          <div className="regla-rango mt-6 max-w-[420px]" aria-hidden="true">
-            <div className="regla-rango__pista">
-              <span className="regla-rango__zona" />
-              {lecturaFinita && (
-                <span
-                  className="regla-rango__marca"
-                  style={{ left: `${porcentaje}%`, '--marca': colorIndicador } as React.CSSProperties}
-                />
-              )}
-            </div>
-            <div className="regla-rango__cotas nums">
-              <span>0°</span>
-              <span style={{ left: '20%' }}>2°</span>
-              <span style={{ left: '80%' }}>8°</span>
-              <span>10°</span>
-            </div>
-          </div>
-          {fueraDeEscala && lectura != null && (
-            <p role="note" className="mt-2 rounded-md border-l-2 border-accent bg-accent-tint px-2.5 py-1.5 text-xs font-medium text-danger-700">
-              {lectura > maximoIndicador
-                ? t('dashboard.lecturaSobreEscala', { temperatura: lectura.toFixed(1) })
-                : t('dashboard.lecturaBajoEscala', { temperatura: lectura.toFixed(1) })}
-            </p>
-          )}
-          <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-            <span className={cn('size-2 rounded-full', desactualizado ? 'bg-danger-600' : 'bg-success-600')} />
-            {desactualizado
-              ? t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })
-              : t('dashboard.lecturaReciente', { s: segundosDesdeUltima })}
-            <span aria-hidden="true">·</span>
-            <span>{t('dashboard.ultimaLecturaHora')}:</span>
-            <time dateTime={ultima.timestamp}>{formatearHora(ultima.timestamp)}</time>
-          </p>
-        </section>
-
-
-        <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-1 sm:border-t-0 sm:border-l sm:pl-5 sm:pt-0">
-          <div className="py-1.5">
-            <dt className="flex items-center gap-2 text-xs font-medium text-muted">{abiertaAhora ? <DoorOpen className="size-4 text-warning-600" aria-hidden /> : <DoorClosed className="size-4 text-primary" aria-hidden />}{t('dashboard.puerta')}</dt>
-            <dd
-              className={cn('mt-2 text-sm font-semibold', abiertaAhora ? 'text-warning-700' : 'text-foreground')}
-              role={aperturaProlongada ? 'alert' : undefined}
-              data-testid={abiertaAhora ? 'puerta-advertencia' : undefined}
-            >
-              {ultima.apertura_refrigerador === null
-                ? t('dashboard.puertaSinDato')
-                : abiertaAhora
-                  ? t('dashboard.puertaAbierta')
-                  : t('dashboard.puertaCerrada')}
-              {aperturaEnCurso != null && (
-                <span className={cn('nums ml-1 font-normal', aperturaProlongada ? 'text-danger-700' : 'text-muted')}>
-                  · {t('dashboard.puertaDesdeHace', { duracion: duracionBreve(aperturaEnCurso) })}
-                  {aperturaProlongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}
-                </span>
-              )}
-              {!conAperturaContinua && ultima.apertura_refrigerador && ultima.duracion_apertura_segundos != null && (() => {
-                const duracion = ultima.duracion_apertura_segundos
-                const prolongada = duracion >= umbralPuerta
-                return <span className={cn('nums ml-1 font-normal', prolongada ? 'text-danger-700' : 'text-muted')}>· {duracionBreve(duracion)}{prolongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}</span>
-              })()}
-              {huboAperturaCerrada && ultima.duracion_apertura_segundos != null && (
-                <span className="mt-1 block text-xs font-normal text-muted">
-                  {t('dashboard.puertaHuboApertura', { segundos: ultima.duracion_apertura_segundos })}
-                </span>
-              )}
-              {aperturaProlongada && (
-                <span className="mt-1 block text-xs font-medium text-danger-700">
-                  {t('dashboard.puertaSuperaUmbral', { segundos: umbralPuerta })}
-                </span>
-              )}
-            </dd>
-          </div>
-          <div className="py-1.5">
-            <dt className="flex items-center gap-2 text-xs font-medium text-muted"><RadioTower className="size-4 text-primary" aria-hidden />{t('dashboard.conexionEquipo')}</dt>
-            <dd className="mt-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
-              {/* HU-13: estado del NODO (LWT/online/telemetría), no el campo de la
-                  lectura, que siempre se envió conectada. Sin datos del equipo
-                  (modo demo) se usa el de la lectura. */}
-              <BadgeConectividad
-                estado={equipo?.estado_conectividad ?? ultima.estado_conectividad}
-                desde={equipo?.conectividad_cambiada_en}
-                testId="conectividad-dispositivo"
-              />
-            </dd>
-            <dd className="nums mt-1 break-all text-xs text-faint">{ultima.device_id}</dd>
-          </div>
-        </dl>
-      </CardContent>
-    </Card>
-  )
-}
-
-// HU-33 criterio 3: `estado_sensores` distingue un sensor que falló
-// (invalido/fisicamente_imposible/ausente) de uno que simplemente no aplica
-// a esta lectura — un valor `null` sin más contexto es indistinguible de
-// "aún no llegó el dato", que es justo la confusión que la historia pide
-// evitar.
-function fallaSensor(lectura: LecturaTermica, campo: string): boolean {
-  const estado = lectura.estado_sensores?.[campo]
-  return estado !== undefined && estado !== null && estado !== 'valido'
-}
-
-/** HU-21 esc. 3 / HU-23 esc. 3: lo que sigue sin atender se ve desde Monitoreo. */
-function AvisoAlertasPendientes() {
-  const { t } = useTranslation()
-  const { total, criticas } = useAlertasPendientes()
-  if (total === 0) return null
-  return (
-    <Link
-      to="/alertas"
-      className={cn(
-        'mb-4 flex items-center gap-2.5 rounded-(--radius-card) border px-4 py-3 text-[13.5px] font-medium transition-colors',
-        criticas > 0
-          ? 'border-critical/30 bg-critical-tint text-critical hover:border-critical/50'
-          : 'border-warning-600/30 bg-warning-100 text-warning-700 hover:border-warning-600/50',
-      )}
-    >
-      <AlertTriangle className="size-4 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1">
-        {t('dashboard.alertasSinAtender', { count: total })}
-        {criticas > 0 && ` · ${t('dashboard.alertasCriticas', { count: criticas })}`}
-      </span>
-      <ArrowRight className="size-4 shrink-0" aria-hidden />
-    </Link>
-  )
-}
-
-/** HU-30 esc. 2 y 3: condición documental, separada de las alertas térmicas. */
-function AvisoCalibracion({ equipo }: { equipo?: Dispositivo }) {
-  const { t } = useTranslation()
-  if (!equipo) return null
-  const estado = estadoCalibracion(equipo)
-  if (estado !== 'vencida' && estado !== 'proxima_a_vencer') return null
-  return (
-    <p role="status" className="mb-4 flex items-center gap-2.5 rounded-(--radius-card) border border-border-strong bg-surface-raised px-4 py-3 text-[13.5px] text-foreground">
-      <CalendarClock className="size-4 shrink-0 text-warning-600" aria-hidden />
-      {t(estado === 'vencida' ? 'dashboard.calibracionVencida' : 'dashboard.calibracionPorVencer', {
-        fecha: fechaCorta(equipo.fecha_proxima_calibracion),
-      })}
-    </p>
-  )
-}
-
-function EstadoEquiposIoT({ equipos }: { equipos: Dispositivo[] }) {
-  const { t } = useTranslation()
-  if (equipos.length === 0) return null
-
-  return (
-    <Card className="mb-4">
-      <CardContent className="p-5 sm:p-6">
-        <div className="flex items-start gap-3.5">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border pb-3">
-              <p className="text-[15px] font-semibold tracking-tight text-foreground">{t('dashboard.estadoIoTTitulo')}</p>
-              <p className="text-xs text-muted">{t('dashboard.estadoIoTDetalle')}</p>
-            </div>
-            <ul className="mt-3 grid gap-3 md:grid-cols-2">
-              {equipos.map((dispositivo) => {
-                const buffer = dispositivo.buffer_littlefs
-                const pendientes = buffer?.pendientes ?? 0
-                const perdidas = buffer?.perdidas ?? 0
-                const incidentes = dispositivo.incidencias_operativas ?? []
-                const incidenteActivo = incidentes.find((incidente) => incidente.estado === 'activo' && incidente.tipo === 'sin_datos')
-                const excursionNoVerificada = incidentes.find((incidente) => incidente.estado === 'activo' && incidente.tipo === 'excursion_no_verificada')
-                const incidentesResueltos = incidentes.filter((incidente) => incidente.estado === 'resuelto')
-
-                return (
-                  <li key={dispositivo.id} className="rounded-lg bg-surface-sunken/60 p-3.5 text-sm ring-1 ring-inset ring-border">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                      <span className="font-semibold tracking-tight">{dispositivo.nombre || dispositivo.id}</span>
-                      <span className="nums text-xs text-faint">{dispositivo.id}</span>
-                      {dispositivo.estado_operativo === 'SIN_DATOS' && (
-                        <Badge variant="critical">
-                          {t('dashboard.estadoSinDatos', {
-                            segundos: incidenteActivo?.umbral_silencio_segundos ?? umbralSilencioSegundos(dispositivo),
-                          })}
-                        </Badge>
-                      )}
-                      {dispositivo.estado_operativo === 'FALLA_SENSOR' && <Badge variant="critical">{t('dispositivos.estadoOperativo.FALLA_SENSOR')}</Badge>}
-                      {dispositivo.estado_operativo === 'MONITOREO_SUSPENDIDO' && (
-                        <Badge variant="critical" title={t('dispositivos.telemetriaRetenidaAyuda')}>
-                          {t('dispositivos.estadoOperativo.MONITOREO_SUSPENDIDO')}
-                        </Badge>
-                      )}
-                      {dispositivo.estado_operativo === 'OPERATIVO' && incidentesResueltos.length > 0 && <Badge variant="ok">{t('dispositivos.estadoOperativo.OPERATIVO')}</Badge>}
-                    </div>
-                    {excursionNoVerificada && (
-                      <p role="alert" className="mt-1.5 text-xs font-semibold text-danger-700">
-                        {t('dashboard.excursionNoVerificada', {
-                          temperatura: excursionNoVerificada.detalle?.temperatura_interna?.toFixed(2) ?? '—',
-                          fecha: fechaHora(excursionNoVerificada.detalle?.captured_at ?? excursionNoVerificada.detectado_en),
-                        })}
-                      </p>
-                    )}
-                    {incidenteActivo && (
-                      <p role="status" className="mt-1.5 text-xs font-medium text-danger-700">
-                        {t('dashboard.alertaSilencio', {
-                          fecha: fechaHora(incidenteActivo.detectado_en),
-                          segundos: incidenteActivo.umbral_silencio_segundos,
-                        })}
-                      </p>
-                    )}
-                    {dispositivo.estado_operativo === 'SIN_DATOS' && (
-                      <p className="mt-1 text-xs text-muted">
-                        {dispositivo.ultimo_reporte_en
-                          ? t('dashboard.ultimoDatoOperativo', { fecha: fechaHora(dispositivo.ultimo_reporte_en) })
-                          : t('dashboard.nuncaReporto')}
-                      </p>
-                    )}
-                    {buffer && (
-                      <div className="mt-2 flex flex-col gap-1 text-xs text-muted">
-                        {pendientes > 0 ? (
-                          <span>{t('dispositivos.bufferLittlefs', { n: pendientes, max: buffer.limite })}</span>
-                        ) : buffer.ultima_sincronizacion_en ? (
-                          <span className="text-success-700">
-                            {t('dashboard.sinPendientes', { fecha: fechaHora(buffer.ultima_sincronizacion_en) })}
-                          </span>
-                        ) : null}
-                        {buffer.desde && (
-                          <span>
-                            {t('dispositivos.rangoBuffer', {
-                              desde: fechaHora(buffer.desde),
-                              hasta: buffer.hasta ? fechaHora(buffer.hasta) : '—',
-                            })}
-                          </span>
-                        )}
-                        {perdidas > 0 && (
-                          <span className="font-semibold text-warning-600">
-                            {t('dispositivos.perdidas', { n: perdidas })}
-                          </span>
-                        )}
-                        {buffer.brechas?.slice(-2).map((brecha) => (
-                          <span key={`${brecha.desde}-${brecha.hasta}`} className="rounded-md bg-critical-tint px-2 py-1 text-danger-700">
-                            {t('dashboard.brechaBuffer', { n: brecha.muestras_perdidas })} · {t('dashboard.causaBufferAgotado')}
-                            <span className="mt-0.5 block font-normal">
-                              {t('dashboard.periodoBrecha', {
-                                desde: fechaHora(brecha.desde),
-                                hasta: fechaHora(brecha.hasta),
-                              })}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {incidentesResueltos.length > 0 && (
-                      <details className="group mt-2 text-xs text-muted">
-                        <summary className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded px-1 font-medium hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary">
-                          {t('dashboard.incidentesRecientes', { n: incidentesResueltos.length })}
-                          <ChevronDown className="size-3.5" aria-hidden />
-                        </summary>
-                        <ul className="mt-1 space-y-1 pl-3">
-                          {incidentesResueltos.slice(-3).map((incidente) => (
-                            <li key={incidente.id}>
-                              {t('dashboard.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })}
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-type EscenarioDashboard =
-  | 'sin_datos'
-  | 'buffer_pendiente'
-  | 'buffer_lleno'
-  | 'falla_sensor'
-  | 'puerta_abierta'
-  | 'puerta_cerrada'
-  | 'recuperar'
-
-const ESCENARIOS_DASHBOARD: Array<{ id: EscenarioDashboard; clave: string }> = [
-  { id: 'sin_datos', clave: 'dashboard.demoSinDatos' },
-  { id: 'buffer_pendiente', clave: 'dashboard.demoBufferPendiente' },
-  { id: 'buffer_lleno', clave: 'dashboard.demoBufferLleno' },
-  { id: 'falla_sensor', clave: 'dashboard.demoFallaSensor' },
-  { id: 'puerta_abierta', clave: 'dashboard.demoPuertaAbierta' },
-  { id: 'puerta_cerrada', clave: 'dashboard.demoPuertaCerrada' },
-  { id: 'recuperar', clave: 'dashboard.demoRecuperar' },
-]
-
-function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<void> }) {
-  const { t } = useTranslation()
-  const [ejecutando, setEjecutando] = useState<EscenarioDashboard | null>(null)
-  const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
-  const [umbralSilencio, setUmbralSilencio] = useState(90)
-  const [umbralPuerta, setUmbralPuerta] = useState(120)
-
-  const ejecutar = async (escenario: EscenarioDashboard) => {
-    setEjecutando(escenario)
-    setMensaje(null)
-    try {
-      await apiClient.post(rutaApi`/api/demo/dispositivos/${DISPOSITIVO_DEMO}/simulacion`, {
-        escenario,
-        umbral_sin_datos_segundos: umbralSilencio,
-        umbral_puerta_abierta_segundos: umbralPuerta,
-      })
-      await onActualizado()
-      setMensaje({ tipo: 'ok', texto: t('dashboard.demoAplicado') })
-    } catch {
-      setMensaje({ tipo: 'error', texto: t('dashboard.demoError') })
-    } finally {
-      setEjecutando(null)
-    }
-  }
-
-  if (!MODO_DEMO) return null
-
-  return (
-    <details className="tarjeta-cristal group mb-4 rounded-(--radius-card) border">
-      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-(--radius-card) px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-(--duration-micro) hover:bg-neutral-200/30 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-        <span className="flex items-center gap-3">
-          <span aria-hidden className="flex size-8 items-center justify-center rounded-lg bg-warning-100 text-warning-700 ring-1 ring-inset ring-warning-600/25">
-            <FlaskConical className="size-4" />
-          </span>
-          {t('dashboard.demoTitulo')}
-        </span>
-        <ChevronDown className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
-      </summary>
-      <div className="border-t border-border px-5 pb-5 pt-4">
-        <p className="mb-3 max-w-3xl text-xs leading-relaxed text-muted">{t('dashboard.demoAyuda')}</p>
-        <div className="mb-3 grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1.5 text-xs font-medium text-muted" htmlFor="umbral-silencio-demo">
-            {t('dashboard.umbralSilencio')}
-            <select
-              id="umbral-silencio-demo"
-              className="min-h-10 rounded-(--radius-field) border border-border-strong bg-surface-raised px-3 text-sm font-normal text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-              disabled={ejecutando !== null}
-              value={umbralSilencio}
-              onChange={(event) => setUmbralSilencio(Number(event.target.value))}
-            >
-              <option value={60}>60 s</option>
-              <option value={90}>90 s</option>
-              <option value={180}>180 s</option>
-            </select>
-          </label>
-          <label className="grid gap-1.5 text-xs font-medium text-muted" htmlFor="umbral-puerta-demo">
-            {t('dashboard.umbralPuerta')}
-            <select
-              id="umbral-puerta-demo"
-              className="min-h-10 rounded-(--radius-field) border border-border-strong bg-surface-raised px-3 text-sm font-normal text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-              disabled={ejecutando !== null}
-              value={umbralPuerta}
-              onChange={(event) => setUmbralPuerta(Number(event.target.value))}
-            >
-              <option value={60}>1 min</option>
-              <option value={120}>2 min</option>
-              <option value={300}>5 min</option>
-            </select>
-          </label>
-        </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {ESCENARIOS_DASHBOARD.map(({ id, clave }) => (
-            <Button
-              key={id}
-              type="button"
-              variant={id === 'recuperar' ? 'primary' : 'secondary'}
-              size="sm"
-              className={cn('justify-center', id === 'recuperar' && 'sm:col-span-2 xl:col-span-2')}
-              disabled={ejecutando !== null}
-              onClick={() => void ejecutar(id)}
-            >
-              {ejecutando === id ? t('dashboard.demoAplicando') : t(clave)}
-            </Button>
-          ))}
-        </div>
-        {mensaje && (
-          <p
-            role={mensaje.tipo === 'error' ? 'alert' : 'status'}
-            className={cn(
-              'mt-3 text-xs font-medium',
-              mensaje.tipo === 'error' ? 'text-danger-700' : 'text-success-700',
-            )}
-          >
-            {mensaje.texto}
-          </p>
-        )}
-      </div>
-    </details>
-  )
-}
-
-function resumenVentana(serie: LecturaTermica[]) {
-  const temps = serie
-    .map((l) => l.temperatura_interna)
-    .filter((v): v is number => v != null)
-  if (temps.length === 0) return null
-  return {
-    minima: Math.min(...temps),
-    maxima: Math.max(...temps),
-    promedio: temps.reduce((suma, v) => suma + v, 0) / temps.length,
-    // HU-34: cuenta excursiones CONFIRMADAS por la regla directa de rango,
-    // no por lo que haya clasificado la IA (`nivel_riesgo`/model_class).
-    fueraDeRango: serie.filter((l) => l.excursion_confirmada).length,
-  }
-}
+/** La entrada escalonada del bento ocurre una vez por sesión (MOTION 4.12). */
+let bentoYaEntro = false
 
 /**
- * Tabla accesible de datos para la curva del dashboard.
- * Las filas solo se convierten a texto mientras la tabla está abierta; el
- * componente memorizado tampoco se ejecuta en los ticks del reloj del padre.
+ * Monitoreo (P5c): un bento de siete celdas con un solo foco, la cifra. La
+ * página orquesta datos y selección; cada celda vive en `dashboard/` y se
+ * memoriza para que una lectura SSE no repinte lo que no cambió.
  */
-const TablaAlternativaMonitoreo = memo(function TablaAlternativaMonitoreo({
-  serie,
-  titulo,
-}: {
-  serie: LecturaTermica[]
-  titulo: string
-}) {
-  const { t } = useTranslation()
-  const [abierto, setAbierto] = useState(false)
-  const columnas = [
-    t('historial.fecha'),
-    t('dashboard.tempInterna'),
-    t('dashboard.tempAmbiental'),
-    t('historial.riesgo'),
-    t('dashboard.eventoGrafica'),
-  ]
-  const filas = useMemo(
-    () =>
-      abierto
-        ? serie.map((lectura) => [
-            formatearHora(lectura.timestamp),
-            lectura.temperatura_interna?.toFixed(1) ?? '—',
-            lectura.temperatura_ambiental?.toFixed(1) ?? '—',
-            lectura.riesgo_efectivo ? t(`riesgo.${lectura.riesgo_efectivo}`) : '—',
-            lectura.excursion_confirmada ? t('dashboard.excursionEvento') : '—',
-          ])
-        : [],
-    [abierto, serie, t],
-  )
-
-  if (serie.length === 0) return null
-
-  return (
-    <details
-      id="curva-termica-datos"
-      open={abierto}
-      onToggle={(evento) => setAbierto(evento.currentTarget.open)}
-      className="mt-4 border-t border-border pt-3"
-    >
-      <summary className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-(--radius-field) text-[13px] font-medium text-muted transition-colors duration-(--duration-micro) hover:text-marca-texto">
-        <TableProperties className="size-3.5" aria-hidden />
-        {t('comunes.verDatosGrafica')}
-      </summary>
-      {abierto && (
-        <div className="mt-3 max-h-72 overflow-auto rounded-(--radius-field) border border-border">
-          <table className="w-full text-left text-[13px]">
-            <caption className="sr-only">{titulo}</caption>
-            <thead className="sticky top-0 bg-surface-raised">
-              <tr>
-                {columnas.map((columna, indice) => (
-                  <th
-                    key={columna}
-                    scope="col"
-                    className={cn(
-                      'px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-faint',
-                      indice > 0 && 'text-center',
-                    )}
-                  >
-                    {columna}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filas.map((fila, indice) => (
-                <tr key={indice}>
-                  {fila.map((celda, columna) => (
-                    <td key={columna} className={cn('nums px-3 py-1.5', columna > 0 && 'text-center')}>
-                      {celda}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </details>
-  )
-})
-
-/** Nodo que reportó más recientemente; null si aún no hay ninguno. */
-function equipoMasReciente(equipos: Dispositivo[]): string | null {
-  const conReporte = equipos.filter((equipo) => equipo.ultimo_reporte_en)
-  const candidatos = conReporte.length > 0 ? conReporte : equipos
-  if (candidatos.length === 0) return null
-  return [...candidatos].sort((a, b) =>
-    Date.parse(b.ultimo_reporte_en ?? '') - Date.parse(a.ultimo_reporte_en ?? '') || a.id.localeCompare(b.id),
-  )[0].id
-}
-
 export function DashboardPage() {
   const { t } = useTranslation()
+  const rol = useAuthStore((s) => s.usuario?.rol)
   const [horasVentana, setHorasVentana] = useState<number>(24)
   const { equipos: equiposConIncidencias, consultar: consultarEstadoOperativo } = useEstadoOperativo()
   // HU-31/HU-33: el dashboard muestra UN refrigerador a la vez. Por defecto,
   // el que reportó más recientemente; con más de uno, se elige en el selector.
   const { equipos } = useEstadoOperativo(true)
-  const [equipoElegido, setEquipoElegido] = useState<string | null>(null)
-  // El equipo por defecto se fija la primera vez que se conoce. Recalcularlo
-  // en cada sondeo hacía que el dashboard saltara de refrigerador solo cada
-  // vez que otro nodo reportaba después. Solo se vuelve a elegir si el fijado
-  // desaparece de la lista; una lista vacía (sondeo fallido) no lo suelta.
-  const [equipoPorDefecto, setEquipoPorDefecto] = useState<string | null>(null)
-  const masReciente = equipoMasReciente(equipos)
-  const sigueListado =
-    equipoPorDefecto !== null && (equipos.length === 0 || equipos.some((equipo) => equipo.id === equipoPorDefecto))
-  if (!sigueListado && masReciente !== equipoPorDefecto) setEquipoPorDefecto(masReciente)
-  const deviceId = equipoElegido ?? (sigueListado ? equipoPorDefecto : masReciente)
+  const { deviceId, elegir: setEquipoElegido } = useEquipoSeleccionado(equipos)
   const { ultima, serie, sseConectado, estadoHistorial, reintentar } = useMonitoreoTermico(horasVentana, deviceId)
+  const alertas = useAlertasPendientes()
+  const ultimaAtendida = useUltimaAlertaAtendida(alertas.estado === 'listo' && alertas.total === 0)
+  const ultimasVivo = useEstadoVivoStore((s) => s.ultimas)
+
+  const flota = useMemo(() => unirEquipos(equipos, equiposConIncidencias), [equipos, equiposConIncidencias])
   const estadoIoTPrincipal =
-    equipos.find((equipo) => equipo.id === deviceId) ??
-    equiposConIncidencias.find((equipo) => equipo.id === (deviceId ?? DISPOSITIVO_DEMO))
-  const previa = serie.at(-2) ?? null
-  const resumen = useMemo(() => resumenVentana(serie), [serie])
-  const lecturasRecientes = useMemo(
-    () => [...serie].sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp)).slice(0, 4),
-    [serie],
-  )
+    flota.find((equipo) => equipo.id === deviceId) ?? flota.find((equipo) => equipo.id === (deviceId ?? DISPOSITIVO_DEMO))
+
+  const [animarBento] = useState(() => !bentoYaEntro)
+  useEffect(() => {
+    bentoYaEntro = true
+  }, [])
 
   // HU-32 criterio 4 / HU-33 criterio 2: si "hace cuánto" solo se recalculara
   // al recibir una lectura nueva, se congelaría hasta la siguiente — este
-  // tick lo mantiene avanzando aunque el dato no cambie, que es justo lo que
-  // distingue una lectura vigente de una congelada/desconectada.
+  // tick lo mantiene avanzando aunque el dato no cambie. Las celdas van en
+  // `memo`: solo Lectura y Condiciones dependen del segundo.
   const [ahora, setAhora] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setAhora(Date.now()), 1000)
@@ -806,359 +72,177 @@ export function DashboardPage() {
   }, [])
 
   const segundosDesdeUltima = ultima ? Math.max(0, Math.floor((ahora - new Date(ultima.timestamp).getTime()) / 1000)) : null
-  // HU-33 criterio 2 / B-17: el dato se marca desactualizado al superar el
-  // umbral SIN_DATOS del propio nodo (N × su intervalo de captura), no un
-  // valor fijo pensado para 30 s: con 10 s de banco o 60 s de piloto cambia.
+  // HU-33 criterio 2 / B-17: desactualizado al superar el umbral SIN_DATOS del propio nodo.
   const umbralFrescura = umbralSilencioSegundos(estadoIoTPrincipal)
-  const datoDesactualizado = estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' ||
-    (segundosDesdeUltima != null && segundosDesdeUltima >= umbralFrescura)
+  const datoDesactualizado =
+    estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' || (segundosDesdeUltima != null && segundosDesdeUltima >= umbralFrescura)
 
-  const deltaDe = (
-    actual: number | null | undefined,
-    anterior: number | null | undefined,
-  ): number | null =>
-    actual != null && anterior != null ? actual - anterior : null
-
-  // La ventana termina en «ahora» y avanza sola: se recalcula cada 15 s
-  // (no cada segundo, que repintaría miles de puntos) y con cada lectura.
+  // La ventana termina en «ahora» y avanza sola cada 15 s (no cada segundo).
   const marcaVentana = Math.floor(ahora / 15_000)
-  const tema = useTemaResuelto()
-  const opcionCurva = useMemo(
-    () => {
-      const hasta = Math.max(marcaVentana * 15_000, Date.parse(serie.at(-1)?.timestamp ?? '') || 0)
-      return construirOpcionCurvaTermica(
-        serie,
-        {
-          interna: t('dashboard.tempInterna'),
-          ambiental: t('dashboard.tempAmbiental'),
-          rangoEsperado: t('dashboard.rangoEsperadoCorto'),
-          ahora: t('dashboard.ejeAhora'),
-          excursion: t('dashboard.graficaExcursion'),
-          sinDatos: t('dashboard.graficaSinDatos'),
-        },
-        { desde: hasta - horasVentana * 60 * 60 * 1000, hasta },
-        tema,
-      )
-    },
-    // Con el tema cambian los colores del canvas (tokens CSS): se reconstruye.
-    [serie, t, horasVentana, marcaVentana, tema],
+  const minuto = Math.floor(ahora / 60_000) * 60_000
+
+  const ventana = t(`dashboard.ventanaFrase.${horasVentana}`)
+  const resumen = useMemo(() => resumenVentana(serie), [serie])
+  const extremos = useMemo(() => (resumen ? { minima: resumen.minima, maxima: resumen.maxima } : null), [resumen])
+
+  const temperaturas = useMemo(() => {
+    const mapa: Record<string, TemperaturaEquipo> = {}
+    for (const [id, lectura] of Object.entries(ultimasVivo)) mapa[id] = { valor: lectura.temperatura, riesgo: lectura.riesgo }
+    if (ultima && deviceId) mapa[deviceId] = { valor: ultima.temperatura_interna ?? null, riesgo: ultima.riesgo_efectivo ?? ultima.nivel_riesgo }
+    return mapa
+  }, [ultimasVivo, ultima, deviceId])
+
+  const nombres = useMemo(() => new Map(flota.map((e) => [e.id, e.nombre || e.id])), [flota])
+
+  const condiciones = useMemo(
+    () => condicionesLineaEstado({ alertas: { estado: alertas.estado, total: alertas.total, criticas: alertas.criticas }, equipos: flota }),
+    [alertas.estado, alertas.total, alertas.criticas, flota],
   )
 
-  const actualizarDemo = async () => {
+  const [detalleId, setDetalleId] = useState<string | null>(null)
+  const equipoDetalle = detalleId ? (flota.find((e) => e.id === detalleId) ?? null) : null
+  const [simuladorAbierto, setSimuladorAbierto] = useState(false)
+  const puedeSimular = MODO_DEMO && rol !== undefined && tienePermiso(rol, ROLES_SIMULADOR)
+  const puedeGestionar = rol !== undefined && tienePermiso(rol, [])
+
+  // Los paneles se abren sin `Trigger` de Radix: el foco vuelve a mano al control de origen.
+  const origenPanel = useRef<HTMLElement | null>(null)
+  const recordarOrigen = () => {
+    origenPanel.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  }
+  const devolverFoco = useCallback((evento: Event) => {
+    if (origenPanel.current?.isConnected) {
+      evento.preventDefault()
+      origenPanel.current.focus()
+    }
+  }, [])
+
+  const elegir = useCallback((id: string) => setEquipoElegido(id), [setEquipoElegido])
+  const verDetalles = useCallback((id: string) => {
+    recordarOrigen()
+    setDetalleId(id)
+  }, [])
+  const cerrarDetalle = useCallback(() => setDetalleId(null), [])
+  const mostrarDesdePanel = useCallback(
+    (id: string) => {
+      setEquipoElegido(id)
+      setDetalleId(null)
+    },
+    [setEquipoElegido],
+  )
+
+  const actualizarDemo = useCallback(async () => {
     await consultarEstadoOperativo()
     reintentar()
-  }
+  }, [consultarEstadoOperativo, reintentar])
 
   return (
-    <div>
+    <TooltipProvider delayDuration={300}>
       {/* RF-11 + WCAG 4.1.3: la excursión térmica que llega por SSE se anuncia.
-          HU-34: se anuncia el riesgo EFECTIVO, no la clase cruda de la IA —
-          es lo que decide si hay que actuar, no lo que opinó el modelo. */}
+          HU-34: se anuncia el riesgo EFECTIVO, no la clase cruda de la IA. */}
       <AnuncioRiesgo
-        nivel={datoDesactualizado ? null : ultima?.riesgo_efectivo ?? null}
+        nivel={datoDesactualizado ? null : (ultima?.riesgo_efectivo ?? null)}
         temperatura={datoDesactualizado ? null : ultima?.temperatura_interna}
       />
 
-      <PageHeader eyebrow={t('nav.seccionOperacion')} titulo={t('dashboard.titulo')} descripcion={t('dashboard.descripcion')}>
-        {equipos.length > 1 && (
-          <label className="flex max-w-full min-w-0 items-center gap-2.5 text-[13px] font-medium text-muted">
-            {t('dashboard.equipo')}
-            <select
-              value={deviceId ?? ''}
-              onChange={(evento) => setEquipoElegido(evento.target.value)}
-              className="min-h-11 min-w-0 max-w-full flex-1 truncate rounded-(--radius-field) border border-border-strong bg-surface-raised px-3 text-sm font-medium text-foreground shadow-(--shadow-card) transition-colors duration-(--duration-micro) hover:border-border-field focus-visible:outline-2 focus-visible:outline-ring sm:min-h-10"
-            >
-              {equipos.map((equipo) => (
-                <option key={equipo.id} value={equipo.id}>
-                  {equipo.nombre ? `${equipo.nombre} (${equipo.id})` : equipo.id}
-                </option>
-              ))}
-            </select>
-          </label>
+      <PageHeader
+        eyebrow={t('nav.seccionOperacion')}
+        titulo={t('dashboard.titulo')}
+        descripcion={t('dashboard.descripcion')}
+        meta={flota.length > 0 ? t('dashboard.encabezadoMeta', { count: flota.length }) : undefined}
+      >
+        {puedeSimular && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              recordarOrigen()
+              setSimuladorAbierto(true)
+            }}
+            aria-label={t('dashboard.simularEtiqueta')}
+            className="max-sm:size-11 max-sm:px-0"
+          >
+            <FlaskConical aria-hidden className="size-4" />
+            <span className="max-sm:sr-only">{t('dashboard.simular')}</span>
+          </Button>
         )}
-        <span
-          className={cn(
-            'inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-[13px] font-semibold',
-            sseConectado
-              ? 'border-success-200 bg-success-100 text-success-700'
-              : 'border-warning-600/25 bg-warning-100 text-warning-700',
-          )}
-        >
-          <span className="relative flex size-2">
-            {/* El latido solo mientras llegan datos: dice «esto está vivo» sin texto extra. */}
-            {sseConectado && <span aria-hidden className="absolute inline-flex size-full animate-ping rounded-full bg-success-600 opacity-50" />}
-            <span
-              className={cn(
-                'relative inline-flex size-2 rounded-full',
-                sseConectado ? 'bg-success-600 shadow-[0_0_8px_currentColor]' : 'bg-warning-600',
-              )}
-            />
-          </span>
-          {sseConectado ? t('dashboard.actualizacionActiva') : t('dashboard.actualizacionReconectando')}
-        </span>
       </PageHeader>
 
-      {estadoHistorial === 'error' && (
-        <div className="mb-4">
-          <EstadoError mensaje={t('dashboard.errorHistorial')}>
-            <Button variant="secondary" size="sm" className="mt-3" onClick={reintentar}>
-              {t('comunes.reintentar')}
-            </Button>
-          </EstadoError>
-        </div>
-      )}
+      <LineaEstado
+        condiciones={condiciones}
+        cargando={alertas.estado === 'cargando'}
+        onVerEquipo={verDetalles}
+        onReintentar={alertas.reintentar}
+      />
 
-      {/* El estado del nodo no depende de que exista una lectura térmica para
-          mostrar: una cámara sin telemetría también debe aparecer aquí. */}
-      {!ultima && estadoHistorial !== 'cargando' && <EstadoEquiposIoT equipos={equiposConIncidencias} />}
+      <div
+        className={
+          'grid grid-cols-4 gap-3 sm:grid-cols-8 lg:grid-cols-12 lg:grid-rows-[minmax(136px,auto)_minmax(136px,auto)_auto_auto] xl:gap-4' +
+          (animarBento ? ' bento-entra' : '')
+        }
+      >
+        <CeldaLectura
+          ultima={ultima}
+          estadoHistorial={estadoHistorial}
+          reintentar={reintentar}
+          equipos={equipos}
+          deviceId={deviceId}
+          onElegirEquipo={elegir}
+          desactualizado={datoDesactualizado}
+          segundosDesdeUltima={segundosDesdeUltima}
+          sseConectado={sseConectado}
+          extremos={extremos}
+          ventana={ventana}
+        />
+        <CeldaCondiciones
+          ultima={ultima}
+          serie={serie}
+          cargando={estadoHistorial === 'cargando'}
+          desactualizado={datoDesactualizado}
+          segundosDesdeUltima={segundosDesdeUltima}
+          ventana={ventana}
+          horasVentana={horasVentana}
+        />
+        <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
+        <CeldaCurva
+          serie={serie}
+          ultimaPresente={ultima !== null}
+          estadoHistorial={estadoHistorial}
+          reintentar={reintentar}
+          horasVentana={horasVentana}
+          onCambiarVentana={setHorasVentana}
+          marcaVentana={marcaVentana}
+          ventana={ventana}
+        />
+        <CeldaEstadoEquipos
+          equipos={flota}
+          deviceId={deviceId}
+          temperaturas={temperaturas}
+          ahora={minuto}
+          onElegir={elegir}
+          onVerDetalles={verDetalles}
+        />
+        <CeldaAlertasPendientes
+          total={alertas.total}
+          criticas={alertas.criticas}
+          alertas={alertas.alertas}
+          estado={alertas.estado}
+          reintentar={alertas.reintentar}
+          nombres={nombres}
+          ultimaAtendida={ultimaAtendida}
+        />
+        <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
+      </div>
 
-      {ultima === null && estadoHistorial === 'cargando' ? (
-        <EstadoCarga variant="dashboard">
-          {equiposConIncidencias.length > 0
-            ? <EstadoEquiposIoT equipos={equiposConIncidencias} />
-            : <div aria-hidden className="h-52 rounded-(--radius-card) border border-border bg-surface p-5"><div className="h-4 w-48 rounded bg-neutral-200" /><div className="mt-6 h-4 w-64 max-w-full rounded bg-neutral-200" /></div>}
-        </EstadoCarga>
-      ) : ultima === null && estadoHistorial === 'error' ? null : ultima === null ? (
-        <Card className="animate-rise">
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-secondary-tint text-secondary ring-1 ring-inset ring-secondary/20 shadow-[0_0_32px_-8px_rgb(0_209_255/0.45)]">
-              <RadioTower className="size-6" />
-            </span>
-            <p className="mt-1 text-[17px] font-semibold tracking-tight text-foreground">{t('dashboard.esperandoDatos')}</p>
-            <p className="max-w-sm text-sm text-muted">{t('dashboard.esperandoDetalle')}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <AvisoAlertasPendientes />
-          <AvisoCalibracion equipo={estadoIoTPrincipal} />
-          <div className="mb-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.7fr)]">
-          <EstadoPrincipal
-            ultima={ultima}
-            equipo={estadoIoTPrincipal}
-            riesgo={ultima.riesgo_efectivo}
-            segundosDesdeUltima={segundosDesdeUltima}
-            desactualizado={datoDesactualizado}
-          />
-
-          {/* El bloque principal prioriza estado y temperatura. Estas métricas
-              quedan como contexto secundario para una lectura rápida. */}
-          <div className="tarjeta-cristal grid grid-cols-2 divide-x divide-border overflow-hidden rounded-(--radius-card) border xl:grid-cols-1 xl:grid-rows-2 xl:divide-x-0 xl:divide-y">
-            <TarjetaMetrica
-              etiqueta={t('dashboard.tempAmbiental')}
-              valor={ultima.temperatura_ambiental?.toFixed(1) ?? '—'}
-              unidad="°C"
-              icono={Wind}
-              delta={deltaDe(ultima.temperatura_ambiental, previa?.temperatura_ambiental)}
-              textoDelta={t('dashboard.variacionVsAnterior')}
-              retraso={60}
-              fallaSensor={fallaSensor(ultima, 'temperatura_ambiental')}
-              textoFallaSensor={t('dashboard.fallaSensor')}
-              sinLectura={ultima.temperatura_ambiental == null && !fallaSensor(ultima, 'temperatura_ambiental')}
-              textoSinLectura={t('dashboard.sinLecturaDisponible')}
-              desactualizado={datoDesactualizado}
-              textoDesactualizado={t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })}
-            />
-            <TarjetaMetrica
-              etiqueta={t('dashboard.humedad')}
-              valor={ultima.humedad_ambiental?.toFixed(0) ?? '—'}
-              unidad="%"
-              fallaSensor={fallaSensor(ultima, 'humedad_ambiental')}
-              textoFallaSensor={t('dashboard.fallaSensor')}
-              sinLectura={ultima.humedad_ambiental == null && !fallaSensor(ultima, 'humedad_ambiental')}
-              textoSinLectura={t('dashboard.sinLecturaDisponible')}
-              icono={Droplets}
-              retraso={120}
-              desactualizado={datoDesactualizado}
-              textoDesactualizado={t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })}
-            />
-          </div>
-
-          </div>
-
-          {/* ── Curva térmica ───────────────────────────────── */}
-          <div><Card className="min-w-0">
-            <CardHeader className="gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-              <div>
-              <CardTitle>{t('dashboard.curvaTermica')}</CardTitle>
-                <CardDescription>
-                  {t('dashboard.ultimasLecturas', { n: serie.length })} ·{' '}
-                  {t('dashboard.rangoConservacion')}
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                {/* RF-18: el dashboard muestra el estado de conectividad del
-                    dispositivo. Es distinto del indicador SSE de la cabecera,
-                    que refleja la salud del stream del navegador, no la del nodo. */}
-                {/* HU-31 criterio 4: ventana de 24 h por defecto, con opción
-                    de ampliar o acotar sin salir del dashboard. */}
-                {estadoHistorial === 'cargando' && ultima && (
-                  <span role="status" className="text-xs text-muted">{t('app.cargando')}</span>
-                )}
-                <Segmentado
-                  etiqueta={t('dashboard.rangoVentana')}
-                  valor={horasVentana}
-                  onCambiar={setHorasVentana}
-                  opciones={OPCIONES_VENTANA_HORAS.map((horas) => ({
-                    valor: horas,
-                    etiqueta: horas === 1 ? t('dashboard.ventana1h') : horas === 24 ? t('dashboard.ventana24h') : t('dashboard.ventana7d'),
-                  }))}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <EChartWrapper
-                option={opcionCurva}
-                height="clamp(240px, 34vh, 320px)"
-                ariaLabel={t('dashboard.graficaEtiqueta', { n: serie.length })}
-                ariaDescribedBy="curva-termica-datos"
-              />
-
-              {/* Resumen editorial de la ventana visible */}
-              {resumen && (
-                <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-border pt-5 sm:grid-cols-4 sm:gap-x-0 sm:divide-x sm:divide-border">
-                  {(
-                    [
-                      ['dashboard.resumenMinima', `${resumen.minima.toFixed(1)} °C`, false],
-                      ['dashboard.resumenMaxima', `${resumen.maxima.toFixed(1)} °C`, false],
-                      ['dashboard.resumenPromedio', `${resumen.promedio.toFixed(1)} °C`, false],
-                      [
-                        'dashboard.resumenFueraRango',
-                        String(resumen.fueraDeRango),
-                        resumen.fueraDeRango > 0,
-                      ],
-                    ] as const
-                  ).map(([clave, valor, alerta]) => (
-                    <div key={clave} className="min-w-0 sm:px-5 sm:first:pl-0">
-                      <dt className="text-xs font-medium text-faint">{t(clave)}</dt>
-                      <dd
-                        className={cn(
-                          'nums mt-1.5 text-[22px] leading-7 font-semibold tracking-[-0.025em] text-foreground',
-                          alerta && 'text-danger-600',
-                        )}
-                      >
-                        {valor}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-              {/* Las cifras van pegadas a la curva; la tabla equivalente queda al final. */}
-              <TablaAlternativaMonitoreo
-                serie={serie}
-                titulo={t('dashboard.graficaEtiqueta', { n: serie.length })}
-              />
-            </CardContent>
-          </Card>
-          </div>
-          {equiposConIncidencias.length > 0 && (
-            <section className="mt-4 grid items-stretch gap-4 xl:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('dashboard.estadoIoTTitulo')}</CardTitle>
-                  <CardDescription>{t('dashboard.estadoIoTDetalle')}</CardDescription>
-                </CardHeader>
-                <CardContent className="divide-y divide-border">
-                  {equiposConIncidencias.map((equipo) => {
-                    const ultimaLectura = equipo.ultimo_reporte_en ? fechaHora(equipo.ultimo_reporte_en) : '—'
-                    const segundosSilencio = umbralSilencioSegundos(equipo)
-                    const lecturasPendientes = equipo.buffer_littlefs?.pendientes ?? 0
-                    const incidenteActivo = equipo.incidencias_operativas?.find((incidente) => incidente.estado === 'activo' && incidente.tipo === 'sin_datos')
-                    return (
-                      <article key={equipo.id} className="py-5 first:pt-0 last:pb-0">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[15px] font-semibold tracking-tight">{equipo.nombre || equipo.id}</p>
-                          <p className="nums mt-0.5 text-xs text-faint">{equipo.id}</p>
-                        </div>
-                        <Badge dot variant={equipo.estado_operativo === 'OPERATIVO' ? 'ok' : 'critical'}>
-                          {equipo.estado_operativo === 'SIN_DATOS'
-                            ? t('dashboard.estadoSinDatos', { segundos: segundosSilencio })
-                            : equipo.estado_operativo === 'FALLA_SENSOR'
-                              ? t('dispositivos.estadoOperativo.FALLA_SENSOR')
-                              : equipo.estado_operativo === 'MONITOREO_SUSPENDIDO'
-                                ? t('dispositivos.estadoOperativo.MONITOREO_SUSPENDIDO')
-                                : t('dispositivos.estadoOperativo.OPERATIVO')}
-                        </Badge>
-                      </div>
-                      {incidenteActivo && (
-                        <p role="status" className="mt-3 flex items-start gap-2 text-[13px] leading-5 font-medium text-danger-700">
-                          <AlertTriangle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-                          {t('dashboard.alertaSilencio', { fecha: fechaHora(incidenteActivo.detectado_en), segundos: incidenteActivo.umbral_silencio_segundos })}
-                        </p>
-                      )}
-                      {/* Lo que el farmacéutico necesita ver; la ficha técnica queda plegada. */}
-                      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-border pt-3 text-xs">
-                        <div><dt className="text-faint">{t('dispositivos.ultimoReporte')}</dt><dd className="nums mt-1 text-[13.5px] font-semibold text-foreground">{ultimaLectura}</dd></div>
-                        <div><dt className="text-faint">{t('dispositivos.conectividad')}</dt><dd className="mt-1 flex items-center gap-1.5 text-[13.5px] font-semibold text-foreground"><span aria-hidden className={cn('size-1.5 rounded-full', equipo.estado_conectividad === 'online' ? 'bg-success-600' : 'bg-danger-600')} />{equipo.estado_conectividad === 'online' ? t('dashboard.dispositivoOnline') : t('dashboard.dispositivoOffline')}</dd></div>
-                      </dl>
-                      <Detalles className="mt-1">
-                      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                        <div><dt className="text-muted">{t('dispositivos.fallasSensor')}</dt><dd className="mt-0.5 font-medium">{(equipo.sensores ?? []).filter((sensor) => sensor.estado === 'error').length}</dd></div>
-                        <div><dt className="text-muted">{t('dispositivos.bufferLittlefs', { n: lecturasPendientes, max: equipo.buffer_littlefs?.limite ?? CAPACIDAD_BUFFER_LITTLEFS })}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.perdidas', { n: equipo.buffer_littlefs?.perdidas ?? 0 })}</dd></div>
-                        <div><dt className="text-muted">{t('dispositivos.intervaloReporte')}</dt><dd className="mt-0.5 font-medium">{equipo.intervalo_reporte_segundos ?? 30} s</dd></div>
-                        <div><dt className="text-muted">{t('dispositivos.umbralSinDatos')}</dt><dd className="mt-0.5 font-medium">{segundosSilencio} s</dd></div>
-                        <div><dt className="text-muted">{t('dispositivos.firmware')}</dt><dd className="mt-0.5 font-medium">{equipo.firmware_version || '—'}</dd></div>
-                        <div><dt className="text-muted">{t('dispositivos.credencialEstado')}</dt><dd className="mt-0.5 font-medium">{t(`dispositivos.credencial.${equipo.estado_credencial_broker ?? 'sin_reportar'}`)}</dd></div>
-                        {equipo.buffer_littlefs?.desde && <div><dt className="text-muted">{t('dispositivos.ventanaCola')}</dt><dd className="mt-0.5 font-medium">{t('dispositivos.rangoBuffer', { desde: fechaHora(equipo.buffer_littlefs.desde), hasta: equipo.buffer_littlefs.hasta ? fechaHora(equipo.buffer_littlefs.hasta) : '—' })}</dd></div>}
-                      </dl>
-                      </Detalles>
-                      </article>
-                    )
-                  })}
-                </CardContent>
-              </Card>
-              {lecturasRecientes.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('dashboard.lecturasRecientesTitulo')}</CardTitle>
-                    <CardDescription>{t('dashboard.lecturasRecientesAyuda')}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ol className="divide-y divide-border">
-                      {lecturasRecientes.map((lectura) => (
-                        <li key={`${lectura.device_id}-${lectura.timestamp}`} className="-mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors duration-(--duration-micro) first:pt-1 hover:bg-neutral-200/40">
-                          <p className="nums min-w-0 text-[13px] text-muted">
-                            <time dateTime={lectura.timestamp} className="font-medium text-foreground">{fechaHora(lectura.timestamp)}</time>
-                            <span className="text-faint"> · {lectura.device_id}</span>
-                          </p>
-                          <div className="flex items-center gap-3">
-                            <span className="nums text-[18px] font-semibold tracking-[-0.02em] text-foreground">
-                              {lectura.temperatura_interna?.toFixed(1) ?? '—'}
-                              <span className="ml-0.5 text-[13px] font-medium text-muted">°C</span>
-                            </span>
-                            <RiskBadge nivel={lectura.riesgo_efectivo} />
-                          </div>
-                        </li>
-                      ))}
-                    </ol>
-                  </CardContent>
-                </Card>
-              )}
-            </section>
-          )}
-
-          <div role="status" className="mt-5 mb-4 flex items-center justify-between gap-2 border-t border-border px-1 pt-4 sm:flex-nowrap">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <Clock3 className="size-4 shrink-0 text-faint" aria-hidden />
-              <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-2 sm:gap-y-0.5">
-                <span className="text-[11px] text-muted sm:text-xs">{t('dashboard.ultimaActualizacion')}</span>
-                <time dateTime={ultima.timestamp} className="nums text-xs font-semibold text-foreground sm:text-sm">
-                  {formatearHora(ultima.timestamp)}
-                </time>
-              </div>
-            </div>
-            <Link
-              to="/alertas"
-              className="group inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border-strong bg-surface-raised px-3.5 text-[13px] font-semibold text-foreground transition-colors duration-(--duration-micro) hover:border-border-field hover:bg-neutral-200/60 sm:min-h-10 sm:gap-2 sm:px-4"
-            >
-              {t('dashboard.verAlertas')}
-              <ArrowRight className="size-3.5 transition-transform duration-(--duration-micro) group-hover:translate-x-0.5" aria-hidden />
-            </Link>
-          </div>
-        </>
-      )}
-      <SimuladorDashboard onActualizado={actualizarDemo} />
-    </div>
+      <PanelDetalleEquipo
+        equipo={equipoDetalle}
+        ahora={minuto}
+        puedeGestionar={puedeGestionar}
+        onCerrar={cerrarDetalle}
+        onMostrar={mostrarDesdePanel}
+        onCloseAutoFocus={devolverFoco}
+      />
+      {puedeSimular && <PanelSimulador abierto={simuladorAbierto} onAbiertoCambia={setSimuladorAbierto} onActualizado={actualizarDemo} onCloseAutoFocus={devolverFoco} />}
+    </TooltipProvider>
   )
 }

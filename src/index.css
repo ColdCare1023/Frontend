@@ -713,6 +713,24 @@
     }
   }
 
+  /* Bento del monitoreo (MOTION 4.12): una vez por sesión, solo transform;
+     la opacidad la aporta .pagina-entra, así no hay doble entrada. */
+  .bento-entra > * {
+    animation: celda-sube var(--duration-ui) var(--ease-out) both;
+    animation-delay: calc(min(var(--i, 0), 3) * var(--stagger));
+  }
+  .bento-entra > :nth-child(2),
+  .bento-entra > :nth-child(3) {
+    --i: 1;
+  }
+  .bento-entra > :nth-child(4),
+  .bento-entra > :nth-child(5) {
+    --i: 2;
+  }
+  .bento-entra > :nth-child(n + 6) {
+    --i: 3;
+  }
+
   /* Filas que llegan después de la carga inicial (MOTION 4.4). */
   [data-nueva] {
     animation: var(--animate-fila);
@@ -921,5 +939,10 @@
   }
   [data-saliendo] {
     animation: fila-sale var(--duration-pop) var(--ease-out) 600ms both;
+  }
+}
+@keyframes celda-sube {
+  from {
+    transform: translateY(calc(6px * var(--mov, 1)));
   }
 }

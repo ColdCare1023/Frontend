@@ -24,7 +24,7 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
 
   const temperatura = page.getByRole('region', { name: 'Temperatura actual' })
   const curva = page.locator('[role="img"][aria-label^="Gráfica de líneas"]')
-  const lecturaActual = await temperatura.locator('p.nums').textContent()
+  const lecturaActual = await temperatura.getByTestId('valor-actual').getAttribute('data-valor')
   expect(lecturaActual).toMatch(/^\d+\.\d+$/)
   await expect(curva).toBeVisible()
 
