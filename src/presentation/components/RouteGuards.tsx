@@ -1,10 +1,11 @@
-import { Navigate, Outlet, useNavigate } from 'react-router'
+import { Link, Navigate, Outlet } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { ShieldAlert } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
-import { Button } from './ui/button'
+import { seccionesPermitidas } from '../navegacion'
+import { IlustracionVacia } from './ui/ilustracion-vacia'
 
 /** Redirige a /login si no hay sesión activa. */
 export function RequireAuth() {
@@ -39,25 +40,55 @@ export function RequireConsentimiento() {
 export function RequireRoles({ roles }: { roles: Rol[] }) {
   const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
-  const navigate = useNavigate()
 
   if (!usuario) return <Navigate to="/login" replace />
 
   if (!tienePermiso(usuario.rol, roles)) {
     // H15: la pantalla dice dónde está la persona, por qué no puede seguir y
-    // le da una salida; antes solo había un icono y una frase.
+    // le ofrece los destinos que su rol sí abre (21st Empty States), en vez
+    // de un callejón sin salida. Solo `comunes.sinPermiso` contiene «permiso».
+    const secciones = seccionesPermitidas(usuario.rol)
     return (
-      <section aria-labelledby="titulo-sin-permiso" className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-24 text-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-warning-100 text-warning-700">
-          <ShieldAlert className="size-6" aria-hidden />
-        </span>
-        <h1 id="titulo-sin-permiso" className="font-display text-xl font-semibold tracking-tight text-foreground">
-          {t('comunes.sinPermisoTitulo')}
-        </h1>
-        <p className="text-sm text-muted">{t('comunes.sinPermiso')}</p>
-        <Button variant="secondary" size="sm" className="mt-2" onClick={() => navigate('/dashboard')}>
-          {t('comunes.volverMonitoreo')}
-        </Button>
+      <section aria-labelledby="titulo-sin-permiso" className="mx-auto grid w-full max-w-5xl gap-6 py-4 sm:py-8">
+        <div className="flex items-center gap-4 sm:gap-5">
+          <IlustracionVacia variante="sin-permiso" />
+          <div className="min-w-0 space-y-1">
+            <h1 id="titulo-sin-permiso" className="font-display text-page text-foreground">
+              {t('comunes.sinPermisoTitulo')}
+            </h1>
+            <p className="text-body text-muted">{t('comunes.sinPermiso')}</p>
+            <p className="text-meta text-faint">{t('comunes.sinPermisoRol', { rol: t(`roles.${usuario.rol}`) })}</p>
+          </div>
+        </div>
+        <div>
+          <h2 className="mb-3 text-body font-semibold text-subtle">{t('comunes.sinPermisoDestinos')}</h2>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {secciones.map((seccion) => (
+              <section key={seccion.claveI18n} aria-labelledby={`destinos-${seccion.claveI18n}`}>
+                <h3 id={`destinos-${seccion.claveI18n}`} className="eyebrow mb-2">
+                  {t(seccion.claveI18n)}
+                </h3>
+                <ul className="grid gap-2">
+                  {seccion.items.map((item) => (
+                    <li key={item.ruta}>
+                      <Link
+                        to={item.ruta}
+                        className="superficie group flex min-h-14 items-center gap-3 px-4 py-3 transition-[background-color,transform] duration-(--duration-micro) ease-(--ease-out) hover:bg-surface-hover active:scale-[0.985] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        <item.icono aria-hidden className="size-[18px] shrink-0 text-faint group-hover:text-foreground" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-body font-medium text-foreground">{t(item.claveI18n)}</span>
+                          <span className="block text-meta text-muted">{t(item.claveDescripcion)}</span>
+                        </span>
+                        <ChevronRight aria-hidden className="size-4 shrink-0 text-faint group-hover:text-foreground" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </div>
       </section>
     )
   }

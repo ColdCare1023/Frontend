@@ -12,7 +12,7 @@ const OPCIONES: Array<{ valor: PreferenciaTema; icono: typeof Sun; clave: string
   { valor: 'system', icono: Monitor, clave: 'tema.sistema' },
 ]
 
-const ICONO_GIRO = 'absolute size-[18px] transition-[transform,opacity] duration-(--duration-reveal) ease-(--ease-ui)'
+const ICONO_GIRO = 'absolute size-[18px] transition-[transform,opacity] duration-(--duration-reveal) ease-(--ease-out)'
 
 /**
  * Selector de tema: oscuro (predeterminado), claro o el del sistema. Sol y
@@ -47,16 +47,30 @@ export function ThemeSwitcher({ className }: { className?: string }) {
         </button>
       </MenuTrigger>
       <MenuContent className="w-44">
-        <MenuLabel>{t('tema.titulo')}</MenuLabel>
-        <MenuRadioGroup value={preferencia} onValueChange={elegir}>
-          {OPCIONES.map(({ valor, icono: IconoOpcion, clave }) => (
-            <MenuRadioItem key={valor} value={valor}>
-              <IconoOpcion className="text-faint" aria-hidden />
-              {t(clave)}
-            </MenuRadioItem>
-          ))}
-        </MenuRadioGroup>
+        <OpcionesTema alElegir={elegir} />
       </MenuContent>
     </Menu>
+  )
+}
+
+/**
+ * Etiqueta y opciones de tema; también dentro del menú de usuario en móvil.
+ * Sin `alElegir`, el tema cambia sin revelado circular desde un origen.
+ */
+export function OpcionesTema({ alElegir }: { alElegir?: (valor: string) => void }) {
+  const { t } = useTranslation()
+  const preferencia = usePreferenciaTema()
+  return (
+    <>
+      <MenuLabel>{t('tema.titulo')}</MenuLabel>
+      <MenuRadioGroup value={preferencia} onValueChange={alElegir ?? ((valor) => cambiarTema(valor as PreferenciaTema))}>
+        {OPCIONES.map(({ valor, icono: IconoOpcion, clave }) => (
+          <MenuRadioItem key={valor} value={valor}>
+            <IconoOpcion className="text-faint" aria-hidden />
+            {t(clave)}
+          </MenuRadioItem>
+        ))}
+      </MenuRadioGroup>
+    </>
   )
 }

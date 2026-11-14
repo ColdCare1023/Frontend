@@ -49,6 +49,23 @@ export default defineConfig(({ command, mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      // Perf A1: manifest para medir el presupuesto por ruta y vendors con
+      // hash estable. Radix y motion NO se agrupan: arrastrarían diálogos y
+      // selects al login.
+      manifest: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return undefined
+            if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/.test(id)) return 'vendor-react'
+            if (/[\\/]node_modules[\\/](i18next|react-i18next)[\\/]/.test(id)) return 'vendor-i18n'
+            if (/[\\/]node_modules[\\/](echarts|zrender)[\\/]/.test(id)) return 'vendor-echarts'
+            return undefined
+          },
+        },
+      },
+    },
     server: {
       proxy: {
         '/api': {

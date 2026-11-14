@@ -58,13 +58,13 @@ function RespaldoCarga({ shell = false }: { shell?: boolean }) {
   const { t } = useTranslation()
   const bloques = (
     <>
-      <div className="esqueleto h-8 w-64 max-w-full rounded-md" />
-      <div className="esqueleto h-4 w-96 max-w-full rounded" />
-      <div className="superficie p-5">
+      <div className="esqueleto h-7 w-64 max-w-full rounded-(--radius-small)" />
+      <div className="esqueleto h-16 w-full max-w-2xl rounded-(--radius-card)" />
+      <div className="superficie p-4">
         <div className="esqueleto h-4 w-40 rounded" />
         <div className="mt-6 flex flex-wrap gap-3"><div className="esqueleto h-10 w-40 rounded-md" /><div className="esqueleto h-10 w-40 rounded-md" /><div className="esqueleto h-10 w-40 rounded-md" /></div>
       </div>
-      <div className="superficie p-5">
+      <div className="superficie p-4">
         <div className="esqueleto h-4 w-48 rounded" />
         <div className="mt-8 flex h-20 items-end gap-3 border-b border-border px-3">{[35, 62, 48, 76, 56, 88, 68, 96, 52, 72, 44, 82].map((height, i) => <span key={i} className="esqueleto flex-1 rounded-t" style={{ height: `${height}%` }} />)}</div>
         <div className="mt-5 space-y-3">{[0, 1, 2].map((i) => <div key={i} className="flex gap-4"><div className="esqueleto h-3 w-32 rounded" /><div className="esqueleto h-3 w-48 rounded" /></div>)}</div>
@@ -72,17 +72,18 @@ function RespaldoCarga({ shell = false }: { shell?: boolean }) {
     </>
   )
   if (shell) {
-    // Mismo ancho que el riel real (expandido o colapsado): sin salto al cargar.
+    // Misma geometría que el shell real (riel 240/72 desde 1024, cabecera de
+    // 56 con la píldora): sin salto al terminar de cargar.
     const ancho = leerColapsado() ? ANCHO_COLAPSADO : ANCHO_EXPANDIDO
     return (
       <div role="status" aria-live="polite" aria-busy="true" className="min-h-dvh lg:pl-(--ancho-riel)" style={{ '--ancho-riel': `${ancho}px` } as React.CSSProperties}>
         <span className="sr-only">{t('app.cargando')}</span>
-        <aside aria-hidden className="fixed inset-y-0 left-0 hidden w-(--ancho-riel) border-r border-border bg-surface px-4 py-4 lg:block">
-          <div className="esqueleto h-9 w-full max-w-36 rounded-lg" />
-          <div className="mt-10 space-y-4">{Array.from({ length: 9 }, (_, i) => <div key={i} className="esqueleto h-4 w-full max-w-40 rounded" />)}</div>
+        <aside aria-hidden className="fixed inset-y-0 left-0 hidden w-(--ancho-riel) border-r border-border bg-riel lg:block">
+          <div className="flex h-14 items-center border-b border-border px-4"><div className="esqueleto h-8 w-full max-w-36 rounded-(--radius-field)" /></div>
+          <div className="mt-5 space-y-4 px-4">{Array.from({ length: 8 }, (_, i) => <div key={i} className="esqueleto h-4 w-full max-w-40 rounded" />)}</div>
         </aside>
-        <header aria-hidden className="h-14 border-b border-border bg-background/85" />
-        <main aria-hidden className="space-y-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">{bloques}</main>
+        <header aria-hidden className="flex h-14 items-center justify-center border-b border-border bg-background px-4 sm:justify-end sm:px-6"><div className="esqueleto h-8 w-44 rounded-full" /></header>
+        <main aria-hidden className="space-y-5 px-4 pt-5 sm:px-6 sm:pt-6 xl:px-8">{bloques}</main>
       </div>
     )
   }

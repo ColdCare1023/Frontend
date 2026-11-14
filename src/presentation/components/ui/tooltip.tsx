@@ -26,11 +26,12 @@ export function Tooltip({
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content
           side={lado}
-          sideOffset={10}
+          sideOffset={8}
           collisionPadding={8}
           className={cn(
-            'cristal z-[70] rounded-md border px-2.5 py-1.5 text-xs font-medium text-foreground',
-            'data-[state=delayed-open]:animate-(--animate-pop-in) data-[state=instant-open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)',
+            'flotante z-[70] origin-(--radix-tooltip-content-transform-origin) rounded-(--radius-small) px-2 py-1 text-meta font-medium text-foreground',
+            // MOTION 4.9: crece desde el trigger; abierto al instante (riel) no anima; cierra solo con opacidad.
+            'data-[state=delayed-open]:animate-(--animate-pop-in) data-[state=closed]:animate-[fade-out_100ms_var(--ease-out)_both]',
           )}
         >
           {contenido}

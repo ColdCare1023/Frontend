@@ -1,17 +1,27 @@
-import { useId } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
+import { useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
+import { useIndicador } from './indicador'
 
 interface OpcionSegmento<T> {
   valor: T
   etiqueta: string
 }
 
+const BOTON =
+  'relative h-11 min-w-0 cursor-pointer whitespace-nowrap rounded-(--radius-small) px-3 text-[13px] font-medium sm:h-8 sm:pointer-coarse:h-10'
+
 /**
- * Control segmentado con indicador que se desliza a la opción activa (patrón
- * «Animated Tabs», 21st.dev). Conserva la semántica previa de las pantallas:
- * un `group` con nombre y botones `aria-pressed`, alcanzables con Tab.
+ * Control segmentado con indicador compartido (MOTION 4.10, 21st «Animated
+ * Tabs», movin Facts). Encima de los botones va una copia `aria-hidden` con
+ * el estilo activo, recortada con `clip-path` a la opción elegida: el
+ * recorte se desliza con una transición de 180 ms sin tocar el layout ni
+ * usar el motor de layout de motion (antes `layoutId`, en el hilo principal
+ * justo mientras la ventana 1h/24h/7d pedía datos).
+ *
+ * Conserva la semántica previa: un `group` con nombre y botones
+ * `aria-pressed`, alcanzables con Tab. Activado con el teclado
+ * (`event.detail === 0`), el cambio es instantáneo.
  */
 export function Segmentado<T extends string | number>({
   opciones,
@@ -28,15 +38,21 @@ export function Segmentado<T extends string | number>({
   className?: string
   botonClassName?: string
 }) {
-  const id = useId()
-  const reducir = useReducedMotion()
+  const pista = useRef<HTMLDivElement>(null)
+  const [porTeclado, setPorTeclado] = useState(false)
+  const { izquierda, ancho, total, listo } = useIndicador(pista, `${String(valor)}|${opciones.map((o) => o.etiqueta).join('|')}`)
+  const derecha = Math.max(0, total - izquierda - ancho)
+  const animar = listo && !porTeclado
 
   return (
-    // Carril sólido con un filo interior: sin el filtro de refracción, que se recalculaba en cada cambio.
     <div
+      ref={pista}
       role="group"
       aria-label={etiqueta}
-      className={cn('relative inline-flex items-center gap-0.5 rounded-xl bg-surface-sunken p-1 ring-1 ring-inset ring-border', className)}
+      className={cn(
+        'relative inline-flex items-center gap-0.5 rounded-(--radius-field) bg-surface-sunken p-0.5 ring-1 ring-inset ring-border',
+        className,
+      )}
     >
       {opciones.map((opcion) => {
         const activo = opcion.valor === valor
@@ -45,25 +61,39 @@ export function Segmentado<T extends string | number>({
             key={String(opcion.valor)}
             type="button"
             aria-pressed={activo}
-            onClick={() => onCambiar(opcion.valor)}
+            data-activo={activo || undefined}
+            onClick={(evento) => {
+              setPorTeclado(evento.detail === 0)
+              onCambiar(opcion.valor)
+            }}
             className={cn(
-              'relative h-11 min-w-0 cursor-pointer whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring sm:h-8 sm:pointer-coarse:h-10',
-              activo ? 'text-foreground' : 'text-muted hover:text-foreground',
+              BOTON,
+              'text-muted transition-colors duration-(--duration-micro) hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
               botonClassName,
             )}
           >
-            {activo && (
-              <motion.span
-                layoutId={`segmento-${id}`}
-                aria-hidden
-                transition={reducir ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 40, mass: 0.7 }}
-                className="absolute inset-0 rounded-lg bg-surface-raised shadow-[0_1px_2px_rgb(0_0_0/0.25),0_4px_12px_-6px_rgb(0_0_0/0.4)] ring-1 ring-inset ring-border-strong"
-              />
-            )}
-            <span className="relative">{opcion.etiqueta}</span>
+            {opcion.etiqueta}
           </button>
         )
       })}
+      {/* Copia con el estilo activo: solo se ve la parte recortada. */}
+      <div
+        aria-hidden
+        data-indicador-segmentado
+        className={cn(
+          'pointer-events-none absolute inset-0 flex items-center gap-0.5 p-0.5',
+          ancho === 0 && 'opacity-0',
+          animar && 'transition-[clip-path] duration-(--duration-ui) ease-(--ease-out)',
+        )}
+        style={{ clipPath: `inset(2px ${derecha}px 2px ${izquierda}px round 6px)` }}
+      >
+        <span className="absolute inset-0.5 rounded-(--radius-small) bg-surface-raised shadow-[0_1px_2px_rgb(11_30_58/0.12)] dark:shadow-none" />
+        {opciones.map((opcion) => (
+          <span key={String(opcion.valor)} className={cn(BOTON, 'inline-flex items-center text-foreground', botonClassName)}>
+            {opcion.etiqueta}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

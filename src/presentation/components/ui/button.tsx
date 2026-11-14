@@ -8,15 +8,15 @@ import { cn } from '@/lib/utils'
  * compacto desde 640 px con puntero fino.
  */
 const buttonVariants = cva(
-  'inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-field) text-sm font-medium cursor-pointer transition-[color,background-color,border-color,box-shadow,transform] duration-(--duration-micro) ease-(--ease-ui) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] motion-reduce:active:scale-100 [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-field) text-sm font-medium cursor-pointer transition-[color,background-color,border-color,transform] duration-(--duration-micro) ease-(--ease-hover) active:duration-(--duration-press) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] motion-reduce:active:scale-100 [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
         primary: 'coldcare-primary-action font-semibold',
         secondary:
-          'border border-border-strong bg-surface text-foreground shadow-(--shadow-card) hover:border-border-field hover:bg-neutral-200/60',
-        ghost: 'text-muted hover:bg-neutral-200/70 hover:text-foreground',
-        danger: 'bg-critical-solid font-semibold text-on-critical shadow-(--shadow-card) hover:brightness-110',
+          'border border-border-strong bg-surface text-foreground hover:border-border-field hover:bg-surface-hover',
+        ghost: 'text-muted hover:bg-surface-hover hover:text-foreground',
+        danger: 'bg-critical-solid font-semibold text-on-critical hover:bg-critical',
       },
       size: {
         sm: 'h-11 px-3 text-[13px] sm:h-9 sm:pointer-coarse:h-11',

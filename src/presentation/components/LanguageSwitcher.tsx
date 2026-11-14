@@ -29,16 +29,27 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         </button>
       </MenuTrigger>
       <MenuContent className="w-44">
-        <MenuLabel>{t('comunes.idioma')}</MenuLabel>
-        <MenuRadioGroup value={actual} onValueChange={(idioma) => void i18n.changeLanguage(idioma)}>
-          {IDIOMAS.map((idioma) => (
-            <MenuRadioItem key={idioma} value={idioma} lang={idioma}>
-              <span className="w-6 text-xs font-semibold uppercase text-faint">{idioma}</span>
-              {t(`idiomas.${idioma}`)}
-            </MenuRadioItem>
-          ))}
-        </MenuRadioGroup>
+        <OpcionesIdioma />
       </MenuContent>
     </Menu>
+  )
+}
+
+/** Etiqueta y opciones de idioma; también dentro del menú de usuario en móvil. */
+export function OpcionesIdioma() {
+  const { t, i18n } = useTranslation()
+  const actual = i18n.resolvedLanguage === 'en' ? 'en' : 'es'
+  return (
+    <>
+      <MenuLabel>{t('comunes.idioma')}</MenuLabel>
+      <MenuRadioGroup value={actual} onValueChange={(idioma) => void i18n.changeLanguage(idioma)}>
+        {IDIOMAS.map((idioma) => (
+          <MenuRadioItem key={idioma} value={idioma} lang={idioma}>
+            <span className="w-6 text-xs font-semibold uppercase text-faint">{idioma}</span>
+            {t(`idiomas.${idioma}`)}
+          </MenuRadioItem>
+        ))}
+      </MenuRadioGroup>
+    </>
   )
 }

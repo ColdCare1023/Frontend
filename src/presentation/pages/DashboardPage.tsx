@@ -589,9 +589,6 @@ function SimuladorDashboard({ onActualizado }: { onActualizado: () => Promise<vo
             <FlaskConical className="size-4" />
           </span>
           {t('dashboard.demoTitulo')}
-          <span className="rounded-full bg-secondary-tint px-2.5 py-0.5 text-xs font-semibold text-success-700 ring-1 ring-inset ring-success-200">
-            {t('demo.badge')}
-          </span>
         </span>
         <ChevronDown className="size-4 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
       </summary>

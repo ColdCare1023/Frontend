@@ -152,7 +152,7 @@ export function SelectorFecha({
           align="start"
           sideOffset={8}
           collisionPadding={12}
-          className="cristal z-50 w-max max-w-[calc(100vw-24px)] origin-(--radix-popover-content-transform-origin) rounded-2xl border p-3 data-[state=open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)"
+          className="flotante z-50 w-max max-w-[calc(100vw-24px)] origin-(--radix-popover-content-transform-origin) rounded-(--radius-modal) p-3 data-[state=open]:animate-(--animate-pop-in) data-[state=closed]:animate-(--animate-pop-out)"
         >
           <div className="flex flex-col gap-3 min-[480px]:flex-row">
             <DayPicker
