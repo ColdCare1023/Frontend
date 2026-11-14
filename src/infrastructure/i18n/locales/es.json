@@ -2117,5 +2117,22 @@
     "errorReenvioNoEnviado": "No pudimos enviar el código nuevo y el anterior ya no sirve. Vuelve a pedirlo en un minuto.",
     "demoCodigo": "Código de demostración:",
     "demoUsar": "Usar código"
+  },
+  "copiarCodigo": {
+    "volver": "Volver a ColdCare",
+    "etiqueta": "Código de verificación",
+    "titulo": "Tu código de ColdCare",
+    "subtitulo": "Cópialo y pégalo en la pantalla de ColdCare que te lo pidió.",
+    "codigoLector": "Código: {{digitos}}",
+    "copiar": "Copiar código",
+    "copiado": "Código copiado",
+    "errorCopiar": "Tu navegador no permitió copiarlo. Selecciona el código y cópialo a mano.",
+    "pista": "Vuelve a la pestaña de ColdCare y pégalo",
+    "seguridad": "No compartas este código con nadie.",
+    "invalido": {
+      "titulo": "Este enlace no trae un código válido",
+      "mensaje": "Ábrelo de nuevo desde el correo de ColdCare o escribe el código que aparece en el mensaje.",
+      "irLogin": "Volver a ColdCare"
+    }
   }
 }

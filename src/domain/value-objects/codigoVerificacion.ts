@@ -49,3 +49,14 @@ export function normalizarCodigo(texto: string, longitud = LONGITUD_CODIGO): str
 export function codigoCompleto(codigo: string, longitud = LONGITUD_CODIGO): boolean {
   return new RegExp(`^\\d{${longitud}}$`).test(codigo)
 }
+
+/**
+ * Código que viaja en el fragmento del enlace «Copiar código» de los correos
+ * (`/copiar-codigo#123456`). El fragmento nunca llega al servidor ni a los
+ * registros de acceso. Solo se acepta exactamente el código, sin normalizar:
+ * un fragmento con cualquier otra cosa no es un enlace de ColdCare.
+ */
+export function codigoDesdeFragmento(fragmento: string): string | null {
+  const coincidencia = /^#(\d+)$/.exec(fragmento)
+  return coincidencia && codigoCompleto(coincidencia[1]) ? coincidencia[1] : null
+}

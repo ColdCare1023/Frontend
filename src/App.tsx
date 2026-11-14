@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/presentation/components/ErrorBoundary'
 import { PrivacyConsentModal } from '@/presentation/components/PrivacyConsentModal'
 import { RequireAuth, RequireConsentimiento, RequirePasswordPropia, RequireRoles } from '@/presentation/components/RouteGuards'
 import { CambiarPasswordPage } from '@/presentation/pages/CambiarPasswordPage'
+import { CopiarCodigoPage } from '@/presentation/pages/CopiarCodigoPage'
 import { LoginPage } from '@/presentation/pages/LoginPage'
 import { RecuperarContrasenaPage } from '@/presentation/pages/RecuperarContrasenaPage'
 import { ANCHO_COLAPSADO, ANCHO_EXPANDIDO, leerColapsado } from '@/presentation/layouts/preferenciaSidebar'
@@ -151,6 +152,9 @@ export function App() {
               "solicitud de acceso": las cuentas las crea el administrador. */}
           <Route path="/recuperar-contrasena" element={<RecuperarContrasenaPage />} />
           <Route path="/restablecer-password" element={<RestablecerContrasenaPage />} />
+          {/* Enlace «Copiar código» de los correos: el código viaja en el
+              fragmento (#123456), que nunca llega al servidor. */}
+          <Route path="/copiar-codigo" element={<CopiarCodigoPage />} />
 
           <Route element={<RequireAuth />}>
             <Route path="/cambiar-password" element={<CambiarPasswordPage />} />
