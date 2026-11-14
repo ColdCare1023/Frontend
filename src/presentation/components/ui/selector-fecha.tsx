@@ -175,7 +175,7 @@ export function SelectorFecha({
             </Suspense>
             {conHora && (
               <div className="min-w-0 min-[480px]:w-24">
-                <p className="mb-1.5 px-1 text-[11px] font-medium uppercase tracking-wide text-faint">{t('comunes.hora')}</p>
+                <p className="mb-1.5 px-1 text-micro uppercase tracking-wide text-faint">{t('comunes.hora')}</p>
                 <div
                   ref={listaHoras}
                   role="group"
@@ -189,7 +189,7 @@ export function SelectorFecha({
                       aria-pressed={hora === horaActual}
                       onClick={() => elegirHora(hora)}
                       className={cn(
-                        'nums shrink-0 cursor-pointer rounded-lg px-3 py-2 text-[13px] transition-colors duration-(--duration-micro)',
+                        'nums shrink-0 cursor-pointer rounded-lg px-3 py-2 text-body transition-colors duration-(--duration-micro)',
                         hora === horaActual ? 'bg-primary font-semibold text-on-primary' : 'text-muted hover:bg-neutral-200/70 hover:text-foreground',
                       )}
                     >
@@ -209,7 +209,7 @@ export function SelectorFecha({
                 emitir(ahora)
                 setAbierto(false)
               }}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-primary-tint"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-body font-medium text-primary transition-colors hover:bg-primary-tint"
             >
               {t('comunes.hoy')}
             </button>
@@ -220,7 +220,7 @@ export function SelectorFecha({
                 setTexto('')
                 setAbierto(false)
               }}
-              className="cursor-pointer rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground"
+              className="cursor-pointer rounded-lg px-3 py-1.5 text-body font-medium text-muted transition-colors hover:bg-neutral-200/70 hover:text-foreground"
             >
               {t('comunes.limpiar')}
             </button>

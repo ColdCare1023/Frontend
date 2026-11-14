@@ -55,7 +55,9 @@ export const NativeSelect = forwardRef<
     className={cn(
       campoBase,
       'h-11 appearance-none px-3 pr-8 sm:h-10 sm:pointer-coarse:h-11',
-      'bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2364748B%27 stroke-width=%272.5%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E")] bg-[position:right_0.65rem_center] bg-no-repeat',
+      // El chevron vive en una variable por tema (index.css): la clase con la
+      // URL en línea llevaba espacios y Tailwind la partía en clases inválidas.
+      'bg-(image:--icono-desplegar) bg-[position:right_0.75rem_center] bg-no-repeat',
       campoEstados,
       className,
     )}
@@ -69,7 +71,7 @@ NativeSelect.displayName = 'NativeSelect'
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn('mb-1.5 block text-[13px] leading-5 font-medium text-subtle', className)}
+      className={cn('mb-1.5 block text-body font-medium text-subtle', className)}
       {...props}
     />
   )

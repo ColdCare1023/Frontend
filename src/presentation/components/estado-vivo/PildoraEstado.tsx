@@ -15,7 +15,7 @@ import {
   type FilaEquipo,
   type Tono,
 } from '@/application/stores/estadoVivoStore'
-import { hora, localeActual } from '@/lib/formato'
+import { fechaHora, haceCuanto as haceCuantoDesde, hora, localeActual } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { formatearCifra, formatearTemperatura } from '../ui/formato-cifra'
 import { FONDO_ESTADO, TEXTO_ESTADO, type TonoEstado } from '../ui/estado-tonos'
@@ -332,7 +332,16 @@ function PanelEstadoVivo({
                     <span className="block truncate text-body">{alerta.device_id}</span>
                     <span className="block truncate text-meta text-faint">
                       {t(`riesgo.${alerta.nivel_riesgo}`)}
-                      {alerta.created_at ? ` · ${hora(alerta.created_at)}` : ''}
+                      {/* Relativo («ayer», «hace 3 h»): solo la hora hacía pasar por
+                          de hoy una alerta de ayer. La fecha completa va en el title. */}
+                      {alerta.created_at && (
+                        <>
+                          {' · '}
+                          <time dateTime={alerta.created_at} title={fechaHora(alerta.created_at)} className="nums">
+                            {haceCuantoDesde(alerta.created_at, ahora)}
+                          </time>
+                        </>
+                      )}
                     </span>
                   </span>
                 </li>

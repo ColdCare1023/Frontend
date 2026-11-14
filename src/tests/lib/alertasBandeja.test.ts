@@ -101,7 +101,7 @@ describe('formatos compactos de Alertas', () => {
 
   it('fechaHoraCompacta y haceCuanto', () => {
     expect(fechaHoraCompacta(null)).toBe('—')
-    expect(fechaHoraCompacta('2026-11-14T12:00:00Z')).toMatch(/^\d{2}\/\d{2}\u00a0\d{2}:\d{2}$/)
+    expect(fechaHoraCompacta('2026-11-14T12:00:00Z')).toMatch(/^\d{2}\/\d{2}\u00a0\d{1,2}:\d{2}\u00a0[ap]\.\u00a0m\.$/)
     expect(haceCuanto('2026-11-14T09:00:00Z', AHORA)).toMatch(/3 h/)
     // Un reloj atrasado nunca dice «dentro de».
     expect(haceCuanto('2026-11-14T12:00:30Z', AHORA)).not.toMatch(/dentro/)

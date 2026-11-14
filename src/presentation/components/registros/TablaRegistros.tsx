@@ -68,10 +68,14 @@ export function TablaRegistros<T>({
   }
 
   return (
+    // Siempre dentro de la `superficie` de su barra de filtros: sin borde ni
+    // radio propios (con ellos la lista móvil quedaba como una caja dentro de
+    // otra, con doble línea en los bordes).
     <Table
       titulo={titulo}
       cargando={cargando}
       mobileLayout="list"
+      variante="embebida"
       className={cn('table-fixed min-w-[600px] sm:min-w-0', className)}
     >
       <TableHeader>
@@ -82,24 +86,31 @@ export function TablaRegistros<T>({
           </th>
         </TableRow>
       </TableHeader>
+      {/* `divide-y-0`: cada fila ya lleva su borde superior. En v4 `divide-y`
+          pinta el inferior, y en la lista móvil (sin `border-collapse`) los dos
+          se veían como una línea doble. */}
       <TableBody
         data-cargando={cargando || undefined}
-        className="transition-opacity duration-(--duration-pop) data-[cargando]:opacity-60"
+        className="divide-y-0 transition-opacity duration-(--duration-pop) data-[cargando]:opacity-60"
       >
         {grupos.map((grupo) => (
           <Fragment key={`${grupo.clave}-${clave(grupo.filas[0])}`}>
             <tr data-grupo>
+              {/* `surface-hover`: en oscuro `surface-sunken` quedaba casi negro
+                  sobre la tarjeta. Solo borde superior; el inferior lo pone la
+                  primera fila del día. Bajo 640 px el resumen baja a su propia
+                  línea en vez de cortarse, y «Hoy · 14/11/2026» no se parte. */}
               <th
                 scope="colgroup"
                 colSpan={total}
-                className="h-9 border-y border-border bg-surface-sunken px-4 text-left align-middle font-normal"
+                className="min-h-9 border-t border-border bg-surface-hover px-4 py-2 text-left align-middle font-normal sm:h-9 sm:py-0"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-meta font-medium text-subtle">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+                  <span className="whitespace-nowrap text-meta font-medium text-subtle">
                     {etiquetaDia(grupo.iso, t)}
                     <span className="nums font-normal text-muted"> · {fechaCorta(grupo.iso)}</span>
                   </span>
-                  {resumenDia && <span className="nums truncate text-meta text-muted">{resumenDia(grupo.clave)}</span>}
+                  {resumenDia && <span className="nums min-w-0 text-meta text-muted sm:truncate">{resumenDia(grupo.clave)}</span>}
                 </div>
               </th>
             </tr>

@@ -1,13 +1,15 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { useLocation, useSearchParams } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { Plus, Search } from 'lucide-react'
 
 import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
+import { construirCinta24h } from '@/lib/cinta24h'
 import { hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
+import { useMinuto } from '@/presentation/hooks/useReloj'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../../components/EstadoPagina'
 import { PageHeader } from '../../components/PageHeader'
@@ -17,7 +19,9 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Segmentado } from '../../components/ui/segmentado'
 import { TiraEstado, type SegmentoTira } from '../../components/ui/tira-estado'
-import { useFlota } from './contextoFlota'
+import { ActividadReciente } from './ActividadReciente'
+import { eventosRecientes } from './actividad'
+import { useActividad, useFlota } from './contextoFlota'
 import {
   coincide,
   estadoVisualEquipo,
@@ -27,19 +31,25 @@ import {
   resumenFlota,
   type FraseGuia,
 } from './estadoEquipo'
-import { FilaDispositivo } from './lista/FilaDispositivo'
+import { COLUMNAS_LISTA, FilaDispositivo } from './lista/FilaDispositivo'
 import { RailContexto } from './lista/RailContexto'
+import { useTendencias } from './lista/tendencias'
 import { PanelRegistrarEquipo } from './paneles/PanelRegistrarEquipo'
 import { PanelSimuladorIoT } from './paneles/PanelSimuladorIoT'
 
 type Filtro = 'todos' | 'atencion' | 'baja'
+
+/** Con estas filas o menos, la lista se acompaña de la actividad reciente (DIRECTION §13). */
+const FILAS_CON_ACTIVIDAD = 4
 
 /** `/dispositivos`: tira de estado, lista de equipos y rail de contexto. */
 export function ListaDispositivosPage() {
   const { t } = useTranslation()
   const location = useLocation()
   const { dispositivos, cargando, errorCarga, consultar } = useFlota()
+  const actividad = useActividad()
   const ultimas = useEstadoVivoStore((s) => s.ultimas)
+  const ahora = useMinuto()
   const [parametros, setParametros] = useSearchParams()
   const filtro: Filtro = parametros.get('filtro') === 'atencion' ? 'atencion' : parametros.get('filtro') === 'baja' ? 'baja' : 'todos'
   const consulta = parametros.get('q') ?? ''
@@ -96,6 +106,21 @@ export function ListaDispositivosPage() {
     [filas, filtro, consultaDiferida],
   )
   const visibles = useMemo(() => filtradas.slice(...rangoPagina(pagina, tamanoPagina)), [filtradas, pagina, tamanoPagina])
+  // Tendencia corta y cinta 24 h solo para las filas de la página visible.
+  const activosVisibles = useMemo(() => visibles.filter((f) => f.d.activo).map((f) => f.d.id), [visibles])
+  const tendencias = useTendencias(activosVisibles)
+  const ahoraCinta = Math.floor(ahora / 300_000) * 300_000
+  const cintas = useMemo(
+    () =>
+      actividad.cargando
+        ? new Map()
+        : new Map(construirCinta24h(actividad.alertas, actividad.incidentes, ahoraCinta, activosVisibles).map((c) => [c.deviceId, c])),
+    [actividad.cargando, actividad.alertas, actividad.incidentes, ahoraCinta, activosVisibles],
+  )
+  const eventos = useMemo(
+    () => eventosRecientes(actividad.alertas, actividad.incidentes, ahora, { limite: 5 }),
+    [actividad.alertas, actividad.incidentes, ahora],
+  )
   const resumen = useMemo(() => resumenFlota(dispositivos), [dispositivos])
   const desde = `${location.pathname}${location.search}`
   const hayFiltros = filtro !== 'todos' || consulta !== ''
@@ -146,83 +171,125 @@ export function ListaDispositivosPage() {
         <div className="grid grid-cols-12 gap-3 xl:gap-4">
           <TiraEstado
             className="col-span-12"
+            apilarGuia
             etiqueta={t('dispositivos.resumenIoT')}
             guia={<TextoGuia frase={fraseGuia(resumen, dispositivos)} />}
             segmentos={segmentosTira(resumen, t)}
           />
 
-          <section aria-labelledby="titulo-lista" className="superficie col-span-12 min-w-0 self-start overflow-hidden xl:col-span-8">
-            <h2 id="titulo-lista" className="sr-only">{t('dispositivos.lista.etiqueta')}</h2>
-            <BarraFiltros
-              etiqueta={t('dispositivos.lista.filtrar')}
-              resultado={t(filtradas.length === 1 ? 'dispositivos.lista.conteoUno' : 'dispositivos.lista.conteoVarios', { n: filtradas.length })}
-              hayFiltros={hayFiltros}
-              alLimpiar={() => cambiar({ filtro: null, q: null, pagina: null })}
-            >
-              <Segmentado<Filtro>
+          {/* Lista y rail en su propia grilla: el rail fijo (sticky) no puede
+              salirse de ella y montarse sobre la actividad de debajo. */}
+          <div className="col-span-12 grid grid-cols-12 gap-3 xl:gap-4">
+            <section aria-labelledby="titulo-lista" className="superficie col-span-12 min-w-0 self-start overflow-hidden xl:col-span-8 2xl:col-span-9">
+              <h2 id="titulo-lista" className="sr-only">{t('dispositivos.lista.etiqueta')}</h2>
+              <BarraFiltros
+                className="items-center"
                 etiqueta={t('dispositivos.lista.filtrar')}
-                valor={filtro}
-                onCambiar={(valor) => cambiar({ filtro: valor === 'todos' ? null : valor, pagina: null })}
-                opciones={[
-                  { valor: 'todos', etiqueta: t('dispositivos.lista.filtroTodos', { n: conteos.todos }) },
-                  { valor: 'atencion', etiqueta: t('dispositivos.lista.filtroAtencion', { n: conteos.atencion }) },
-                  { valor: 'baja', etiqueta: t('dispositivos.lista.filtroBaja', { n: conteos.baja }) },
-                ]}
-              />
-              <label className="relative w-full sm:w-60">
-                <span className="sr-only">{t('dispositivos.lista.buscar')}</span>
-                <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-                <Input
-                  type="search"
-                  className="pl-9"
-                  placeholder={t('dispositivos.lista.buscarMarcador')}
-                  value={consulta}
-                  onChange={(e) => cambiar({ q: e.target.value || null, pagina: null })}
-                />
-              </label>
-            </BarraFiltros>
-
-            <div aria-hidden className="hidden h-9 grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] items-center gap-x-4 border-b border-border bg-surface-sunken px-4 text-meta font-medium text-muted sm:grid">
-              <span>{t('dispositivos.lista.columnaEquipo')}</span>
-              <span>{t('dispositivos.lista.columnaLectura')}</span>
-              <span className="text-right">{t('comunes.acciones')}</span>
-            </div>
-
-            {filtradas.length === 0 ? (
-              <EstadoVacio
-                ilustracion="sin-resultados"
-                titulo={t('dispositivos.lista.sinResultados')}
-                className="m-4"
+                resultado={
+                  // En móvil el segmentado ocupa la fila: el conteo solo se anuncia.
+                  <span className="max-sm:sr-only">
+                    {t(filtradas.length === 1 ? 'dispositivos.lista.conteoUno' : 'dispositivos.lista.conteoVarios', { n: filtradas.length })}
+                  </span>
+                }
+                hayFiltros={hayFiltros}
+                alLimpiar={() => cambiar({ filtro: null, q: null, pagina: null })}
               >
-                <Button variant="secondary" size="sm" className="mt-3" onClick={() => cambiar({ filtro: null, q: null, pagina: null })}>
-                  {t('dispositivos.lista.limpiarFiltros')}
-                </Button>
-              </EstadoVacio>
-            ) : (
-              <ul aria-labelledby="titulo-lista" className="divide-y divide-border">
-                {visibles.map(({ d, ultima, estado }) => (
-                  <FilaDispositivo
-                    key={d.id}
-                    dispositivo={d}
-                    estado={estado}
-                    ultima={ultima}
-                    desde={desde}
-                    alProbarIoT={setSimulando}
+                <Segmentado<Filtro>
+                  etiqueta={t('dispositivos.lista.filtrar')}
+                  valor={filtro}
+                  onCambiar={(valor) => cambiar({ filtro: valor === 'todos' ? null : valor, pagina: null })}
+                  opciones={(['todos', 'atencion', 'baja'] as const).map((valor) => ({
+                    valor,
+                    etiqueta: t(`dispositivos.lista.filtro.${valor}`),
+                    conteo: conteos[valor],
+                    descripcionConteo: t(conteos[valor] === 1 ? 'dispositivos.lista.conteoUno' : 'dispositivos.lista.conteoVarios', { n: conteos[valor] }),
+                  }))}
+                  className="grid w-full grid-cols-3 sm:inline-flex sm:w-auto"
+                  botonClassName="px-1.5 text-meta sm:px-3 sm:text-body"
+                />
+                {/* 176 px entre 1280 y 1439: con 224 la búsqueda bajaba a otra fila. */}
+                <label className="relative w-full sm:w-56 xl:max-[1439px]:w-44">
+                  <span className="sr-only">{t('dispositivos.lista.buscar')}</span>
+                  <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
+                  <Input
+                    type="search"
+                    className="pl-9"
+                    placeholder={t('dispositivos.lista.buscarMarcador')}
+                    value={consulta}
+                    onChange={(e) => cambiar({ q: e.target.value || null, pagina: null })}
                   />
-                ))}
-              </ul>
-            )}
-            <div className="border-t border-border px-4 py-2 empty:hidden">
-              <Paginacion
-                total={filtradas.length}
-                pagina={pagina}
-                onCambiar={(p) => cambiar({ pagina: p > 1 ? String(p) : null })}
-                tamano={tamanoPagina}
-              />
-            </div>
-          </section>
+                </label>
+              </BarraFiltros>
 
-          <RailContexto dispositivos={dispositivos} />
+              <div className={`grid gap-x-4 ${COLUMNAS_LISTA}`}>
+                <div aria-hidden className="col-span-full hidden h-9 grid-cols-subgrid items-center border-b border-border bg-surface-sunken px-4 text-meta font-medium text-muted sm:grid">
+                  <span>{t('dispositivos.lista.columnaEquipo')}</span>
+                  <span>{t('dispositivos.lista.columnaLectura')}</span>
+                  <span className="hidden lg:block">{t('dispositivos.lista.ultimas24h')}</span>
+                  <span className="text-right">{t('comunes.acciones')}</span>
+                </div>
+
+                {filtradas.length === 0 ? (
+                  <EstadoVacio
+                    ilustracion="sin-resultados"
+                    titulo={t('dispositivos.lista.sinResultados')}
+                    className="col-span-full m-4"
+                  >
+                    <Button variant="secondary" size="sm" className="mt-3" onClick={() => cambiar({ filtro: null, q: null, pagina: null })}>
+                      {t('dispositivos.lista.limpiarFiltros')}
+                    </Button>
+                  </EstadoVacio>
+                ) : (
+                  <ul aria-labelledby="titulo-lista" className="col-span-full grid grid-cols-subgrid divide-y divide-border">
+                    {visibles.map(({ d, ultima, estado }) => (
+                      <FilaDispositivo
+                        key={d.id}
+                        dispositivo={d}
+                        estado={estado}
+                        ultima={ultima}
+                        desde={desde}
+                        alProbarIoT={setSimulando}
+                        tendencia={tendencias.get(d.id)}
+                        cinta={cintas.get(d.id)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="border-t border-border px-4 py-2 empty:hidden">
+                <Paginacion
+                  total={filtradas.length}
+                  pagina={pagina}
+                  onCambiar={(p) => cambiar({ pagina: p > 1 ? String(p) : null })}
+                  tamano={tamanoPagina}
+                />
+              </div>
+            </section>
+
+            <RailContexto dispositivos={dispositivos} />
+          </div>
+
+          {/* Con pocas filas, la actividad de la flota va a todo lo ancho bajo la
+              lista y el rail: así ambas columnas terminan casi a la par. */}
+          {visibles.length <= FILAS_CON_ACTIVIDAD && (
+            <ActividadReciente
+              id="actividad-flota"
+              titulo={t('dispositivos.actividad.titulo')}
+              eventos={eventos}
+              cargando={actividad.cargando}
+              error={actividad.error}
+              ahora={ahora}
+              className="col-span-12"
+              accion={
+                <Link
+                  to="/alertas"
+                  className="inline-flex h-11 items-center rounded-(--radius-field) px-3 text-body font-medium text-primary-text transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
+                >
+                  {t('dispositivos.actividad.verAlertas')}
+                </Link>
+              }
+            />
+          )}
         </div>
       )}
 
@@ -243,7 +310,7 @@ function segmentosTira(resumen: ReturnType<typeof resumenFlota>, t: TFunction): 
         .filter(Boolean)
         .join(' · '),
     },
-    { clave: 'sinDatos', etiqueta: t('dispositivos.sinDatos'), valor: resumen.sinDatos, tono: resumen.sinDatos > 0 ? 'aviso' : 'neutro' },
+    { clave: 'sinDatos', etiqueta: t('dispositivos.sinDatos'), valor: resumen.sinDatos, tono: resumen.sinDatos > 0 ? 'sinDatos' : 'neutro' },
     { clave: 'fallas', etiqueta: t('dispositivos.fallasSensor'), valor: resumen.fallas, tono: resumen.fallas > 0 ? 'aviso' : 'neutro' },
     { clave: 'buffer', etiqueta: t('dispositivos.bufferPendiente'), valor: resumen.buffer },
     {
@@ -251,14 +318,13 @@ function segmentosTira(resumen: ReturnType<typeof resumenFlota>, t: TFunction): 
       etiqueta: t('dispositivos.tira.calibracion'),
       valor: calibracion,
       tono: resumen.calibracionVencidas > 0 ? 'critico' : calibracion > 0 ? 'aviso' : 'neutro',
-      detalle: calibracion > 0 ? t('dispositivos.tira.porAtender') : undefined,
+      detalle: resumen.calibracionVencidas > 0 ? t('dispositivos.tira.vencidas', { count: resumen.calibracionVencidas }) : undefined,
     },
     {
       clave: 'consola',
       etiqueta: t('dispositivos.tira.consola'),
       valor: resumen.consola,
       tono: resumen.consola > 0 ? 'aviso' : 'neutro',
-      detalle: resumen.consola > 0 ? t('dispositivos.tira.pendientes') : undefined,
     },
   ]
 }

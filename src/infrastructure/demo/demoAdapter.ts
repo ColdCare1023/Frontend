@@ -24,7 +24,7 @@ import {
   generarLecturasBuffer,
   METRICAS_IA_DEMO,
 } from './datosDemo'
-import { CODIGO_VERIFICACION_DEMO } from './constantesDemo'
+import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
 
 // Flujos que tienen estado propio del adapter durante la sesión demo.
 const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>()
@@ -306,6 +306,16 @@ function responder<T>(config: InternalAxiosRequestConfig, data: T, status = 200)
 function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: string): never {
   const respuesta = responder(config, { detail: mensaje }, status)
   throw new AxiosError(mensaje, 'ERR_BAD_REQUEST', config, null, respuesta)
+}
+
+/**
+ * Publica en el stream demo lo que el backend emitiría por SSE. Tras la
+ * respuesta (microtarea siguiente), como en el backend: primero se confirma
+ * la escritura y luego llega el evento.
+ */
+function emitirSseDemo(detalle: { lectura?: LecturaTermica; alerta?: AlertaTermica }): void {
+  if (typeof window === 'undefined') return
+  setTimeout(() => window.dispatchEvent(new CustomEvent(EVENTO_SSE_DEMO, { detail: detalle })), 0)
 }
 
 function parametros(config: InternalAxiosRequestConfig): Record<string, string> {
@@ -1187,6 +1197,57 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       const lectura = generarLecturaEnVivo()
       lectura.apertura_refrigerador = escenario === 'puerta_abierta'
       lectura.duracion_apertura_segundos = escenario === 'puerta_abierta' ? 240 : 0
+    } else if (escenario === 'excursion_critica' || escenario === 'riesgo_preventivo') {
+      // Una lectura fuera de rango (o junto al límite) y su alerta PENDIENTE
+      // con evidencia, que llega a las pantallas abiertas por el stream demo,
+      // como llegaría por SSE desde el backend.
+      const critica = escenario === 'excursion_critica'
+      const temperatura = critica ? 8.6 : 7.4
+      const nivel = critica ? 'excursion_critica' : 'riesgo_preventivo'
+      const previa = estadoDemo.lecturas.filter((l) => l.device_id === dispositivo.id).at(-1)
+      dispositivo.estado_conectividad = 'online'
+      dispositivo.ultimo_reporte_en = momento(0)
+      const lectura: LecturaTermica = {
+        ...(previa ?? ({} as LecturaTermica)),
+        id: `lec-sim-${ahora}`,
+        device_id: dispositivo.id,
+        timestamp: momento(0),
+        seq_no: (previa?.seq_no ?? 0) + 1,
+        captured_at: momento(0),
+        received_at: momento(0),
+        temperatura_interna: temperatura,
+        nivel_riesgo: nivel,
+        riesgo_efectivo: nivel,
+        excursion_confirmada: critica,
+        estado_conectividad: 'online',
+        origen_clasificacion: 'random_forest',
+        estado_inferencia: 'completada',
+        motivo_no_inferencia: null,
+      }
+      estadoDemo.lecturas.push(lectura)
+      const alerta: AlertaTermica = {
+        id: `al-sim-${ahora}`,
+        reading_id: lectura.id ?? '',
+        device_id: dispositivo.id,
+        nivel_riesgo: nivel,
+        mensaje: critica
+          ? `Temperatura interna ${temperatura.toFixed(1)} °C fuera del rango de conservación 2–8 °C`
+          : `Temperatura interna ${temperatura.toFixed(1)} °C se acerca al límite del rango 2–8 °C`,
+        revisada: false,
+        revisada_por: null,
+        created_at: momento(0),
+        estado: 'pendiente',
+        reconocida_en: null,
+        atendida_en: null,
+        iniciada_en: momento(10 * 60_000),
+        temperatura_pico: temperatura,
+        duracion_s: 600,
+        historica: false,
+        notificada_en: null,
+        notificacion_intentos: 0,
+      }
+      estadoDemo.alertas.push(alerta)
+      emitirSseDemo({ lectura, alerta })
     } else {
       fallar(config, 422, 'Escenario demo desconocido')
     }

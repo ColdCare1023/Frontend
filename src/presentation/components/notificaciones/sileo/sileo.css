@@ -73,15 +73,16 @@
   cursor: default;
 }
 
+/* MOTION §4.14: solo transform y opacity. El alto y los márgenes del contenedor
+   (transparente) cambian sin transición; la forma visible es el SVG, que
+   anima motion. El cambio de vista pendiente no espera a `transitionend`:
+   sileo.tsx lo aplica con su temporizador de SWAP_COLLAPSE_MS. */
 [data-sileo-toast][data-ready="true"] {
   opacity: 1;
   transform: translateZ(0) scale(1);
   transition:
     transform calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-    opacity calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-    margin-bottom calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-    margin-top calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing),
-    height var(--sileo-duration) var(--sileo-spring-easing);
+    opacity calc(var(--sileo-duration) * 0.66) var(--sileo-spring-easing);
 }
 
 /* Entry animation direction */
@@ -93,10 +94,13 @@
   transform: translateY(6px) scale(0.95);
 }
 
-/* Exit */
+/* Exit: 200 ms de opacidad y translateY(-6px) (MOTION §4.14). */
 [data-sileo-toast][data-ready="true"][data-exiting="true"] {
   opacity: 0;
   pointer-events: none;
+  transition:
+    transform 200ms var(--ease-out, ease-out),
+    opacity 200ms var(--ease-out, ease-out);
 }
 
 [data-sileo-viewport][data-position^="top"]
@@ -138,6 +142,8 @@
 
 /* --------------------------------- Header --------------------------------- */
 
+/* La posición horizontal va en el transform (antes `left`, que no se
+   compone en GPU); el ancho máximo sigue al de la píldora sin transición. */
 [data-sileo-header] {
   position: absolute;
   z-index: 20;
@@ -146,16 +152,13 @@
   padding: 0.5rem;
   height: var(--sileo-height);
   overflow: hidden;
-  left: var(--_px, 0px);
-  transform: var(--_ht);
+  left: 0;
+  transform: translateX(var(--_px, 0px)) var(--_ht);
   max-width: var(--_pw);
 }
 
 [data-sileo-toast][data-ready="true"] [data-sileo-header] {
-  transition:
-    transform var(--sileo-duration) var(--sileo-spring-easing),
-    left var(--sileo-duration) var(--sileo-spring-easing),
-    max-width var(--sileo-duration) var(--sileo-spring-easing);
+  transition: transform var(--sileo-duration) var(--sileo-spring-easing);
 }
 
 [data-sileo-header][data-edge="top"] {
@@ -424,7 +427,7 @@
 @media (prefers-reduced-motion: no-preference) {
   [data-sileo-toast][data-ready="true"]:hover,
   [data-sileo-toast][data-ready="true"][data-exiting="true"] {
-    will-change: transform, opacity, height;
+    will-change: transform, opacity;
   }
 }
 

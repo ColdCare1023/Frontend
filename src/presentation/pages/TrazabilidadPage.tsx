@@ -154,11 +154,12 @@ export function TrazabilidadPage() {
           consultarCon(tipoEvento, equipo.trim())
         }}
       >
-        <div className="w-full sm:w-44">
+        {/* 208 px: «Ej.: FARM-01-CDL» y el chevron de sugerencias caben sin cortarse. */}
+        <div className="w-full sm:w-52">
           <Label htmlFor="f-equipo-traza" className="text-meta text-muted">{t('trazabilidad.filtro.equipo')}</Label>
           <div className="relative">
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
-            <Input id="f-equipo-traza" list={idEquipos} className="h-9 pl-9 pointer-coarse:h-11" value={equipo} onChange={(e) => setEquipo(e.target.value)} placeholder="FARM-01-CDL" />
+            <Input id="f-equipo-traza" list={idEquipos} className="h-9 pl-9 pointer-coarse:h-11" value={equipo} onChange={(e) => setEquipo(e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} />
             <datalist id={idEquipos}>{equiposVistos.map((d) => <option key={d} value={d} />)}</datalist>
           </div>
         </div>
@@ -270,10 +271,13 @@ export function TrazabilidadPage() {
                     </div>
                   </div>
                 </CeldaRegistro>
+                {/* Bajo 640 px hora, equipo y resumen comparten esta línea: hasta 2 líneas en vez de cortarse. */}
                 <CeldaRegistro area="b" className="codigo truncate text-body text-subtle max-sm:text-meta max-sm:text-muted">
-                  <span className="nums sm:hidden">{hora(r.timestamp)} · </span>
-                  {r.device_id ?? '—'}
-                  {resumen && <span className="sm:hidden"> · {resumen}</span>}
+                  <span className="max-sm:line-clamp-2 max-sm:whitespace-normal max-sm:[overflow-wrap:anywhere]">
+                    <span className="nums sm:hidden">{hora(r.timestamp)} · </span>
+                    {r.device_id ?? '—'}
+                    {resumen && <span className="sm:hidden"> · {resumen}</span>}
+                  </span>
                 </CeldaRegistro>
                 {mostrarSellos && (
                   <CeldaRegistro area="oculta" className="codigo text-meta text-faint">
@@ -351,7 +355,7 @@ export function TrazabilidadPage() {
               <form aria-label={t('trazabilidad.verificarSegmento')} className="grid gap-3" onSubmit={(e) => { e.preventDefault(); verificarSegmento() }}>
                 <div>
                   <Label htmlFor="seg-device">{t('historial.dispositivo')}</Label>
-                  <Input id="seg-device" list={`${idEquipos}-seg`} value={segmentoDeviceId} onChange={(e) => setSegmentoDeviceId(e.target.value)} placeholder="FARM-01-CDL" required />
+                  <Input id="seg-device" list={`${idEquipos}-seg`} value={segmentoDeviceId} onChange={(e) => setSegmentoDeviceId(e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} required />
                   <datalist id={`${idEquipos}-seg`}>{equiposVistos.map((d) => <option key={d} value={d} />)}</datalist>
                 </div>
                 <div>

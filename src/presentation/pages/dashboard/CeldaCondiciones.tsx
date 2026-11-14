@@ -107,6 +107,13 @@ function Metrica({
   )
 }
 
+/** «1 h», «24 h» o «7 d»: la misma etiqueta del selector de la curva. */
+function ventanaCorta(horas: number, t: (clave: string) => string): string {
+  if (horas === 1) return t('dashboard.ventana1h')
+  if (horas === 24) return t('dashboard.ventana24h')
+  return t('dashboard.ventana7d')
+}
+
 /** Marcas verticales de cada apertura de la ventana (HU-35 esc. 3). */
 function TiraAperturas({ serie, umbral, desde, hasta }: { serie: readonly LecturaTermica[]; umbral: number; desde: number; hasta: number }) {
   const marcas = useMemo(() => aperturasEnSerie(serie, umbral), [serie, umbral])
@@ -271,7 +278,10 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
               <dd className="mt-auto">
                 <TiraAperturas serie={serie} umbral={puerta.umbral} desde={hasta - horasVentana * 3_600_000} hasta={hasta} />
               </dd>
-              <dd className="nums mt-1 truncate text-micro text-faint">{t('dashboard.aperturasVentana', { count: aperturas, ventana })}</dd>
+              {/* «5 aperturas · 24 h» cabe en la columna; la frase larga queda en el title. */}
+              <dd className="nums mt-1 text-micro text-faint lg:truncate" title={t('dashboard.aperturasVentana', { count: aperturas, ventana })}>
+                {t('dashboard.aperturasCorto', { count: aperturas, ventana: ventanaCorta(horasVentana, t).replace(' ', '\u00a0') })}
+              </dd>
             </>
           )}
         </div>

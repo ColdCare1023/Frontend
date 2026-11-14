@@ -51,6 +51,21 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     expect(within(screen.getByRole('region', { name: /bitácora de auditoría/i })).getByText('190.12.4.7')).toBeInTheDocument()
   })
 
+  it('el usuario corto se muestra entero y un UUID se abrevia a 8 caracteres', () => {
+    useAuditoria.mockReturnValue({
+      registros: [
+        registro({ id: 'a-1', usuario_id: 'u-02' }),
+        registro({ id: 'a-2', usuario_id: '3f2b9c1e-7d4a-4f6b-9a0e-1c2d3e4f5a6b' }),
+      ],
+      cargando: false,
+    })
+    render(<AuditoriaPage />)
+    const tabla = within(screen.getByRole('region', { name: /bitácora de auditoría/i }))
+    expect(tabla.getByText('u-02')).toBeInTheDocument()
+    expect(tabla.queryByText('u-02…')).not.toBeInTheDocument()
+    expect(tabla.getByText('3f2b9c1e…')).toBeInTheDocument()
+  })
+
   it('declara explícitamente que no hay registros en vez de mostrar una tabla vacía', () => {
     useAuditoria.mockReturnValue({ registros: [], cargando: false })
     render(<AuditoriaPage />)

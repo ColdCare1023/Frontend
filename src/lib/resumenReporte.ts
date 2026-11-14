@@ -146,6 +146,63 @@ export function submuestrear(
   return { buckets, desde, hasta }
 }
 
+export interface PuntoCurva {
+  media: number
+  min: number
+  max: number
+}
+
+export interface CurvaEquipo {
+  device_id: string
+  /** Un punto por tramo de tiempo; `null` = tramo sin lecturas (hueco). */
+  puntos: (PuntoCurva | null)[]
+}
+
+/**
+ * Curva del periodo POR EQUIPO: temperatura interna promediada en `n` tramos
+ * de tiempo iguales (los mismos para todos los equipos), con su mínimo y
+ * máximo. Con «Todos los equipos» cada refrigerador lleva su línea: un solo
+ * mínimo–máximo por tramo mezclaba dos equipos y dibujaba un código de barras
+ * entre sus temperaturas.
+ */
+export function curvasPorEquipo(
+  lecturas: readonly LecturaTermica[],
+  n = 120,
+): { curvas: CurvaEquipo[]; desde: number; hasta: number } {
+  const validas = lecturas
+    .map((l) => ({ t: Date.parse(l.timestamp), v: l.temperatura_interna, d: l.device_id ?? '' }))
+    .filter((p): p is { t: number; v: number; d: string } => Number.isFinite(p.t) && typeof p.v === 'number')
+  if (validas.length === 0) return { curvas: [], desde: 0, hasta: 0 }
+  let desde = Infinity
+  let hasta = -Infinity
+  for (const p of validas) {
+    if (p.t < desde) desde = p.t
+    if (p.t > hasta) hasta = p.t
+  }
+  const cantidad = Math.max(1, Math.min(n, validas.length))
+  const ancho = (hasta - desde) / cantidad || 1
+  const acumulado = new Map<string, Array<{ suma: number; cuenta: number; min: number; max: number } | null>>()
+  for (const p of validas) {
+    let tramos = acumulado.get(p.d)
+    if (!tramos) {
+      tramos = Array.from({ length: cantidad }, () => null)
+      acumulado.set(p.d, tramos)
+    }
+    const i = Math.min(cantidad - 1, Math.floor((p.t - desde) / ancho))
+    const tramo = tramos[i]
+    tramos[i] = tramo
+      ? { suma: tramo.suma + p.v, cuenta: tramo.cuenta + 1, min: Math.min(tramo.min, p.v), max: Math.max(tramo.max, p.v) }
+      : { suma: p.v, cuenta: 1, min: p.v, max: p.v }
+  }
+  const curvas = [...acumulado.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([device_id, tramos]) => ({
+      device_id,
+      puntos: tramos.map((t) => (t ? { media: t.suma / t.cuenta, min: t.min, max: t.max } : null)),
+    }))
+  return { curvas, desde, hasta }
+}
+
 export interface ConteoAlertas {
   criticas: number
   preventivas: number
