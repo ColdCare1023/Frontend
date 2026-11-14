@@ -8,14 +8,15 @@ const LEYENDA = [
   { clase: 'bg-critical-solid', clave: 'alertas.rail.leyendaCritica' },
   { clase: 'bg-warning-600', clave: 'alertas.rail.leyendaPreventiva' },
   { clase: 'trama-sin-datos', clave: 'alertas.rail.leyendaSinDatos' },
-  { clase: 'bg-surface-sunken ring-1 ring-inset ring-border', clave: 'alertas.rail.leyendaSinEventos' },
+  { clase: 'bg-nodata-100', clave: 'alertas.rail.leyendaSinEventos' },
 ] as const
 
 /**
  * Cinta 24 h por equipo (21st System Status, la firma de DIRECTION §4), hecha
  * solo con las alertas y los incidentes que la pantalla ya cargó. Un tramo sin
- * eventos va en hueco: no se pinta como «en rango» porque no hay lecturas que
- * lo prueben. Sin animación: se recalcula con los datos o cada 5 min.
+ * eventos va en gris liso (sin trama ni borde, para que la cinta no parezca un
+ * código de barras en oscuro): no se pinta como «en rango» porque no hay
+ * lecturas que lo prueben. Sin animación: se recalcula con los datos o cada 5 min.
  */
 export function Cinta24hAlertas({ cintas, cargando }: { cintas: readonly CintaEquipo[]; cargando: boolean }) {
   const { t } = useTranslation()
@@ -47,7 +48,7 @@ export function Cinta24hAlertas({ cintas, cargando }: { cintas: readonly CintaEq
                   etiqueta={cinta.deviceId}
                   resumen={t('alertas.rail.resumenCinta', { equipo: cinta.deviceId, ...cinta.resumen })}
                   textoTono={{ neutro: t('alertas.rail.leyendaSinEventos') }}
-                  className="min-w-0 flex-1 [&>[data-tono=neutro]]:bg-surface-sunken [&>[data-tono=neutro]]:ring-1 [&>[data-tono=neutro]]:ring-inset [&>[data-tono=neutro]]:ring-border"
+                  className="min-w-0 flex-1 [&>[data-tono=neutro]]:bg-nodata-100"
                 />
               </li>
             ))}

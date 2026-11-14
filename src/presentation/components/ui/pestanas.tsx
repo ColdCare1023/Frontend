@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 import { useIndicador } from './indicador'
@@ -40,6 +40,13 @@ export function Pestanas<T extends string>({
   const lista = useRef<HTMLDivElement>(null)
   const [porTeclado, setPorTeclado] = useState(false)
   const { izquierda, ancho, listo } = useIndicador(lista, `${valor}|${pestanas.map((p) => p.etiqueta).join('|')}`)
+  const bordes = useBordesDesborde(lista, pestanas.length)
+
+  // La pestaña activa siempre a la vista (p. ej. al entrar con `?tab=` a 375 px).
+  useEffect(() => {
+    const activa = lista.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+    activa?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [valor])
 
   const mover = (evento: KeyboardEvent<HTMLButtonElement>, indice: number) => {
     const destino =
@@ -60,7 +67,16 @@ export function Pestanas<T extends string>({
       ref={lista}
       role="tablist"
       aria-label={etiqueta}
-      className={cn('relative flex min-w-0 items-end gap-1 overflow-x-auto border-b border-border', className)}
+      data-desborde={bordes || undefined}
+      className={cn(
+        'relative flex min-w-0 snap-x snap-proximity scroll-px-4 items-end gap-1 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        // Pista de desplazamiento: el borde con más pestañas se funde (sin
+        // flecha ni botón). Solo aparece cuando de verdad hay desborde.
+        'data-[desborde=derecha]:[mask-image:linear-gradient(to_right,#000_80%,transparent)]',
+        'data-[desborde=izquierda]:[mask-image:linear-gradient(to_left,#000_80%,transparent)]',
+        'data-[desborde=ambos]:[mask-image:linear-gradient(to_right,transparent,#000_15%,#000_85%,transparent)]',
+        className,
+      )}
     >
       {pestanas.map((pestana, indice) => {
         const activa = pestana.valor === valor
@@ -80,7 +96,7 @@ export function Pestanas<T extends string>({
             }}
             onKeyDown={(evento) => mover(evento, indice)}
             className={cn(
-              'relative inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-3 text-body font-medium transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:h-10 sm:pointer-coarse:h-11',
+              'relative inline-flex h-11 shrink-0 cursor-pointer snap-start items-center gap-2 whitespace-nowrap px-3 text-body font-medium transition-colors duration-(--duration-micro) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:h-10 sm:pointer-coarse:h-11',
               activa ? 'text-foreground' : 'text-muted hover:text-foreground',
             )}
           >
@@ -103,6 +119,33 @@ export function Pestanas<T extends string>({
       />
     </div>
   )
+}
+
+/**
+ * Lado por el que la lista de pestañas tiene más contenido oculto, para la
+ * máscara de desvanecido (`null` si cabe entera). Se mide al desplazar y al
+ * cambiar el ancho; no re-renderiza mientras el resultado no cambie.
+ */
+function useBordesDesborde(lista: React.RefObject<HTMLDivElement | null>, cantidad: number) {
+  const [bordes, setBordes] = useState<'izquierda' | 'derecha' | 'ambos' | null>(null)
+  useEffect(() => {
+    const el = lista.current
+    if (!el) return
+    const medir = () => {
+      const izq = el.scrollLeft > 1
+      const der = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+      setBordes(izq && der ? 'ambos' : der ? 'derecha' : izq ? 'izquierda' : null)
+    }
+    medir()
+    el.addEventListener('scroll', medir, { passive: true })
+    const observador = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(medir)
+    observador?.observe(el)
+    return () => {
+      el.removeEventListener('scroll', medir)
+      observador?.disconnect()
+    }
+  }, [lista, cantidad])
+  return bordes
 }
 
 /**

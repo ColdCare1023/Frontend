@@ -1,6 +1,7 @@
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient, API_BASE_URL, getAccessToken } from '../api/apiClient'
 import { normalizarFechasUtc } from '../api/fechasUtc'
+import { EVENTO_SSE_DEMO } from '../demo/constantesDemo'
 import { MODO_DEMO } from '../demo/modoDemo'
 
 const SSE_URL = import.meta.env.VITE_SSE_URL ?? `${API_BASE_URL}/api/sse/lecturas`
@@ -163,9 +164,26 @@ function simularStream(): () => void {
       oyentes.forEach((o) => o.onLectura?.(lectura))
     })
   }, INTERVALO_DEMO_MS)
+  // Eventos que el adaptador demo publica tras una escritura simulada (p. ej.
+  // «Simular excursión crítica»): llegan a los oyentes como llegarían por SSE.
+  const reenviar = (evento: Event) => {
+    const { lectura, alerta } = (evento as CustomEvent<{ lectura?: LecturaTermica; alerta?: { device_id: string; created_at: string | null } }>).detail ?? {}
+    if (lectura) oyentes.forEach((o) => o.onLectura?.(lectura))
+    if (alerta) {
+      const datos: EventoAlerta = {
+        tipo: 'alerta',
+        device_id: alerta.device_id,
+        temperatura_interna: lectura?.temperatura_interna ?? null,
+        timestamp: alerta.created_at ?? new Date().toISOString(),
+      }
+      oyentes.forEach((o) => o.onAlerta?.(datos))
+    }
+  }
+  window.addEventListener(EVENTO_SSE_DEMO, reenviar)
   return () => {
     clearTimeout(conexion)
     clearInterval(emisor)
+    window.removeEventListener(EVENTO_SSE_DEMO, reenviar)
   }
 }
 

@@ -40,6 +40,12 @@ export interface PropsFilaAlerta {
   nueva?: boolean
   /** Posición en la página, para el escalonado de las filas nuevas. */
   indice?: number
+  /**
+   * La fila foco (la crítica abierta más antigua de la página): solo su
+   * «Registrar acción» es primario; en el resto es secundario para que el
+   * azul marque una sola acción por pantalla (DIRECTION §6).
+   */
+  primaria?: boolean
   onRevisar: (alerta: AlertaTermica) => void
   onAbrir: (alerta: AlertaTermica, pestana: PestanaPanel, disparador: HTMLElement) => void
 }
@@ -59,6 +65,7 @@ export const FilaAlerta = memo(function FilaAlerta({
   revisando,
   nueva = false,
   indice = 0,
+  primaria = false,
   onRevisar,
   onAbrir,
 }: PropsFilaAlerta) {
@@ -88,14 +95,14 @@ export const FilaAlerta = memo(function FilaAlerta({
       <TableCell
         className={cn('mobile-full py-2.5 pr-3 pl-4 sm:w-full sm:max-w-0 sm:py-2 sm:pr-3 sm:pl-4', alerta.nivel_riesgo && FILO_RIESGO[alerta.nivel_riesgo]?.celda)}
       >
-        <div className="flex min-w-0 items-start gap-2 sm:items-center">
-          <IconoRiesgo aria-hidden className={cn('mt-0.5 size-4 shrink-0 sm:mt-0', TEXTO_ESTADO[tono])} />
+        <div className="flex min-w-0 items-start gap-2">
+          <IconoRiesgo aria-hidden className={cn('mt-0.5 size-4 shrink-0', TEXTO_ESTADO[tono])} />
           <span className="sr-only">
             {alerta.nivel_riesgo ? `${t(`riesgo.${alerta.nivel_riesgo}`)} — ${t(`riesgo.detalle.${alerta.nivel_riesgo}`)}` : ''}
           </span>
           <p
             title={alerta.mensaje}
-            className="min-w-0 text-body font-medium text-foreground max-sm:line-clamp-3 sm:truncate"
+            className="min-w-0 text-body font-medium text-foreground max-sm:line-clamp-3 sm:line-clamp-2 sm:text-pretty"
           >
             {alerta.mensaje}
           </p>
@@ -162,6 +169,7 @@ export const FilaAlerta = memo(function FilaAlerta({
           )}
           {mostrarRegistrar && (
             <Button
+              variant={primaria ? 'primary' : 'secondary'}
               size="sm"
               aria-haspopup="dialog"
               aria-label={t('alertas.registrarAccionA', datos)}

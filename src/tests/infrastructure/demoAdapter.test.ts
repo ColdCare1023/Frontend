@@ -105,3 +105,35 @@ describe('demoAdapter (Fake API & Estado Operativo)', () => {
     }
   })
 })
+
+describe('demo: simular una excursión desde Alertas', () => {
+  it('crea una alerta pendiente con evidencia y la publica en el stream demo', async () => {
+    const { estadoDemo } = await import('@/infrastructure/demo/datosDemo')
+    const { EVENTO_SSE_DEMO } = await import('@/infrastructure/demo/constantesDemo')
+    const recibidos: unknown[] = []
+    const oyente = (evento: Event) => recibidos.push((evento as CustomEvent).detail)
+    window.addEventListener(EVENTO_SSE_DEMO, oyente)
+    const antes = estadoDemo.alertas.length
+
+    await demoAdapter(
+      crearConfig({ method: 'post', url: '/api/demo/dispositivos/FARM-01-CDL/simulacion', data: JSON.stringify({ escenario: 'excursion_critica' }) }),
+    )
+    await new Promise((r) => setTimeout(r, 0))
+    window.removeEventListener(EVENTO_SSE_DEMO, oyente)
+
+    const nueva = estadoDemo.alertas.at(-1)!
+    expect(estadoDemo.alertas).toHaveLength(antes + 1)
+    expect(nueva).toMatchObject({ estado: 'pendiente', nivel_riesgo: 'excursion_critica', temperatura_pico: 8.6, duracion_s: 600 })
+    expect(recibidos).toHaveLength(1)
+    expect((recibidos[0] as { alerta: { id: string } }).alerta.id).toBe(nueva.id)
+  })
+
+  it('las alertas de la semana traen evidencia y las atendidas su acción correctiva', async () => {
+    const { estadoDemo } = await import('@/infrastructure/demo/datosDemo')
+    const semilla = estadoDemo.alertas.filter((a) => !a.id.startsWith('al-sim'))
+    expect(semilla.every((a) => a.temperatura_pico != null && a.duracion_s != null && a.iniciada_en)).toBe(true)
+    const atendidas = semilla.filter((a) => a.estado === 'atendida')
+    expect(atendidas.length).toBeGreaterThan(0)
+    for (const a of atendidas) expect(estadoDemo.acciones.some((ac) => ac.alert_id === a.id && ac.decision && ac.justificacion)).toBe(true)
+  })
+})

@@ -8,11 +8,13 @@ import { useAuthStore } from '@/application/stores/authStore'
 import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { tienePermiso } from '@/domain/value-objects/Rol'
+import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { construirCinta24h } from '@/lib/cinta24h'
 import { hora } from '@/lib/formato'
 import { ordenEsTriage, ordenarAlertas } from '@/lib/ordenAlertas'
 import { rangoPagina } from '@/lib/paginacion'
 import { useIdsNuevos } from '@/presentation/hooks/useIdsNuevos'
+import { useRefrescoIncidentes } from '@/presentation/hooks/useRefrescoIncidentes'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
@@ -24,11 +26,14 @@ import { TooltipProvider } from '../components/ui/tooltip'
 import { AtendidasRecientes } from './alertas/AtendidasRecientes'
 import { AvisoAlertas, type Aviso } from './alertas/AvisoAlertas'
 import { Cinta24hAlertas } from './alertas/Cinta24hAlertas'
+import { EquiposAhora } from './alertas/EquiposAhora'
 import { FilaAlerta } from './alertas/FilaAlerta'
+import { GuiaAtencion } from './alertas/GuiaAtencion'
 import { IncidentesOperativos } from './alertas/IncidentesOperativos'
 import { PanelAlerta } from './alertas/PanelAlerta'
+import { SimularAlertaDemo } from './alertas/SimularAlertaDemo'
 import { TiraEstadoAlertas } from './alertas/TiraEstadoAlertas'
-import { cuantasAtendidas, resumirBandeja } from './alertas/logica'
+import { cuantasAtendidas, FILAS_CON_CONTEXTO, resumirBandeja } from './alertas/logica'
 import { FilasCargando } from './alertas/FilasCargando'
 import { useAhora } from './alertas/useAhora'
 import type { BorradorAccion, PestanaPanel } from './alertas/tipos'
@@ -67,6 +72,7 @@ export function AlertasPage() {
     rectificarAccion,
   } = useAlertas()
   const incidentesConsulta = useIncidentesOperativos()
+  useRefrescoIncidentes(incidentesConsulta.consultar)
   const atendidas = useAtendidasRecientes()
   const recargarAtendidas = atendidas.recargar
   const resumenVivo = useEstadoVivoStore((s) => s.alertas)
@@ -98,6 +104,14 @@ export function AlertasPage() {
   const ordenadas = useMemo(() => ordenarAlertas(alertas, filtro), [alertas, filtro])
   const visibles = useMemo(() => ordenadas.slice(...rangoPagina(pagina, tamanoPagina)), [ordenadas, pagina, tamanoPagina])
   const nuevos = useIdsNuevos(ordenadas.map((a) => a.id), !cargando, filtro)
+  // Un solo «Registrar acción» primario por pantalla: el de la crítica abierta
+  // más antigua (el foco, DIRECTION §6). Sin críticas, el de la primera fila
+  // de la bandeja de triaje.
+  const idPrimaria = useMemo(() => {
+    const abiertas = visibles.filter((a) => a.estado !== 'atendida')
+    const critica = abiertas.find((a) => a.nivel_riesgo === 'excursion_critica')
+    return critica?.id ?? (ordenEsTriage(filtro) ? abiertas[0]?.id : undefined)
+  }, [visibles, filtro])
 
   const cambiarFiltro = useCallback(
     (siguiente: FiltroEstado) => {
@@ -237,11 +251,18 @@ export function AlertasPage() {
       : t('alertas.actualizado', { hora: horaDatos })
     : undefined
   const mostrarAtendidas = !cargando && !errorCarga && ordenEsTriage(filtro) ? cuantasAtendidas(visibles.length) : 0
+  // Con pocas filas, el hueco bajo la bandeja se llena con contexto real: la
+  // lectura actual de cada equipo y, sin atendidas que mostrar, el
+  // procedimiento de atención (nunca tarjetas de relleno, DIRECTION §13).
+  const pocasFilas = !cargando && !errorCarga && ordenEsTriage(filtro) && visibles.length <= FILAS_CON_CONTEXTO
+  const sinAtendidas = atendidas.estado !== 'cargando' && atendidas.alertas.length === 0
 
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={300}>
       <div className="mx-auto w-full max-w-(--ancho-contenido-max)">
-        <PageHeader titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')} meta={meta} />
+        <PageHeader titulo={t('alertas.titulo')} descripcion={t('alertas.descripcion')} meta={meta}>
+          {MODO_DEMO && <SimularAlertaDemo onError={() => setAnuncio(t('alertas.demo.error'))} />}
+        </PageHeader>
 
         <TiraEstadoAlertas
           resumen={resumen}
@@ -332,6 +353,7 @@ export function AlertasPage() {
                               revisando={revisando.has(alerta.id)}
                               nueva={nuevos.has(alerta.id)}
                               indice={indice}
+                              primaria={alerta.id === idPrimaria}
                               onRevisar={revisar}
                               onAbrir={abrirPanel}
                             />
@@ -352,6 +374,8 @@ export function AlertasPage() {
               )}
             </div>
 
+            {pocasFilas && <EquiposAhora ahora={ahora} />}
+
             <AtendidasRecientes
               alertas={atendidas.alertas}
               cantidad={mostrarAtendidas}
@@ -360,6 +384,8 @@ export function AlertasPage() {
               onCronologia={abrirCronologia}
               conAccion={ordenadas.length > 0}
             />
+
+            {pocasFilas && sinAtendidas && <GuiaAtencion />}
           </div>
 
           <aside
