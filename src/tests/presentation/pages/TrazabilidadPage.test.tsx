@@ -177,3 +177,72 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
     expect(screen.getByTestId('alcance-verificacion')).toHaveTextContent(/DIGEMID/)
   })
 })
+
+describe('TrazabilidadPage — rediseño P6 (veredicto y registros)', () => {
+  const corrupcion = {
+    integra: false,
+    estado: 'ruptura_detectada',
+    total_registros: 10,
+    primer_registro_inconsistente: 1,
+    detalle_inconsistencia: {
+      id: 'r-1', tipo_evento: 'LECTURA_REGISTRADA', timestamp: '2026-07-25T12:00:00Z',
+      hash_esperado: 'abc1' + 'a'.repeat(60), hash_almacenado: 'abc2' + 'a'.repeat(60), mensaje: 'x',
+    },
+    registros_posteriores_afectados: 0,
+  }
+  const comoRol = (rol: string) =>
+    useAuthStore.setState({ usuario: { id: 'u-9', email: 'x@upc.pe', rol, expiraEn: Date.now() + 3600_000 } as never, autenticado: true })
+
+  beforeEach(() => useTrazabilidad.mockReset())
+
+  it('al entrar muestra el veredicto sin verificar con una sola acción de verificación (H8)', () => {
+    comoRol('administrador')
+    montar()
+    expect(screen.getByRole('heading', { name: /sin alertas de integridad/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /revisar integridad/i })).toHaveLength(1)
+  })
+
+  it('muestra Verificando… mientras verifica', () => {
+    comoRol('administrador')
+    montar({ verificando: true })
+    expect(screen.getByRole('heading', { name: /verificando la cadena/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /verificando/i })).toBeDisabled()
+  })
+
+  it.each(['tecnico', 'farmaceutico', 'auditor'])('el rol %s no ve Aislar registro corrupto (HU-26)', (rol) => {
+    comoRol(rol)
+    montar({ verificacion: corrupcion })
+    expect(screen.queryByRole('button', { name: /aislar registro corrupto/i })).not.toBeInTheDocument()
+  })
+
+  it('el administrador ve Aislar registro corrupto', () => {
+    comoRol('administrador')
+    montar({ verificacion: corrupcion })
+    expect(screen.getByRole('button', { name: /aislar registro corrupto/i })).toBeInTheDocument()
+  })
+
+  it('Ver registro en la tabla expande la fila corrupta', async () => {
+    comoRol('auditor')
+    montar({ verificacion: corrupcion })
+    await userEvent.click(screen.getByRole('button', { name: /ver registro en la tabla/i }))
+    const fila = screen.getByTestId('fila-corrupta')
+    expect(fila.querySelector('button[aria-expanded="true"]')).not.toBeNull()
+  })
+
+  it('resalta desde qué carácter difieren los sellos', () => {
+    comoRol('auditor')
+    montar({ verificacion: corrupcion })
+    expect(screen.getByTestId('detalle-inconsistencia')).toHaveTextContent(/difieren desde el carácter 4/i)
+  })
+
+  it('cada evento muestra su icono y su nombre; el detalle muestra los sellos completos', async () => {
+    comoRol('auditor')
+    montar({ registros: [registro({ payload: { temperatura_interna: 5.2, riesgo_efectivo: 'normal' } })] })
+    expect(screen.getAllByText(/5\.2 °C · normal/i).length).toBeGreaterThan(0)
+    await userEvent.click(screen.getByRole('button', { name: /ver detalle de/i }))
+    const detalle = document.getElementById('detalle-r-1') as HTMLElement
+    expect(detalle).toHaveTextContent('a'.repeat(64))
+    expect(detalle).toHaveTextContent('b'.repeat(64))
+    expect(detalle).toHaveTextContent(/contenido del registro/i)
+  })
+})

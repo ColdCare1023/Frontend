@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -48,7 +48,7 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     useAuditoria.mockReturnValue({ registros: [registro()], cargando: false })
     render(<AuditoriaPage />)
 
-    expect(screen.getByText('190.12.4.7')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: /bitácora de auditoría/i })).getByText('190.12.4.7')).toBeInTheDocument()
   })
 
   it('declara explícitamente que no hay registros en vez de mostrar una tabla vacía', () => {
@@ -65,8 +65,64 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     render(<AuditoriaPage />)
 
     await usuario.type(screen.getByLabelText(/acción/i), 'LOGIN_FALLIDO')
-    await usuario.click(screen.getByRole('button', { name: /aplicar|consultar|filtrar|buscar/i }))
+    await usuario.click(screen.getByRole('button', { name: /aplicar filtros/i }))
 
     expect(consultar).toHaveBeenCalledWith(expect.objectContaining({ accion: 'LOGIN_FALLIDO' }))
+  })
+})
+
+describe('AuditoriaPage — rediseño P6 (registros)', () => {
+  beforeEach(() => useAuditoria.mockReset())
+
+  it('agrupa la bitácora por día', () => {
+    useAuditoria.mockReturnValue({
+      registros: [registro(), registro({ id: 'a-2', created_at: '2026-07-20T10:00:00Z' })],
+      cargando: false,
+    })
+    render(<AuditoriaPage />)
+    const cabeceras = screen.getAllByRole('columnheader').filter((th) => th.getAttribute('scope') === 'colgroup')
+    expect(cabeceras).toHaveLength(2)
+    expect(cabeceras[0]).toHaveTextContent(/1 acción/)
+  })
+
+  it('el detalle muestra el usuario completo, el recurso y el detalle registrado', async () => {
+    useAuditoria.mockReturnValue({
+      registros: [registro({ usuario_id: 'u-1234567890', detalle: { motivo: 'credenciales_invalidas' } })],
+      cargando: false,
+    })
+    render(<AuditoriaPage />)
+    await userEvent.click(screen.getByRole('button', { name: /ver detalle de/i }))
+    const detalle = document.getElementById('detalle-a-1') as HTMLElement
+    expect(detalle).toHaveTextContent('u-1234567890')
+    expect(detalle).toHaveTextContent('alertas/9f1')
+    expect(detalle).toHaveTextContent('credenciales_invalidas')
+  })
+
+  it('el filtro local de resultado no consulta al backend', async () => {
+    const consultar = vi.fn()
+    useAuditoria.mockReturnValue({
+      registros: [registro(), registro({ id: 'a-2', accion: 'LOGIN_FALLIDO', resultado: 'denegado', recurso: 'auth/login' })],
+      cargando: false,
+      consultar,
+    })
+    render(<AuditoriaPage />)
+    await userEvent.selectOptions(screen.getByLabelText(/^resultado$/i), 'fallidas')
+    expect(consultar).not.toHaveBeenCalled()
+    const tabla = screen.getByRole('region', { name: /bitácora de auditoría/i })
+    expect(within(tabla).queryByText('alertas/9f1')).not.toBeInTheDocument()
+    expect(within(tabla).getByText('auth/login')).toBeInTheDocument()
+  })
+
+  it('muestra Sin sesión cuando no hay usuario', () => {
+    useAuditoria.mockReturnValue({ registros: [registro({ usuario_id: null })], cargando: false })
+    render(<AuditoriaPage />)
+    expect(screen.getByText(/sin sesión/i)).toBeInTheDocument()
+  })
+
+  it('el aviso de bloqueos se mantiene como guía con role status', () => {
+    useAuditoria.mockReturnValue({ registros: [registro({ accion: 'BLOQUEO_TEMPORAL', resultado: 'bloqueado' })], cargando: false })
+    render(<AuditoriaPage />)
+    expect(screen.getByRole('status', { name: '' , hidden: false })).toBeDefined()
+    expect(screen.getByText(/bloqueo temporal de acceso registrado/i).closest('[role="status"]')).not.toBeNull()
   })
 })

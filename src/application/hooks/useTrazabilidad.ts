@@ -18,12 +18,14 @@ export function useTrazabilidad() {
   const [verificando, setVerificando] = useState(false)
   const [estadoCadena, setEstadoCadena] = useState<EstadoCadena | null>(null)
 
-  const consultar = useCallback(async (tipoEvento?: string) => {
+  const consultar = useCallback(async (tipoEvento?: string, deviceId?: string) => {
     setCargando(true)
     setErrorCarga(false)
     try {
       const params: Record<string, string> = { limite: '200' }
       if (tipoEvento) params.tipo_evento = tipoEvento
+      // `device_id` es un parámetro que GET /api/trazabilidad ya acepta.
+      if (deviceId) params.device_id = deviceId
       const { data } = await apiClient.get<RegistroTrazabilidad[]>('/api/trazabilidad', { params })
       setRegistros(data)
     } catch {

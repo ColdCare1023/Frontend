@@ -227,6 +227,8 @@ test('trazabilidad explica cadena, oculta sellos y muestra verificación', async
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await irA(page, '/trazabilidad')
+  // P6: al entrar, el veredicto ya dice el estado de la cadena (sin verificar sola).
+  await expect(page.getByRole('heading', { name: 'Sin alertas de integridad' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Evento' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Mostrar detalles técnicos de los sellos' }).click()
