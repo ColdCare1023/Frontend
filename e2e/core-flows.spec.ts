@@ -88,6 +88,7 @@ test('administrador puede abrir herramientas de administración en demo', async 
   for (const [ruta, titulo] of [
     ['/usuarios', 'Usuarios'],
     ['/dispositivos', 'Equipos de medición'],
+    ['/estado-servicio', 'Estado del servicio'],
   ]) {
     await irA(page, ruta)
     await expect(page.getByRole('heading', { level: 1 })).toContainText(titulo)

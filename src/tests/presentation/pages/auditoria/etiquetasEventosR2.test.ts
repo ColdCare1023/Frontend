@@ -26,10 +26,20 @@ const ESPERADO = {
   },
 } as const
 
-/** HU-42/HU-52/HU-29: resultados de sistema que ahora se registran como fallidos. */
+/** HU-42/HU-52/HU-29/HU-53: resultados de sistema que ahora se registran como fallidos.
+ * NOTIFICACION_NO_ENVIADA (correo deshabilitado) debe distinguirse de
+ * NOTIFICACION_FALLIDA (el proveedor rechazó el envío). */
 const SOLO_BITACORA = {
-  es: { NOTIFICACION_FALLIDA: 'Aviso por correo no enviado', RESPALDO_FALLIDO: 'Respaldo fallido' },
-  en: { NOTIFICACION_FALLIDA: 'Email notice not sent', RESPALDO_FALLIDO: 'Backup failed' },
+  es: {
+    NOTIFICACION_FALLIDA: 'Aviso por correo no enviado',
+    NOTIFICACION_NO_ENVIADA: 'Aviso no enviado: correo deshabilitado',
+    RESPALDO_FALLIDO: 'Respaldo fallido',
+  },
+  en: {
+    NOTIFICACION_FALLIDA: 'Email notice not sent',
+    NOTIFICACION_NO_ENVIADA: 'Notice not sent: email disabled',
+    RESPALDO_FALLIDO: 'Backup failed',
+  },
 } as const
 
 describe('Etiquetas de las acciones nuevas del backend', () => {

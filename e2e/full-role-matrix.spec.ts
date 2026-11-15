@@ -18,7 +18,7 @@ const roles = [
     rutas: [
       '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
       '/reportes', '/metricas-ia', '/auditoria', '/configuracion-equipos',
-      '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL',
+      '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL', '/estado-servicio',
     ],
   },
   {
@@ -33,7 +33,7 @@ const roles = [
 const todasLasRutas = [
   '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
   '/reportes', '/metricas-ia', '/auditoria', '/configuracion-equipos',
-  '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL',
+  '/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL', '/estado-servicio',
 ] as const
 
 async function iniciarSesionDemo(page: import('@playwright/test').Page, boton: string) {
@@ -43,7 +43,7 @@ async function iniciarSesionDemo(page: import('@playwright/test').Page, boton: s
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
 }
 
-test('matriz completa de permisos: 12 rutas protegidas × 4 roles', async ({ page }) => {
+test('matriz completa de permisos: 13 rutas protegidas × 4 roles', async ({ page }) => {
   test.setTimeout(240_000)
 
   for (const perfil of roles) {
@@ -63,6 +63,9 @@ test('matriz completa de permisos: 12 rutas protegidas × 4 roles', async ({ pag
         }
         if (ruta === '/dispositivos') {
           await expect(page.getByRole('button', { name: 'Opciones: FARM-01-CDL' })).toBeVisible()
+        }
+        if (ruta === '/estado-servicio') {
+          await expect(page.getByRole('region', { name: 'Resumen del servicio' })).toBeVisible()
         }
       } else {
         await expect(sinPermiso).toBeVisible()
@@ -92,7 +95,7 @@ test('pantallas de administración no desbordan viewport en anchos móviles y de
   ]
   for (const { width, height } of viewports) {
     await page.setViewportSize({ width, height })
-    for (const ruta of ['/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL?tab=seguridad']) {
+    for (const ruta of ['/usuarios', '/dispositivos', '/dispositivos/FARM-01-CDL?tab=seguridad', '/estado-servicio']) {
       await irA(page, ruta)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
       const dimensiones = await page.evaluate(() => ({

@@ -46,7 +46,7 @@ test('monitoreo, alertas e historial sin violaciones axe WCAG 2 A/AA', async ({ 
   }
 })
 
-test('10 rutas disponibles para administración sin violaciones axe WCAG 2 A/AA', async ({ page }) => {
+test('11 rutas disponibles para administración sin violaciones axe WCAG 2 A/AA', async ({ page }) => {
   test.setTimeout(180_000)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/login')
@@ -56,7 +56,7 @@ test('10 rutas disponibles para administración sin violaciones axe WCAG 2 A/AA'
   for (const route of [
     '/dashboard', '/historial', '/alertas', '/trazabilidad', '/guia',
     '/reportes', '/metricas-ia', '/auditoria',
-    '/usuarios', '/dispositivos',
+    '/usuarios', '/dispositivos', '/estado-servicio',
   ]) {
     await irA(page, route)
     await expect(page.locator('h1')).toBeVisible()

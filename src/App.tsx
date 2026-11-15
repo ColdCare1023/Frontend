@@ -54,6 +54,10 @@ const ConfiguracionEquiposPage = diferida(
   'ConfiguracionEquiposPage',
 )
 const UsuariosPage = diferida(() => import('@/presentation/pages/UsuariosPage'), 'UsuariosPage')
+const EstadoServicioPage = diferida(
+  () => import('@/presentation/pages/EstadoServicioPage'),
+  'EstadoServicioPage',
+)
 const DispositivosLayout = diferida(
   () => import('@/presentation/pages/dispositivos/DispositivosLayout'),
   'DispositivosLayout',
@@ -202,6 +206,10 @@ export function App() {
                   <Route index element={<Pagina><ListaDispositivosPage /></Pagina>} />
                   <Route path=":deviceId" element={<Pagina><DetalleDispositivoPage /></Pagina>} />
                 </Route>
+                {/* Estado del servicio (GET /health/detalle, solo
+                    require_roles(ADMINISTRADOR)): MQTT, BD, migraciones,
+                    arranque, proxy y respaldos (HU-12 esc. 4, HU-55, HU-29). */}
+                <Route path="/estado-servicio" element={<Pagina><EstadoServicioPage /></Pagina>} />
               </Route>
             </Route>
             </Route>

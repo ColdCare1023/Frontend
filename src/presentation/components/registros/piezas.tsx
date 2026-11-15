@@ -5,20 +5,26 @@ import { Check, Copy, SlidersHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '../ui/button'
 
-/** Par etiqueta/valor de los detalles de fila (icono opcional de 14 px). */
+/**
+ * Par etiqueta/valor de los detalles de fila (icono opcional de 14 px).
+ * `className` va al valor (`dd`); `claseContenedor`, al grupo que es el
+ * elemento de la grilla (p. ej. `sm:col-span-2`).
+ */
 export function Dato({
   etiqueta,
   icono: Icono,
   className,
+  claseContenedor,
   children,
 }: {
   etiqueta: ReactNode
   icono?: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
   className?: string
+  claseContenedor?: string
   children: ReactNode
 }) {
   return (
-    <div className="min-w-0">
+    <div className={cn('min-w-0', claseContenedor)}>
       <dt className="flex items-center gap-1.5 text-meta text-muted">
         {Icono && <Icono aria-hidden className="size-3.5 shrink-0" />}
         {etiqueta}

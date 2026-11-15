@@ -29,6 +29,7 @@ import {
   simularRelojSinSincronizarDemo,
 } from './datosDemo'
 import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
+import { estadoServicioDemo } from './estadoServicioDemo'
 import { calcularSerieDemo } from './serieDemo'
 import {
   activarVersionDemo,
@@ -1697,6 +1698,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   /* ── Sesión ──────────────────────────────────────────────────── */
   if (metodo === 'post' && url === '/api/auth/logout') {
     return responder(config, null, 204)
+  }
+
+  /* ── Estado del servicio (HU-12 esc. 4, HU-55, HU-29 esc. 3) ─── */
+  // Como `require_roles(ADMINISTRADOR)` del backend: sin sesión 401, con otro rol 403.
+  if (metodo === 'get' && url === '/health/detalle') {
+    exigirRolDemo(config, [], 'health/detalle')
+    return responder(config, estadoServicioDemo())
   }
 
   /* ── Usuarios y auditoría ───────────────────────────────────── */
