@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PencilLine } from 'lucide-react'
+import { Link } from 'react-router'
+import { PencilLine, ShieldCheck } from 'lucide-react'
 
 import type { CambiosRectificacion, ResultadoRectificacion } from '@/application/hooks/useAlertas'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
+import { enlaceVerificarCadena } from '@/lib/enlaceCadena'
 import { fechaHora } from '@/lib/formato'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -53,7 +55,8 @@ function Entrada({
  * HU-23 criterio 4 y HU-28: cronología de atención (generada → reconocida →
  * acciones, con sus rectificaciones). Solo lectura para el auditor; el autor
  * técnico, el farmacéutico y el administrador rectifican la versión vigente
- * en línea, sin borrar la original.
+ * en línea, sin borrar la original. HU-28 esc. 3: enlaza la cadena del equipo
+ * en Trazabilidad para comprobar la integridad de ese ciclo.
  */
 export function CronologiaAtencion({
   alerta,
@@ -61,6 +64,8 @@ export function CronologiaAtencion({
   rectificarAccion,
   puedeRectificar,
   resaltarNueva = false,
+  puedeVerificarCadena = false,
+  onSalir,
 }: {
   alerta: AlertaTermica
   obtenerCiclo: (alertaId: string) => Promise<AccionCorrectiva[]>
@@ -68,6 +73,10 @@ export function CronologiaAtencion({
   puedeRectificar: PuedeRectificar
   /** Tras registrar una acción: resalta y enfoca la entrada más reciente. */
   resaltarNueva?: boolean
+  /** HU-28: el rol puede abrir /trazabilidad (la página ya aplicó el RBAC). */
+  puedeVerificarCadena?: boolean
+  /** Al seguir un enlace que sale de la alerta (cierra el panel). */
+  onSalir?: () => void
 }) {
   const { t } = useTranslation()
   const [ciclo, setCiclo] = useState<AccionCorrectiva[]>([])
@@ -357,6 +366,18 @@ export function CronologiaAtencion({
           })}
         {estado === 'listo' && ciclo.length === 0 && <li className="pl-7 text-body text-muted">{t('alertas.sinAcciones')}</li>}
       </ol>
+      {/* HU-28 esc. 3: la alerta y sus acciones están selladas en la cadena de su
+          equipo (chain_id = device_id); se abre ya elegida para verificarla. */}
+      {puedeVerificarCadena && (
+        <Link
+          to={enlaceVerificarCadena(alerta.device_id)}
+          onClick={onSalir}
+          className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-(--radius-field) text-body font-medium text-primary-text underline decoration-primary/40 underline-offset-4 transition-colors duration-(--duration-micro) hover:decoration-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-9"
+        >
+          <ShieldCheck aria-hidden className="size-4 shrink-0" />
+          {t('alertas.verificarCadenaEquipo')}
+        </Link>
+      )}
     </div>
   )
 }

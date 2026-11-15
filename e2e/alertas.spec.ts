@@ -106,6 +106,29 @@ test('auditor solo consulta la cronología', async ({ page }) => {
   await expect(panel.getByRole('link', { name: 'Ver en Historial' })).toHaveAttribute('href', '/historial')
 })
 
+test('HU-28: «Verificar cadena del equipo» abre Trazabilidad con la cadena de ese equipo elegida', async ({ page }) => {
+  await entrarComo(page, 'Auditor Consulta de registros')
+  const equipo = (await fila(page).locator('.codigo').first().textContent())!.trim()
+  await accionAlerta(page, /ver cronología de atención/i)
+  const panel = page.getByRole('dialog')
+  const enlace = panel.getByRole('link', { name: 'Verificar cadena del equipo' })
+  await expect(enlace).toHaveAttribute('href', `/trazabilidad?cadena=${encodeURIComponent(equipo)}`)
+
+  await enlace.click()
+  await expect(page).toHaveURL(new RegExp(`/trazabilidad\\?cadena=${encodeURIComponent(equipo)}$`))
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByLabel('Cadena', { exact: true })).toHaveValue(equipo)
+})
+
+test('HU-28: un ?cadena= que no es una cadena existente se ignora', async ({ page }) => {
+  await entrarComo(page, 'Auditor Consulta de registros')
+  await irA(page, '/trazabilidad?cadena=NO-EXISTE')
+  const selector = page.getByLabel('Cadena', { exact: true })
+  // La lista de cadenas llegó (hay opciones de equipo) y aun así sigue en «Todas».
+  await expect(selector.locator('option')).not.toHaveCount(1)
+  await expect(selector).toHaveValue('')
+})
+
 test('administrador ve las mismas acciones que el farmacéutico', async ({ page }) => {
   await entrarComo(page, 'Administrador')
   await expect(fila(page).getByRole('button', { name: /^reconocer alerta/i })).toBeVisible()

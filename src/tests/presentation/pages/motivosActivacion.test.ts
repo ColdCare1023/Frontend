@@ -139,7 +139,7 @@ describe('motivos de activación', () => {
       'version_preventiva_no_configurada', 'version_distinta_de_la_desplegada', 'sha256_no_configurado',
       'sha256_distinto_del_registrado', 'artefacto_distinto_del_registrado', 'manifiesto_ilegible', 'manifiesto_no_aprobado',
       'manifiesto_distinto_del_historial', 'horizonte_distinto_del_manifiesto', 'esquema_features_distinto_del_manifiesto',
-      'sklearn_distinto_del_manifiesto', 'sklearn_incompatible_con_el_instalado',
+      'sklearn_distinto_del_manifiesto', 'sklearn_incompatible_con_el_instalado', 'esquema_features_no_servible',
     ]
     expect(Object.keys(MOTIVOS_POR_CODIGO).sort()).toEqual([...codigosBackend].sort())
     for (const { clave } of Object.values(MOTIVOS_POR_CODIGO)) {
@@ -167,6 +167,26 @@ describe('motivos de activación', () => {
     await i18n.changeLanguage('en')
     expect(clasificarRechazo(detalle, null, i18n.t.bind(i18n), codigos).motivos.map((m) => m.texto)).toEqual([
       'the registered feature schema (esquema_inventado) is not the one in the deployed artifact manifest (termico_minimo)',
+    ])
+  })
+
+  it('HU-17: el esquema de features que el servicio no sabe servir es del artefacto preventivo (es/en)', async () => {
+    const detalle =
+      'La versión rf-corridas-1.0.0 no puede activarse: ' +
+      'el servicio de inferencia no puede calcular las features del esquema del manifiesto (termico_ambiente)'
+    const codigos = ['esquema_features_no_servible']
+    const r = clasificarRechazo(detalle, 'legado', t, codigos)
+    expect(r).toMatchObject({ artefacto: 'preventivo', soloArtefacto: true })
+    expect(r.motivos).toEqual([
+      {
+        grupo: 'artefacto',
+        texto: 'el servicio de inferencia no puede calcular las características del esquema del manifiesto (termico_ambiente)',
+      },
+    ])
+    expect(clasificarRechazo(detalle, 'legado', t)).toEqual(r)
+    await i18n.changeLanguage('en')
+    expect(clasificarRechazo(detalle, null, i18n.t.bind(i18n), codigos).motivos.map((m) => m.texto)).toEqual([
+      'the inference service cannot compute the features of the manifest schema (termico_ambiente)',
     ])
   })
 

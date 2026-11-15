@@ -316,7 +316,7 @@
     "vistaGrafica": "Chart",
     "vistaLista": "List",
     "resumenCurva": "Over {{ventana}}: minimum {{min}} °C, maximum {{max}} °C, average {{prom}} °C and {{fuera}} readings outside 2⁠–⁠8 °C.",
-    "curvaSinLecturas": "No readings in {{ventana}}.",
+    "curvaSinLecturas": "Waiting for readings: no data yet in {{ventana}}.",
     "equiposResumen_one": "{{count}} unit · {{problemas}} with issues",
     "equiposResumen_other": "{{count}} units · {{problemas}} with issues",
     "cinta": {
@@ -623,6 +623,7 @@
       "error": "The amendment could not be saved. Please try again."
     },
     "sinAcciones": "No corrective actions logged yet.",
+    "verificarCadenaEquipo": "Verify the device chain",
     "fecha": "Date",
     "mensaje": "Message",
     "estado": "Status",
@@ -2090,6 +2091,7 @@
         "artefactoDistinto": "the deployed artifact does not match the registered fingerprint",
         "horizonteNoCoincide": "the registered horizon H ({{registrado}} min) is not the one in the deployed artifact manifest ({{manifiesto}} min)",
         "esquemaNoCoincide": "the registered feature schema ({{registrado}}) is not the one in the deployed artifact manifest ({{manifiesto}})",
+        "esquemaNoServible": "the inference service cannot compute the features of the manifest schema ({{manifiesto}})",
         "sklearnNoCoincide": "the registered scikit-learn version ({{registrada}}) is not the one in the deployed artifact manifest ({{manifiesto}})",
         "sklearnIncompatible": "the model was trained with scikit-learn {{entrenado}} and {{instalado}} is installed: it could not be loaded",
         "manifiestoNoCoincide": "the deployed manifest was changed outside the registration tool: its SHA-256 fingerprint is not the one recorded in the history"

@@ -53,6 +53,17 @@ describe('HU-34: estado de riesgo a rotular', () => {
     expect(estadoRiesgoDe(lectura({ riesgo_efectivo: null }))).toBe('sin_clasificacion_ia')
   })
 
+  it('HU-17/D18: un motivo de omisión preventivo nuevo (sin contexto SHT31) se rotula «sin clasificación IA»', () => {
+    // La interfaz no traduce `motivo_no_inferencia` (no lo muestra): cualquier
+    // código del backend, incluidos `ventana_15min_sin_cobertura_suficiente` y
+    // `ventana_15min_sin_contexto_ambiental`, cae en el estado genérico, nunca en Normal.
+    for (const motivo of ['ventana_15min_sin_cobertura_suficiente', 'ventana_15min_sin_contexto_ambiental']) {
+      const omitida = { estado_inferencia: 'omitida', motivo_no_inferencia: motivo, nivel_riesgo: null, confianza_ia: null, riesgo_efectivo: 'normal' } as const
+      expect(estadoRiesgoDe(lectura(omitida))).toBe('sin_clasificacion_ia')
+      expect(estadoRiesgoDe(lectura({ ...omitida, estado_riesgo: 'sin_clasificacion_ia' }))).toBe('sin_clasificacion_ia')
+    }
+  })
+
   it('esc. 4: sin temperatura interna válida es falla de sensor, no Normal', () => {
     expect(estadoRiesgoDe(lectura({ temperatura_interna: null, riesgo_efectivo: 'normal' }))).toBe('falla_sensor')
     expect(estadoRiesgoDe(lectura({ origen_clasificacion: 'fallo_sensor' }))).toBe('falla_sensor')

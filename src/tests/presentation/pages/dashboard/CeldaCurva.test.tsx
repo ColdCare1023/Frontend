@@ -1,11 +1,17 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import i18n from '@/infrastructure/i18n'
 import { temaGrafica } from '@/infrastructure/charts/temaColdCare'
 import { CeldaCurva } from '@/presentation/pages/dashboard/CeldaCurva'
 
-function montar(serie: LecturaTermica[], estadoHistorial: 'cargando' | 'completo' | 'error' = 'completo', ultimaPresente = false) {
+function montar(
+  serie: LecturaTermica[],
+  estadoHistorial: 'cargando' | 'completo' | 'error' = 'completo',
+  ultimaPresente = false,
+  ventana = 'las últimas 24 h',
+) {
   return render(
     <CeldaCurva
       serie={serie}
@@ -14,19 +20,31 @@ function montar(serie: LecturaTermica[], estadoHistorial: 'cargando' | 'completo
       reintentar={() => {}}
       horasVentana={24}
       onCambiarVentana={() => {}}
-      ventana="las últimas 24 h"
+      ventana={ventana}
     />,
   )
 }
 
 /** HU-31 esc. 2: un equipo recién registrado no muestra un lienzo en blanco. */
 describe('CeldaCurva: estado vacío (HU-31 esc. 2)', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('es')
+  })
+
   it('con la serie vacía y el historial cargado muestra un mensaje role=status', () => {
     montar([])
 
+    // HU-31 esc. 2: el estado vacío dice que está «a la espera de datos».
     const vacio = screen.getByRole('status')
-    expect(vacio).toHaveTextContent('Sin lecturas en las últimas 24 h.')
+    expect(vacio).toHaveTextContent('Esperando lecturas: aún no hay datos en las últimas 24 h.')
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('en inglés dice lo mismo (paridad es/en)', async () => {
+    await i18n.changeLanguage('en')
+    montar([], 'completo', false, 'the last 24 h')
+
+    expect(screen.getByRole('status')).toHaveTextContent('Waiting for readings: no data yet in the last 24 h.')
   })
 
   it('mientras carga no muestra el estado vacío', () => {

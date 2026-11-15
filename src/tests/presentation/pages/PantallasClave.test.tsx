@@ -87,7 +87,11 @@ function montarTrazabilidad(over: Record<string, unknown> = {}) {
     aislarCorrupcion,
     ...over,
   })
-  render(<TrazabilidadPage />)
+  render(
+    <MemoryRouter>
+      <TrazabilidadPage />
+    </MemoryRouter>,
+  )
   return { aislarCorrupcion }
 }
 
