@@ -138,14 +138,36 @@ describe('motivos de activación', () => {
       'criterio_principal_desconocido', 'faltan_metricas_criterio_principal', 'no_cumple_criterio_principal',
       'version_preventiva_no_configurada', 'version_distinta_de_la_desplegada', 'sha256_no_configurado',
       'sha256_distinto_del_registrado', 'artefacto_distinto_del_registrado', 'manifiesto_ilegible', 'manifiesto_no_aprobado',
-      'manifiesto_distinto_del_historial', 'horizonte_distinto_del_manifiesto', 'sklearn_distinto_del_manifiesto',
-      'sklearn_incompatible_con_el_instalado',
+      'manifiesto_distinto_del_historial', 'horizonte_distinto_del_manifiesto', 'esquema_features_distinto_del_manifiesto',
+      'sklearn_distinto_del_manifiesto', 'sklearn_incompatible_con_el_instalado',
     ]
     expect(Object.keys(MOTIVOS_POR_CODIGO).sort()).toEqual([...codigosBackend].sort())
     for (const { clave } of Object.values(MOTIVOS_POR_CODIGO)) {
       expect(i18n.exists(`metricasIA.versiones.motivos.${clave}`, { lng: 'es' })).toBe(true)
       expect(i18n.exists(`metricasIA.versiones.motivos.${clave}`, { lng: 'en' })).toBe(true)
     }
+  })
+
+  it('B05 v6: el esquema de features registrado distinto del manifiesto es del artefacto preventivo (es/en)', async () => {
+    const detalle =
+      'La versión rf-preventivo-1.0.0 no puede activarse: ' +
+      'el esquema de features registrado (esquema_inventado) no es el del manifiesto (termico_minimo)'
+    const codigos = ['esquema_features_distinto_del_manifiesto']
+    const r = clasificarRechazo(detalle, 'legado', t, codigos)
+    expect(r).toMatchObject({ artefacto: 'preventivo', soloArtefacto: true })
+    expect(r.motivos).toEqual([
+      {
+        grupo: 'artefacto',
+        texto:
+          'el esquema de características registrado (esquema_inventado) no es el del manifiesto del artefacto desplegado (termico_minimo)',
+      },
+    ])
+    // Sin códigos, el texto se reconoce igual.
+    expect(clasificarRechazo(detalle, 'legado', t)).toEqual(r)
+    await i18n.changeLanguage('en')
+    expect(clasificarRechazo(detalle, null, i18n.t.bind(i18n), codigos).motivos.map((m) => m.texto)).toEqual([
+      'the registered feature schema (esquema_inventado) is not the one in the deployed artifact manifest (termico_minimo)',
+    ])
   })
 
   it('P-12: el 409 de /desactivar se reconoce por su código', () => {

@@ -98,7 +98,9 @@ export function useDispositivos() {
     [consultar],
   )
 
-  // HU-51: ubicación y metadatos de instalación del sensor.
+  // HU-51: ubicación y metadatos de instalación del sensor. El PATCH del
+  // backend conserva los campos que no se envían; un campo vaciado en el
+  // formulario se envía como `null` para que de verdad se borre.
   const actualizarInstalacion = useCallback(
     async (
       deviceId: string,
@@ -108,9 +110,9 @@ export function useDispositivos() {
     ): Promise<'ok' | 'error'> => {
       try {
         await apiClient.patch(rutaApi`/api/dispositivos/${deviceId}/instalacion`, {
-          ubicacion: ubicacion || undefined,
-          fecha_instalacion: fechaInstalacion || undefined,
-          observaciones: observaciones || undefined,
+          ubicacion: ubicacion || null,
+          fecha_instalacion: fechaInstalacion || null,
+          observaciones: observaciones || null,
         })
         await consultar()
         return 'ok'

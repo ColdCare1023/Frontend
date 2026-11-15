@@ -2089,6 +2089,7 @@
         "manifiestoNoAprobado": "the manifest is in state {{estado}}; activation requires {{exigido}}",
         "artefactoDistinto": "the deployed artifact does not match the registered fingerprint",
         "horizonteNoCoincide": "the registered horizon H ({{registrado}} min) is not the one in the deployed artifact manifest ({{manifiesto}} min)",
+        "esquemaNoCoincide": "the registered feature schema ({{registrado}}) is not the one in the deployed artifact manifest ({{manifiesto}})",
         "sklearnNoCoincide": "the registered scikit-learn version ({{registrada}}) is not the one in the deployed artifact manifest ({{manifiesto}})",
         "sklearnIncompatible": "the model was trained with scikit-learn {{entrenado}} and {{instalado}} is installed: it could not be loaded",
         "manifiestoNoCoincide": "the deployed manifest was changed outside the registration tool: its SHA-256 fingerprint is not the one recorded in the history"

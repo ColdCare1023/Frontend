@@ -37,7 +37,7 @@ interface DefinicionMotivo {
 /**
  * Códigos estables del 409 de `/activar` (campo `codigos`). Criterios:
  * BLOQUEO_* de gestionar_modelo_ia.py; artefacto: ACTIVACION_* de
- * prediccion_preventiva/servicio.py (los cuatro últimos son IA-B05 v6 y v7).
+ * prediccion_preventiva/servicio.py (los cinco últimos son IA-B05 v6 y v7).
  */
 export const MOTIVOS_POR_CODIGO = {
   falta_horizonte: { grupo: 'criterios', preventivo: false, clave: 'sinHorizonte', patron: /^falta el horizonte H de la etiqueta$/ },
@@ -90,6 +90,12 @@ export const MOTIVOS_POR_CODIGO = {
   horizonte_distinto_del_manifiesto: {
     grupo: 'artefacto', preventivo: true, clave: 'horizonteNoCoincide',
     patron: /^el horizonte registrado \((.+?) min\) no es el del manifiesto desplegado \((.+?) min\)$/,
+    valores: ['registrado', 'manifiesto'],
+  },
+  // IA-B05 v6: el esquema de features registrado es el que muestra la evidencia (HU-47); debe ser el del modelo.
+  esquema_features_distinto_del_manifiesto: {
+    grupo: 'artefacto', preventivo: true, clave: 'esquemaNoCoincide',
+    patron: /^el esquema de features registrado \((.+?)\) no es el del manifiesto \((.+?)\)$/,
     valores: ['registrado', 'manifiesto'],
   },
   sklearn_distinto_del_manifiesto: {

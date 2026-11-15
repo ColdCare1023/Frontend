@@ -605,7 +605,8 @@ function registrarCambioDispositivo(
   nuevo: unknown,
   config: InternalAxiosRequestConfig,
 ): void {
-  if (Object.is(anterior, nuevo)) return
+  // Vaciar un campo que ya estaba vacío (`null` frente a `undefined`) no es un cambio.
+  if (Object.is(anterior ?? null, nuevo ?? null)) return
   const historial = historialConfiguracionDemo.get(deviceId) ?? []
   historial.unshift({
     id: `cfg-demo-${siguienteCambioDemo++}`,
