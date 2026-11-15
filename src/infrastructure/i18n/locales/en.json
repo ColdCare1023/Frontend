@@ -623,6 +623,7 @@
       "error": "The amendment could not be saved. Please try again."
     },
     "sinAcciones": "No corrective actions logged yet.",
+    "verificarCadenaEquipo": "Verify the device chain",
     "fecha": "Date",
     "mensaje": "Message",
     "estado": "Status",

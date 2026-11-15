@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RegistroTrazabilidad } from '@/domain/entities/RegistroTrazabilidad'
@@ -24,8 +25,8 @@ function registro(over: Partial<RegistroTrazabilidad> = {}): RegistroTrazabilida
   }
 }
 
-function montar(over: Record<string, unknown> = {}) {
-  useTrazabilidad.mockReturnValue({
+function valoresHook(over: Record<string, unknown> = {}) {
+  return {
     registros: [registro()],
     cargando: false,
     consultar: vi.fn(),
@@ -39,8 +40,16 @@ function montar(over: Record<string, unknown> = {}) {
     errorSegmento: null,
     verificarPorDispositivo: vi.fn(),
     ...over,
-  })
-  render(<TrazabilidadPage />)
+  }
+}
+
+function montar(over: Record<string, unknown> = {}, ruta = '/trazabilidad') {
+  useTrazabilidad.mockReturnValue(valoresHook(over))
+  return render(
+    <MemoryRouter initialEntries={[ruta]}>
+      <TrazabilidadPage />
+    </MemoryRouter>,
+  )
 }
 
 describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
@@ -319,6 +328,74 @@ describe('TrazabilidadPage — HU-26: verificación por chain_id', () => {
     montar({ cadenas, errorVerificacion: 'sin_registros' })
     expect(screen.getByRole('alert')).toHaveTextContent(/no tiene registros que verificar/i)
     expect(screen.queryByText(/no se detectaron cambios/i)).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * HU-28 (P2 de la revalidación R2): la Cronología de una alerta enlaza
+ * `/trazabilidad?cadena=<chain_id>`. La cadena llega elegida al cargar; un
+ * valor que no es una de las cadenas existentes se ignora.
+ */
+describe('TrazabilidadPage — HU-28: cadena preseleccionada desde la URL (?cadena=)', () => {
+  const cadenas = [
+    { chain_id: 'SISTEMA', es_sistema: true, total_registros: 12, ultimo_registro_en: '2026-07-25T12:00:00Z' },
+    { chain_id: 'FARM-01-CDL', es_sistema: false, total_registros: 340, ultimo_registro_en: '2026-07-25T12:00:00Z' },
+  ]
+  const selector = () => screen.getByLabelText(/^cadena$/i) as HTMLSelectElement
+
+  beforeEach(() => {
+    useTrazabilidad.mockReset()
+    useAuthStore.setState({ usuario: { id: 'u-9', email: 'a@upc.pe', rol: 'auditor', expiraEn: Date.now() + 3600_000 } as never, autenticado: true })
+  })
+
+  it('preselecciona la cadena del equipo y la verifica con una sola acción', async () => {
+    const verificarIntegridad = vi.fn()
+    montar({ cadenas, verificarIntegridad }, '/trazabilidad?cadena=FARM-01-CDL')
+
+    expect(selector()).toHaveValue('FARM-01-CDL')
+    await userEvent.click(screen.getByRole('button', { name: /revisar integridad/i }))
+    expect(verificarIntegridad).toHaveBeenCalledWith('FARM-01-CDL')
+  })
+
+  it.each([
+    ['desconocida', '/trazabilidad?cadena=FARM-99-XXX'],
+    ['vacía', '/trazabilidad?cadena='],
+    ['con otra forma', '/trazabilidad?cadena=farm-01-cdl'],
+  ])('ignora una cadena %s y conserva «Todas las cadenas»', async (_caso, ruta) => {
+    const verificarIntegridad = vi.fn()
+    montar({ cadenas, verificarIntegridad }, ruta)
+
+    expect(selector()).toHaveValue('')
+    await userEvent.click(screen.getByRole('button', { name: /revisar integridad/i }))
+    expect(verificarIntegridad).toHaveBeenCalledWith(undefined)
+  })
+
+  it('la preselección espera a que llegue la lista de cadenas', () => {
+    const { rerender } = montar({ cadenas: [] }, '/trazabilidad?cadena=FARM-01-CDL')
+    expect(selector()).toHaveValue('')
+
+    useTrazabilidad.mockReturnValue(valoresHook({ cadenas }))
+    rerender(
+      <MemoryRouter initialEntries={['/trazabilidad?cadena=FARM-01-CDL']}>
+        <TrazabilidadPage />
+      </MemoryRouter>,
+    )
+    expect(selector()).toHaveValue('FARM-01-CDL')
+  })
+
+  it('después de preseleccionar, la elección de la persona manda', async () => {
+    const verificarIntegridad = vi.fn()
+    montar({ cadenas, verificarIntegridad }, '/trazabilidad?cadena=FARM-01-CDL')
+
+    await userEvent.selectOptions(selector(), 'SISTEMA')
+    expect(selector()).toHaveValue('SISTEMA')
+    await userEvent.click(screen.getByRole('button', { name: /revisar integridad/i }))
+    expect(verificarIntegridad).toHaveBeenCalledWith('SISTEMA')
+  })
+
+  it('sin ?cadena= se conserva el comportamiento anterior (todas)', () => {
+    montar({ cadenas })
+    expect(selector()).toHaveValue('')
   })
 })
 

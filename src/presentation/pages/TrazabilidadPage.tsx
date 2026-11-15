@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
 import { Fingerprint, FlaskConical, Link2, Search, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
 
 import { useTrazabilidad } from '@/application/hooks/useTrazabilidad'
@@ -8,6 +9,7 @@ import type { RegistroTrazabilidad, VerificacionSegmento } from '@/domain/entiti
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { contarPorDia } from '@/lib/agruparPorDia'
+import { cadenaDeEnlace, PARAMETRO_CADENA } from '@/lib/enlaceCadena'
 import { instanteDelPeriodo } from '@/lib/limitesPeriodo'
 import { fechaISOlocal, fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
@@ -42,6 +44,16 @@ export function TrazabilidadPage() {
   } = useTrazabilidad()
   // HU-26: cadena a verificar ('' = todas a la vez).
   const [cadenaElegida, setCadenaElegida] = useState('')
+  // HU-28: `?cadena=<chain_id>` (enlace «Verificar cadena del equipo» de la
+  // Cronología) la deja elegida al cargar, una vez por valor y solo si es una
+  // de las cadenas existentes; después manda lo que elija la persona.
+  const [parametros] = useSearchParams()
+  const cadenaPedida = cadenaDeEnlace(parametros.get(PARAMETRO_CADENA), cadenas)
+  const [cadenaPedidaAplicada, setCadenaPedidaAplicada] = useState<string | null>(null)
+  if (cadenaPedida && cadenaPedida !== cadenaPedidaAplicada) {
+    setCadenaPedidaAplicada(cadenaPedida)
+    setCadenaElegida(cadenaPedida)
+  }
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   // HU-37: verificación acotada a un dispositivo y periodo.

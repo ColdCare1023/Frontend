@@ -36,6 +36,8 @@ export interface PropsPanelAlerta {
   /** Acción disponible para este rol (la página ya aplicó el RBAC). */
   puedeRegistrar: boolean
   puedeRectificar: PuedeRectificar
+  /** HU-28: el rol puede abrir /trazabilidad para verificar la cadena del equipo. */
+  puedeVerificarCadena?: boolean
   borradores: Map<string, BorradorAccion>
   onCerrar: () => void
   /** Devuelve el foco (al disparador o, si ya no existe, a un destino estable). */
@@ -83,6 +85,7 @@ function ContenidoPanel({
   pestanaInicial,
   puedeRegistrar,
   puedeRectificar,
+  puedeVerificarCadena = false,
   borradores,
   onCerrar,
   registrarAccion,
@@ -146,6 +149,8 @@ function ContenidoPanel({
           rectificarAccion={rectificarAccion}
           puedeRectificar={puedeRectificar}
           resaltarNueva={registrada}
+          puedeVerificarCadena={puedeVerificarCadena}
+          onSalir={onCerrar}
         />
       </SidePanelBody>
       <SidePanelFooter className="items-stretch px-4 sm:items-center sm:justify-between sm:px-6">

@@ -75,6 +75,17 @@ export function ubicarRuta(pathname: string): { seccion: SeccionNav; item: ItemN
 }
 
 /**
+ * HU-41: el rol puede abrir `ruta` (con o sin `?…`/`#…`), con el mismo mapa
+ * que el riel y RequireRoles en App.tsx. Sirve para ofrecer un enlace dentro
+ * de una pantalla solo a quien puede abrir su destino.
+ */
+export function puedeAbrirRuta(rol: Rol | null | undefined, ruta: string): boolean {
+  if (!rol) return false
+  const ubicada = ubicarRuta(ruta.split(/[?#]/, 1)[0])
+  return ubicada !== null && tienePermiso(rol, ubicada.item.roles)
+}
+
+/**
  * HU-52: a dónde ir tras abrir sesión. El destino guardado por RequireAuth
  * (p. ej. `/alertas?id=…` del correo) si el rol lo puede abrir, con el mismo
  * mapa que el riel y RequireRoles; si no, el monitoreo. Así un enlace
@@ -82,7 +93,5 @@ export function ubicarRuta(pathname: string): { seccion: SeccionNav; item: ItemN
  */
 export function destinoTrasLogin(estado: unknown, rol: Rol | null | undefined, porDefecto = '/dashboard'): string {
   const destino = destinoSeguro(estado)
-  if (!destino || !rol) return porDefecto
-  const ubicada = ubicarRuta(destino.split(/[?#]/, 1)[0])
-  return ubicada && tienePermiso(rol, ubicada.item.roles) ? destino : porDefecto
+  return destino && puedeAbrirRuta(rol, destino) ? destino : porDefecto
 }

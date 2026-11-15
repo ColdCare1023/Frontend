@@ -17,6 +17,7 @@ import { rangoPagina } from '@/lib/paginacion'
 import { useIdsNuevos } from '@/presentation/hooks/useIdsNuevos'
 import { useRefrescoIncidentes } from '@/presentation/hooks/useRefrescoIncidentes'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
+import { puedeAbrirRuta } from '@/presentation/navegacion'
 import { EstadoError } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
@@ -99,6 +100,9 @@ export function AlertasPage() {
       (tienePermiso(usuario.rol, ['farmaceutico']) || (accion.usuario_id === usuario.id && tienePermiso(usuario.rol, ['tecnico']))),
     [usuario],
   )
+  // HU-28 esc. 3: el enlace a la cadena del equipo, solo para quien puede
+  // abrir /trazabilidad (mismo mapa que las rutas de App.tsx).
+  const puedeVerificarCadena = puedeAbrirRuta(usuario?.rol, '/trazabilidad')
 
   // ── Lista ordenada y paginada ───────────────────────────────────────────
   const [aviso, setAviso] = useState<Aviso | null>(null)
@@ -481,6 +485,7 @@ export function AlertasPage() {
           pestanaInicial={panel?.pestana ?? 'cronologia'}
           puedeRegistrar={puedeRegistrarAccion}
           puedeRectificar={puedeRectificar}
+          puedeVerificarCadena={puedeVerificarCadena}
           borradores={borradores.current}
           onCerrar={cerrarPanel}
           onDevolverFoco={devolverFoco}
