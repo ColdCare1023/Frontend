@@ -30,7 +30,14 @@ import {
 } from './datosDemo'
 import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
 import { calcularSerieDemo } from './serieDemo'
-import { activarVersionDemo, listarVersionesDemo, registrarVersionDemo, versionActivaEnDemo } from './versionesModeloDemo'
+import {
+  activarVersionDemo,
+  estadoPreventivoDemo,
+  listarVersionesDemo,
+  modeloNoDisponibleDemo,
+  registrarVersionDemo,
+  registroActivoEnDemo,
+} from './versionesModeloDemo'
 
 // Flujos que tienen estado propio del adapter durante la sesión demo.
 const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>(semillaHistorialConfiguracion())
@@ -1068,7 +1075,16 @@ export const demoAdapter: AxiosAdapter = async (config) => {
 
   /* ── Métricas del modelo (RNF-04) ───────────────────────────── */
   if (metodo === 'get' && url === '/api/ia/modelo') {
+    // HU-16: los 503 llevan `motivo` y `rechazado_por_verificacion`, como el backend.
+    const noDisponible = modeloNoDisponibleDemo()
+    if (noDisponible) {
+      throw new AxiosError(noDisponible.detail, 'ERR_BAD_RESPONSE', config, null, responder(config, noDisponible, 503))
+    }
     return responder(config, METRICAS_IA_DEMO)
+  }
+  /* ── Clasificación preventiva (HU-20 / HU-34 / HU-46) ──────────── */
+  if (metodo === 'get' && url === '/api/ia/preventivo') {
+    return responder(config, estadoPreventivoDemo())
   }
   /* ── Versionado operativo del modelo (HU-46) ───────────────────── */
   if (metodo === 'get' && url === '/api/ia/modelo/versiones') {
@@ -1111,7 +1127,12 @@ export const demoAdapter: AxiosAdapter = async (config) => {
           : null
     // HU-47 esc. 2: se cruza con el versionado demo (HU-46) en el momento de la inferencia.
     const huboInferencia = lectura.estado_inferencia === 'completada' && Boolean(lectura.modelo_version)
-    const versionVigente = huboInferencia ? versionActivaEnDemo(lectura.timestamp) : null
+    const registroVigente = huboInferencia ? registroActivoEnDemo(lectura.timestamp) : null
+    const versionVigente = registroVigente?.version ?? null
+    // La demo clasifica con su modelo experimental (demo-3.0.0, no activable):
+    // solo una lectura clasificada por la versión activa en ese momento sería «aprobada».
+    const aprobada = huboInferencia && versionVigente !== null && versionVigente === lectura.modelo_version
+    const experimental = huboInferencia && !aprobada
     // B-13: misma forma que InferenciaLecturaResponse del backend.
     return responder(config, {
       lectura_id: lectura.id,
@@ -1134,7 +1155,11 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       riesgo_efectivo: lectura.riesgo_efectivo,
       // HU-34 esc. 4: lo que se rotula, como `estado_riesgo` del backend.
       estado_riesgo: estadoRiesgoDe(lectura),
-      ia_experimental: true,
+      ia_experimental: experimental || !huboInferencia,
+      // HU-18 esc. 4: horizonte, esquema y política vigentes (gestionar_modelo_ia.py).
+      horizonte_min: registroVigente?.horizonte_min ?? null,
+      feature_schema_version: registroVigente?.feature_schema_version ?? null,
+      politica_operativa: !huboInferencia ? null : aprobada ? 'aprobada' : 'experimental',
     })
   }
 

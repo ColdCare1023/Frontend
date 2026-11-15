@@ -45,6 +45,11 @@ test('HU-46: el administrador ve el rechazo 409, registra y activa una versión 
   await irA(page, '/metricas-ia')
   const seccion = page.getByRole('region', { name: 'Versiones del modelo' })
   await expect(seccion.getByTestId('version-modelo-demo-3.0.0')).toContainText('No activable')
+  // HU-20 / HU-46: sin versión activa en el registro, la clasificación preventiva no opera
+  // y la activación comprueba el artefacto del modelo preventivo.
+  const preventiva = page.getByTestId('estado-preventivo')
+  await expect(preventiva).toHaveAttribute('data-situacion', 'fuera')
+  await expect(seccion.getByTestId('artefacto-gobernado')).toHaveAttribute('data-modelo', 'preventivo')
 
   // Activar la versión sin H ni particiones: el backend (demo) la rechaza con su motivo.
   await seccion.getByRole('button', { name: 'Activar la versión demo-3.0.0' }).click()
@@ -80,6 +85,9 @@ test('HU-46: el administrador ve el rechazo 409, registra y activa una versión 
   await dialogo.getByRole('button', { name: 'Activar versión' }).click()
   await expect(seccion.getByRole('status')).toContainText('Versión demo-4.0.0 activada.')
   await expect(seccion.getByTestId('version-modelo-demo-4.0.0')).toContainText('Activa')
+  // Activada la versión, el backend (demo) informa la preventiva en operación.
+  await expect(preventiva).toHaveAttribute('data-situacion', 'operativa')
+  await expect(preventiva).toContainText('Modelo preventivo demo-4.0.0')
 })
 
 test('HU-46: el auditor consulta las versiones en solo lectura; el QF no las ve', async ({ page }) => {
@@ -94,6 +102,9 @@ test('HU-46: el auditor consulta las versiones en solo lectura; el QF no las ve'
   await irA(page, '/metricas-ia')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Versiones del modelo' })).toHaveCount(0)
+  // HU-16: el estado del modelo se distingue; HU-20: la preventiva se informa al QF.
+  await expect(page.getByTestId('estado-modelo')).toHaveAttribute('data-estado', 'disponible')
+  await expect(page.getByTestId('estado-preventivo')).toContainText('Fuera de operación')
 })
 
 test('HU-47 / HU-18: la evidencia es del QF y del auditor; el técnico no recibe el botón', async ({ page }) => {

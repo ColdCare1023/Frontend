@@ -1,7 +1,9 @@
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { ArrowRight, Bell, CircleCheck, History, Hourglass, Monitor, OctagonAlert, ShieldCheck, TriangleAlert } from 'lucide-react'
 
+import { useClasificacionPreventiva } from '@/application/hooks/useClasificacionPreventiva'
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
 import { cn } from '@/lib/utils'
 import { Badge } from '../../components/ui/badge'
@@ -38,8 +40,21 @@ function Rutina() {
   )
 }
 
+/**
+ * HU-20 / HU-34: «Riesgo preventivo» se describe como un estado que el sistema
+ * muestra solo si el backend informa la clasificación preventiva en operación.
+ * Si informa que no lo está, se dice; si no se sabe (técnico, sin respuesta),
+ * se dice cuándo aparece.
+ */
+function descripcionEstado(clave: string, operativa: boolean, conocida: boolean, t: TFunction): string {
+  if (clave !== 'preventivo' || operativa) return t(`guia.estados.${clave}.descripcion`)
+  return t(conocida ? 'guia.estados.preventivo.fueraDeOperacion' : 'guia.estados.preventivo.condicional')
+}
+
 function Estados() {
   const { t } = useTranslation()
+  const preventiva = useClasificacionPreventiva()
+  const conocida = preventiva.clasificacion !== null
   const estados = [
     ['normal', CircleCheck, 'text-success-700'],
     ['preventivo', TriangleAlert, 'text-warning-700'],
@@ -67,8 +82,13 @@ function Estados() {
               <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
                 {t(`guia.estados.${clave}.titulo`)}
                 {clave === 'sinDatos' && <span aria-hidden className="trama-sin-datos size-3 rounded-sm" />}
+                {clave === 'preventivo' && conocida && !preventiva.operativa && (
+                  <Badge variant="outline">{t('guia.estados.preventivo.insignia')}</Badge>
+                )}
               </h3>
-              <p className="text-meta text-muted">{t(`guia.estados.${clave}.descripcion`)}</p>
+              <p data-testid={`guia-estado-${clave}`} className="text-meta text-muted">
+                {descripcionEstado(clave, preventiva.operativa, conocida, t)}
+              </p>
             </div>
           </li>
         ))}

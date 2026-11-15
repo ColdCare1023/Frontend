@@ -1,10 +1,12 @@
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { aClasificacionPreventiva, type EstadoPreventivoApi } from '@/application/hooks/useClasificacionPreventiva'
+import { interpretarModeloNoDisponible } from '@/application/hooks/useModeloIA'
 import type { VersionModeloIA } from '@/application/hooks/useVersionesModelo'
 import { demoAdapter } from '@/infrastructure/demo/demoAdapter'
 import { estadoDemo } from '@/infrastructure/demo/datosDemo'
-import { reiniciarVersionesDemo } from '@/infrastructure/demo/versionesModeloDemo'
+import { reiniciarVersionesDemo, simularModeloIADemo } from '@/infrastructure/demo/versionesModeloDemo'
 import { errores, esquemaPeticion } from '../contrato/validarOpenApi'
 
 function config(over: Partial<InternalAxiosRequestConfig>): InternalAxiosRequestConfig {
@@ -16,13 +18,13 @@ function config(over: Partial<InternalAxiosRequestConfig>): InternalAxiosRequest
   } as InternalAxiosRequestConfig
 }
 
-async function estadoDeError(promesa: Promise<unknown>): Promise<{ status?: number; detail?: string }> {
+async function estadoDeError(promesa: Promise<unknown>): Promise<{ status?: number; detail?: string; data?: unknown }> {
   try {
     await promesa
     return {}
   } catch (error) {
     const respuesta = (error as AxiosError<{ detail: string }>).response
-    return { status: respuesta?.status, detail: respuesta?.data.detail }
+    return { status: respuesta?.status, detail: respuesta?.data.detail, data: respuesta?.data }
   }
 }
 
@@ -95,5 +97,62 @@ describe('demo: versionado del modelo (HU-46)', () => {
     const lectura = estadoDemo.lecturas.find((l) => l.estado_inferencia === 'completada' && l.modelo_version)!
     const { data } = await demoAdapter(config({ url: `/api/ia/inferencia/${lectura.id}` }))
     expect(data).toMatchObject({ version_era_activa_y_aprobada_en_ese_momento: false, version_activa_en_ese_momento: null, ia_experimental: true })
+  })
+})
+
+/** HU-16 / HU-20 / HU-47 en la demostración: los estados nuevos del backend. */
+describe('demo: estado del modelo y de la clasificación preventiva', () => {
+  beforeEach(() => reiniciarVersionesDemo())
+
+  it('GET /api/ia/preventivo: sin versión activa en el registro, fuera de operación (como el backend en modo activo)', async () => {
+    const { data } = await demoAdapter(config({ url: '/api/ia/preventivo' }))
+    expect(data).toMatchObject({
+      modo: 'activo', disponible: false, motivo_codigo: 'sin_version_activa_registrada',
+      version_activa_registrada: null, es_version_activa_registrada: false, datos_simulados: true,
+    })
+    expect(aClasificacionPreventiva(data as EstadoPreventivoApi)).toMatchObject({ operativa: false, artefactoGobernado: 'preventivo' })
+  })
+
+  it('activar una versión completa pone en operación la clasificación preventiva', async () => {
+    await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(COMPLETA) }))
+    await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/activar' }))
+    const { data } = await demoAdapter(config({ url: '/api/ia/preventivo' }))
+    expect(data).toMatchObject({ disponible: true, version: 'demo-4.0.0', version_activa_registrada: 'demo-4.0.0', es_version_activa_registrada: true })
+    expect(aClasificacionPreventiva(data as EstadoPreventivoApi).operativa).toBe(true)
+  })
+
+  it('GET /api/ia/modelo reproduce el 503 rechazado por verificación con su motivo', async () => {
+    simularModeloIADemo({ estado: 'rechazado', motivo: 'checksum_invalido' })
+    const error = await estadoDeError(demoAdapter(config({ url: '/api/ia/modelo' })))
+    expect(error.status).toBe(503)
+    expect(error.data).toMatchObject({ motivo: 'checksum_invalido', rechazado_por_verificacion: true })
+    expect(interpretarModeloNoDisponible(error.data)).toEqual({ estado: 'rechazado', motivo: 'checksum_invalido' })
+  })
+
+  it('GET /api/ia/modelo reproduce el 503 de modelo no entrenado', async () => {
+    simularModeloIADemo({ estado: 'no_entrenado', motivo: 'sin_metricas' })
+    const error = await estadoDeError(demoAdapter(config({ url: '/api/ia/modelo' })))
+    expect(error).toMatchObject({ status: 503, data: { motivo: 'sin_metricas', rechazado_por_verificacion: false } })
+    expect(interpretarModeloNoDisponible(error.data)).toEqual({ estado: 'no_entrenado', motivo: 'sin_metricas' })
+  })
+
+  it('por defecto el modelo de la demo está disponible', async () => {
+    const respuesta = await demoAdapter(config({ url: '/api/ia/modelo' }))
+    expect(respuesta.status).toBe(200)
+  })
+
+  it('HU-47: la evidencia demo declara la política operativa, como el backend', async () => {
+    const clasificada = estadoDemo.lecturas.find((l) => l.estado_inferencia === 'completada' && l.modelo_version)!
+    const { data } = await demoAdapter(config({ url: `/api/ia/inferencia/${clasificada.id}` }))
+    expect(data).toMatchObject({ politica_operativa: 'experimental', horizonte_min: null, feature_schema_version: null })
+    // Lectura que el modelo no clasificó (p. ej. sin hora sincronizada): no hay política que declarar.
+    const sinInferencia = { ...clasificada, id: 'demo-sin-inferencia', estado_inferencia: 'omitida' as const, modelo_version: null }
+    estadoDemo.lecturas.push(sinInferencia)
+    try {
+      const { data: otra } = await demoAdapter(config({ url: '/api/ia/inferencia/demo-sin-inferencia' }))
+      expect(otra).toMatchObject({ politica_operativa: null, version_era_activa_y_aprobada_en_ese_momento: null })
+    } finally {
+      estadoDemo.lecturas.splice(estadoDemo.lecturas.indexOf(sinInferencia), 1)
+    }
   })
 })

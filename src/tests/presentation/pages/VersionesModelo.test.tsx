@@ -1,11 +1,11 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { AxiosRequestConfig } from 'axios'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { VersionModeloIA } from '@/application/hooks/useVersionesModelo'
 import i18n from '@/infrastructure/i18n'
-import { VersionesModelo } from '@/presentation/pages/metricas/VersionesModelo'
+import { VersionesModelo, type ArtefactoGobernado } from '@/presentation/pages/metricas/VersionesModelo'
 import { FORM_VERSION_VACIO, validarNuevaVersion } from '@/presentation/pages/metricas/validarVersion'
 import { instalarAdaptadorFalso } from '../../ayudas'
 import { errores, esquemaPeticion, existeRuta } from '../../contrato/validarOpenApi'
@@ -39,16 +39,32 @@ function version(over: Partial<VersionModeloIA> = {}): VersionModeloIA {
 
 type Respuesta = { status?: number; data?: unknown }
 
-function montar(puedeGestionar: boolean, responder: (config: AxiosRequestConfig) => Respuesta | undefined = () => undefined, lista = [version()]) {
+function montar(
+  puedeGestionar: boolean,
+  responder: (config: AxiosRequestConfig) => Respuesta | undefined = () => undefined,
+  lista = [version()],
+  extra: { artefacto?: ArtefactoGobernado | null; onCambio?: () => void } = {},
+) {
   const adaptador = instalarAdaptadorFalso((config) => {
     const propia = responder(config)
     if (propia) return propia
     if (config.method === 'get' && config.url === '/api/ia/modelo/versiones') return { data: lista }
     return { status: 500, data: {} }
   })
-  render(<VersionesModelo puedeGestionar={puedeGestionar} />)
+  render(<VersionesModelo puedeGestionar={puedeGestionar} {...extra} />)
   return adaptador
 }
+
+/** Abre la confirmación de la versión 4.0.0-binario, confirma y devuelve el aviso. */
+async function activarYLeerAviso() {
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Activar la versión 4.0.0-binario' }))
+  await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Activar versión' }))
+  return screen.findByRole('alert')
+}
+
+const rechazo409 = (motivos: string) => (config: AxiosRequestConfig): Respuesta | undefined =>
+  config.method === 'post' ? { status: 409, data: { detail: `La versión 4.0.0-binario no puede activarse: ${motivos}` } } : undefined
 
 let adaptador: ReturnType<typeof instalarAdaptadorFalso> | undefined
 afterEach(() => adaptador?.restaurar())
@@ -87,10 +103,97 @@ describe('VersionesModelo (HU-46)', () => {
 
     const alerta = await screen.findByRole('alert')
     expect(alerta).toHaveTextContent('No se activó la versión 4.0.0-binario: no cumple los requisitos de activación. La versión activa se mantiene.')
-    expect(alerta).toHaveTextContent('Motivo informado por el sistema: La versión 4.0.0-binario no puede activarse: falta el horizonte H')
+    // Los motivos se listan por grupo, en vez del texto crudo del 409.
+    const grupo = within(alerta).getByTestId('motivos-rechazo').querySelector('[data-grupo="criterios"]') as HTMLElement
+    expect(grupo).toHaveTextContent('Requisitos de la versión:')
+    expect(within(grupo).getByRole('listitem')).toHaveTextContent('falta el horizonte H de la etiqueta')
     const post = adaptador.peticiones.find((p) => p.method === 'post')!
     expect(post.url).toBe('/api/ia/modelo/versiones/4.0.0-binario/activar')
     expect(existeRuta('post', post.url)).toBe(true)
+  })
+
+  it('409 por el artefacto legado: lo nombra y lista el motivo aparte de los requisitos', async () => {
+    const activable = version({ activable: true, motivos_bloqueo: [] })
+    adaptador = montar(true, rechazo409('el artefacto desplegado no coincide con el hash registrado'), [activable], {
+      artefacto: { modelo: 'legado', version: null },
+    })
+    const alerta = await activarYLeerAviso()
+    expect(alerta).toHaveTextContent(
+      'No se activó la versión 4.0.0-binario: el artefacto del modelo legado desplegado no corresponde a esta versión. La versión activa se mantiene.',
+    )
+    const grupo = alerta.querySelector('[data-grupo="artefacto"]') as HTMLElement
+    expect(grupo).toHaveTextContent('Artefacto del modelo legado:')
+    expect(grupo).toHaveTextContent('el artefacto desplegado no coincide con la huella registrada')
+    expect(alerta.querySelector('[data-grupo="criterios"]')).toBeNull()
+  })
+
+  it('409 por el artefacto preventivo: lo reconoce por sus motivos aunque no se sepa el modo', async () => {
+    const activable = version({ activable: true, motivos_bloqueo: [] })
+    adaptador = montar(
+      true,
+      rechazo409(
+        'la versión no es la desplegada en IA_PREVENTIVO_VERSION (p-1.0.0); IA_PREVENTIVO_SHA256 no coincide con el hash registrado; ' +
+          'el artefacto desplegado no coincide con el hash registrado; el manifiesto está en estado DRAFT; activar exige APPROVED_FOR_DEPLOYMENT',
+      ),
+      [activable],
+    )
+    const alerta = await activarYLeerAviso()
+    expect(alerta).toHaveTextContent('el artefacto del modelo preventivo desplegado no corresponde a esta versión')
+    const grupo = alerta.querySelector('[data-grupo="artefacto"]') as HTMLElement
+    expect(grupo).toHaveTextContent('Artefacto del modelo preventivo:')
+    expect(within(grupo).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'la versión no es la desplegada (p-1.0.0)',
+      'la huella configurada (IA_PREVENTIVO_SHA256) no coincide con la registrada',
+      'el artefacto desplegado no coincide con la huella registrada',
+      'el manifiesto está en estado DRAFT; activar exige APPROVED_FOR_DEPLOYMENT',
+    ])
+  })
+
+  it('409 por requisitos y artefacto a la vez: los separa en dos grupos', async () => {
+    adaptador = montar(
+      true,
+      rechazo409('falta el horizonte H de la etiqueta; no cumple el criterio principal (por_incidente); el artefacto desplegado no coincide con el hash registrado'),
+      [version()],
+      { artefacto: { modelo: 'preventivo', version: 'p-1.0.0' } },
+    )
+    const alerta = await activarYLeerAviso()
+    expect(alerta).toHaveTextContent('no cumple los requisitos de activación')
+    expect(alerta.querySelector('[data-grupo="criterios"]')).toHaveTextContent('no cumple el criterio principal (Por incidente)')
+    expect(alerta.querySelector('[data-grupo="artefacto"]')).toHaveTextContent('Artefacto del modelo preventivo:')
+  })
+
+  it('409 con un texto que no sigue el formato conocido: muestra el motivo del sistema tal cual', async () => {
+    const activable = version({ activable: true, motivos_bloqueo: [] })
+    adaptador = montar(true, (config) => (config.method === 'post' ? { status: 409, data: { detail: 'Conflicto inesperado' } } : undefined), [activable])
+    const alerta = await activarYLeerAviso()
+    expect(alerta).toHaveTextContent('Motivo informado por el sistema: Conflicto inesperado')
+  })
+
+  it('422: dice que la solicitud no es válida, con el detalle de la validación', async () => {
+    const activable = version({ activable: true, motivos_bloqueo: [] })
+    adaptador = montar(
+      true,
+      (config) => (config.method === 'post' ? { status: 422, data: { detail: [{ msg: 'String should have at most 50 characters' }] } } : undefined),
+      [activable],
+    )
+    const alerta = await activarYLeerAviso()
+    expect(alerta).toHaveTextContent('No se activó la versión 4.0.0-binario: la solicitud no es válida. La versión activa se mantiene.')
+    expect(alerta).toHaveTextContent('String should have at most 50 characters')
+  })
+
+  it('la confirmación dice qué artefacto se comprobará y, tras intentarlo, avisa del cambio', async () => {
+    const onCambio = vi.fn()
+    const activable = version({ activable: true, motivos_bloqueo: [] })
+    adaptador = montar(true, (config) => (config.method === 'post' ? { data: { ...activable, activa: true } } : undefined), [activable], {
+      artefacto: { modelo: 'preventivo', version: '4.0.0-binario' },
+      onCambio,
+    })
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Activar la versión 4.0.0-binario' }))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('comprueba el artefacto del modelo preventivo desplegado (versión 4.0.0-binario)')
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Activar versión' }))
+    await screen.findByRole('status')
+    expect(onCambio).toHaveBeenCalledTimes(1)
   })
 
   it('404: explica que la versión no está registrada ni aprobada', async () => {

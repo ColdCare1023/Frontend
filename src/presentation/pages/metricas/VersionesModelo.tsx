@@ -27,13 +27,48 @@ import {
   SidePanelHeader,
   SidePanelTitle,
 } from '../../components/ui/side-panel'
+import { clasificarRechazo, textoMotivo, type GrupoMotivo, type ModeloArtefacto, type RechazoActivacion } from './motivosActivacion'
 import { FORM_VERSION_VACIO, validarNuevaVersion, type FormularioVersion } from './validarVersion'
 
-type Aviso = { tipo: 'ok' | 'error'; texto: string; detalle?: string | null } | null
+type Aviso = { tipo: 'ok' | 'error'; texto: string; detalle?: string | null; rechazo?: RechazoActivacion } | null
+
+/** HU-46: artefacto que el backend comprueba al activar (GET /api/ia/preventivo). */
+export interface ArtefactoGobernado {
+  modelo: ModeloArtefacto
+  /** IA_PREVENTIVO_VERSION desplegada (solo el preventivo la informa). */
+  version: string | null
+}
+
+const GRUPOS: GrupoMotivo[] = ['criterios', 'artefacto', 'otros']
+
+function MotivosRechazo({ rechazo }: { rechazo: RechazoActivacion }) {
+  const { t } = useTranslation()
+  return (
+    <div className="mt-1 space-y-1" data-testid="motivos-rechazo">
+      {GRUPOS.map((grupo) => {
+        const motivos = rechazo.motivos.filter((m) => m.grupo === grupo)
+        if (motivos.length === 0) return null
+        const titulo =
+          grupo === 'artefacto'
+            ? t(`metricasIA.versiones.grupos.artefacto_${rechazo.artefacto ?? 'desconocido'}`)
+            : t(`metricasIA.versiones.grupos.${grupo}`)
+        return (
+          <div key={grupo} data-grupo={grupo}>
+            <p>{titulo}</p>
+            <ul className="list-disc space-y-0.5 pl-4">
+              {motivos.map((m) => <li key={m.texto}>{m.texto}</li>)}
+            </ul>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function AvisoResultado({ aviso, className }: { aviso: Aviso; className?: string }) {
   const { t } = useTranslation()
   if (!aviso) return null
+  const conMotivos = (aviso.rechazo?.motivos.length ?? 0) > 0
   return (
     <div
       role={aviso.tipo === 'error' ? 'alert' : 'status'}
@@ -44,19 +79,44 @@ function AvisoResultado({ aviso, className }: { aviso: Aviso; className?: string
       )}
     >
       <p className="font-medium">{aviso.texto}</p>
-      {aviso.detalle && <p className="mt-0.5">{t('metricasIA.versiones.motivoServidor', { detalle: aviso.detalle })}</p>}
+      {conMotivos && aviso.rechazo ? (
+        <MotivosRechazo rechazo={aviso.rechazo} />
+      ) : (
+        aviso.detalle && <p className="mt-0.5">{t('metricasIA.versiones.motivoServidor', { detalle: aviso.detalle })}</p>
+      )}
     </div>
   )
+}
+
+function textoArtefacto(artefacto: ArtefactoGobernado, t: TFunction): string {
+  return artefacto.modelo === 'preventivo'
+    ? artefacto.version
+      ? t('metricasIA.versiones.artefactoPreventivoVersion', { version: artefacto.version })
+      : t('metricasIA.versiones.artefactoPreventivo')
+    : t('metricasIA.versiones.artefactoLegado')
 }
 
 /**
  * HU-46: versionado operativo del modelo en la página del Clasificador. El
  * administrador lista, registra y activa; el auditor solo consulta. Los
- * rechazos del backend (409 por criterios o artefacto distinto, 404 por
- * versión no registrada) se muestran con su motivo: la versión activa vigente
- * no cambia y el intento queda en la bitácora.
+ * rechazos del backend (409 por criterios o porque el artefacto desplegado
+ * —preventivo o legado— no es el de la versión, 404 por versión no
+ * registrada, 422 por solicitud no válida) se muestran con sus motivos: la
+ * versión activa vigente no cambia y el intento queda en la bitácora.
  */
-export function VersionesModelo({ puedeGestionar, className }: { puedeGestionar: boolean; className?: string }) {
+export function VersionesModelo({
+  puedeGestionar,
+  artefacto = null,
+  onCambio,
+  className,
+}: {
+  puedeGestionar: boolean
+  /** Qué artefacto comprueba el backend al activar; null si no se sabe. */
+  artefacto?: ArtefactoGobernado | null
+  /** Tras activar (o intentarlo): el estado de la clasificación preventiva puede cambiar. */
+  onCambio?: () => void
+  className?: string
+}) {
   const { t } = useTranslation()
   const { versiones, cargando, error, consultar, registrar, activar } = useVersionesModelo(true)
   const [aviso, setAviso] = useState<Aviso>(null)
@@ -73,7 +133,8 @@ export function VersionesModelo({ puedeGestionar, className }: { puedeGestionar:
     const resultado = await activar(version)
     setActivando(false)
     setPorActivar(null)
-    setAviso(avisoDeActivacion(resultado, version, t))
+    setAviso(avisoDeActivacion(resultado, version, artefacto?.modelo ?? null, t))
+    onCambio?.()
   }
 
   return (
@@ -85,6 +146,11 @@ export function VersionesModelo({ puedeGestionar, className }: { puedeGestionar:
             {t('metricasIA.versiones.titulo')}
           </h2>
           <p className="text-meta text-muted">{t('metricasIA.versiones.descripcion')}</p>
+          {artefacto && (
+            <p data-testid="artefacto-gobernado" data-modelo={artefacto.modelo} className="mt-1 text-meta text-muted">
+              {textoArtefacto(artefacto, t)}
+            </p>
+          )}
         </div>
         {puedeGestionar ? (
           <Button
@@ -155,11 +221,12 @@ export function VersionesModelo({ puedeGestionar, className }: { puedeGestionar:
                     : t('metricasIA.versiones.confirmarSinActiva')}{' '}
                   {t('metricasIA.versiones.confirmarTraza')}
                 </DialogDescription>
+                {artefacto && <p className="mt-2 text-meta text-muted">{textoArtefacto(artefacto, t)}</p>}
                 {(porActivar.motivos_bloqueo?.length ?? 0) > 0 && (
                   <div className="mt-3 rounded-(--radius-field) bg-warning-100 px-3 py-2 text-meta text-warning-700">
                     <p className="font-medium">{t('metricasIA.versiones.confirmarBloqueo')}</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                      {porActivar.motivos_bloqueo?.map((motivo) => <li key={motivo}>{motivo}</li>)}
+                      {porActivar.motivos_bloqueo?.map((motivo) => <li key={motivo}>{textoMotivo(motivo, t)}</li>)}
                     </ul>
                   </div>
                 )}
@@ -193,10 +260,18 @@ export function VersionesModelo({ puedeGestionar, className }: { puedeGestionar:
   )
 }
 
-function avisoDeActivacion(resultado: ResultadoVersion, version: string, t: TFunction): Aviso {
+function avisoDeActivacion(resultado: ResultadoVersion, version: string, gobernado: ModeloArtefacto | null, t: TFunction): Aviso {
   if (resultado.resultado === 'ok') return { tipo: 'ok', texto: t('metricasIA.versiones.activada', { version }) }
-  if (resultado.resultado === 'conflicto') return { tipo: 'error', texto: t('metricasIA.versiones.rechazadaCriterios', { version }), detalle: resultado.detalle }
+  if (resultado.resultado === 'conflicto') {
+    // 409: criterios de la versión y/o el artefacto que se cargará (HU-16 esc. 4).
+    const rechazo = clasificarRechazo(resultado.detalle, gobernado, t)
+    const texto = rechazo.soloArtefacto
+      ? t(`metricasIA.versiones.rechazadaArtefacto_${rechazo.artefacto ?? 'desconocido'}`, { version })
+      : t('metricasIA.versiones.rechazadaCriterios', { version })
+    return { tipo: 'error', texto, detalle: resultado.detalle, rechazo }
+  }
   if (resultado.resultado === 'no_encontrada') return { tipo: 'error', texto: t('metricasIA.versiones.rechazadaNoRegistrada', { version }), detalle: resultado.detalle }
+  if (resultado.resultado === 'invalida') return { tipo: 'error', texto: t('metricasIA.versiones.rechazadaInvalida', { version }), detalle: resultado.detalle }
   if (resultado.resultado === 'sin_permiso') return { tipo: 'error', texto: t('metricasIA.versiones.sinPermiso') }
   return { tipo: 'error', texto: t('metricasIA.versiones.errorActivar'), detalle: resultado.detalle }
 }
@@ -265,7 +340,7 @@ function FilaVersion({ version, puedeGestionar, onActivar }: { version: VersionM
           <div className="min-w-0">
             <p className="font-medium">{t('metricasIA.versiones.motivosTitulo')}</p>
             <ul className="list-disc space-y-0.5 pl-4">
-              {motivos.map((motivo) => <li key={motivo}>{motivo}</li>)}
+              {motivos.map((motivo) => <li key={motivo}>{textoMotivo(motivo, t)}</li>)}
             </ul>
           </div>
         </div>
