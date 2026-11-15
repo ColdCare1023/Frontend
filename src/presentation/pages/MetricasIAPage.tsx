@@ -48,23 +48,27 @@ function EsqueletoClasificador() {
  */
 export function MetricasIAPage() {
   const { t, i18n } = useTranslation()
-  const { datos, estado, motivo, consultar } = useModeloIA()
+  const { datos, estado, motivo, consultar, recargar } = useModeloIA()
   const m = datos?.metricas
   const preventiva = useClasificacionPreventiva()
   // HU-46: el versionado lo lee el auditor y lo gestiona el administrador
-  // (GET: ADMINISTRADOR, AUDITOR; POST: ADMINISTRADOR). El QF no lo ve: 403.
+  // (GET: ADMINISTRADOR, AUDITOR; POST registrar/activar/desactivar:
+  // ADMINISTRADOR). El QF no lo ve: 403.
   const rol = useAuthStore((s) => s.usuario?.rol)
   const verVersiones = rol !== undefined && tienePermiso(rol, ['auditor'])
   const gobernado = preventiva.clasificacion
-  const versiones = (className?: string) =>
-    verVersiones ? (
-      <VersionesModelo
-        puedeGestionar={rol !== undefined && tienePermiso(rol, [])}
-        artefacto={gobernado ? { modelo: gobernado.artefactoGobernado, version: gobernado.artefactoGobernado === 'preventivo' ? gobernado.version : null } : null}
-        onCambio={() => void preventiva.recargar()}
-        className={className}
-      />
-    ) : null
+  const versiones = verVersiones ? (
+    <VersionesModelo
+      puedeGestionar={rol !== undefined && tienePermiso(rol, [])}
+      artefacto={gobernado ? { modelo: gobernado.artefactoGobernado, version: gobernado.artefactoGobernado === 'preventivo' ? gobernado.version : null } : null}
+      onCambio={() => {
+        // Activar o desactivar una versión cambia el estado preventivo y el del
+        // modelo legado (su huella se fija a la versión activa): se releen ambos.
+        void preventiva.recargar()
+        void recargar()
+      }}
+    />
+  ) : null
   const estadoPreventivo = <EstadoClasificacionPreventiva clasificacion={preventiva.clasificacion} />
 
   const encabezado = (
@@ -90,36 +94,30 @@ export function MetricasIAPage() {
     )
   }
 
+  let disponible = false
+  let cuerpo: React.ReactNode
   if (estado !== 'disponible' || !datos || !m) {
-    return (
-      <div>
-        {encabezado}
-        <div className="space-y-3 xl:space-y-4">
-          {/* HU-16: 503 «rechazado por verificación» no es «no entrenado» ni un error de red. */}
-          {estado === 'rechazado' || estado === 'no_entrenado' ? (
-            <EstadoModelo estado={estado} motivo={motivo} />
-          ) : (
-            <EstadoError mensaje={t('metricasIA.errorCarga')}>
-              <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar()}>
-                {t('metricasIA.reintentar')}
-              </Button>
-            </EstadoError>
-          )}
-          {estadoPreventivo}
-          {/* Sin modelo cargado (503) el administrador necesita justo esto: registrar y activar. */}
-          {versiones()}
-        </div>
-      </div>
+    cuerpo = (
+      <>
+        {/* HU-16: 503 «rechazado por verificación» no es «no entrenado» ni un error de red. */}
+        {estado === 'rechazado' || estado === 'no_entrenado' ? (
+          <EstadoModelo estado={estado} motivo={motivo} />
+        ) : (
+          <EstadoError mensaje={t('metricasIA.errorCarga')}>
+            <Button variant="secondary" size="sm" className="mt-3" onClick={() => void consultar()}>
+              {t('metricasIA.reintentar')}
+            </Button>
+          </EstadoError>
+        )}
+        {estadoPreventivo}
+      </>
     )
-  }
-
-  const evaluacionVerificada = datos.datos_simulados === false && Boolean(m.dataset_hash && m.model_hash && m.particion)
-  const estadoEvaluacion: EstadoClasificador = !evaluacionVerificada ? 'sin-verificar' : m.f1_weighted >= UMBRAL_F1 ? 'cumple' : 'no-cumple'
-
-  return (
-    <div>
-      {encabezado}
-      <div className="space-y-3 xl:space-y-4">
+  } else {
+    disponible = true
+    const evaluacionVerificada = datos.datos_simulados === false && Boolean(m.dataset_hash && m.model_hash && m.particion)
+    const estadoEvaluacion: EstadoClasificador = !evaluacionVerificada ? 'sin-verificar' : m.f1_weighted >= UMBRAL_F1 ? 'cumple' : 'no-cumple'
+    cuerpo = (
+      <>
         <EstadoModelo estado="disponible" version={datos.metadata?.model_version ?? m.model_version} />
         {estadoPreventivo}
         <EstadoEvaluacion estado={estadoEvaluacion} umbral={porcentaje(UMBRAL_F1, i18n.resolvedLanguage, 0)} />
@@ -140,11 +138,26 @@ export function MetricasIAPage() {
           </div>
           <FichaModelo className="order-5 lg:col-span-12" metricas={m} />
         </div>
-        {versiones()}
-        <p className="flex items-start gap-2 text-meta text-muted">
-          <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-          {t('metricasIA.notaUsoProfesional')}
-        </p>
+      </>
+    )
+  }
+
+  return (
+    <div>
+      {encabezado}
+      <div className="space-y-3 xl:space-y-4">
+        {cuerpo}
+        {/* Misma posición con y sin modelo cargado: activar o desactivar una
+            versión puede cambiar el estado del modelo y la sección no se vuelve
+            a montar (conserva el aviso anunciado y el foco). Sin modelo cargado
+            (503) el administrador necesita justo esto: registrar y activar. */}
+        {versiones}
+        {disponible && (
+          <p className="flex items-start gap-2 text-meta text-muted">
+            <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+            {t('metricasIA.notaUsoProfesional')}
+          </p>
+        )}
       </div>
     </div>
   )

@@ -32,6 +32,7 @@ import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
 import { calcularSerieDemo } from './serieDemo'
 import {
   activarVersionDemo,
+  desactivarVersionDemo,
   estadoPreventivoDemo,
   listarVersionesDemo,
   modeloNoDisponibleDemo,
@@ -1076,6 +1077,19 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       fallar(config, resultado.status, resultado.detalle ?? 'No se pudo activar la versión')
     }
     registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA', recurso, actorDemo(config), 'exitoso', { version })
+    return responder(config, resultado.data)
+  }
+  const desactivarVersion = /^\/api\/ia\/modelo\/versiones\/([^/]+)\/desactivar$/.exec(url)
+  if (metodo === 'post' && desactivarVersion) {
+    // P-12: sin versión activa, el preventivo no se carga y el riesgo vuelve a la línea base.
+    const version = decodeURIComponent(desactivarVersion[1])
+    const cuerpo = cuerpoJson(config)
+    const resultado = desactivarVersionDemo(version, cuerpo)
+    if (!resultado.data) fallar(config, resultado.status, resultado.detalle ?? 'No se pudo desactivar la versión')
+    registrarAuditoriaDemo('DESACTIVAR_VERSION_MODELO_IA', `ia/modelo/versiones/${version}/desactivar`, actorDemo(config), 'exitoso', {
+      version,
+      motivo: cuerpo.motivo,
+    })
     return responder(config, resultado.data)
   }
   const detalleInferencia = /^\/api\/ia\/inferencia\/([^/]+)$/.exec(url)

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { interpretarModeloNoDisponible, useModeloIA } from '@/application/hooks/useModeloIA'
@@ -90,5 +90,28 @@ describe('useModeloIA', () => {
     const { result } = renderHook(() => useModeloIA())
     await waitFor(() => expect(result.current.estado).toBe('error'))
     expect(result.current.error).toBe(true)
+  })
+
+  it('P-12: recargar relee el estado sin pasar por «cargando» (tras desactivar una versión)', async () => {
+    // Con una versión activa, la huella del legado queda fijada a ella y el legado se rechaza…
+    let respuesta: { status?: number; data: unknown } = {
+      status: 503,
+      data: { detail: DETALLE_RECHAZO, motivo: 'hash_distinto_de_la_version_activa', rechazado_por_verificacion: true },
+    }
+    adaptador = instalarAdaptadorFalso(() => respuesta)
+    const estados: string[] = []
+    const { result } = renderHook(() => {
+      const valor = useModeloIA()
+      estados.push(valor.estado)
+      return valor
+    })
+    await waitFor(() => expect(result.current.estado).toBe('rechazado'))
+    // …y al desactivarla vuelve la línea base: el legado experimental está disponible.
+    respuesta = { data: { modelo_disponible: true, metadata: null, metricas: { model_version: 'v' } } }
+    estados.length = 0
+    await act(() => result.current.recargar())
+    expect(result.current.estado).toBe('disponible')
+    expect(result.current.motivo).toBeNull()
+    expect(estados).not.toContain('cargando')
   })
 })

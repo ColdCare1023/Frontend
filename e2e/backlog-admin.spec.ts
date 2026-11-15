@@ -40,7 +40,7 @@ test('HU-30: el Químico Farmacéutico registra la calibración y ve la vencida 
   await expect(page.getByRole('img', { name: 'Capturada con la calibración vencida' }).first()).toBeVisible()
 })
 
-test('HU-46: el administrador ve el rechazo 409, registra y activa una versión del modelo', async ({ page }) => {
+test('HU-46 / P-12: el administrador ve el rechazo 409, registra, activa y desactiva una versión del modelo', async ({ page }) => {
   await entrarComo(page, 'Administrador')
   await irA(page, '/metricas-ia')
   const seccion = page.getByRole('region', { name: 'Versiones del modelo' })
@@ -88,6 +88,23 @@ test('HU-46: el administrador ve el rechazo 409, registra y activa una versión 
   // Activada la versión, el backend (demo) informa la preventiva en operación.
   await expect(preventiva).toHaveAttribute('data-situacion', 'operativa')
   await expect(preventiva).toContainText('Modelo preventivo demo-4.0.0')
+
+  // P-12: desactivarla, con motivo, deja el registro sin versión activa y la preventiva vuelve a la línea base.
+  await seccion.getByRole('button', { name: 'Desactivar la versión demo-4.0.0' }).click()
+  dialogo = page.getByRole('alertdialog')
+  await expect(dialogo).toContainText('No quedará ninguna versión activa')
+  await dialogo.getByRole('button', { name: 'Desactivar versión' }).click()
+  await expect(dialogo.getByRole('alert')).toContainText('Escribe un motivo de al menos 10 caracteres.')
+  await dialogo.getByLabel('Motivo de la desactivación').fill('Vuelta atrás: falsas alarmas en el banco')
+  await dialogo.getByRole('button', { name: 'Desactivar versión' }).click()
+  await expect(dialogo).toHaveCount(0)
+  await expect(seccion.getByRole('status')).toContainText('Versión demo-4.0.0 desactivada.')
+  await expect(seccion.getByRole('heading', { name: 'Versiones del modelo' })).toBeFocused()
+  const fila = seccion.getByTestId('version-modelo-demo-4.0.0')
+  await expect(fila).toContainText('Lista para activar')
+  await expect(fila).toContainText(/Desactivada el/)
+  await expect(fila.getByRole('button', { name: 'Activar la versión demo-4.0.0' })).toBeVisible()
+  await expect(preventiva).toHaveAttribute('data-situacion', 'fuera')
 })
 
 test('HU-46: el auditor consulta las versiones en solo lectura; el QF no las ve', async ({ page }) => {

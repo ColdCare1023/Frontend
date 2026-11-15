@@ -6,6 +6,10 @@ import type { TFunction } from 'i18next'
  * (`motivos_bloqueo_activacion`) y de prediccion_preventiva/servicio.py
  * (`motivos_activacion`); el 409 los une en
  * «La versión X no puede activarse: m1; m2».
+ *
+ * Único lugar donde se traducen los códigos de rechazo del versionado del
+ * modelo: los motivos del 409 de `/activar` (también los códigos estables de
+ * B05 v6/v7, ver CODIGOS_ACTIVACION) y el 409 de `/desactivar`.
  */
 export type ModeloArtefacto = 'preventivo' | 'legado'
 export type GrupoMotivo = 'criterios' | 'artefacto' | 'otros'
@@ -40,16 +44,53 @@ const PREVENTIVO: Regla[] = [
   [/^el manifiesto está en estado (.+); activar exige (.+)$/, 'manifiestoNoAprobado', (m) => ({ estado: m[1], exigido: m[2] })],
 ]
 
+/**
+ * IA-B05 v6 y v7: códigos estables del 409 de `/activar` cuando el registro no
+ * coincide con el manifiesto del artefacto preventivo desplegado (horizonte H,
+ * versión de scikit-learn) o el manifiesto no es el aprobado en historial.json
+ * (su sha256 es otro). Llegan solos o entre los motivos, con o sin detalle
+ * («horizonte_no_coincide (15 ≠ 30)», «horizonte_no_coincide: …»).
+ */
+export const CODIGOS_ACTIVACION = {
+  horizonte_no_coincide: 'horizonteNoCoincide',
+  version_sklearn_no_coincide: 'sklearnNoCoincide',
+  manifiesto_no_coincide: 'manifiestoNoCoincide',
+} as const
+export type CodigoActivacion = keyof typeof CODIGOS_ACTIVACION
+
+const PATRON_CODIGO = new RegExp(`^(${Object.keys(CODIGOS_ACTIVACION).join('|')})(?:\\s*[:(]\\s*(.*?)\\)?)?$`)
+
+/** P-12: el 409 de `/desactivar` cuando la versión no es la activa. */
+export const CODIGO_VERSION_NO_ACTIVA = 'version_no_activa'
+
+export function esVersionNoActiva(detalle: string | null | undefined): boolean {
+  return detalle?.trim() === CODIGO_VERSION_NO_ACTIVA
+}
+
+function buscarCodigo(motivo: string): { clave: string; detalle: string | null } | null {
+  const m = PATRON_CODIGO.exec(motivo.trim())
+  if (!m) return null
+  const detalle = m[2]?.trim()
+  return { clave: CODIGOS_ACTIVACION[m[1] as CodigoActivacion], detalle: detalle ? detalle : null }
+}
+
 /** Común a ambos artefactos: el archivo desplegado no es el de la huella registrada. */
 const ARTEFACTO_DISTINTO = /^el artefacto desplegado no coincide con el hash registrado$/
 
 const PREFIJO = 'no puede activarse: '
 
-/** Separa los motivos del `detail` de un 409; [] si no tiene esa forma. */
+/**
+ * Separa los motivos del `detail` de un 409; [] si no tiene esa forma. Un
+ * `detail` que solo trae códigos estables (sin «no puede activarse:») también
+ * se reconoce.
+ */
 export function separarMotivos(detalle: string | null | undefined): string[] {
   if (!detalle) return []
   const inicio = detalle.indexOf(PREFIJO)
-  if (inicio < 0) return []
+  if (inicio < 0) {
+    const partes = detalle.split('; ').map((parte) => parte.trim()).filter(Boolean)
+    return partes.length > 0 && partes.every((parte) => buscarCodigo(parte) !== null) ? partes : []
+  }
   const motivos: string[] = []
   for (const parte of detalle.slice(inicio + PREFIJO.length).split('; ')) {
     const limpia = parte.trim()
@@ -69,8 +110,9 @@ function buscar(reglas: Regla[], motivo: string): { clave: string; params: Recor
   return null
 }
 
+/** Motivos que solo existen si el artefacto que se valida es el preventivo (los códigos comparan con su manifiesto). */
 export function esMotivoPreventivo(motivo: string): boolean {
-  return buscar(PREVENTIVO, motivo) !== null
+  return buscar(PREVENTIVO, motivo) !== null || buscarCodigo(motivo) !== null
 }
 
 /** Texto traducido de un motivo de bloqueo; el original si no se conoce. */
@@ -83,6 +125,11 @@ export function textoMotivo(motivo: string, t: TFunction): string {
   }
   const preventivo = buscar(PREVENTIVO, motivo)
   if (preventivo) return t(`metricasIA.versiones.motivos.${preventivo.clave}`, preventivo.params)
+  const codigo = buscarCodigo(motivo)
+  if (codigo) {
+    const texto = t(`metricasIA.versiones.motivos.${codigo.clave}`)
+    return codigo.detalle ? `${texto} (${codigo.detalle})` : texto
+  }
   if (ARTEFACTO_DISTINTO.test(motivo)) return t('metricasIA.versiones.motivos.artefactoDistinto')
   return motivo
 }

@@ -66,11 +66,30 @@ export function cuerpoRegistroVersion(nueva: NuevaVersionModelo) {
   }
 }
 
-/** Texto del rechazo: FastAPI envía `detail` como cadena (409/404) o como lista (422). */
+/** P-12: límites del motivo de `POST /api/ia/modelo/versiones/{version}/desactivar`. */
+export const MOTIVO_DESACTIVACION_MIN = 10
+export const MOTIVO_DESACTIVACION_MAX = 500
+
+/** P-12: cuerpo exacto de la desactivación (additionalProperties: false). */
+export function cuerpoDesactivacion(motivo: string) {
+  return { motivo: motivo.trim() }
+}
+
+/**
+ * Texto del rechazo: FastAPI envía `detail` como cadena (409/404) o como lista
+ * (422). Si el backend lo envía como objeto con un código estable
+ * (`{codigo}`/`{code}`), se devuelve el código para traducirlo aquí.
+ */
 export function detalleDelError(error: unknown): string | null {
   if (!axios.isAxiosError(error)) return null
   const detalle = (error.response?.data as { detail?: unknown } | undefined)?.detail
   if (typeof detalle === 'string') return detalle
+  if (detalle && typeof detalle === 'object' && !Array.isArray(detalle)) {
+    const { codigo, code } = detalle as { codigo?: unknown; code?: unknown }
+    if (typeof codigo === 'string') return codigo
+    if (typeof code === 'string') return code
+    return null
+  }
   if (Array.isArray(detalle)) {
     const mensajes = detalle
       .map((item) => (item && typeof item === 'object' && 'msg' in item ? String((item as { msg: unknown }).msg) : null))
@@ -92,8 +111,8 @@ function rechazo(error: unknown): ResultadoVersion {
 
 /**
  * HU-46: versiones registradas del modelo. Listar: administrador y auditor;
- * registrar y activar: solo administrador (ia_router.py). Con `habilitado`
- * en false no se consulta nada (p. ej. el QF, que recibiría un 403).
+ * registrar, activar y desactivar: solo administrador (ia_router.py). Con
+ * `habilitado` en false no se consulta nada (p. ej. el QF, que recibiría un 403).
  */
 export function useVersionesModelo(habilitado = true) {
   const [versiones, setVersiones] = useState<VersionModeloIA[]>([])
@@ -149,5 +168,27 @@ export function useVersionesModelo(habilitado = true) {
     [consultar],
   )
 
-  return { versiones, cargando, error, consultar, registrar, activar }
+  // P-12: desactivar la versión activa deja el registro sin versión activa
+  // (el modelo preventivo no se carga y el riesgo vuelve a la línea base).
+  // 404 (no registrada) y 409 (ya no es la activa: otra persona se adelantó)
+  // dicen que la lista quedó vieja; 422 (motivo no válido) no cambia nada.
+  const desactivar = useCallback(
+    async (version: string, motivo: string): Promise<ResultadoVersion> => {
+      try {
+        const { data } = await apiClient.post<VersionModeloIA>(
+          rutaApi`/api/ia/modelo/versiones/${version}/desactivar`,
+          cuerpoDesactivacion(motivo),
+        )
+        await consultar()
+        return { resultado: 'ok', version: data }
+      } catch (error) {
+        const resultado = rechazo(error)
+        if (resultado.resultado === 'conflicto' || resultado.resultado === 'no_encontrada') await consultar()
+        return resultado
+      }
+    },
+    [consultar],
+  )
+
+  return { versiones, cargando, error, consultar, registrar, activar, desactivar }
 }

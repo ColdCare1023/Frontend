@@ -2449,6 +2449,64 @@
         }
       }
     },
+    "/api/ia/modelo/versiones/{version}/desactivar": {
+      "post": {
+        "tags": [
+          "ia"
+        ],
+        "summary": "Desactivar Version Modelo",
+        "description": "P-12: desactiva la versión activa del modelo con un motivo. No queda versión activa: el modelo preventivo no se carga y el riesgo efectivo vuelve a la línea base. Encadena MODELO_IA_VERSION_DESACTIVADA y deja una entrada de auditoría. 404 si la versión no está registrada; 409 `version_no_activa` si no es la activa.",
+        "operationId": "desactivar_version_modelo_api_ia_modelo_versiones__version__desactivar_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesactivarVersionModeloRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionModeloResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/ia/inferencia/{lectura_id}": {
       "get": {
         "tags": [
@@ -5292,6 +5350,22 @@
           "motivo"
         ],
         "title": "DesactivarUsuarioRequest"
+      },
+      "DesactivarVersionModeloRequest": {
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Motivo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "motivo"
+        ],
+        "title": "DesactivarVersionModeloRequest"
       },
       "DetalleInconsistenciaResponse": {
         "properties": {

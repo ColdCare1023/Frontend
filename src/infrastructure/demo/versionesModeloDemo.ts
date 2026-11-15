@@ -252,6 +252,25 @@ export function activarVersionDemo(version: string): Resultado {
   return { status: 200, data: aRespuesta(objetivo) }
 }
 
+/**
+ * P-12: POST /api/ia/modelo/versiones/{version}/desactivar. Cuerpo
+ * `{motivo}` de 10 a 500 caracteres (additionalProperties: false); 404 si no
+ * está registrada y 409 `version_no_activa` si no es la activa. Sin versión
+ * activa, el estado preventivo vuelve a `sin_version_activa_registrada`.
+ */
+export function desactivarVersionDemo(version: string, cuerpo: Record<string, unknown>): Resultado {
+  const extra = Object.keys(cuerpo).find((campo) => campo !== 'motivo')
+  if (extra) return { status: 422, detalle: `Campo no admitido: ${extra}` }
+  const motivo = cuerpo.motivo
+  if (typeof motivo !== 'string' || motivo.length < 10 || motivo.length > 500) return { status: 422, detalle: 'Valor no válido en motivo' }
+  const objetivo = registros.find((r) => r.version === version)
+  if (!objetivo) return { status: 404, detalle: `La versión ${version} no está registrada` }
+  if (!objetivo.activa) return { status: 409, detalle: 'version_no_activa' }
+  objetivo.activa = false
+  objetivo.desactivada_en = new Date().toISOString()
+  return { status: 200, data: aRespuesta(objetivo) }
+}
+
 /** HU-47 esc. 2: versión registrada que estaba activa en `momento` (o null). */
 export function versionActivaEnDemo(momento: string): string | null {
   const ms = Date.parse(momento)
