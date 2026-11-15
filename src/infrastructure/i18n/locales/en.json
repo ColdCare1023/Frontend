@@ -1163,6 +1163,7 @@
       "NOTIFICACION_ENVIADA": "Email notice sent",
       "NOTIFICACION_FALLIDA": "Email notice not sent",
       "NOTIFICACION_SIN_DESTINATARIO": "Notice without recipient",
+      "NOTIFICACION_NO_ENVIADA": "Notice not sent: email disabled",
       "RESPALDO_COMPLETADO": "Backup completed",
       "RESPALDO_FALLIDO": "Backup failed",
       "LOGIN_CODIGO_EMITIDO": "Sign-in code sent",

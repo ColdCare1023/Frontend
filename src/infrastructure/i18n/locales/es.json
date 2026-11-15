@@ -1163,6 +1163,7 @@
       "NOTIFICACION_ENVIADA": "Aviso por correo enviado",
       "NOTIFICACION_FALLIDA": "Aviso por correo no enviado",
       "NOTIFICACION_SIN_DESTINATARIO": "Aviso sin destinatario",
+      "NOTIFICACION_NO_ENVIADA": "Aviso no enviado: correo deshabilitado",
       "RESPALDO_COMPLETADO": "Respaldo completado",
       "RESPALDO_FALLIDO": "Respaldo fallido",
       "LOGIN_CODIGO_EMITIDO": "Código de acceso enviado",
