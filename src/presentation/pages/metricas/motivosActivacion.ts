@@ -98,6 +98,13 @@ export const MOTIVOS_POR_CODIGO = {
     patron: /^el esquema de features registrado \((.+?)\) no es el del manifiesto \((.+?)\)$/,
     valores: ['registrado', 'manifiesto'],
   },
+  // HU-17: el servicio de inferencia no sabe calcular las features del manifiesto (conjunto sin canales
+  // servidos, lista distinta de la del extractor o configuración ilegible): no se activa.
+  esquema_features_no_servible: {
+    grupo: 'artefacto', preventivo: true, clave: 'esquemaNoServible',
+    patron: /^el servicio de inferencia no puede calcular las features del esquema del manifiesto \((.+?)\)$/,
+    valores: ['manifiesto'],
+  },
   sklearn_distinto_del_manifiesto: {
     grupo: 'artefacto', preventivo: true, clave: 'sklearnNoCoincide',
     patron: /^la versión de scikit-learn registrada \((.+?)\) no es la del manifiesto \((.+?)\)$/,

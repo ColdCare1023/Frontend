@@ -2091,6 +2091,7 @@
         "artefactoDistinto": "el artefacto desplegado no coincide con la huella registrada",
         "horizonteNoCoincide": "el horizonte H registrado ({{registrado}} min) no es el del manifiesto del artefacto desplegado ({{manifiesto}} min)",
         "esquemaNoCoincide": "el esquema de características registrado ({{registrado}}) no es el del manifiesto del artefacto desplegado ({{manifiesto}})",
+        "esquemaNoServible": "el servicio de inferencia no puede calcular las características del esquema del manifiesto ({{manifiesto}})",
         "sklearnNoCoincide": "la versión de scikit-learn registrada ({{registrada}}) no es la del manifiesto del artefacto desplegado ({{manifiesto}})",
         "sklearnIncompatible": "el modelo se entrenó con scikit-learn {{entrenado}} y la instalada es {{instalado}}: no se podría cargar",
         "manifiestoNoCoincide": "el manifiesto desplegado se modificó fuera de la herramienta de registro: su huella SHA-256 no es la anotada en el historial"
