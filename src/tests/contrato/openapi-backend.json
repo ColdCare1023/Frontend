@@ -2383,6 +2383,9 @@
               }
             }
           },
+          "409": {
+            "description": "La versión ya está registrada o, con `activar=true`, no puede activarse (nada queda registrado). En el segundo caso, `codigos` trae un código estable por motivo, igual que POST /modelo/versiones/{version}/activar."
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2436,6 +2439,12 @@
               }
             }
           },
+          "404": {
+            "description": "Versión no registrada."
+          },
+          "409": {
+            "description": "La versión no puede activarse. `detail` trae los motivos en texto y `codigos`, un código estable por motivo y en el mismo orden."
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2455,7 +2464,7 @@
           "ia"
         ],
         "summary": "Desactivar Version Modelo",
-        "description": "P-12: desactiva la versión activa del modelo con un motivo. No queda versión activa: el modelo preventivo no se carga y el riesgo efectivo vuelve a la línea base. Encadena MODELO_IA_VERSION_DESACTIVADA y deja una entrada de auditoría. 404 si la versión no está registrada; 409 `version_no_activa` si no es la activa.",
+        "description": "P-12: desactiva la versión activa sin activar otra. No queda ninguna\nversión activa: el modelo preventivo en modo activo deja de cargarse\n(`modelo_ia.preventivo.motivo_codigo=sin_version_activa_registrada` en\n/health/detalle) y el riesgo efectivo vuelve a la línea base, la misma de\nantes de cualquier activación. Queda el evento encadenado\nMODELO_IA_VERSION_DESACTIVADA y la fila DESACTIVAR_VERSION_MODELO_IA.",
         "operationId": "desactivar_version_modelo_api_ia_modelo_versiones__version__desactivar_post",
         "security": [
           {
@@ -2493,6 +2502,12 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Versión no registrada."
+          },
+          "409": {
+            "description": "`detail` = `version_no_activa`: la versión no es la activa (o ya se desactivó)."
           },
           "422": {
             "description": "Validation Error",
@@ -5365,7 +5380,8 @@
         "required": [
           "motivo"
         ],
-        "title": "DesactivarVersionModeloRequest"
+        "title": "DesactivarVersionModeloRequest",
+        "description": "P-12: por qué se desactiva la versión activa (queda en el evento\nencadenado y en la bitácora). De 10 a 500 caracteres sin contar los\nespacios de los extremos."
       },
       "DetalleInconsistenciaResponse": {
         "properties": {

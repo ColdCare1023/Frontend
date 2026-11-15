@@ -496,10 +496,13 @@ function bufferRespuestaDemo(buffer: BufferLittleFS | undefined): BufferLittleFS
 }
 
 function alertasFiltradas(params: Record<string, string>): AlertaTermica[] {
-  // D7: como el backend, el nombre de quien la reconoció ya resuelto.
+  // D7: como el backend, el nombre de quien la reconoció ya resuelto. Siempre
+  // copias, como una respuesta serializada: si la interfaz guardara el objeto
+  // del estado demo, una escritura posterior (reconocer, atender) lo cambiaría
+  // por debajo y la actualización local partiría de un estado que aún no le llegó.
   let resultado = [...estadoDemo.alertas]
     .reverse()
-    .map((a) => (a.revisada_por ? { ...a, revisada_por_nombre: usuarioDemo(a.revisada_por)?.nombre ?? null } : a))
+    .map((a) => (a.revisada_por ? { ...a, revisada_por_nombre: usuarioDemo(a.revisada_por)?.nombre ?? null } : { ...a }))
   // HU-23: `estado` es el filtro real; `revisada` se conserva solo por si
   // algún consumidor viejo del demo todavía lo manda.
   if (params.estado) resultado = resultado.filter((a) => a.estado === params.estado)
@@ -1098,9 +1101,11 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       if (cuerpo.activar === true && resultado.motivos) {
         // HU-46 esc. 2: el rechazo de «registrar y activar» también queda en la bitácora.
         registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA_RECHAZADO', `ia/modelo/versiones/${String(cuerpo.version)}/activar`,
-          actorDemo(config), 'fallido', { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos, al_registrar: true })
+          actorDemo(config), 'fallido',
+          { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos, codigos: resultado.codigos ?? [], al_registrar: true })
       }
-      fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida')
+      // Como /activar: el 409 de registrar y activar trae `codigos` junto al `detail`.
+      fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida', resultado.codigos ? { codigos: resultado.codigos } : {})
     }
     registrarAuditoriaDemo('REGISTRAR_VERSION_MODELO_IA', `ia/modelo/versiones/${resultado.data.version}`, actorDemo(config), 'exitoso', {
       version: resultado.data.version,

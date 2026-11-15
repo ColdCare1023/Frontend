@@ -325,6 +325,7 @@ export function VersionesModelo({
             abierto={registroAbierto}
             onAbiertoChange={setRegistroAbierto}
             registrar={registrar}
+            gobernado={artefacto?.modelo ?? null}
             onRegistrada={(version, activa) => {
               avisoAlCerrar.current = {
                 tipo: 'ok',
@@ -346,16 +347,34 @@ export function VersionesModelo({
   )
 }
 
+/**
+ * 409 de `/activar` y de registrar con «activar»: el backend responde el mismo
+ * cuerpo (`detail` y `codigos`), así que se explica igual. Los motivos se
+ * traducen solo en motivosActivacion.ts; aquí se elige el titular.
+ */
+function avisoDeRechazoActivacion(
+  resultado: { detalle: string | null; codigos?: string[] },
+  version: string,
+  gobernado: ModeloArtefacto | null,
+  t: TFunction,
+  alRegistrar = false,
+): Aviso {
+  // Criterios de la versión y/o el artefacto que se cargará (HU-16 esc. 4).
+  const rechazo = clasificarRechazo(resultado.detalle, gobernado, t, resultado.codigos)
+  const artefacto = rechazo.artefacto ?? 'desconocido'
+  const texto = alRegistrar
+    ? rechazo.soloArtefacto
+      ? t(`metricasIA.versiones.form.rechazadaAlActivarArtefacto_${artefacto}`, { version })
+      : t('metricasIA.versiones.form.rechazadaAlActivarCriterios', { version })
+    : rechazo.soloArtefacto
+      ? t(`metricasIA.versiones.rechazadaArtefacto_${artefacto}`, { version })
+      : t('metricasIA.versiones.rechazadaCriterios', { version })
+  return { tipo: 'error', texto, detalle: resultado.detalle, rechazo }
+}
+
 function avisoDeActivacion(resultado: ResultadoVersion, version: string, gobernado: ModeloArtefacto | null, t: TFunction): Aviso {
   if (resultado.resultado === 'ok') return { tipo: 'ok', texto: t('metricasIA.versiones.activada', { version }) }
-  if (resultado.resultado === 'conflicto') {
-    // 409: criterios de la versión y/o el artefacto que se cargará (HU-16 esc. 4).
-    const rechazo = clasificarRechazo(resultado.detalle, gobernado, t, resultado.codigos)
-    const texto = rechazo.soloArtefacto
-      ? t(`metricasIA.versiones.rechazadaArtefacto_${rechazo.artefacto ?? 'desconocido'}`, { version })
-      : t('metricasIA.versiones.rechazadaCriterios', { version })
-    return { tipo: 'error', texto, detalle: resultado.detalle, rechazo }
-  }
+  if (resultado.resultado === 'conflicto') return avisoDeRechazoActivacion(resultado, version, gobernado, t)
   if (resultado.resultado === 'no_encontrada') return { tipo: 'error', texto: t('metricasIA.versiones.rechazadaNoRegistrada', { version }), detalle: resultado.detalle }
   if (resultado.resultado === 'invalida') return { tipo: 'error', texto: t('metricasIA.versiones.rechazadaInvalida', { version }), detalle: resultado.detalle }
   if (resultado.resultado === 'sin_permiso') return { tipo: 'error', texto: t('metricasIA.versiones.sinPermiso') }
@@ -372,6 +391,8 @@ function avisoDeDesactivacion(resultado: ResultadoVersion, version: string, t: T
   }
   if (resultado.resultado === 'no_encontrada') return { tipo: 'error', texto: t('metricasIA.versiones.desactivarNoRegistrada', { version }) }
   if (resultado.resultado === 'sin_permiso') return { tipo: 'error', texto: t('metricasIA.versiones.sinPermiso') }
+  // Se perdió la respuesta, pero la lista releída ya no la tiene activa: no queda nada que reintentar.
+  if (resultado.resultado === 'error' && resultado.yaNoActiva) return { tipo: 'ok', texto: t('metricasIA.versiones.desactivarYaNoActiva', { version }) }
   return { tipo: 'error', texto: t('metricasIA.versiones.errorDesactivar'), detalle: resultado.detalle }
 }
 
@@ -382,7 +403,8 @@ type ErrorMotivo = { tipo: 'corto' | 'largo' } | { tipo: 'servidor'; detalle: st
  * P-12: confirmación con motivo obligatorio (10–500 caracteres, el mismo
  * límite que el backend). Un 422 o una falla de red dejan el diálogo abierto
  * con el motivo escrito; 200, 404, 409 y 403 lo cierran y el resultado se
- * anuncia en la sección.
+ * anuncia en la sección. Si tras la falla de red la lista releída ya no tiene
+ * la versión activa, también se cierra: un error para reintentar sería viejo.
  */
 function DialogoDesactivar({
   version,
@@ -441,7 +463,7 @@ function DialogoDesactivar({
       campo.current?.focus()
       return
     }
-    if (resultado.resultado === 'error') {
+    if (resultado.resultado === 'error' && !resultado.yaNoActiva) {
       setAviso({ tipo: 'error', texto: t('metricasIA.versiones.errorDesactivar'), detalle: resultado.detalle })
       onResultadoIncierto()
       return
@@ -619,12 +641,15 @@ function PanelRegistrarVersion({
   abierto,
   onAbiertoChange,
   registrar,
+  gobernado,
   onRegistrada,
   onCloseAutoFocus,
 }: {
   abierto: boolean
   onAbiertoChange: (abierto: boolean) => void
   registrar: (nueva: NuevaVersionModelo) => Promise<ResultadoVersion>
+  /** Artefacto que el backend comprueba al activar (para explicar un 409 de «activar al registrar»). */
+  gobernado: ModeloArtefacto | null
   onRegistrada: (version: string, activa: boolean) => void
   onCloseAutoFocus: (evento: Event) => void
 }) {
@@ -661,6 +686,14 @@ function PanelRegistrarVersion({
       setActivarAlRegistrar(false)
       onRegistrada(resultado.version.version, resultado.version.activa === true)
       return
+    }
+    if (resultado.resultado === 'conflicto' && activarAlRegistrar) {
+      // HU-46 esc. 1: el 409 de «registrar y activar» es el de /activar (mismos motivos y códigos).
+      const rechazo = avisoDeRechazoActivacion(resultado, validado.nueva.version, gobernado, t, true)
+      if (rechazo?.rechazo?.motivos.length) {
+        setAviso(rechazo)
+        return
+      }
     }
     setAviso({
       tipo: 'error',

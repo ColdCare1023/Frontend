@@ -85,6 +85,20 @@ describe('demo — HU-23/HU-27: acción correctiva y reconocimiento', () => {
     expect(devuelta.revisada_por_nombre).toBe('Farmacéutica Demo')
   })
 
+  it('la lista entrega copias: atender después no cambia la PENDIENTE que la interfaz ya tiene', async () => {
+    // Como una respuesta serializada del backend. Con el objeto del estado demo,
+    // la actualización local de useAlertas veía la alerta ya ATENDIDA y le ponía
+    // otra hora de atención (la cronología perdía «Reconocida al registrar…»).
+    const alerta = nuevaPendiente()
+    const lista = await demoAdapter(config('farmaceutico@demo.pe', { url: '/api/alertas', params: { estado: 'pendiente' } }))
+    const enPantalla = (lista.data as AlertaTermica[]).find((a) => a.id === alerta.id)!
+    expect(enPantalla).not.toBe(alerta)
+
+    await demoAdapter(config('farmaceutico@demo.pe', { method: 'post', url: `/api/alertas/${alerta.id}/acciones-correctivas`, data: ACCION }))
+    expect(alerta.estado).toBe('atendida')
+    expect(enPantalla).toMatchObject({ estado: 'pendiente', reconocida_en: null, atendida_en: null })
+  })
+
   it('el administrador también registra; una atendida responde 409', async () => {
     const alerta = nuevaPendiente()
     const url = `/api/alertas/${alerta.id}/acciones-correctivas`

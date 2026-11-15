@@ -358,22 +358,73 @@ describe('VersionesModelo (HU-46)', () => {
     expect(cuerpo).not.toHaveProperty('activar')
   })
 
-  it('409 al registrar y activar: dice que no quedó ni registrada ni activa, con el motivo', async () => {
-    adaptador = montar(true, (config) =>
-      config.method === 'post'
-        ? { status: 409, data: { detail: 'La versión no se registró ni se activó: el artefacto desplegado no coincide con el hash registrado' } }
-        : undefined,
-    )
+  /** Llena el formulario, marca «activar al registrar», envía y devuelve el aviso de error del panel. */
+  async function registrarYActivar() {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'Registrar versión' }))
     const panel = screen.getByRole('dialog')
     await llenarFormulario(panel, user)
     await user.click(within(panel).getByRole('checkbox'))
     await user.click(within(panel).getByRole('button', { name: 'Registrar versión' }))
+    return { panel, alerta: await avisoEn('alert', panel) }
+  }
 
-    const alerta = await within(panel).findByRole('alert')
+  it('409 al registrar y activar (criterios): el mismo rechazo que /activar, con sus motivos', async () => {
+    // Cuerpo real del backend (ia_router.py): el prefijo, el texto de /activar y `codigos`.
+    adaptador = montar(true, (config) =>
+      config.method === 'post'
+        ? {
+            status: 409,
+            data: {
+              detail:
+                'La versión no se registró ni se activó: La versión 5.0.0 no puede activarse: ' +
+                'falta el horizonte H de la etiqueta; faltan las particiones (entrenamiento, prueba, separacion_min)',
+              codigos: ['falta_horizonte', 'faltan_particiones'],
+            },
+          }
+        : undefined,
+    )
+    const { alerta } = await registrarYActivar()
+    expect(alerta).toHaveTextContent('No se registró ni se activó la versión 5.0.0: no cumple los requisitos de activación. La versión activa se mantiene.')
+    const motivos = within(alerta).getByTestId('motivos-rechazo')
+    expect(within(motivos).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'falta el horizonte H de la etiqueta',
+      'faltan las particiones (entrenamiento, prueba, separacion_min)',
+    ])
+    expect(motivos.querySelector('[data-grupo="criterios"]')).not.toBeNull()
+    // Los motivos van en la lista, no repetidos como texto del sistema.
+    expect(alerta).not.toHaveTextContent('Motivo informado por el sistema')
+  })
+
+  it('409 al registrar y activar por el manifiesto (B05 v6/v7): artefacto preventivo y los mismos textos que /activar', async () => {
+    adaptador = montar(
+      true,
+      (config) =>
+        config.method === 'post'
+          ? { status: 409, data: { ...RECHAZO_B05, detail: `La versión no se registró ni se activó: ${RECHAZO_B05.detail}` } }
+          : undefined,
+      [version()],
+      { artefacto: { modelo: 'preventivo', version: '5.0.0' } },
+    )
+    const { alerta } = await registrarYActivar()
+    expect(alerta).toHaveTextContent(
+      'No se registró ni se activó la versión 5.0.0: el artefacto del modelo preventivo desplegado no corresponde a esta versión.',
+    )
+    expect(alerta).toHaveTextContent('Artefacto del modelo preventivo:')
+    expect(alerta).toHaveTextContent('el horizonte H registrado (15 min) no es el del manifiesto del artefacto desplegado (30 min)')
+    expect(alerta).toHaveTextContent('la versión de scikit-learn registrada (1.8.2) no es la del manifiesto del artefacto desplegado (1.9.0)')
+    expect(alerta).toHaveTextContent('el modelo se entrenó con scikit-learn 1.0.2 y la instalada es 1.9.0: no se podría cargar')
+    expect(alerta).toHaveTextContent('su huella SHA-256 no es la anotada en el historial')
+    expect(alerta.querySelector('[data-grupo="otros"]')).toBeNull()
+  })
+
+  it('409 al registrar y activar sin motivos de activación (p. ej. ya registrada): no quedó ni registrada ni activa, con el texto del sistema', async () => {
+    adaptador = montar(true, (config) =>
+      config.method === 'post' ? { status: 409, data: { detail: 'La versión 5.0.0 ya está registrada' } } : undefined,
+    )
+    const { alerta } = await registrarYActivar()
     expect(alerta).toHaveTextContent('No se registró ni se activó la versión.')
-    expect(alerta).toHaveTextContent('no coincide con el hash registrado')
+    expect(alerta).toHaveTextContent('Motivo informado por el sistema: La versión 5.0.0 ya está registrada')
   })
 
   it('409 al registrar: muestra el motivo dentro del formulario', async () => {
@@ -573,7 +624,19 @@ describe('VersionesModelo: desactivar la versión activa (P-12)', () => {
     expect(within(dialogo).getByLabelText('Motivo de la desactivación')).toHaveValue(MOTIVO)
   })
 
-  it('falla de red o 5xx: relee la lista y el estado, porque el cambio pudo aplicarse antes de perderse la respuesta', async () => {
+  it('falla de red o 5xx con la versión aún activa: relee la lista y el estado, y el error queda para reintentar', async () => {
+    const onCambio = vi.fn()
+    adaptador = montarConActiva(() => ({ status: 500, data: { detail: 'Internal Server Error' } }), { onCambio })
+    const { user, dialogo } = await abrirYEscribir()
+    const lecturasAntes = adaptador.peticiones.filter((p) => p.method === 'get').length
+    await user.click(within(dialogo).getByRole('button', { name: 'Desactivar versión' }))
+    expect(await avisoEn('alert', dialogo)).toHaveTextContent('No pudimos desactivar la versión.')
+    expect(adaptador.peticiones.filter((p) => p.method === 'get').length).toBeGreaterThan(lecturasAntes)
+    expect(onCambio).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('version-modelo-3.0.0')).toHaveTextContent('Activa')
+  })
+
+  it('falla de red o 5xx, pero la lista releída ya no la tiene activa: cierra el diálogo sin un error viejo', async () => {
     const onCambio = vi.fn()
     // El backend confirma la desactivación y luego falla al recargar el modelo (500).
     let lista = [ACTIVA, version()]
@@ -590,11 +653,37 @@ describe('VersionesModelo: desactivar la versión activa (P-12)', () => {
     const { user, dialogo } = await abrirYEscribir()
     const lecturasAntes = adaptador.peticiones.filter((p) => p.method === 'get').length
     await user.click(within(dialogo).getByRole('button', { name: 'Desactivar versión' }))
-    await avisoEn('alert', dialogo)
+
+    const aviso = await avisoEn('status')
+    expect(aviso).toHaveTextContent('La versión 3.0.0 ya no está activa.')
+    expect(aviso).toHaveTextContent('la lista actualizada lo confirma')
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('alert').every((region) => !region.textContent?.trim())).toBe(true)
+    expect(screen.queryByText(/No pudimos desactivar la versión/)).not.toBeInTheDocument()
     expect(adaptador.peticiones.filter((p) => p.method === 'get').length).toBeGreaterThan(lecturasAntes)
+    // El estado preventivo y el del modelo legado se releen una sola vez.
     expect(onCambio).toHaveBeenCalledTimes(1)
-    // La fila ya no dice «Activa» aunque la respuesta se perdió.
-    expect(within(screen.getByTestId('version-modelo-3.0.0', {})).queryByText('Activa')).not.toBeInTheDocument()
+    expect(within(screen.getByTestId('version-modelo-3.0.0')).queryByText('Activa')).not.toBeInTheDocument()
+    // El botón «Desactivar» ya no existe: el foco va al título de la sección.
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Versiones del modelo' })).toHaveFocus())
+  })
+
+  it('falla de red o 5xx y la lista tampoco se puede releer: el diálogo sigue abierto con el error', async () => {
+    let primera = true
+    adaptador = montar(true, (config) => {
+      if (config.method === 'get') {
+        if (primera) {
+          primera = false
+          return { data: [ACTIVA, version()] }
+        }
+        return { status: 503, data: {} }
+      }
+      return { status: 503, data: {} }
+    })
+    const { user, dialogo } = await abrirYEscribir()
+    await user.click(within(dialogo).getByRole('button', { name: 'Desactivar versión' }))
+    expect(await avisoEn('alert', dialogo)).toHaveTextContent('No pudimos desactivar la versión.')
+    expect(within(dialogo).getByLabelText('Motivo de la desactivación')).toHaveValue(MOTIVO)
   })
 
   it('el resultado se anuncia en regiones vivas que ya existían, y solo cuando el diálogo dejó de ocultar la página', async () => {

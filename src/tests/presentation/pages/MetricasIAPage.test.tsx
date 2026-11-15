@@ -241,6 +241,30 @@ describe('MetricasIAPage — clasificación preventiva', () => {
     expect(tarjeta).toHaveTextContent('Versión activa del registro: ninguna')
   })
 
+  it('P-12: tras /desactivar (respuesta real del backend) la versión configurada no se presenta como en operación', () => {
+    sesion('administrador')
+    // servicio.estado() sin modelo cargado: la versión configurada sigue en `version`,
+    // pero el registro ya no tiene versión activa.
+    preventiva({
+      modo: 'activo',
+      disponible: false,
+      version: 'p-1.0.0',
+      motivo: 'No hay una versión activa en el registro de modelos de la base',
+      motivo_codigo: 'sin_version_activa_registrada',
+      version_activa_registrada: null,
+      es_version_activa_registrada: false,
+    })
+    montar()
+    const tarjeta = screen.getByTestId('estado-preventivo')
+    expect(tarjeta).toHaveAttribute('data-situacion', 'fuera')
+    expect(tarjeta).toHaveTextContent('Fuera de operación')
+    expect(tarjeta).not.toHaveTextContent('En operación')
+    expect(tarjeta).toHaveTextContent('No hay una versión activa en el registro de versiones: sin ella no se carga ningún modelo preventivo.')
+    expect(tarjeta).toHaveTextContent(/El riesgo efectivo lo decide la regla de 2.+8/)
+    expect(tarjeta).toHaveTextContent('Versión activa del registro: ninguna')
+    expect(tarjeta).not.toHaveTextContent('p-1.0.0')
+  })
+
   it('en operación: solo cuando el backend informa modo activo, cargado y versión activa registrada', () => {
     sesion('auditor')
     preventiva({ modo: 'activo', disponible: true, version: 'p-1.0.0', version_activa_registrada: 'p-1.0.0', es_version_activa_registrada: true })

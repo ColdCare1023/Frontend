@@ -238,10 +238,17 @@ export function registrarVersionDemo(cuerpo: Record<string, unknown>, adminId: s
   }
   // HU-46 esc. 1: registrar y activar es una sola operación: si la activación
   // se rechazaría, la versión tampoco queda registrada (como el backend).
+  // Mismo cuerpo del 409 que /activar: `detail` con el prefijo y `codigos` estables.
   if (cuerpo.activar === true) {
-    const motivos = motivosBloqueo(registro).map((motivo) => motivo.texto)
-    if (motivos.length > 0) {
-      return { status: 409, detalle: `La versión no se registró ni se activó: la versión ${version} no puede activarse: ${motivos.join('; ')}`, motivos }
+    const bloqueos = motivosBloqueo(registro)
+    if (bloqueos.length > 0) {
+      const motivos = bloqueos.map((motivo) => motivo.texto)
+      return {
+        status: 409,
+        detalle: `La versión no se registró ni se activó: La versión ${version} no puede activarse: ${motivos.join('; ')}`,
+        motivos,
+        codigos: bloqueos.map((motivo) => motivo.codigo),
+      }
     }
   }
   registros.push(registro)

@@ -111,10 +111,19 @@ describe('demo: versionado del modelo (HU-46)', () => {
     const incompleta = { ...COMPLETA, version: 'demo-5.0.0', horizonte_min: undefined, activar: true }
     const error = await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(incompleta) })))
     expect(error.status).toBe(409)
-    expect(error.detail).toMatch(/no se registró ni se activó/)
+    // Mismo cuerpo que el backend: el prefijo, el texto de /activar y `codigos`.
+    expect(error.detail).toBe('La versión no se registró ni se activó: La versión demo-5.0.0 no puede activarse: falta el horizonte H de la etiqueta')
+    expect(error.data).toMatchObject({ codigos: ['falta_horizonte'] })
     const { data } = await demoAdapter(config({ url: '/api/ia/modelo/versiones' }))
     expect((data as VersionModeloIA[]).some((v) => v.version === 'demo-5.0.0')).toBe(false)
-    expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO', resultado: 'fallido' })
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      resultado: 'fallido',
+      detalle: { motivo: 'criterios_no_cumplidos', codigos: ['falta_horizonte'], al_registrar: true },
+    })
+    // La interfaz lo explica con los mismos motivos que el 409 de /activar.
+    const rechazo = clasificarRechazo(error.detail ?? null, 'preventivo', i18n.t.bind(i18n), (error.data as { codigos: string[] }).codigos)
+    expect(rechazo.motivos).toEqual([{ grupo: 'criterios', texto: 'falta el horizonte H de la etiqueta' }])
   })
 
   it('P-12: desactivar la versión activa (200) vuelve a dejar la preventiva sin versión activa', async () => {

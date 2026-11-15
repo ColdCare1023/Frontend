@@ -58,6 +58,12 @@ export type ResultadoVersion =
       detalle: string | null
       /** IA-B05: 409 de `/activar`, un código estable por motivo del `detail` y en el mismo orden. */
       codigos?: string[]
+      /**
+       * P-12: la desactivación falló por red o 5xx, pero la lista releída ya
+       * no tiene la versión activa (el cambio se aplicó antes de perderse la
+       * respuesta, o alguien se adelantó): no hay nada que reintentar.
+       */
+      yaNoActiva?: boolean
     }
 
 /** B-12: cuerpo exacto de `POST /api/ia/modelo/versiones` (additionalProperties: false). */
@@ -149,15 +155,19 @@ export function useVersionesModelo(habilitado = true) {
   const [cargando, setCargando] = useState(habilitado)
   const [error, setError] = useState(false)
 
-  const consultar = useCallback(async () => {
-    if (!habilitado) return
+  /** Relee la lista; devuelve la lista leída o null si no se pudo leer. */
+  const consultar = useCallback(async (): Promise<VersionModeloIA[] | null> => {
+    if (!habilitado) return null
     setCargando(true)
     setError(false)
     try {
       const { data } = await apiClient.get<VersionModeloIA[]>('/api/ia/modelo/versiones')
-      setVersiones(Array.isArray(data) ? data : [])
+      const lista = Array.isArray(data) ? data : []
+      setVersiones(lista)
+      return lista
     } catch {
       setError(true)
+      return null
     } finally {
       setCargando(false)
     }
@@ -216,7 +226,12 @@ export function useVersionesModelo(habilitado = true) {
         return { resultado: 'ok', version: data }
       } catch (error) {
         const resultado = rechazo(error)
-        if (resultado.resultado !== 'invalida' && resultado.resultado !== 'sin_permiso') await consultar()
+        if (resultado.resultado === 'invalida' || resultado.resultado === 'sin_permiso') return resultado
+        const lista = await consultar()
+        // Falla de red o 5xx: solo la lista releída dice si la versión sigue activa.
+        if (resultado.resultado === 'error' && lista && !lista.some((v) => v.version === version && v.activa)) {
+          return { ...resultado, yaNoActiva: true }
+        }
         return resultado
       }
     },
