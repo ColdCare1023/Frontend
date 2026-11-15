@@ -44,7 +44,7 @@ function lectura(indice: number, over: Partial<LecturaTermica> = {}): LecturaTer
 describe('useMonitoreoTermico con flujo SSE sostenido', () => {
   let adaptador: ReturnType<typeof instalarAdaptadorFalso>
   let emitir: (lectura: LecturaTermica) => void
-  let cambiarEstado: (conectado: boolean) => void
+  let cambiarEstado: (conectado: boolean, motivo?: 'demasiados_flujos') => void
   let cerrar: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
@@ -218,6 +218,20 @@ describe('useMonitoreoTermico con flujo SSE sostenido', () => {
 
     await act(async () => cambiarEstado(false))
     expect(result.current.sseConectado).toBe(false)
+  })
+
+  it('HU-32 esc. 3: expone el motivo «demasiados_flujos» y lo limpia al reconectar', async () => {
+    const { result } = renderHook(() => useMonitoreoTermico())
+
+    await act(async () => cambiarEstado(false, 'demasiados_flujos'))
+    expect(result.current.sseConectado).toBe(false)
+    expect(result.current.motivoDesconexion).toBe('demasiados_flujos')
+
+    await act(async () => cambiarEstado(true))
+    expect(result.current.motivoDesconexion).toBeNull()
+
+    await act(async () => cambiarEstado(false))
+    expect(result.current.motivoDesconexion).toBeNull()
   })
 
   it('cierra la suscripción al desmontar, sin dejar el stream abierto', async () => {

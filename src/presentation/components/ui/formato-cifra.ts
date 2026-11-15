@@ -1,3 +1,10 @@
+/**
+ * HU-33 esc. 1 («valores numéricos actuales exactos en °C y % HR»): la
+ * humedad del SHT31 llega con dos decimales y se muestra con uno, la misma
+ * precisión que la temperatura; antes se redondeaba a entero.
+ */
+export const DECIMALES_HUMEDAD = 1
+
 /** Espacio fino no separable entre valor y unidad (DIRECTION §6). */
 export const ESPACIO_FINO = '\u202F'
 /** Signo menos tipográfico. */

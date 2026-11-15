@@ -350,7 +350,7 @@ export type TipoTrazo = 'solid' | 'dashed' | 'dotted' | number[]
 /**
  * Trazo por equipo cuando la curva compara varios: tinta navy, gris
  * discontinuo, acero punteado y raya-punto. El tipo de línea separa los
- * equipos sin depender solo del color (WCAG 1.4.1) y ninguno usa el teal de
+ * equipos sin depender solo del color (WCAG 1.4.1) y ninguno usa el verde de
  * la franja, el carmesí de la excursión ni los colores de marca.
  */
 export function trazoEquipo(colores: ColoresGrafica, indice: number): { color: string; type: TipoTrazo } {

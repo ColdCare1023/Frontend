@@ -356,7 +356,9 @@
     "seccionConexion": "Connection",
     "seccionIncidentes": "Recent incidents",
     "seccionFicha": "Technical sheet",
-    "gestionarEnDispositivos": "Manage in Devices"
+    "gestionarEnDispositivos": "Manage in Devices",
+    "demasiadasPestanas": "Too many real-time tabs",
+    "demasiadasPestanasGuia": "Close another tab or device with ColdCare open; this one will connect on its own."
   },
   "demo": {
     "accesoRapido": "Demo access",
@@ -574,17 +576,17 @@
     "descripcion": "Review notices about conditions that may need attention.",
     "filtro": {
       "pendiente": "Pending",
-      "reconocida": "Reviewed",
+      "reconocida": "Acknowledged",
       "atendida": "Resolved",
       "todas": "All"
     },
     "estadoAlerta": {
       "pendiente": "Pending",
-      "reconocida": "Reviewed",
+      "reconocida": "Acknowledged",
       "atendida": "Resolved"
     },
     "reconocer": "Acknowledge",
-    "marcarRevisada": "Mark as reviewed",
+    "marcarRevisada": "Mark as acknowledged",
     "accionCorrectiva": "Corrective action",
     "registrarAccion": "Log corrective action",
     "descripcionAccion": "Describe the action taken…",
@@ -594,14 +596,14 @@
     "conflictoEstado": "This alert was already updated by someone else. The list was refreshed with its current status.",
     "sinAlertas": "There are no alerts on record yet.",
     "sinPendientes": "There are no pending alerts.",
-    "sinRevisadas": "There are no alerts marked as reviewed.",
+    "sinRevisadas": "There are no alerts marked as acknowledged.",
     "sinAtendidas": "There are no alerts with a recorded action.",
     "errorCargar": "We couldn't load alerts. Try again.",
     "errorTabla": "Alerts are hidden because we couldn't load the information.",
     "verDetalle": "View attention timeline",
     "cicloAtencion": "Attention timeline",
     "eventoCreada": "Alert generated",
-    "eventoReconocida": "Alert reviewed",
+    "eventoReconocida": "Alert acknowledged",
     "eventoAtendida": "Corrective action logged",
     "eventoRectificada": "Justification amended",
     "responsable": "Responsible",
@@ -624,7 +626,7 @@
     "mensaje": "Message",
     "estado": "Status",
     "acciones": "Actions",
-    "soloFarmaceutico": "Only pharmacy staff can mark an alert as reviewed.",
+    "soloFarmaceutico": "Only pharmacy staff can acknowledge an alert.",
     "filtroEstado": "Filter alerts by follow-up status",
     "descripcionAccionPlaceholder": "E.g. vials were relocated and the thermostat set to 5 °C",
     "descripcionAccionAyuda": "Describe what was done in response to the alert. It will appear in the history.",
@@ -687,8 +689,8 @@
       "pendientes_other": "{{count}} pending alerts; oldest since {{fecha}}",
       "incidentes_one": "No pending alerts · 1 device with an active operational incident",
       "incidentes_other": "No pending alerts · {{count}} devices with an active operational incident",
-      "revisadas_one": "Nothing pending · 1 reviewed alert awaits its corrective action",
-      "revisadas_other": "Nothing pending · {{count}} reviewed alerts await their corrective action",
+      "revisadas_one": "Nothing pending · 1 acknowledged alert awaits its corrective action",
+      "revisadas_other": "Nothing pending · {{count}} acknowledged alerts await their corrective action",
       "enOrden": "All clear · last alert resolved {{hace}}",
       "enOrdenSinHistorial": "All clear · no open alerts",
       "error": "We couldn't compute the summary; the list is still available."
@@ -699,20 +701,20 @@
     "ordenReciente": "Most recent first",
     "columnaAlerta": "Alert",
     "columnaExcursion": "Excursion",
-    "revisar": "Review",
-    "revisarA": "Review alert from {{equipo}} on {{fecha}}",
-    "revisando": "Reviewing…",
-    "revisadaOk": "Reviewed",
+    "revisar": "Acknowledge",
+    "revisarA": "Acknowledge alert from {{equipo}} on {{fecha}}",
+    "revisando": "Acknowledging…",
+    "revisadaOk": "Acknowledged",
     "registrarAccionCorta": "Log action",
     "registrarAccionA": "Log action: corrective action for the alert from {{equipo}} on {{fecha}}",
     "cronologiaA": "View attention timeline: {{equipo}}, {{fecha}}",
     "sinPico": "No peak recorded",
-    "errorRevisar": "The alert from {{equipo}} couldn't be marked as reviewed. Please try again.",
+    "errorRevisar": "The alert from {{equipo}} couldn't be marked as acknowledged. Please try again.",
     "refrescoError": "The list couldn't be updated. Showing data from {{hora}}.",
     "limiteResultados": "Showing the {{limite}} most recent alerts for this filter. Use Reports for earlier periods.",
     "cerrarAviso": "Dismiss notice",
     "anuncio": {
-      "revisada": "Alert from {{equipo}} marked as reviewed.",
+      "revisada": "Alert from {{equipo}} marked as acknowledged.",
       "nueva_one": "New alert: {{riesgo}} on {{equipo}}.",
       "nueva_other": "{{count}} new alerts."
     },
@@ -737,15 +739,16 @@
       "inicio": "Start",
       "sinCambios": "Change the decision, the action or the justification: an amendment without changes is not recorded.",
       "decisionVacia": "The corrected decision can't be empty.",
-      "justificacionVacia": "The corrected justification can't be empty."
+      "justificacionVacia": "The corrected justification can't be empty.",
+      "errorProhibido": "Your role can't record corrective actions; pharmacy staff record them. Your text is kept."
     },
     "vacio": {
       "enOrdenTitulo": "All clear",
-      "enOrdenDetalle": "There are no alerts waiting for review.",
+      "enOrdenDetalle": "There are no alerts waiting to be acknowledged.",
       "ultimaAtendida": "Last resolved: {{equipo}} · {{fecha}}",
       "verAtendidas": "View resolved",
-      "verRevisadas_one": "View 1 reviewed without action",
-      "verRevisadas_other": "View {{count}} reviewed without action",
+      "verRevisadas_one": "View 1 acknowledged without action",
+      "verRevisadas_other": "View {{count}} acknowledged without action",
       "verPendientes": "View pending",
       "verTodas": "View all",
       "irMonitoreo": "Go to Monitoring",
@@ -783,10 +786,10 @@
     },
     "guiaAtencion": {
       "titulo": "How an alert is handled",
-      "revisar": "Review",
-      "revisarDetalle": "The pharmacist confirms they saw it; it moves to Reviewed.",
+      "revisar": "Acknowledge",
+      "revisarDetalle": "The pharmacist confirms they saw it; it moves to Acknowledged.",
       "registrar": "Record the corrective action",
-      "registrarDetalle": "Decision taken, action performed and justification (GDP).",
+      "registrarDetalle": "Decision taken, action carried out, and justification (GDP). If the alert was still pending, it is acknowledged too.",
       "verificar": "Check the recovery",
       "verificarDetalle": "Confirm the device is back within 2⁠–⁠8 °C.",
       "irHistorial": "Open History"
@@ -800,7 +803,9 @@
       "error": "The alert could not be simulated."
     },
     "nuevaDecision": "Corrected decision",
-    "nuevaJustificacion": "Corrected justification"
+    "nuevaJustificacion": "Corrected justification",
+    "reconocidaConAccion": "Acknowledged when the corrective action was recorded",
+    "enlaceNoEncontrado": "We couldn't find the linked alert among the 200 most recent. You can look it up in Reports."
   },
   "trazabilidad": {
     "titulo": "Record integrity",
@@ -847,8 +852,8 @@
     "confirmarAislar": "This record will be marked as isolated and excluded from the verifiable chain. The action is audited and cannot be undone.",
     "verificarSegmento": "Verify by device and period",
     "verificarSegmentoBoton": "Verify segment",
-    "desdeAyuda": "Required. Includes the full day.",
-    "hastaOpcional": "Optional. Leave blank to check through now.",
+    "desdeAyuda": "Required. Without a time, starts at 00:00 that day.",
+    "hastaOpcional": "Optional. Without a time, through the end of the day; blank, through now.",
     "rangoInvalido": "The selected range is invalid: \"from\" cannot be later than \"to\".",
     "segmentoIntegro": "No changes detected in this period",
     "segmentoRoto": "A change was detected in this period",
@@ -1000,7 +1005,9 @@
       "sinRegistros": "Chain “{{cadena}}” has no records to verify.",
       "sistemaCorto": "System"
     },
-    "aislarNoConcluida": "It cannot be isolated: the verification of that chain did not conclude (the sealing key is missing)."
+    "aislarNoConcluida": "It cannot be isolated: the verification of that chain did not conclude (the sealing key is missing).",
+    "horaDesde": "Start time (optional)",
+    "horaHasta": "End time (optional)"
   },
   "reportes": {
     "titulo": "Monitoring reports",
@@ -1100,7 +1107,7 @@
     "ip": "Source IP",
     "sinRegistros": "There are no recorded actions yet.",
     "eventos": {
-      "ALERTA_REVISADA": "Alert reviewed",
+      "ALERTA_REVISADA": "Alert acknowledged",
       "REPORTE_BPA_GENERADO": "Report generated",
       "LOGIN_FALLIDO": "Sign-in failed",
       "LOGIN_EXITOSO": "Sign-in succeeded",
@@ -1120,7 +1127,7 @@
       "REACTIVAR_USUARIO": "User reactivated",
       "CAMBIAR_ROL_USUARIO": "User role changed",
       "BIENVENIDA_NOTIFICADA": "Welcome sent",
-      "REVISAR_ALERTA": "Alert reviewed",
+      "REVISAR_ALERTA": "Alert acknowledged",
       "REGISTRAR_ACCION_CORRECTIVA": "Corrective action recorded",
       "RECTIFICAR_ACCION_CORRECTIVA": "Corrective action amended",
       "EXPORTAR_REPORTE_BPA": "GSP report exported",
@@ -2072,10 +2079,10 @@
       },
       "registrar": {
         "titulo": "Record the response",
-        "descripcion": "If your role allows it, mark the alert as reviewed and note the action taken."
+        "descripcion": "If your role allows it, mark the alert as acknowledged and note the action taken."
       }
     },
-    "alertaPermisos": "Pharmacy technicians can record a corrective action; pharmacists can also mark an alert as reviewed. Auditors have read-only access.",
+    "alertaPermisos": "Pharmacists acknowledge the alert and record the corrective action; pharmacy technicians view the alert and its timeline. Auditors have read-only access.",
     "ejemploTitulo": "Illustrative example · 2⁠–⁠8 °C range",
     "ejemplo": "4.3 °C is within range. A reading of 8.4 °C is outside it: review the alert, follow your pharmacy's procedure, and record the response.",
     "pantallasTitulo": "Find a screen",
@@ -2266,7 +2273,7 @@
     "buffer_80": "{{device}}'s local buffer is above 80%.",
     "buffer_saturado": "{{device}}'s local buffer is full: readings may have been lost.",
     "registros_en_cuarentena": "{{device}} quarantined records (conflicting content).",
-    "wifi_reconexion_prolongada": "{{device}} has been trying to reconnect to the network for a while.",
+    "wifi_reconexion_prolongada": "{{device}} reconnected to the network after a long time without a connection.",
     "conmutacion_respaldo": "{{device}} is running on backup power.",
     "suministro_restablecido": "{{device}} has mains power again.",
     "respaldo_autonomia_critica": "{{device}}'s backup battery is critically low.",
@@ -2289,7 +2296,11 @@
       "critico": "Critical alert",
       "aviso": "Notice",
       "ok": "Confirmed"
-    }
+    },
+    "wifiReconectado_one": "{{device}} reconnected after {{count}} attempt ({{duracion}}).",
+    "wifiReconectado_other": "{{device}} reconnected after {{count}} attempts ({{duracion}}).",
+    "wifiReconectadoIntentos_one": "{{device}} reconnected after {{count}} attempt.",
+    "wifiReconectadoIntentos_other": "{{device}} reconnected after {{count}} attempts."
   },
   "tema": {
     "titulo": "Theme",
@@ -2341,7 +2352,8 @@
     "conexion": {
       "conectado": "Live connection",
       "reconectando": "Reconnecting…",
-      "sinConexion": "Live connection lost"
+      "sinConexion": "Live connection lost",
+      "demasiadasPestanas": "Too many real-time tabs"
     },
     "ultimaLectura": "{{id}} · {{tiempo}}",
     "alertas_one": "{{count}} unattended alert",

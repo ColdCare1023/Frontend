@@ -12,7 +12,7 @@ import { Paginacion } from '../../../components/Paginacion'
 import { RiskBadge } from '../../../components/RiskBadge'
 import { Button } from '../../../components/ui/button'
 import { EsqueletoTabla } from '../../../components/ui/esqueleto'
-import { formatearTemperatura } from '../../../components/ui/formato-cifra'
+import { DECIMALES_HUMEDAD, formatearTemperatura } from '../../../components/ui/formato-cifra'
 import { Dato, Tarjeta } from '../compartido'
 import { useLecturasEquipo } from './datosEquipo'
 
@@ -92,7 +92,7 @@ export function TabHistorial({ dispositivo }: { dispositivo: Dispositivo }) {
                       <td className="nums px-4 py-2 text-meta text-muted"><HoraLectura lectura={l} formato="fechaHora" /></td>
                       <td className="nums px-4 py-2">{l.temperatura_interna !== null ? formatearTemperatura(l.temperatura_interna) : '—'}</td>
                       <td className="nums px-4 py-2 text-subtle">{l.temperatura_ambiental !== null ? formatearTemperatura(l.temperatura_ambiental) : '—'}</td>
-                      <td className="nums px-4 py-2 text-subtle">{l.humedad_ambiental !== null ? `${l.humedad_ambiental.toFixed(0)} %` : '—'}</td>
+                      <td className="nums px-4 py-2 text-subtle">{l.humedad_ambiental !== null ? `${l.humedad_ambiental.toFixed(DECIMALES_HUMEDAD)} %` : '—'}</td>
                       {/* HU-34 esc. 4: sin clasificación IA o falla de sensor no se rotulan Normal. */}
                       <td className="px-4 py-2"><RiskBadge nivel={estadoRiesgoDe(l)} /></td>
                     </tr>

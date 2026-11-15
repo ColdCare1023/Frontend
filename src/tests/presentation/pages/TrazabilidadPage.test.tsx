@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -370,5 +370,63 @@ describe('TrazabilidadPage — HU-37: verificación por dispositivo y periodo', 
     })
     expect(screen.getByTestId('resultado-segmento').querySelector('li')).toHaveTextContent(/Corrupta.*|r-9/)
     expect(screen.getByTestId('resultado-segmento')).toHaveTextContent('r-9')
+  })
+})
+
+describe('TrazabilidadPage — HU-37 esc. 1: el periodo se acota por hora', () => {
+  beforeEach(() => {
+    useTrazabilidad.mockReset()
+    useAuthStore.setState({ usuario: { id: 'u-9', email: 'qf@upc.pe', rol: 'farmaceutico', expiraEn: Date.now() + 3600_000 } as never, autenticado: true })
+  })
+
+  function llenar({ desde, horaDesde, hasta, horaHasta }: { desde: string; horaDesde?: string; hasta?: string; horaHasta?: string }) {
+    fireEvent.change(screen.getByLabelText('Equipo', { selector: '#seg-device' }), { target: { value: 'FARM-01-CDL' } })
+    fireEvent.change(document.getElementById('seg-desde')!, { target: { value: desde } })
+    if (horaDesde !== undefined) fireEvent.change(screen.getByLabelText('Hora de inicio (opcional)'), { target: { value: horaDesde } })
+    if (hasta !== undefined) fireEvent.change(document.getElementById('seg-hasta')!, { target: { value: hasta } })
+    if (horaHasta !== undefined) fireEvent.change(screen.getByLabelText('Hora de fin (opcional)'), { target: { value: horaHasta } })
+  }
+
+  it('con horas, verifica exactamente ese tramo (hasta incluye el minuto final)', () => {
+    const verificarPorDispositivo = vi.fn()
+    montar({ verificarPorDispositivo })
+    llenar({ desde: '2026-07-25', horaDesde: '08:30', hasta: '2026-07-25', horaHasta: '10:15' })
+    fireEvent.click(screen.getByRole('button', { name: 'Verificar segmento' }))
+
+    expect(verificarPorDispositivo).toHaveBeenCalledWith(
+      'FARM-01-CDL',
+      new Date(2026, 6, 25, 8, 30, 0, 0).toISOString(),
+      new Date(2026, 6, 25, 10, 15, 59, 999).toISOString(),
+    )
+  })
+
+  it('sin horas conserva el día completo', () => {
+    const verificarPorDispositivo = vi.fn()
+    montar({ verificarPorDispositivo })
+    llenar({ desde: '2026-07-25', hasta: '2026-07-26' })
+    fireEvent.click(screen.getByRole('button', { name: 'Verificar segmento' }))
+
+    expect(verificarPorDispositivo).toHaveBeenCalledWith(
+      'FARM-01-CDL',
+      new Date(2026, 6, 25, 0, 0, 0, 0).toISOString(),
+      new Date(2026, 6, 26, 23, 59, 59, 999).toISOString(),
+    )
+  })
+
+  it('el mismo día con la hora de fin antes que la de inicio es un rango inválido', () => {
+    const verificarPorDispositivo = vi.fn()
+    montar({ verificarPorDispositivo })
+    llenar({ desde: '2026-07-25', horaDesde: '12:00', hasta: '2026-07-25', horaHasta: '09:00' })
+
+    expect(screen.getByRole('button', { name: 'Verificar segmento' })).toBeDisabled()
+    expect(screen.getByLabelText('Hora de fin (opcional)')).toHaveAttribute('aria-invalid', 'true')
+    expect(verificarPorDispositivo).not.toHaveBeenCalled()
+  })
+
+  it('la hora de fin se habilita al elegir la fecha «Hasta»', () => {
+    montar()
+    expect(screen.getByLabelText('Hora de fin (opcional)')).toBeDisabled()
+    fireEvent.change(document.getElementById('seg-hasta')!, { target: { value: '2026-07-25' } })
+    expect(screen.getByLabelText('Hora de fin (opcional)')).toBeEnabled()
   })
 })

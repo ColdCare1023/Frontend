@@ -6,6 +6,7 @@ import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionBreve } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { Esqueleto } from '../../components/ui/esqueleto'
+import { DECIMALES_HUMEDAD } from '../../components/ui/formato-cifra'
 import { useSegundosDesde } from '../../hooks/useReloj'
 import { aperturasEnSerie, estadoPuerta, fallaSensor } from './puerta'
 import { submuestrear } from './utilidades'
@@ -229,7 +230,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           etiqueta={t('dashboard.humedadCorta')}
           valor={ultima.humedad_ambiental}
           unidad="%"
-          decimales={0}
+          decimales={DECIMALES_HUMEDAD}
           campo="humedad_ambiental"
           ultima={ultima}
           anterior={anterior}

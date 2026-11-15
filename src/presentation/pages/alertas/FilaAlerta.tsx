@@ -53,7 +53,7 @@ export interface PropsFilaAlerta {
 
 /**
  * Fila de la bandeja (21st Kibo table: icono, título y subtítulo). Las tres
- * acciones van visibles —Revisar, Registrar acción y Cronología— en vez del
+ * acciones van visibles —Reconocer, Registrar acción y Cronología— en vez del
  * menú «Opciones» (H4, DIRECTION §5.2). Memoizada: escribir en el panel no
  * vuelve a pintar la tabla (PERFORMANCE C7).
  */
@@ -86,6 +86,7 @@ export const FilaAlerta = memo(function FilaAlerta({
 
   return (
     <TableRow
+      data-alerta-id={alerta.id}
       data-seleccionada={seleccionada || undefined}
       data-saliendo={saliendo || undefined}
       {...(nueva ? { 'data-nueva': '', style: { '--i': Math.min(indice, 3) } as React.CSSProperties } : {})}
@@ -187,6 +188,7 @@ export const FilaAlerta = memo(function FilaAlerta({
               size="sm"
               aria-haspopup="dialog"
               aria-label={t('alertas.cronologiaA', datos)}
+              data-accion-cronologia=""
               className="max-sm:flex-1 max-sm:justify-start max-sm:px-2 sm:w-9 sm:px-0"
               onClick={(e) => onAbrir(alerta, 'cronologia', e.currentTarget)}
             >
@@ -200,6 +202,7 @@ export const FilaAlerta = memo(function FilaAlerta({
                 size="sm"
                 aria-haspopup="dialog"
                 aria-label={t('alertas.cronologiaA', datos)}
+                data-accion-cronologia=""
                 className="w-11 flex-none px-0 sm:w-9"
                 onClick={(e) => onAbrir(alerta, 'cronologia', e.currentTarget)}
               >

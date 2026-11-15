@@ -3,13 +3,18 @@ import axios from 'axios'
 
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
+import { useAuthStore } from '@/application/stores/authStore'
 import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 import { rutaApi } from '@/lib/rutaApi'
 
-export type ResultadoAccionAlerta = 'ok' | 'conflicto' | 'error'
-export type ResultadoRectificacion = ResultadoAccionAlerta | 'prohibido'
+/**
+ * `prohibido`: 403 del backend (RBAC). Desde H16, registrar la acción
+ * correctiva es del farmacéutico (y del administrador); reconocer, también.
+ */
+export type ResultadoAccionAlerta = 'ok' | 'conflicto' | 'prohibido' | 'error'
+export type ResultadoRectificacion = ResultadoAccionAlerta
 
 /**
  * HU-28 esc. 2: qué se corrige de la versión vigente. Lo que no se envía se
@@ -31,6 +36,13 @@ export const LIMITE_ALERTAS = 200
 const AGRUPAR_SSE_MS = 750
 /** La fila muestra «Revisada»/«Registrada» antes de salir de su pestaña. */
 const PAUSA_SALIDA_MS = 700
+
+/** 409: otra persona cambió la alerta antes; 403: el rol no puede (RBAC). */
+function resultadoDeError(error: unknown): Exclude<ResultadoAccionAlerta, 'ok'> {
+  if (axios.isAxiosError(error) && error.response?.status === 409) return 'conflicto'
+  if (axios.isAxiosError(error) && error.response?.status === 403) return 'prohibido'
+  return 'error'
+}
 
 interface Consulta {
   /** Recarga de fondo (SSE, tras una acción): nunca vuelve a «cargando». */
@@ -112,15 +124,20 @@ export function useAlertas() {
   const reintentar = useCallback(() => void consultar(filtroActual.current), [consultar])
 
   /** Actualización optimista: la fila cambia antes de la recarga. */
-  const aplicarLocal = useCallback((alertaId: string, cambio: Partial<AlertaTermica>) => {
-    setPorFiltro((previo) => {
-      const siguiente: typeof previo = {}
-      for (const [clave, lista] of Object.entries(previo) as [FiltroEstado, AlertaTermica[]][]) {
-        siguiente[clave] = lista.map((a) => (a.id === alertaId ? { ...a, ...cambio } : a))
-      }
-      return siguiente
-    })
-  }, [])
+  const aplicarLocal = useCallback(
+    (alertaId: string, cambio: Partial<AlertaTermica> | ((alerta: AlertaTermica) => Partial<AlertaTermica>)) => {
+      setPorFiltro((previo) => {
+        const siguiente: typeof previo = {}
+        for (const [clave, lista] of Object.entries(previo) as [FiltroEstado, AlertaTermica[]][]) {
+          siguiente[clave] = lista.map((a) =>
+            a.id === alertaId ? { ...a, ...(typeof cambio === 'function' ? cambio(a) : cambio) } : a,
+          )
+        }
+        return siguiente
+      })
+    },
+    [],
+  )
 
   const recargarTrasPausa = useCallback(() => {
     const id = window.setTimeout(() => {
@@ -148,18 +165,19 @@ export function useAlertas() {
         return 'ok'
       } catch (error) {
         await consultar(filtroActual.current, { fondo: true })
-        if (axios.isAxiosError(error) && error.response?.status === 409) return 'conflicto'
-        return 'error'
+        return resultadoDeError(error)
       }
     },
     [aplicarLocal, consultar, recargarTrasPausa],
   )
 
   // HU-23 Escenario 2 / HU-27 Escenario 2: registrar la acción correctiva
-  // marca la alerta como ATENDIDA (RECONOCIDA -> ATENDIDA, o directamente
-  // PENDIENTE -> ATENDIDA si nadie la reconoció antes). Si otro usuario ya la
-  // atendió primero, el backend responde 409 — se informa en vez de fingir
-  // éxito o de sobrescribir en silencio.
+  // marca la alerta como ATENDIDA. HU-23 esc. 1 y 3: el flujo es PENDIENTE ->
+  // RECONOCIDA -> ATENDIDA; sobre una PENDIENTE, el backend primero la
+  // reconoce a nombre de quien registra (REVISAR_ALERTA con origen
+  // `accion_correctiva`, mismo instante) y después la atiende. Si otro usuario
+  // ya la atendió, responde 409 — se informa en vez de fingir éxito o de
+  // sobrescribir en silencio. 403: el rol no puede registrar (H16).
   const registrarAccionCorrectiva = useCallback(
     async (
       alertaId: string,
@@ -167,14 +185,20 @@ export function useAlertas() {
     ): Promise<ResultadoAccionAlerta> => {
       try {
         await apiClient.post(rutaApi`/api/alertas/${alertaId}/acciones-correctivas`, { decision, justificacion, descripcion })
-        aplicarLocal(alertaId, { estado: 'atendida', atendida_en: new Date().toISOString() })
+        const ahora = new Date().toISOString()
+        const autor = useAuthStore.getState().usuario?.id ?? null
+        aplicarLocal(alertaId, (alerta) =>
+          alerta.estado === 'pendiente'
+            ? // El reconocimiento implícito y la atención comparten instante y autor.
+              { estado: 'atendida', atendida_en: ahora, reconocida_en: ahora, revisada: true, revisada_por: autor }
+            : { estado: 'atendida', atendida_en: ahora },
+        )
         recargarTrasPausa()
         useEstadoVivoStore.getState().refrescarAlertas()
         return 'ok'
       } catch (error) {
         await consultar(filtroActual.current, { fondo: true })
-        if (axios.isAxiosError(error) && error.response?.status === 409) return 'conflicto'
-        return 'error'
+        return resultadoDeError(error)
       }
     },
     [aplicarLocal, consultar, recargarTrasPausa],
@@ -203,9 +227,7 @@ export function useAlertas() {
         await apiClient.post(rutaApi`/api/alertas/acciones-correctivas/${accionId}/rectificar`, cuerpo)
         return 'ok'
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 409) return 'conflicto'
-        if (axios.isAxiosError(error) && error.response?.status === 403) return 'prohibido'
-        return 'error'
+        return resultadoDeError(error)
       }
     },
     [],

@@ -145,7 +145,7 @@ test('navegación móvil abre menú y permite llegar a alertas', async ({ page }
   await expect(page.getByRole('dialog')).toBeHidden()
 
   const filtros = page.getByRole('group', { name: 'Filtrar alertas por estado de seguimiento' })
-  const opciones = ['Pendientes', 'Revisadas', 'Atendidas', 'Todas']
+  const opciones = ['Pendientes', 'Reconocidas', 'Atendidas', 'Todas']
   await expect(filtros.getByRole('button', { name: 'Pendientes', exact: true })).toHaveAttribute('aria-pressed', 'true')
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 })
