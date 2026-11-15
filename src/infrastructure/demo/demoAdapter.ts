@@ -1091,12 +1091,26 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     return responder(config, listarVersionesDemo())
   }
   if (metodo === 'post' && url === '/api/ia/modelo/versiones') {
-    const resultado = registrarVersionDemo(cuerpoJson(config), actorDemo(config))
-    if (!resultado.data) fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida')
+    const cuerpo = cuerpoJson(config)
+    const resultado = registrarVersionDemo(cuerpo, actorDemo(config))
+    if (!resultado.data) {
+      if (cuerpo.activar === true && resultado.motivos) {
+        // HU-46 esc. 2: el rechazo de «registrar y activar» también queda en la bitácora.
+        registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA_RECHAZADO', `ia/modelo/versiones/${String(cuerpo.version)}/activar`,
+          actorDemo(config), 'fallido', { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos, al_registrar: true })
+      }
+      fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida')
+    }
     registrarAuditoriaDemo('REGISTRAR_VERSION_MODELO_IA', `ia/modelo/versiones/${resultado.data.version}`, actorDemo(config), 'exitoso', {
       version: resultado.data.version,
       model_hash: resultado.data.model_hash,
     })
+    if (resultado.data.activa) {
+      registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA', `ia/modelo/versiones/${resultado.data.version}/activar`, actorDemo(config), 'exitoso', {
+        version: resultado.data.version,
+        al_registrar: true,
+      })
+    }
     return responder(config, resultado.data, resultado.status)
   }
   const activarVersion = /^\/api\/ia\/modelo\/versiones\/([^/]+)\/activar$/.exec(url)
@@ -1118,13 +1132,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const lectura = estadoDemo.lecturas.find((item) => item.id === detalleInferencia[1])
     if (!lectura) fallar(config, 404, 'Lectura no encontrada')
     const clase = lectura.nivel_riesgo
+    // HU-18 esc. 4 / HU-47 esc. 1: el modelo es binario; la excursión crítica
+    // es de la regla 2–8 °C y nunca se muestra como probabilidad del modelo.
     const probabilidades = clase === 'normal'
-      ? { excursion_critica: 0.03, riesgo_preventivo: 0.08, normal: 0.89 }
+      ? { riesgo_preventivo: 0.08, normal: 0.92 }
       : clase === 'riesgo_preventivo'
-        ? { excursion_critica: 0.07, riesgo_preventivo: 0.84, normal: 0.09 }
-        : clase === 'excursion_critica'
-          ? { excursion_critica: 0.88, riesgo_preventivo: 0.09, normal: 0.03 }
-          : null
+        ? { riesgo_preventivo: 0.84, normal: 0.16 }
+        : null
     // HU-47 esc. 2: se cruza con el versionado demo (HU-46) en el momento de la inferencia.
     const huboInferencia = lectura.estado_inferencia === 'completada' && Boolean(lectura.modelo_version)
     const registroVigente = huboInferencia ? registroActivoEnDemo(lectura.timestamp) : null
@@ -1145,6 +1159,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         humedad_ambiental: lectura.humedad_ambiental,
       },
       probabilidades_por_clase: probabilidades,
+      probabilidades_calibradas: probabilidades ? false : null,
       clasificacion_final: clase,
       confianza: null,
       origen_clasificacion: lectura.origen_clasificacion ?? null,

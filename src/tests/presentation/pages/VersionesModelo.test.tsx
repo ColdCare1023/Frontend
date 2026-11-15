@@ -255,6 +255,75 @@ describe('VersionesModelo (HU-46)', () => {
     expect(Date.parse(cuerpo.trained_at)).toBe(new Date(2026, 10, 1, 9, 30).getTime())
   })
 
+  async function llenarFormulario(panel: HTMLElement, user: ReturnType<typeof userEvent.setup>, id = '5.0.0') {
+    for (const [etiqueta, valor] of [
+      ['Identificador de versión', id], ['Entrenado el', '2026-11-01T09:30'], ['Huella SHA-256 del artefacto', HUELLA],
+      ['Esquema de características', '4'], ['Conjunto de datos', 'd'], ['scikit-learn', '1.9.0'], ['Python', '3.12'],
+    ]) await user.type(within(panel).getByLabelText(etiqueta), valor)
+  }
+
+  it('HU-46 esc. 1: «activar al registrar» envía `activar: true` y avisa que quedó activa', async () => {
+    const onCambio = vi.fn()
+    adaptador = montar(
+      true,
+      (config) =>
+        config.method === 'post' && config.url === '/api/ia/modelo/versiones'
+          ? { status: 201, data: version({ version: '5.0.0', activa: true, activada_en: '2026-11-14T12:00:00Z' }) }
+          : undefined,
+      [version()],
+      { onCambio },
+    )
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Registrar versión' }))
+    const panel = screen.getByRole('dialog')
+    await llenarFormulario(panel, user)
+    const casilla = within(panel).getByRole('checkbox', { name: 'Marcarla como versión activa de producción al registrarla' })
+    expect(casilla).not.toBeChecked()
+    await user.click(casilla)
+    expect(within(panel).getByText(/no queda ni registrada ni activa/)).toBeInTheDocument()
+    await user.click(within(panel).getByRole('button', { name: 'Registrar versión' }))
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Versión 5.0.0 registrada y activada'))
+    const post = adaptador.peticiones.find((p) => p.method === 'post')!
+    const cuerpo = JSON.parse(post.data as string)
+    expect(cuerpo.activar).toBe(true)
+    expect(errores(cuerpo, esquemaPeticion('post', post.url))).toEqual([])
+    expect(onCambio).toHaveBeenCalled()
+  })
+
+  it('sin marcar la casilla el cuerpo no lleva `activar` (compatible con el backend anterior)', async () => {
+    adaptador = montar(true, (config) =>
+      config.method === 'post' && config.url === '/api/ia/modelo/versiones' ? { status: 201, data: version({ version: '5.0.0' }) } : undefined,
+    )
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Registrar versión' }))
+    const panel = screen.getByRole('dialog')
+    await llenarFormulario(panel, user)
+    await user.click(within(panel).getByRole('button', { name: 'Registrar versión' }))
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Versión 5.0.0 registrada. Aún no está activa'))
+    const cuerpo = JSON.parse(adaptador.peticiones.find((p) => p.method === 'post')!.data as string)
+    expect(cuerpo).not.toHaveProperty('activar')
+  })
+
+  it('409 al registrar y activar: dice que no quedó ni registrada ni activa, con el motivo', async () => {
+    adaptador = montar(true, (config) =>
+      config.method === 'post'
+        ? { status: 409, data: { detail: 'La versión no se registró ni se activó: el artefacto desplegado no coincide con el hash registrado' } }
+        : undefined,
+    )
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Registrar versión' }))
+    const panel = screen.getByRole('dialog')
+    await llenarFormulario(panel, user)
+    await user.click(within(panel).getByRole('checkbox'))
+    await user.click(within(panel).getByRole('button', { name: 'Registrar versión' }))
+
+    const alerta = await within(panel).findByRole('alert')
+    expect(alerta).toHaveTextContent('No se registró ni se activó la versión.')
+    expect(alerta).toHaveTextContent('no coincide con el hash registrado')
+  })
+
   it('409 al registrar: muestra el motivo dentro del formulario', async () => {
     adaptador = montar(true, (config) =>
       config.method === 'post' ? { status: 409, data: { detail: 'La versión 4.0.0-binario ya está registrada' } } : undefined,

@@ -193,12 +193,13 @@ const CAMPOS_TEXTO: Array<[keyof Registro, number, number]> = [
   ['scikit_learn_version', 1, 20],
   ['python_version', 1, 20],
 ]
-const PERMITIDOS = new Set<string>([...CAMPOS_TEXTO.map(([campo]) => campo), 'trained_at', 'horizonte_min', 'metricas', 'particiones'])
+const PERMITIDOS = new Set<string>([...CAMPOS_TEXTO.map(([campo]) => campo), 'trained_at', 'horizonte_min', 'metricas', 'particiones', 'activar'])
 
 /** POST /api/ia/modelo/versiones (RegistrarVersionModeloRequest, additionalProperties: false). */
 export function registrarVersionDemo(cuerpo: Record<string, unknown>, adminId: string | null): Resultado {
   const extra = Object.keys(cuerpo).find((campo) => !PERMITIDOS.has(campo))
   if (extra) return { status: 422, detalle: `Campo no admitido: ${extra}` }
+  if (cuerpo.activar !== undefined && typeof cuerpo.activar !== 'boolean') return { status: 422, detalle: 'Valor no válido en activar' }
   for (const [campo, minimo, maximo] of CAMPOS_TEXTO) {
     const valor = cuerpo[campo]
     if (typeof valor !== 'string' || valor.length < minimo || valor.length > maximo) return { status: 422, detalle: `Valor no válido en ${campo}` }
@@ -229,7 +230,19 @@ export function registrarVersionDemo(cuerpo: Record<string, unknown>, adminId: s
     metricas: (cuerpo.metricas as Record<string, unknown> | null | undefined) ?? null,
     particiones: (cuerpo.particiones as Record<string, unknown> | null | undefined) ?? null,
   }
+  // HU-46 esc. 1: registrar y activar es una sola operación: si la activación
+  // se rechazaría, la versión tampoco queda registrada (como el backend).
+  if (cuerpo.activar === true) {
+    const motivos = motivosBloqueo(registro)
+    if (motivos.length > 0) {
+      return { status: 409, detalle: `La versión no se registró ni se activó: la versión ${version} no puede activarse: ${motivos.join('; ')}`, motivos }
+    }
+  }
   registros.push(registro)
+  if (cuerpo.activar === true) {
+    const activada = activarVersionDemo(version)
+    return { ...activada, status: 201 }
+  }
   return { status: 201, data: aRespuesta(registro) }
 }
 

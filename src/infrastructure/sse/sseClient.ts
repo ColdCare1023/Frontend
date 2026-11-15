@@ -16,7 +16,7 @@ const INTERVALO_DEMO_MS = 8000
 /**
  * HU-32 esc. 3: por qué el flujo no está abierto, cuando el backend lo dice.
  * `demasiados_flujos`: la cuenta ya tiene abiertos los flujos SSE que admite
- * (SSE_MAX_STREAMS_POR_USUARIO, 3 por defecto) y `POST /api/auth/sse-ticket`
+ * (SSE_MAX_STREAMS_POR_USUARIO, 10 por defecto) y `POST /api/auth/sse-ticket`
  * respondió 429. No es una caída de red: «Reconectando…» sería engañoso.
  */
 export type MotivoDesconexionSse = 'demasiados_flujos'
@@ -375,10 +375,14 @@ export function suscribirseTiempoReal(nuevos: OyentesTiempoReal): () => void {
   }
 }
 
-/** Flujo de lecturas térmicas en tiempo real (RF-11). */
+/**
+ * Flujo de lecturas térmicas en tiempo real (RF-11). `onAvisoDispositivo`
+ * (HU-35 esc. 1) recibe además los avisos del nodo, como el cambio de puerta.
+ */
 export function suscribirseLecturas(
   onLectura: (lectura: LecturaTermica) => void,
   onEstado?: (conectado: boolean, motivo?: MotivoDesconexionSse) => void,
+  onAvisoDispositivo?: (aviso: AvisoDispositivo) => void,
 ): () => void {
-  return suscribirseTiempoReal({ onLectura, onEstado })
+  return suscribirseTiempoReal({ onLectura, onEstado, onAvisoDispositivo })
 }

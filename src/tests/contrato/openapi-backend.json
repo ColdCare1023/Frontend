@@ -2360,7 +2360,7 @@
           "ia"
         ],
         "summary": "Registrar Version Modelo",
-        "description": "HU-46 Escenario 1: registra una versión aprobada del modelo. No la\nactiva — ver POST /modelo/versiones/{version}/activar.",
+        "description": "HU-46 Escenario 1: registra una versión aprobada del modelo. Con\n`activar=true` además la marca como versión activa de producción, con las\nmismas validaciones y auditoría que POST /modelo/versiones/{version}/activar;\nsi la activación se rechaza (409), no queda ni registrada ni activa y el\nrechazo queda en la bitácora. Sin `activar` solo la registra.",
         "operationId": "registrar_version_modelo_api_ia_modelo_versiones_post",
         "requestBody": {
           "content": {
@@ -7059,6 +7059,17 @@
             ],
             "title": "Version Era Activa Y Aprobada En Ese Momento"
           },
+          "probabilidades_calibradas": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probabilidades Calibradas"
+          },
           "version_activa_en_ese_momento": {
             "anyOf": [
               {
@@ -7852,6 +7863,11 @@
               }
             ],
             "title": "Particiones"
+          },
+          "activar": {
+            "type": "boolean",
+            "title": "Activar",
+            "default": false
           }
         },
         "additionalProperties": false,

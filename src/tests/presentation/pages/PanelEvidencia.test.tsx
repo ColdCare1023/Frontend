@@ -130,3 +130,36 @@ describe('PanelEvidencia: estado de riesgo rotulado (HU-34)', () => {
     expect(estadoRotulado()).toBe('normal')
   })
 })
+
+/** HU-18 esc. 1 / HU-47 esc. 1: probabilidades de ambas clases del preventivo. */
+describe('PanelEvidencia: probabilidades sin calibrar (HU-18/HU-47)', () => {
+  it('muestra las dos clases y avisa que la salida de predict_proba no está calibrada', () => {
+    montar(
+      aEvidencia(
+        api({
+          modelo_version: 'p-1.0.0',
+          ia_experimental: false,
+          probabilidades_por_clase: { normal: 0.2, riesgo_preventivo: 0.8 },
+          probabilidades_calibradas: false,
+          clasificacion_final: 'riesgo_preventivo',
+        }),
+      ),
+    )
+    expect(screen.getByRole('heading', { name: 'Probabilidades del modelo' })).toBeInTheDocument()
+    expect(screen.getByTestId('probabilidades-sin-calibrar')).toHaveTextContent(/sin calibrar/)
+    expect(screen.getByText('20.0 %')).toBeInTheDocument()
+    expect(screen.getByText('80.0 %')).toBeInTheDocument()
+  })
+
+  it('sin el dato (modelo legado o backend anterior) no añade la nota', () => {
+    const evidencia = aEvidencia(api())
+    expect(evidencia.probabilities_calibrated).toBeNull()
+    montar(evidencia)
+    expect(screen.queryByTestId('probabilidades-sin-calibrar')).not.toBeInTheDocument()
+  })
+
+  it('con probabilidades declaradas calibradas tampoco la añade', () => {
+    montar(aEvidencia(api({ probabilidades_calibradas: true })))
+    expect(screen.queryByTestId('probabilidades-sin-calibrar')).not.toBeInTheDocument()
+  })
+})

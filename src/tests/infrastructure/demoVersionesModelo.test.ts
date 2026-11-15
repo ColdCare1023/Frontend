@@ -86,6 +86,25 @@ describe('demo: versionado del modelo (HU-46)', () => {
     expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA', resultado: 'exitoso' })
   })
 
+  it('HU-46 esc. 1: registra y activa en una sola operación, auditada', async () => {
+    const cuerpo = { ...COMPLETA, activar: true }
+    expect(errores(cuerpo, esquemaPeticion('post', '/api/ia/modelo/versiones'))).toEqual([])
+    const alta = await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(cuerpo) }))
+    expect(alta.status).toBe(201)
+    expect(alta.data).toMatchObject({ version: 'demo-4.0.0', activa: true })
+    expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA', resultado: 'exitoso' })
+  })
+
+  it('HU-46 esc. 1: si la activación se rechazaría, tampoco queda registrada', async () => {
+    const incompleta = { ...COMPLETA, version: 'demo-5.0.0', horizonte_min: undefined, activar: true }
+    const error = await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(incompleta) })))
+    expect(error.status).toBe(409)
+    expect(error.detail).toMatch(/no se registró ni se activó/)
+    const { data } = await demoAdapter(config({ url: '/api/ia/modelo/versiones' }))
+    expect((data as VersionModeloIA[]).some((v) => v.version === 'demo-5.0.0')).toBe(false)
+    expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO', resultado: 'fallido' })
+  })
+
   it('rechaza campos que el backend no admite (422)', async () => {
     const error = await estadoDeError(
       demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify({ ...COMPLETA, version: 'x', extra: 1 }) })),
@@ -97,6 +116,9 @@ describe('demo: versionado del modelo (HU-46)', () => {
     const lectura = estadoDemo.lecturas.find((l) => l.estado_inferencia === 'completada' && l.modelo_version)!
     const { data } = await demoAdapter(config({ url: `/api/ia/inferencia/${lectura.id}` }))
     expect(data).toMatchObject({ version_era_activa_y_aprobada_en_ese_momento: false, version_activa_en_ese_momento: null, ia_experimental: true })
+    // HU-18 esc. 4: solo normal y riesgo_preventivo; nunca excursion_critica como probabilidad.
+    const probabilidades = (data as { probabilidades_por_clase: Record<string, number> | null }).probabilidades_por_clase
+    if (probabilidades) expect(Object.keys(probabilidades).sort()).toEqual(['normal', 'riesgo_preventivo'])
   })
 })
 

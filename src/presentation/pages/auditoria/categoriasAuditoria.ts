@@ -3,6 +3,8 @@ import {
   Brain,
   CalendarClock,
   ClipboardCheck,
+  DatabaseBackup,
+  DoorOpen,
   FileDown,
   HardDrive,
   Hourglass,
@@ -24,6 +26,7 @@ import {
   UserRound,
   UserX,
   Wifi,
+  WifiOff,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -65,6 +68,12 @@ const REGLAS: ReadonlyArray<readonly [RegExp, CategoriaAuditoria, LucideIcon]> =
   [/DISPOSITIVO_ONLINE/, 'equipos', Wifi],
   [/SIN_DATOS|MONITOREO_SUSPENDIDO/, 'equipos', Hourglass],
   [/^(LECTURA_|TELEMETRIA_|EVENTO_|LWT_|INTERVALO_)/, 'equipos', Thermometer],
+  // HU-04/HU-35: cambio de puerta; HU-08/HU-13: reconexión y desconexión del nodo.
+  [/^PUERTA$/, 'equipos', DoorOpen],
+  [/^WIFI_RECONEXION/, 'equipos', Wifi],
+  [/^DESCONEXION_ORDENADA$/, 'equipos', WifiOff],
+  // HU-52/HU-54: avisos por correo de alertas e incidentes.
+  [/^NOTIFICACION_/, 'alertas', Mail],
   [/EXCURSION_NO_VERIFICADA/, 'alertas', TriangleAlert],
   [/ACCION_CORRECTIVA/, 'alertas', ClipboardCheck],
   [/ALERTA/, 'alertas', Bell],
@@ -72,6 +81,8 @@ const REGLAS: ReadonlyArray<readonly [RegExp, CategoriaAuditoria, LucideIcon]> =
   [/CHECKLIST_BPA/, 'reportes', ListChecks],
   [/MODELO|INFERENCIA/, 'ia', Brain],
   [/CADENA_CORRUPCION/, 'integridad', ShieldAlert],
+  // HU-29: respaldo programado de la base (evidencia recuperable).
+  [/^RESPALDO_(COMPLETADO|FALLIDO)$/, 'integridad', DatabaseBackup],
 ]
 
 export interface ClasificacionAuditoria {

@@ -245,9 +245,13 @@ export function VersionesModelo({
             abierto={registroAbierto}
             onAbiertoChange={setRegistroAbierto}
             registrar={registrar}
-            onRegistrada={(version) => {
+            onRegistrada={(version, activa) => {
               setRegistroAbierto(false)
-              setAviso({ tipo: 'ok', texto: t('metricasIA.versiones.registrada', { version }) })
+              setAviso({
+                tipo: 'ok',
+                texto: t(activa ? 'metricasIA.versiones.registradaYActivada' : 'metricasIA.versiones.registrada', { version }),
+              })
+              if (activa) onCambio?.()
             }}
             onCloseAutoFocus={(evento) => {
               evento.preventDefault()
@@ -359,11 +363,13 @@ function PanelRegistrarVersion({
   abierto: boolean
   onAbiertoChange: (abierto: boolean) => void
   registrar: (nueva: NuevaVersionModelo) => Promise<ResultadoVersion>
-  onRegistrada: (version: string) => void
+  onRegistrada: (version: string, activa: boolean) => void
   onCloseAutoFocus: (evento: Event) => void
 }) {
   const { t } = useTranslation()
   const [form, setForm] = useState<FormularioVersion>(FORM_VERSION_VACIO)
+  // HU-46 esc. 1: registrar y marcar como activa en un solo paso (opcional).
+  const [activarAlRegistrar, setActivarAlRegistrar] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState<Aviso>(null)
 
@@ -371,6 +377,7 @@ function PanelRegistrarVersion({
     if (enviando) return
     if (!valor) {
       setForm(FORM_VERSION_VACIO)
+      setActivarAlRegistrar(false)
       setAviso(null)
     }
     onAbiertoChange(valor)
@@ -385,18 +392,19 @@ function PanelRegistrarVersion({
     }
     setEnviando(true)
     setAviso(null)
-    const resultado = await registrar(validado.nueva)
+    const resultado = await registrar({ ...validado.nueva, activar: activarAlRegistrar })
     setEnviando(false)
     if (resultado.resultado === 'ok') {
       setForm(FORM_VERSION_VACIO)
-      onRegistrada(resultado.version.version)
+      setActivarAlRegistrar(false)
+      onRegistrada(resultado.version.version, resultado.version.activa === true)
       return
     }
     setAviso({
       tipo: 'error',
       texto:
         resultado.resultado === 'conflicto'
-          ? t('metricasIA.versiones.form.duplicada')
+          ? t(activarAlRegistrar ? 'metricasIA.versiones.form.rechazadaAlActivar' : 'metricasIA.versiones.form.duplicada')
           : resultado.resultado === 'invalida'
             ? t('metricasIA.versiones.form.invalida')
             : resultado.resultado === 'sin_permiso'
@@ -486,7 +494,19 @@ function PanelRegistrarVersion({
               />
               <p id="v-particiones-ayuda" className="mt-1 text-meta text-muted">{t('metricasIA.versiones.form.particionesAyuda')}</p>
             </div>
-            <p className="text-meta text-muted sm:col-span-2">{t('metricasIA.versiones.form.noActiva')}</p>
+            <label className="flex min-h-11 items-start gap-2 text-body sm:col-span-2">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={activarAlRegistrar}
+                onChange={(e) => setActivarAlRegistrar(e.target.checked)}
+                aria-describedby="v-activar-ayuda"
+              />
+              <span>{t('metricasIA.versiones.form.activarAlRegistrar')}</span>
+            </label>
+            <p id="v-activar-ayuda" className="text-meta text-muted sm:col-span-2">
+              {t(activarAlRegistrar ? 'metricasIA.versiones.form.activarAlRegistrarAyuda' : 'metricasIA.versiones.form.noActiva')}
+            </p>
             <AvisoResultado aviso={aviso} className="sm:col-span-2" />
           </form>
         </SidePanelBody>

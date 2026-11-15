@@ -44,6 +44,11 @@ export interface NuevaVersionModelo {
   horizonte_min?: number | null
   metricas?: Record<string, number> | null
   particiones?: Record<string, ValorParticion> | null
+  /**
+   * HU-46 esc. 1: registrarla y marcarla como activa en la misma operación
+   * (mismas validaciones y auditoría que «Activar»). Solo se envía si es true.
+   */
+  activar?: boolean
 }
 
 export type ResultadoVersion =
@@ -63,6 +68,7 @@ export function cuerpoRegistroVersion(nueva: NuevaVersionModelo) {
     ...(nueva.horizonte_min != null ? { horizonte_min: nueva.horizonte_min } : {}),
     ...(nueva.metricas ? { metricas: nueva.metricas } : {}),
     ...(nueva.particiones ? { particiones: nueva.particiones } : {}),
+    ...(nueva.activar ? { activar: true } : {}),
   }
 }
 

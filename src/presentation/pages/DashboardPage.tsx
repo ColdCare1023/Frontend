@@ -51,7 +51,7 @@ export function DashboardPage() {
   // equipo que sin el parámetro, solo que incluye también los operativos.
   const { equipos, consultar: consultarEstadoOperativo } = useEstadoOperativo(true)
   const { deviceId, elegir: setEquipoElegido } = useEquipoSeleccionado(equipos)
-  const { ultima, serie, sseConectado, motivoDesconexion = null, estadoHistorial, reintentar, cobertura = null } = useMonitoreoTermico(horasVentana, deviceId)
+  const { ultima, serie, sseConectado, motivoDesconexion = null, estadoHistorial, reintentar, cobertura = null, puertaEnVivo = null } = useMonitoreoTermico(horasVentana, deviceId)
   // HU-31: la curva y el resumen de 24 h y 7 d cubren el periodo completo.
   const { serie: agregada, recargar: recargarSerie } = useSerieTermica(deviceId, horasVentana)
   const alertas = useAlertasPendientes()
@@ -214,6 +214,7 @@ export function DashboardPage() {
           horasVentana={horasVentana}
           umbralPuertaEquipo={estadoIoTPrincipal?.umbral_puerta_abierta_segundos ?? null}
           recorte={recorte}
+          puertaEnVivo={puertaEnVivo && (!ultima || puertaEnVivo.device_id === ultima.device_id) ? puertaEnVivo : null}
         />
         <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
         <CeldaCurva

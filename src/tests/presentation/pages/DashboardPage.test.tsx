@@ -288,6 +288,30 @@ describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
     useMonitoreoTermico.mockReset()
   })
 
+  // HU-35 esc. 1: el evento `puerta` llega por SSE antes que la próxima lectura.
+  it('un evento de puerta abierta se muestra sin esperar una lectura nueva', () => {
+    const ultima = lectura({ timestamp: new Date(Date.now() - 5_000).toISOString(), apertura_continua_segundos: 0 })
+    useMonitoreoTermico.mockReturnValue({
+      ultima, serie: [ultima], sseConectado: true,
+      puertaEnVivo: { device_id: ultima.device_id, abierta: true, desde: new Date(Date.now() - 2_000).toISOString() },
+    })
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+
+    expect(screen.getByTestId('puerta-advertencia')).toHaveTextContent(/^Abierta· desde hace 0:0\d/)
+  })
+
+  it('un evento de puerta más antiguo que la última lectura no cambia el estado', () => {
+    const ultima = lectura({ timestamp: new Date(Date.now() - 5_000).toISOString(), apertura_continua_segundos: 0 })
+    useMonitoreoTermico.mockReturnValue({
+      ultima, serie: [ultima], sseConectado: true,
+      puertaEnVivo: { device_id: ultima.device_id, abierta: true, desde: new Date(Date.now() - 60_000).toISOString() },
+    })
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+
+    expect(screen.queryByTestId('puerta-advertencia')).not.toBeInTheDocument()
+    expect(screen.getByText('Cerrada')).toBeInTheDocument()
+  })
+
   it('muestra la puerta abierta con su duración', () => {
     renderizar(lectura({ apertura_refrigerador: true, duracion_apertura_segundos: 45 }))
 
