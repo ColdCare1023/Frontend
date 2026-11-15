@@ -316,7 +316,7 @@
     "vistaGrafica": "Chart",
     "vistaLista": "List",
     "resumenCurva": "Over {{ventana}}: minimum {{min}} °C, maximum {{max}} °C, average {{prom}} °C and {{fuera}} readings outside 2⁠–⁠8 °C.",
-    "curvaSinLecturas": "No readings in {{ventana}}.",
+    "curvaSinLecturas": "Waiting for readings: no data yet in {{ventana}}.",
     "equiposResumen_one": "{{count}} unit · {{problemas}} with issues",
     "equiposResumen_other": "{{count}} units · {{problemas}} with issues",
     "cinta": {

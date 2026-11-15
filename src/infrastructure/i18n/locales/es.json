@@ -316,7 +316,7 @@
     "vistaGrafica": "Gráfica",
     "vistaLista": "Lista",
     "resumenCurva": "En {{ventana}}: mínima {{min}} °C, máxima {{max}} °C, promedio {{prom}} °C y {{fuera}} lecturas fuera de 2⁠–⁠8 °C.",
-    "curvaSinLecturas": "Sin lecturas en {{ventana}}.",
+    "curvaSinLecturas": "Esperando lecturas: aún no hay datos en {{ventana}}.",
     "equiposResumen_one": "{{count}} equipo · {{problemas}} con incidencias",
     "equiposResumen_other": "{{count}} equipos · {{problemas}} con incidencias",
     "cinta": {
