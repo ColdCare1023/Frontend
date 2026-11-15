@@ -1,27 +1,33 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, OctagonAlert, Search, ThermometerSun, Timer, Wifi, WifiOff, Hash, Inbox, Brain } from 'lucide-react'
+import { CalendarX2, CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, OctagonAlert, Search, ThermometerSun, Timer, Wifi, WifiOff, Hash, Inbox, Brain } from 'lucide-react'
 
+import { useCalibracionEquipos } from '@/application/hooks/useCalibracion'
 import { useHistorial, type FiltrosHistorial } from '@/application/hooks/useHistorial'
 import { obtenerEvidenciaInferencia, type EvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { useAuthStore } from '@/application/stores/authStore'
+import { capturadaConCalibracionVencida, inicioCalibracionVencida } from '@/domain/entities/Dispositivo'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
+import type { SerieTermica } from '@/domain/entities/SerieTermica'
 import { NIVELES_RIESGO } from '@/domain/value-objects/NivelRiesgo'
-import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
+import { tienePermiso } from '@/domain/value-objects/Rol'
+import { anotarCalibracionVencida, type TramoCalibracionVencida } from '@/infrastructure/charts/calibracionCurva'
+import { construirOpcionSerieTermica } from '@/infrastructure/charts/serieTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { duracionBreve, duracionPeriodo, fechaCorta, fechaHora, hora } from '@/lib/formato'
-import { rangoPagina } from '@/lib/paginacion'
-import { resumenPeriodo, resumenPorDia, type ExcursionEquipo } from '@/lib/resumenTermico'
+import { duracionBreve, duracionLegible, duracionPeriodo, fechaCorta, fechaDia, fechaHora, hora } from '@/lib/formato'
+import { lecturasNoDibujadas, resumenDeSeries, resumenPorDiaDeSeries } from '@/lib/resumenSerie'
+import type { ExcursionEquipo } from '@/lib/resumenTermico'
 import { cn } from '@/lib/utils'
 import { useCoincideMedia } from '@/presentation/hooks/useCoincideMedia'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { GraficaDiferida } from '../components/GraficaDiferida'
+import { HoraLectura } from '../components/HoraLectura'
 import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
 import { RiskBadge } from '../components/RiskBadge'
 import { BotonCopiar, BotonMasFiltros, ChipsFiltro, Dato, PlantillaBandeja, type Chip } from '../components/registros/piezas'
 import { CeldaRegistro, EncabezadoRegistro, TablaRegistros } from '../components/registros/TablaRegistros'
-import { idBotonFila } from '../components/registros/ids'
 import { Button } from '../components/ui/button'
 import { tonoDesdeRiesgo } from '../components/ui/estado-tonos'
 import { formatearCifra } from '../components/ui/formato-cifra'
@@ -40,7 +46,16 @@ function filtrosDeUrl(): FiltrosHistorial {
   const equipo = new URLSearchParams(window.location.search).get('device_id')?.trim()
   return equipo ? { device_id: equipo } : FILTROS_INICIALES
 }
-const LIMITE_LECTURAS = 200
+
+/** Valor del selector de fecha (`yyyy-MM-ddTHH:mm`, hora local) para un instante. */
+function entradaLocal(ms: number): string {
+  const f = new Date(ms)
+  const dos = (n: number) => String(n).padStart(2, '0')
+  return `${f.getFullYear()}-${dos(f.getMonth() + 1)}-${dos(f.getDate())}T${dos(f.getHours())}:${dos(f.getMinutes())}`
+}
+const MINUTO_MS = 60_000
+/** Margen alrededor de un episodio al acotar la consulta a él. */
+const MARGEN_EPISODIO_MS = 10 * MINUTO_MS
 
 /** La cifra solo toma color cuando la lectura pide atención; la columna de riesgo lo dice en texto. */
 const CIFRA_RIESGO: Record<string, string> = {
@@ -55,9 +70,17 @@ const claveLectura = (l: LecturaTermica) => l.id ?? `${l.device_id}-${l.timestam
 export function HistorialPage() {
   const { t } = useTranslation()
   const [inicio] = useState(filtrosDeUrl)
-  const { lecturas, cargando, errorCarga, consultar } = useHistorial(inicio)
-  const [pagina, setPagina] = useState(1)
+  // HU-47 / HU-18: la evidencia de la inferencia es solo de QF y auditor
+  // (require_roles(FARMACEUTICO, AUDITOR)); al técnico no se le ofrece un 403.
+  const rol = useAuthStore((s) => s.usuario?.rol)
+  const puedeVerEvidencia = rol !== undefined && tienePermiso(rol, ['farmaceutico', 'auditor'])
+  // HU-30 esc. 3: equipos con la calibración vencida y desde cuándo.
+  const { equipos: equiposCalibracion } = useCalibracionEquipos()
   const tamanoPagina = useResponsivePageSize()
+  const {
+    lecturas, total, pagina, irAPagina, cargando, errorCarga, consultar,
+    series, cargandoSerie, errorSerie, periodo, equiposConocidos,
+  } = useHistorial(inicio, tamanoPagina)
   const [filtros, setFiltros] = useState<FiltrosHistorial>(inicio)
   // Lo que se consultó de verdad: los chips describen la lista visible, no el borrador.
   const [aplicados, setAplicados] = useState<FiltrosHistorial>(inicio)
@@ -70,29 +93,30 @@ export function HistorialPage() {
   const [cargandoEvidencia, setCargandoEvidencia] = useState(false)
   const [errorEvidencia, setErrorEvidencia] = useState(false)
 
-  // Al cambiar la lista (filtro nuevo) se vuelve a la primera página.
-  // La firma evita reiniciar la vista cuando llega la misma lista otra vez.
-  const firma = `${lecturas.length}:${lecturas[0]?.id}:${lecturas.at(-1)?.id}`
+  // Al cambiar de página o de consulta se cierra la fila abierta.
+  // La firma evita reiniciar la vista cuando llega la misma página otra vez.
+  const firma = `${pagina}:${lecturas.length}:${lecturas[0]?.id}:${lecturas.at(-1)?.id}`
   const [firmaPrevia, setFirmaPrevia] = useState(firma)
   if (firmaPrevia !== firma) {
     setFirmaPrevia(firma)
-    setPagina(1)
     setExpandida(null)
   }
-  const visibles = useMemo(() => lecturas.slice(...rangoPagina(pagina, tamanoPagina)), [lecturas, pagina, tamanoPagina])
-  const resumen = useMemo(() => resumenPeriodo(lecturas), [lecturas])
-  const porDia = useMemo(() => resumenPorDia(lecturas), [lecturas])
-  const variosEquipos = resumen.equipos.length > 1
+  // HU-36: curva, tira, rail y cabeceras de día salen de la serie agregada del
+  // periodo COMPLETO; la tabla es una página de ese mismo periodo.
+  const resumen = useMemo(() => resumenDeSeries(series), [series])
+  const porDia = useMemo(() => resumenPorDiaDeSeries(series), [series])
+  const noDibujadas = useMemo(() => lecturasNoDibujadas(series), [series])
+  const variosEquipos = new Set(lecturas.map((l) => l.device_id)).size > 1 || (!aplicados.device_id && series.length > 1)
   // Ambiente y humedad solo caben como columnas desde 1536 px. Se montan (no
   // se ocultan con CSS): con `hidden` seguían contando en el `colSpan` de la
   // cabecera de día y la tabla abría dos columnas fantasma a la derecha.
   const conAmbiente = useCoincideMedia('(min-width: 96rem)')
-  const equiposVistos = useMemo(() => [...new Set(lecturas.map((l) => l.device_id))].sort(), [lecturas])
+  const equiposVistos = useMemo(() => [...new Set([...equiposConocidos, ...lecturas.map((l) => l.device_id)])].sort(), [equiposConocidos, lecturas])
 
   // La curva se revela una sola vez por visita (un momento por página).
-  const [primeraSerie, setPrimeraSerie] = useState<LecturaTermica[] | null>(null)
-  if (primeraSerie === null && lecturas.length > 0) setPrimeraSerie(lecturas)
-  const revelarCurva = primeraSerie === lecturas
+  const [primeraSerie, setPrimeraSerie] = useState<SerieTermica[] | null>(null)
+  if (primeraSerie === null && series.length > 0) setPrimeraSerie(series)
+  const revelarCurva = primeraSerie === series
 
   const abrirEvidencia = async (lectura: LecturaTermica) => {
     if (!lectura.id) return
@@ -113,7 +137,8 @@ export function HistorialPage() {
     setFiltros((previos) => ({ ...previos, [campo]: valor || undefined }))
   }
 
-  const consultarCon = (nuevos: FiltrosHistorial) => {
+  const consultarCon = (crudos: FiltrosHistorial) => {
+    const nuevos = { ...crudos, device_id: crudos.device_id?.trim() || undefined }
     if (nuevos.desde && nuevos.hasta && new Date(nuevos.desde) > new Date(nuevos.hasta)) {
       setErrorRango(t('historial.rangoInvalido'))
       return
@@ -139,39 +164,65 @@ export function HistorialPage() {
     chips.push({ clave: 'periodo', texto: t('historial.filtro.chipPeriodo', { valor }), quitar: () => consultarCon({ ...aplicados, desde: undefined, hasta: undefined }) })
   }
 
-  // «Ver en la tabla»: página de la primera lectura del episodio, fila abierta y enfocada.
-  const verExcursion = useCallback(
-    (excursion: ExcursionEquipo) => {
-      const indice = lecturas.findIndex((l) => l.id === excursion.idInicio)
-      if (indice < 0) return
-      const id = claveLectura(lecturas[indice])
-      setPagina(Math.floor(indice / tamanoPagina) + 1)
-      setExpandida(id)
-      requestAnimationFrame(() => {
-        const boton = document.getElementById(idBotonFila(id))
-        const reducido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-        boton?.scrollIntoView?.({ block: 'center', behavior: reducido ? 'auto' : 'smooth' })
-        boton?.focus({ preventScroll: true })
-      })
-    },
-    [lecturas, tamanoPagina],
+  // «Ver en la tabla»: la consulta se acota al episodio (con un margen) y a su
+  // equipo; la tabla paginada muestra entonces sus lecturas desde la primera.
+  const verExcursion = (excursion: ExcursionEquipo) =>
+    consultarCon({
+      ...aplicados,
+      device_id: excursion.equipo,
+      desde: entradaLocal(Math.floor((excursion.inicio - MARGEN_EPISODIO_MS) / MINUTO_MS) * MINUTO_MS),
+      hasta: entradaLocal(Math.ceil((excursion.fin + MARGEN_EPISODIO_MS) / MINUTO_MS) * MINUTO_MS),
+    })
+
+  // HU-30 esc. 3: solo los equipos de la consulta (los de la serie del
+  // periodo y los de la página) cuya calibración está vencida.
+  const calibracionVencida = useMemo(() => {
+    const vistos = new Set([...series.map((s) => s.device_id), ...lecturas.map((l) => l.device_id)])
+    const mapa = new Map<string, { desde: number; fecha: string }>()
+    for (const equipo of equiposCalibracion) {
+      const desde = vistos.has(equipo.id) ? inicioCalibracionVencida(equipo) : null
+      if (desde !== null) mapa.set(equipo.id, { desde, fecha: equipo.fecha_proxima_calibracion ?? '' })
+    }
+    return mapa
+  }, [equiposCalibracion, series, lecturas])
+  const vencidaDe = useCallback(
+    (lectura: LecturaTermica) => capturadaConCalibracionVencida(lectura.timestamp, calibracionVencida.get(lectura.device_id)?.desde ?? null),
+    [calibracionVencida],
   )
 
-  // HU-36 criterio 1: la gráfica necesita orden cronológico ascendente.
+  // HU-36 criterio 1: la serie del periodo alimenta la gráfica; el eje
+  // muestra el periodo consultado entero, también lo que no tiene datos.
   const tema = useTemaResuelto()
-  const serieGrafica = useMemo(() => [...lecturas].reverse(), [lecturas])
-  const opcionHistorial = useMemo(
-    () =>
-      construirOpcionCurvaTermica(serieGrafica, {
-        interna: t('dashboard.tempInterna'),
-        ambiental: t('dashboard.tempAmbiental'),
-        rangoEsperado: t('dashboard.rangoEsperadoCorto'),
-        ahora: t('dashboard.ejeAhora'),
-        excursion: t('dashboard.graficaExcursion'),
-        sinDatos: t('dashboard.graficaSinDatos'),
-      }, undefined, tema),
-    [serieGrafica, t, tema],
-  )
+  const ventana = useMemo(() => ({ desde: Date.parse(periodo.desde), hasta: Date.parse(periodo.hasta) }), [periodo])
+  const opcionHistorial = useMemo(() => {
+    const base = construirOpcionSerieTermica(series, {
+      interna: t('dashboard.tempInterna'),
+      ambiental: t('dashboard.tempAmbiental'),
+      rangoEsperado: t('dashboard.rangoEsperadoCorto'),
+      ahora: t('dashboard.ejeAhora'),
+      excursion: t('dashboard.graficaExcursion'),
+      sinDatos: t('dashboard.graficaSinDatos'),
+      banda: t('historial.curva.banda'),
+      bufferAgotado: t('historial.curva.bufferAgotado'),
+      minimo: t('historial.curva.minimo'),
+      maximo: t('historial.curva.maximo'),
+      lecturas: t('historial.curva.lecturas'),
+    }, ventana, tema)
+    if (calibracionVencida.size === 0) return base
+    // HU-30 esc. 3: el tramo va del vencimiento (o del inicio del periodo) a la
+    // última lectura del equipo en la serie.
+    const tramos = [...calibracionVencida].flatMap(([equipo, { desde }]): TramoCalibracionVencida[] => {
+      const serie = series.find((s) => s.device_id === equipo)
+      const ultima = serie?.resumen.ultima_lectura_en ? Date.parse(serie.resumen.ultima_lectura_en) : Date.parse(serie?.buckets.at(-1)?.fin ?? '')
+      if (!Number.isFinite(ultima) || ultima < desde) return []
+      const etiqueta = calibracionVencida.size > 1 || variosEquipos
+        ? `${t('dashboard.graficaCalibracionVencida')} · ${equipo}`
+        : t('dashboard.graficaCalibracionVencida')
+      return [{ desde: Number.isFinite(ventana.desde) ? Math.max(desde, ventana.desde) : desde, hasta: ultima, etiqueta }]
+    })
+    return anotarCalibracionVencida(base, tramos, tema)
+  }, [series, t, ventana, tema, calibracionVencida, variosEquipos])
+  const intervaloSerie = series[0]?.bucket_segundos
 
   const masLarga = resumen.excursiones[0]
   const guia = masLarga ? (
@@ -191,10 +242,11 @@ export function HistorialPage() {
     </span>
   )
 
-  const meta =
-    lecturas.length > 0
-      ? t('historial.meta', { n: lecturas.length, desde: fechaHora(lecturas.at(-1)?.timestamp).replace(/:\d{2}(?=\D*$)/, ''), hasta: fechaHora(lecturas[0].timestamp).replace(/:\d{2}(?=\D*$)/, '') })
-      : undefined
+  const sinSegundos = (iso: string) => fechaHora(iso).replace(/:\d{2}(?=\D*$)/, '')
+  const textoPeriodo = periodo.porDefecto && !aplicados.hasta
+    ? t('historial.periodo.ultimas24h')
+    : t('comunes.periodo.rango', { desde: sinSegundos(periodo.desde), hasta: sinSegundos(periodo.hasta) })
+  const meta = cargando && total === 0 ? undefined : t('historial.meta', { n: total, periodo: textoPeriodo })
 
   const barra = (
     <>
@@ -256,7 +308,7 @@ export function HistorialPage() {
             </Button>
           )}
           <span aria-live="polite" className="nums ml-auto text-meta text-faint">
-            {cargando ? t('comunes.consultando') : t('historial.filtro.resultados', { count: lecturas.length })}
+            {cargando ? t('comunes.consultando') : t('historial.filtro.resultadosPeriodo', { count: total })}
           </span>
         </div>
       </form>
@@ -269,8 +321,14 @@ export function HistorialPage() {
     </>
   )
 
+  const cambiarPagina = (n: number) => {
+    if (n !== pagina) void irAPagina(n)
+  }
+
   const primeraCarga = cargando && lecturas.length === 0 && !errorCarga
-  const sinDatos = !cargando && !errorCarga && lecturas.length === 0
+  const sinDatos = !cargando && !errorCarga && total === 0
+  // HU-36 esc. 2: el periodo no tiene telemetría (no es que el filtro de riesgo la oculte).
+  const periodoSinDatos = !aplicados.riesgo_efectivo || (!cargandoSerie && resumen.n === 0)
 
   const tabla = errorCarga ? (
     <div className="p-3 sm:p-4">
@@ -284,12 +342,14 @@ export function HistorialPage() {
     <EstadoCarga texto={t('historial.cargando')} />
   ) : sinDatos ? (
     <div className="p-3 sm:p-4">
-      {hayFiltros ? (
+      {periodoSinDatos ? (
+        <EstadoVacio ilustracion="sin-datos" titulo={t('historial.sinDatosRango')} detalle={t('historial.vacio.periodoDetalle', { periodo: textoPeriodo })}>
+          {hayFiltros && <Button variant="secondary" size="sm" onClick={limpiar}>{t('comunes.quitarFiltros')}</Button>}
+        </EstadoVacio>
+      ) : (
         <EstadoVacio ilustracion="sin-resultados" titulo={t('historial.vacio.filtrosTitulo')} detalle={t('historial.vacio.filtrosDetalle')}>
           <Button variant="secondary" size="sm" onClick={limpiar}>{t('comunes.quitarFiltros')}</Button>
         </EstadoVacio>
-      ) : (
-        <EstadoVacio ilustracion="sin-datos" titulo={t('historial.vacio.sinDatosTitulo')} detalle={t('historial.vacio.sinDatosDetalle')} />
       )}
     </div>
   ) : (
@@ -297,7 +357,7 @@ export function HistorialPage() {
       <TablaRegistros
         titulo={t('historial.titulo')}
         columnas={4 + (variosEquipos ? 1 : 0) + (conAmbiente ? 2 : 0)}
-        filas={visibles}
+        filas={lecturas}
         clave={claveLectura}
         fechaDe={fechaDe}
         cargando={cargando}
@@ -305,7 +365,9 @@ export function HistorialPage() {
         onExpandir={setExpandida}
         etiquetaBoton={(l, abierta) => t(abierta ? 'historial.fila.ocultarDetalle' : 'historial.fila.verDetalle', { hora: hora(l.timestamp), equipo: l.device_id })}
         resumenDia={(clave) => {
-          const dia = porDia.get(clave)
+          // Cifras del día completo según la serie; con filtro de riesgo no
+          // describirían las filas listadas, así que se omiten.
+          const dia = aplicados.riesgo_efectivo ? undefined : porDia.get(clave)
           if (!dia) return null
           return (
             <>
@@ -338,7 +400,8 @@ export function HistorialPage() {
         renderCeldas={(lectura) => (
           <>
             <CeldaRegistro area="a" className="nums text-body text-subtle sm:whitespace-nowrap">
-              {hora(lectura.timestamp)}
+              {/* HU-07: un arranque sin hora sincronizada se rotula «Sin hora». */}
+              <HoraLectura lectura={lectura} formato="hora" />
               {variosEquipos && <span className="codigo ml-2 whitespace-nowrap text-meta text-muted sm:hidden">{lectura.device_id}</span>}
             </CeldaRegistro>
             {variosEquipos && (
@@ -355,9 +418,14 @@ export function HistorialPage() {
                 )}
               </span>
             </CeldaRegistro>
-            {/* HU-34: el riesgo EFECTIVO, no la clase cruda de la IA. */}
+            {/* HU-34: el estado de riesgo (sin clasificación IA no es Normal), no la clase cruda de la IA. */}
             <CeldaRegistro area="b">
-              <RiskBadge nivel={lectura.riesgo_efectivo} />
+              <RiskBadge nivel={estadoRiesgoDe(lectura)} />
+              {vencidaDe(lectura) && (
+                <span role="img" aria-label={t('historial.calibracionVencidaFila')} title={t('historial.calibracionVencidaFila')} className="ml-2 inline-flex align-middle text-warning-700">
+                  <CalendarX2 aria-hidden className="size-3.5" />
+                </span>
+              )}
               {lectura.apertura_refrigerador && (
                 <span className="ml-2 text-meta text-warning-700 sm:hidden">{t('dashboard.puertaAbierta')}</span>
               )}
@@ -386,15 +454,21 @@ export function HistorialPage() {
             )}
           </>
         )}
-        renderDetalle={(lectura) => <DetalleLectura lectura={lectura} onVerOrigen={() => void abrirEvidencia(lectura)} />}
+        renderDetalle={(lectura) => (
+          <DetalleLectura
+            lectura={lectura}
+            calibracionVencida={vencidaDe(lectura)}
+            onVerOrigen={puedeVerEvidencia ? () => void abrirEvidencia(lectura) : undefined}
+          />
+        )}
       />
       <div className="border-t border-border px-3 sm:px-4">
-        <Paginacion total={lecturas.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+        <Paginacion total={total} pagina={pagina} onCambiar={cambiarPagina} tamano={tamanoPagina} />
       </div>
     </div>
   )
 
-  const conDatos = lecturas.length > 0 && !errorCarga
+  const conDatos = resumen.n > 0
 
   return (
     <div className="space-y-4">
@@ -406,7 +480,7 @@ export function HistorialPage() {
           apilarGuia
           guia={guia}
           segmentos={[
-            { clave: 'lecturas', etiqueta: t('historial.resumen.lecturas'), valor: lecturas.length },
+            { clave: 'lecturas', etiqueta: t('historial.resumen.lecturas'), valor: resumen.n },
             { clave: 'rango', etiqueta: t('historial.resumen.enRango'), valor: resumen.pctEnRango == null ? '—' : `${formatearCifra(resumen.pctEnRango * 100, 1)} %` },
             { clave: 'excursiones', etiqueta: t('historial.resumen.excursiones'), valor: resumen.excursiones.length, tono: resumen.excursiones.length > 0 ? 'critico' : 'neutro' },
             // Bajo 1024 px mínima y máxima van juntas: con 5 segmentos la tira
@@ -417,30 +491,51 @@ export function HistorialPage() {
           ]}
         />
       )}
-      {lecturas.length >= LIMITE_LECTURAS && (
-        <p role="status" className="flex items-center gap-1.5 text-meta text-faint">
-          <Info aria-hidden className="size-3.5 shrink-0" />
-          {t('comunes.limiteAlcanzado', { n: LIMITE_LECTURAS })}
+      {conDatos && calibracionVencida.size > 0 && (
+        <div role="note" aria-label={t('historial.calibracionVencidaTitulo')} className="flex items-start gap-2 rounded-(--radius-field) bg-warning-100 px-3 py-2 text-meta text-warning-700">
+          <CalendarX2 aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <ul className="space-y-0.5">
+            {[...calibracionVencida].map(([equipo, { fecha }]) => (
+              <li key={equipo}>{t('historial.calibracionVencidaAviso', { equipo, fecha: fechaDia(fecha) })}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {(noDibujadas.sinHora > 0 || noDibujadas.manuales > 0 || series.some((s) => s.brechas_truncadas)) && (
+        <p role="status" className="flex items-start gap-1.5 text-meta text-faint">
+          <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            {[
+              noDibujadas.sinHora > 0 ? t('historial.curva.sinHora', { count: noDibujadas.sinHora }) : null,
+              noDibujadas.manuales > 0 ? t('historial.curva.manuales', { count: noDibujadas.manuales }) : null,
+              series.some((s) => s.brechas_truncadas) ? t('historial.curva.brechasTruncadas') : null,
+            ].filter(Boolean).join(' ')}
+          </span>
         </p>
       )}
 
       <PlantillaBandeja
         etiquetaRail={t('historial.rail.etiqueta')}
         superior={
-          conDatos && (
+          conDatos ? (
             <section aria-labelledby="historial-curva-titulo" className="superficie p-4 xl:p-5">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h2 id="historial-curva-titulo" className="text-title text-foreground">{t('historial.curva.titulo')}</h2>
                 <p className="nums text-meta text-faint">
-                  {`${t('dashboard.ultimasLecturas', { n: serieGrafica.length })} · ${t('dashboard.rangoConservacion')}`}
+                  {`${intervaloSerie ? t('historial.curva.agregada', { intervalo: duracionLegible(intervaloSerie) }) : ''} · ${t('dashboard.rangoConservacion')}`}
                 </p>
               </div>
-              {/* HU-36 criterio 1: la misma consulta filtrada alimenta la gráfica y la tabla. */}
-              <div id="historial-grafica" aria-busy={cargando || undefined} className={revelarCurva ? 'revelar-grafica' : undefined}>
-                <GraficaDiferida option={opcionHistorial} height="clamp(220px, 30vh, 280px)" ariaLabel={t('dashboard.graficaEtiqueta', { n: serieGrafica.length })} ariaDescribedBy="historial-datos-tabla" />
+              {/* HU-36 criterio 1: el mismo periodo filtrado alimenta la gráfica y la tabla. */}
+              <div id="historial-grafica" aria-busy={cargandoSerie || undefined} className={revelarCurva ? 'revelar-grafica' : undefined}>
+                <GraficaDiferida option={opcionHistorial} height="clamp(220px, 30vh, 280px)" ariaLabel={t('historial.curva.etiqueta', { n: resumen.n, periodo: textoPeriodo })} ariaDescribedBy="historial-datos-tabla" />
               </div>
             </section>
-          )
+          ) : errorSerie && !cargandoSerie && (total > 0 || errorSerie === 'no_encontrado') ? (
+            <p role="status" className="superficie flex items-start gap-2 p-4 text-body text-muted">
+              <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
+              {errorSerie === 'no_encontrado' ? t('historial.curva.equipoNoEncontrado', { equipo: aplicados.device_id }) : t('historial.curva.error')}
+            </p>
+          ) : undefined
         }
         rail={conDatos ? <RailHistorial resumen={resumen} onVerExcursion={verExcursion} /> : undefined}
         inferior={
@@ -463,7 +558,16 @@ export function HistorialPage() {
 }
 
 /** Detalle de una lectura: los campos técnicos que no caben en la fila. */
-function DetalleLectura({ lectura, onVerOrigen }: { lectura: LecturaTermica; onVerOrigen: () => void }) {
+function DetalleLectura({
+  lectura,
+  calibracionVencida,
+  onVerOrigen,
+}: {
+  lectura: LecturaTermica
+  calibracionVencida: boolean
+  /** Sin permiso para la evidencia (técnico), no se ofrece el botón. */
+  onVerOrigen?: () => void
+}) {
   const { t } = useTranslation()
   const retraso =
     lectura.received_at && (lectura.captured_at ?? lectura.timestamp)
@@ -506,12 +610,19 @@ function DetalleLectura({ lectura, onVerOrigen }: { lectura: LecturaTermica; onV
           {lectura.id && <BotonCopiar valor={lectura.id} campo={t('historial.idLectura')} />}
         </Dato>
         <Dato etiqueta={t('historial.fecha')} className="nums">{fechaCorta(lectura.timestamp)} {hora(lectura.timestamp)}</Dato>
+        {calibracionVencida && (
+          <Dato etiqueta={t('historial.calibracionSensor')} icono={CalendarX2} className="font-medium text-warning-700">
+            {t('historial.calibracionVencidaFila')}
+          </Dato>
+        )}
       </dl>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={onVerOrigen}>
-          {t('historial.verEvidencia')}
-        </Button>
-      </div>
+      {onVerOrigen && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" disabled={!lectura.id} onClick={onVerOrigen}>
+            {t('historial.verEvidencia')}
+          </Button>
+        </div>
+      )}
     </>
   )
 }

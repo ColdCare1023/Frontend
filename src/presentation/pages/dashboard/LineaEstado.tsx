@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, CalendarClock, CircleCheck, Hourglass, OctagonAlert, TriangleAlert } from 'lucide-react'
 
-import { fechaCorta, hora } from '@/lib/formato'
+import { fechaDia, hora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import type { CondicionLinea } from './condicionesLinea'
 
@@ -32,9 +32,9 @@ function useFrase() {
       case 'falla':
         return t('dashboard.lineaEstado.equipoFalla', { equipo: c.equipo.nombre || c.equipo.id })
       case 'calibracion_vencida':
-        return `${t('dashboard.lineaEstado.calibracionVencida', { equipo: c.equipo.nombre || c.equipo.id })} · ${fechaCorta(c.equipo.fecha_proxima_calibracion)}`
+        return `${t('dashboard.lineaEstado.calibracionVencida', { equipo: c.equipo.nombre || c.equipo.id })} · ${fechaDia(c.equipo.fecha_proxima_calibracion)}`
       case 'calibracion_por_vencer':
-        return `${t('dashboard.lineaEstado.calibracionPorVencer', { equipo: c.equipo.nombre || c.equipo.id })} · ${fechaCorta(c.equipo.fecha_proxima_calibracion)}`
+        return `${t('dashboard.lineaEstado.calibracionPorVencer', { equipo: c.equipo.nombre || c.equipo.id })} · ${fechaDia(c.equipo.fecha_proxima_calibracion)}`
       case 'alertas_error':
         return t('dashboard.lineaEstado.alertasNoDisponibles')
       case 'todo_en_orden':

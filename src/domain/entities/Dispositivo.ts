@@ -30,7 +30,8 @@ export interface Dispositivo {
   ultimo_reporte_en?: string | null
   intervalo_reporte_segundos?: number
   umbral_sin_datos_segundos?: number
-  umbral_puerta_abierta_segundos?: number
+  /** HU-35: umbral de puerta abierta prolongada que aplica el backend. */
+  umbral_puerta_abierta_segundos?: number | null
   // HU-44: MONITOREO_SUSPENDIDO = telemetría retenida por rotación por compromiso.
   estado_operativo?: 'OPERATIVO' | 'SIN_DATOS' | 'FALLA_SENSOR' | 'MONITOREO_SUSPENDIDO'
   incidencias_operativas?: IncidenteOperativo[]
@@ -121,12 +122,27 @@ export interface SensorIoT {
   campo_telemetria: string
 }
 
+/**
+ * HU-48: buffer LittleFS del nodo según su último `estado_nodo` (persistido
+ * en el backend) y brechas por capacidad agotada.
+ */
 export interface BufferLittleFS {
   pendientes: number
   limite: number
+  /** Ocupación que informa el nodo (0-100). */
+  ocupacion_pct?: number | null
+  /** Rango temporal de los pendientes; null si no hay pendientes. */
   desde: string | null
   hasta: string | null
+  /** El firmware no informó el rango: se estimó (última lectura persistida → último latido). */
+  rango_estimado?: boolean
+  /** Contador persistente del nodo de muestras que no pudo almacenar. */
   perdidas: number
+  /** Lecturas rechazadas que el nodo apartó para no bloquear la cola (HU-07). */
+  cuarentena?: number | null
+  /** Cuándo llegó al backend el último `estado_nodo`. */
+  reportado_en?: string | null
+  /** El backend las entrega de la más reciente a la más antigua: ver `brechasRecientes`. */
   brechas?: BrechaTelemetria[]
   ultima_sincronizacion_en?: string | null
 }
@@ -149,13 +165,56 @@ export interface IncidenteOperativo {
   detalle?: { temperatura_interna?: number | null; captured_at?: string | null; origen?: string } | null
 }
 
-/** Tramo sin muestras nuevas cuando LittleFS llegó a su capacidad. */
+/**
+ * HU-48 esc. 2: tramo en que LittleFS estuvo lleno y el nodo no pudo
+ * almacenar muestras nuevas. `desde`/`hasta` son null si el nodo no tenía
+ * hora al perderlas: entonces se identifica por arranque y número de muestra.
+ */
 export interface BrechaTelemetria {
-  desde: string
-  hasta: string
+  desde: string | null
+  hasta: string | null
   muestras_perdidas: number
+  /** Igual que `muestras_perdidas` (nombre del backend actual). */
+  perdidas?: number
   causa: 'buffer_agotado'
+  /** Causa tal como la informó el nodo (p. ej. «buffer_lleno»). */
+  causa_nodo?: string
+  descripcion?: string
+  /** El episodio sigue abierto: el nodo aún no puede almacenar. */
+  abierta?: boolean
   registrada_en: string
+  actualizada_en?: string
+  cerrada_en?: string | null
+  desde_boot_id?: number | null
+  desde_seq_no?: number | null
+  hasta_boot_id?: number | null
+  hasta_seq_no?: number | null
+}
+
+/** Muestras perdidas de una brecha (el backend actual y el anterior usan nombres distintos). */
+export function perdidasDeBrecha(brecha: BrechaTelemetria): number {
+  return brecha.perdidas ?? brecha.muestras_perdidas ?? 0
+}
+
+function msBrecha(brecha: BrechaTelemetria): number {
+  for (const iso of [brecha.hasta, brecha.actualizada_en, brecha.registrada_en, brecha.desde]) {
+    const ms = iso ? Date.parse(iso) : Number.NaN
+    if (Number.isFinite(ms)) return ms
+  }
+  return Number.NEGATIVE_INFINITY
+}
+
+/**
+ * Brechas de la más reciente a la más antigua. El backend ya las ordena así
+ * (por registro, descendente); la demo y los backends anteriores las
+ * entregaban al revés, y `at(-1)` mostraba la más antigua como la última.
+ * Una brecha abierta va primero: es la que sigue ocurriendo.
+ */
+export function brechasRecientes(buffer: Pick<BufferLittleFS, 'brechas'> | null | undefined, limite?: number): BrechaTelemetria[] {
+  const ordenadas = [...(buffer?.brechas ?? [])].sort(
+    (a, b) => Number(Boolean(b.abierta)) - Number(Boolean(a.abierta)) || msBrecha(b) - msBrecha(a),
+  )
+  return limite === undefined ? ordenadas : ordenadas.slice(0, limite)
 }
 
 export interface SobreTelemetria {
@@ -171,14 +230,28 @@ export interface SobreTelemetria {
 export type TimeQualityContrato = 'sntp_synced' | 'sntp_backfilled' | 'unsynced'
 
 // HU-49: un cambio de configuración/instalación/calibración/responsable.
+/** HU-49: grupo de un cambio de configuración (filtro del auditor). */
+export const CATEGORIAS_HISTORIAL = ['instalacion', 'calibracion', 'responsable', 'intervalo', 'sensores', 'reemplazo', 'otro'] as const
+export type CategoriaHistorial = (typeof CATEGORIAS_HISTORIAL)[number]
+
 export interface HistorialConfiguracion {
   id: string
   device_id: string
+  /** Puede llevar el origen: «intervalo_reporte_segundos (administrador)». */
   campo: string
   valor_anterior: string | null
   valor_nuevo: string | null
   actor_id: string | null
   created_at: string
+  /** HU-49 esc. 2 (backends recientes): campo sin el origen y su categoría. */
+  campo_base?: string | null
+  origen?: string | null
+  categoria?: CategoriaHistorial | string | null
+  /** Desde cuándo y hasta cuándo estuvo vigente (null: sigue vigente). */
+  vigente_desde?: string | null
+  vigente_hasta?: string | null
+  /** Quién hizo el cambio, ya resuelto por el backend. */
+  actor_nombre?: string | null
 }
 
 /**
@@ -216,6 +289,25 @@ export function estadoCalibracion(dispositivo: Dispositivo, hoy: Date = new Date
 }
 
 /**
+ * HU-30 esc. 3: instante (00:00 local del día siguiente a `fecha_proxima_calibracion`)
+ * desde el que el certificado vigente ya no cubre las lecturas, o null si la
+ * calibración no está vencida hoy. Solo se conoce el certificado actual: con
+ * uno renovado no se puede afirmar nada de periodos anteriores, así que no se marca.
+ */
+export function inicioCalibracionVencida(dispositivo: Dispositivo, hoy: Date = new Date()): number | null {
+  if (estadoCalibracion(dispositivo, hoy) !== 'vencida' || !dispositivo.fecha_proxima_calibracion) return null
+  const [anio, mes, dia] = dispositivo.fecha_proxima_calibracion.slice(0, 10).split('-').map(Number)
+  return new Date(anio, mes - 1, dia + 1).getTime()
+}
+
+/** HU-30 esc. 3: la lectura se capturó con el certificado de calibración ya vencido. */
+export function capturadaConCalibracionVencida(timestamp: string, inicioVencida: number | null): boolean {
+  if (inicioVencida === null) return false
+  const ms = Date.parse(timestamp)
+  return Number.isFinite(ms) && ms >= inicioVencida
+}
+
+/**
  * FE-006: mismo patrón que el backend (BE-017) y el firmware. Un identificador
  * fuera de él podría alterar las rutas de la API que lo interpolan.
  */
@@ -243,20 +335,38 @@ export function aplicarEstadoNodo<T extends Dispositivo>(
     const capacidad = numeroDe(detalle, 'capacidad')
     const perdidas = numeroDe(detalle, 'perdidas_total')
     const intervalo = numeroDe(detalle, 'intervalo_s')
+    const ocupacion = numeroDe(detalle, 'ocupacion_pct')
+    const cuarentena = numeroDe(detalle, 'cuarentena')
     const previo = d.buffer_littlefs
+    // HU-48 esc. 1: el firmware puede informar la hora del pendiente más
+    // antiguo y del más nuevo. Con 0 pendientes (esc. 3) ya no hay rango.
+    const sincronizado = pendientes === 0
+    const desdeNodo = instanteDe(detalle, 'pendientes_desde')
+    const hastaNodo = instanteDe(detalle, 'pendientes_hasta')
+    const conRangoNodo = desdeNodo !== undefined && hastaNodo !== undefined
     return {
       ...d,
       ultimo_latido_en: estado.timestamp,
       intervalo_reporte_segundos: intervalo || d.intervalo_reporte_segundos,
       buffer_littlefs: {
+        ...previo,
         pendientes: pendientes ?? previo?.pendientes ?? 0,
         limite: capacidad || previo?.limite || CAPACIDAD_BUFFER_LITTLEFS,
-        desde: previo?.desde ?? null,
-        hasta: previo?.hasta ?? null,
+        ocupacion_pct: ocupacion ?? previo?.ocupacion_pct ?? null,
+        desde: sincronizado ? null : (conRangoNodo ? desdeNodo : (previo?.desde ?? null)),
+        hasta: sincronizado ? null : (conRangoNodo ? hastaNodo : (previo?.hasta ?? null)),
+        rango_estimado: sincronizado || conRangoNodo ? false : previo?.rango_estimado,
         perdidas: perdidas ?? previo?.perdidas ?? 0,
+        cuarentena: cuarentena ?? previo?.cuarentena ?? null,
         brechas: previo?.brechas,
-        ultima_sincronizacion_en: pendientes === 0 ? estado.timestamp : previo?.ultima_sincronizacion_en ?? null,
+        ultima_sincronizacion_en: sincronizado ? estado.timestamp : previo?.ultima_sincronizacion_en ?? null,
       },
     }
   })
+}
+
+/** Instante ISO válido de un `detalle` de estado_nodo, o undefined. */
+function instanteDe(detalle: Record<string, unknown>, clave: string): string | undefined {
+  const valor = detalle[clave]
+  return typeof valor === 'string' && Number.isFinite(Date.parse(valor)) ? valor : undefined
 }

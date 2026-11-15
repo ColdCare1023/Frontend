@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { EstadoRiesgo } from '@/domain/entities/LecturaTermica'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 
 /**
@@ -32,12 +33,12 @@ export function AnuncioRiesgo({
   nivel,
   temperatura,
 }: {
-  nivel: NivelRiesgo | null
+  nivel: NivelRiesgo | EstadoRiesgo | null
   temperatura: number | null | undefined
 }) {
   const { t, i18n } = useTranslation()
   const [mensaje, setMensaje] = useState('')
-  const nivelPrevio = useRef<NivelRiesgo | null | undefined>(undefined)
+  const nivelPrevio = useRef<NivelRiesgo | EstadoRiesgo | null | undefined>(undefined)
 
   useEffect(() => {
     // El primer render no es un cambio de estado: es el estado inicial.

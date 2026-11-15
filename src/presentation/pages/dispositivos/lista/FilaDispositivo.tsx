@@ -6,7 +6,7 @@ import { CalendarClock, FlaskConical, MapPin, Minus, Settings2, ShieldCheck, Tre
 import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import type { CintaEquipo } from '@/lib/cinta24h'
-import { duracionLegible, fechaCorta, fechaHora, hora, localeActual } from '@/lib/formato'
+import { duracionLegible, fechaCorta, fechaDia, fechaHora, hora, localeActual } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { ActionMenu, ActionMenuLabel } from '../../../components/ActionMenu'
 import { BadgeConectividad } from '../../../components/BadgeConectividad'
@@ -124,7 +124,7 @@ export const FilaDispositivo = memo(function FilaDispositivo({
               <Badge
                 variant={calibracion === 'vencida' ? 'critical' : calibracion === 'proxima_a_vencer' ? 'warn' : 'outline'}
                 title={dispositivo.fecha_proxima_calibracion
-                  ? t('dispositivos.calibracionVence', { fecha: fechaCorta(dispositivo.fecha_proxima_calibracion) })
+                  ? t('dispositivos.calibracionVence', { fecha: fechaDia(dispositivo.fecha_proxima_calibracion) })
                   : undefined}
               >
                 {t('dispositivos.calibracion')}: {t(`dispositivos.calibracionEstado.${calibracion}`)}

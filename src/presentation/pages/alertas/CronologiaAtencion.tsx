@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PencilLine } from 'lucide-react'
 
-import type { ResultadoRectificacion } from '@/application/hooks/useAlertas'
+import type { CambiosRectificacion, ResultadoRectificacion } from '@/application/hooks/useAlertas'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { fechaHora } from '@/lib/formato'
 import { Badge } from '../../components/ui/badge'
@@ -64,7 +64,7 @@ export function CronologiaAtencion({
 }: {
   alerta: AlertaTermica
   obtenerCiclo: (alertaId: string) => Promise<AccionCorrectiva[]>
-  rectificarAccion?: (accionId: string, descripcion: string, motivo: string) => Promise<ResultadoRectificacion>
+  rectificarAccion?: (accionId: string, cambios: CambiosRectificacion, motivo: string) => Promise<ResultadoRectificacion>
   puedeRectificar: PuedeRectificar
   /** Tras registrar una acción: resalta y enfoca la entrada más reciente. */
   resaltarNueva?: boolean
@@ -77,9 +77,12 @@ export function CronologiaAtencion({
   const nuevaRef = useRef<HTMLLIElement>(null)
   const pedirResalte = useRef(resaltarNueva)
 
-  // HU-28: rectificación en línea.
+  // HU-28: rectificación en línea. Esc. 2: se corrige la decisión, la acción
+  // ejecutada y/o la justificación de la versión vigente.
   const [aRectificar, setARectificar] = useState<AccionCorrectiva | null>(null)
   const [texto, setTexto] = useState('')
+  const [decision, setDecision] = useState('')
+  const [justificacion, setJustificacion] = useState('')
   const [motivo, setMotivo] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [errorRect, setErrorRect] = useState<'conflicto' | 'prohibido' | 'error' | null>(null)
@@ -111,21 +114,44 @@ export function CronologiaAtencion({
   const abrirRectificacion = (accion: AccionCorrectiva) => {
     setARectificar(accion)
     setTexto(accion.descripcion)
+    setDecision(accion.decision ?? '')
+    setJustificacion(accion.justificacion ?? '')
     setMotivo('')
     setErrorRect(null)
     setAnuncio('')
   }
 
-  const descripcionVacia = texto.trim().length === 0
+  // Solo viaja lo que cambia; lo demás se hereda de la versión vigente. Un
+  // campo que tenía valor no puede quedar vacío (el backend exige 1 carácter).
+  const original = {
+    decision: aRectificar?.decision?.trim() ?? '',
+    descripcion: aRectificar?.descripcion.trim() ?? '',
+    justificacion: aRectificar?.justificacion?.trim() ?? '',
+  }
+  const editado = { decision: decision.trim(), descripcion: texto.trim(), justificacion: justificacion.trim() }
+  const cambios: CambiosRectificacion = {}
+  for (const campo of ['decision', 'descripcion', 'justificacion'] as const) {
+    if (editado[campo] && editado[campo] !== original[campo]) cambios[campo] = editado[campo]
+  }
+  const descripcionVacia = editado.descripcion.length === 0
+  const campoVaciado = (['decision', 'justificacion'] as const).find((campo) => original[campo] && !editado[campo])
+  const sinCambios = Object.keys(cambios).length === 0
   const motivoCorto = motivo.trim().length < MOTIVO_MIN
-  const rectificacionBloqueada = guardando || descripcionVacia || motivoCorto
+  const rectificacionBloqueada = guardando || descripcionVacia || Boolean(campoVaciado) || sinCambios || motivoCorto
+  const porQueBloqueada = descripcionVacia
+    ? t('alertas.panel.descripcionVacia')
+    : campoVaciado
+      ? t(campoVaciado === 'decision' ? 'alertas.panel.decisionVacia' : 'alertas.panel.justificacionVacia')
+      : sinCambios
+        ? t('alertas.panel.sinCambios')
+        : t('alertas.panel.motivoCorto')
 
   const guardarRectificacion = async () => {
     if (!aRectificar || !rectificarAccion || rectificacionBloqueada) return
     setGuardando(true)
     setErrorRect(null)
     try {
-      const resultado = await rectificarAccion(aRectificar.id, texto.trim(), motivo.trim())
+      const resultado = await rectificarAccion(aRectificar.id, cambios, motivo.trim())
       if (resultado === 'ok') {
         setARectificar(null)
         setAnuncio(t('alertas.panel.rectificacionGuardada'))
@@ -238,6 +264,16 @@ export function CronologiaAtencion({
                   <div className="mt-3 animate-(--animate-rise) space-y-3 rounded-(--radius-field) border border-border p-3">
                     <p className="text-meta text-muted">{t('alertas.rectificarAyuda')}</p>
                     <div>
+                      <Label htmlFor="rectificacion-decision">{t('alertas.nuevaDecision')}</Label>
+                      <Textarea
+                        id="rectificacion-decision"
+                        value={decision}
+                        onChange={(e) => setDecision(e.target.value)}
+                        maxLength={2000}
+                        rows={2}
+                      />
+                    </div>
+                    <div>
                       <Label htmlFor="rectificacion-texto">{t('alertas.nuevaDescripcion')}</Label>
                       <Textarea
                         id="rectificacion-texto"
@@ -245,6 +281,16 @@ export function CronologiaAtencion({
                         onChange={(e) => setTexto(e.target.value)}
                         maxLength={2000}
                         aria-required="true"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rectificacion-justificacion">{t('alertas.nuevaJustificacion')}</Label>
+                      <Textarea
+                        id="rectificacion-justificacion"
+                        value={justificacion}
+                        onChange={(e) => setJustificacion(e.target.value)}
+                        maxLength={2000}
+                        rows={2}
                       />
                     </div>
                     <div>
@@ -277,7 +323,7 @@ export function CronologiaAtencion({
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       {rectificacionBloqueada && !guardando && (
                         <p id="rectificacion-falta" className="mr-auto text-meta text-faint">
-                          {descripcionVacia ? t('alertas.panel.descripcionVacia') : t('alertas.panel.motivoCorto')}
+                          {porQueBloqueada}
                         </p>
                       )}
                       <Button size="sm" variant="ghost" onClick={() => setARectificar(null)} disabled={guardando}>

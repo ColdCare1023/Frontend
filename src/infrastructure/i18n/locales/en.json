@@ -82,8 +82,10 @@
       "metricasIA": "Risk classifier evaluation",
       "auditoria": "System action log",
       "usuarios": "Accounts and roles",
-      "dispositivos": "Devices, calibration and credentials"
-    }
+      "dispositivos": "Devices, calibration and credentials",
+      "configuracionEquipos": "Hardware change history"
+    },
+    "configuracionEquipos": "Hardware changes"
   },
   "roles": {
     "administrador": "Administrator",
@@ -95,10 +97,14 @@
     "normal": "Normal",
     "riesgo_preventivo": "Preventive risk",
     "excursion_critica": "Critical excursion",
+    "sin_clasificacion_ia": "No AI classification",
+    "falla_sensor": "Sensor fault",
     "detalle": {
       "normal": "Temperature is within the expected 2⁠–⁠8 °C range",
       "riesgo_preventivo": "Approaching the limit: keep an eye on the refrigerator",
-      "excursion_critica": "Temperature is outside the 2⁠–⁠8 °C range. Check the refrigerator."
+      "excursion_critica": "Temperature is outside the 2⁠–⁠8 °C range. Check the refrigerator.",
+      "sin_clasificacion_ia": "Temperature is within 2⁠–⁠8 °C, but the model did not classify this reading, so it is not shown as Normal.",
+      "falla_sensor": "Without a valid internal temperature the risk cannot be calculated. Check the sensor."
     }
   },
   "ia": {
@@ -132,6 +138,10 @@
     "ejeAhora": "Now",
     "graficaExcursion": "Confirmed excursion",
     "graficaSinDatos": "No data",
+    "graficaBufferAgotado": "Buffer full",
+    "sinHora": "No time",
+    "sinHoraDetalle": "Reading from a boot without a synchronized clock: its capture time is unknown. It reached the server on {{llegada}}.",
+    "horaReconstruida": "Reconstructed time: the node booted without a synchronized clock.",
     "eventoGrafica": "Event",
     "excursionEvento": "Temperature outside range",
     "lecturaReciente": "Recent reading · {{s}}s ago",
@@ -140,6 +150,8 @@
     "equipo": "Device",
     "actualizacionReconectando": "Reconnecting to reading stream…",
     "fallaSensor": "No temperature reading. Check the sensor.",
+    "fallaSensorAmbiente": "Sensor fault: no valid ambient temperature.",
+    "fallaSensorHumedad": "Sensor fault: no valid humidity.",
     "sinLecturaDisponible": "No reading is available for this metric.",
     "sinClasificacion": "No temperature reading is available to calculate risk.",
     "riesgoUltimaLectura": "Risk from the last reading. Wait for new data to confirm the current state.",
@@ -162,6 +174,19 @@
     "lecturasRecientesTitulo": "Recent readings",
     "lecturasRecientesAyuda": "Latest records in the selected period.",
     "ultimasLecturas": "last {{n}} readings",
+    "lecturasAgregadas": "{{n}} readings · average every {{intervalo}}",
+    "franjaAgregada": "The line is the average of each {{intervalo}} interval and the shaded band its minimum and maximum.",
+    "curvaRecortada": "The chart shows only the {{mostradas}} most recent of {{total}} readings in the period: the start of the period is not drawn.",
+    "listaRecortada": "The list shows the {{mostradas}} most recent of {{total}} readings in the period; the chart and the summary cover the whole period.",
+    "lecturasSinHoraCurva_one": "{{count}} reading without a time is not placed on the chart.",
+    "lecturasSinHoraCurva_other": "{{count}} readings without a time are not placed on the chart.",
+    "brechasTruncadas": "There are more gaps without data than the chart marks.",
+    "tooltipLecturas_one": "{{count}} reading in {{intervalo}}",
+    "tooltipLecturas_other": "{{count}} readings in {{intervalo}}",
+    "tooltipExtremos": "Min–max",
+    "tooltipMinMax": "{{min}} – {{max}} °C",
+    "tooltipExcursiones_one": "{{count}} reading with a confirmed excursion",
+    "tooltipExcursiones_other": "{{count}} readings with a confirmed excursion",
     "rangoConservacion": "Range 2⁠–⁠8 °C",
     "lecturaSobreEscala": "Reading exceeds the indicator scale (0–10 °C). Actual value: {{temperatura}} °C.",
     "lecturaBajoEscala": "Reading is below the indicator scale (0 °C). Actual value: {{temperatura}} °C.",
@@ -178,6 +203,9 @@
     "alertasCriticas_one": "{{count}} critical excursion",
     "alertasCriticas_other": "{{count}} critical excursions",
     "calibracionVencida": "Calibration expired on {{fecha}}. Documentation issue: record a new calibration.",
+    "margenAvisoCalibracion": "Warning {{dias}} days before expiry",
+    "graficaCalibracionVencida": "Calibration expired",
+    "curvaCalibracionVencida": "The sensor calibration expired on {{fecha}}. The shaded stretch was measured without a valid certificate (a documentation condition, not a thermal one).",
     "calibracionPorVencer": "Calibration expires on {{fecha}}.",
     "verAlertas": "View alerts",
     "resumenMinima": "Minimum",
@@ -185,6 +213,7 @@
     "resumenPromedio": "Average",
     "resumenFueraRango": "Readings outside 2⁠–⁠8 °C range",
     "graficaEtiqueta": "Line chart: internal and ambient temperature for the last {{n}} readings, with the 2⁠–⁠8 °C storage range marked",
+    "graficaEtiquetaAgregada": "Line chart: internal and ambient temperature for {{ventana}}, averaged every {{intervalo}} with its minimum and maximum ({{n}} readings), with the 2⁠–⁠8 °C storage range marked",
     "anuncioRiesgo": "{{nivel}}. Internal temperature {{temperatura}} °C.",
     "anuncioRiesgoSinTemp": "{{nivel}}. No internal temperature reading.",
     "datoDesactualizado": "No new reading for {{s}}s",
@@ -206,6 +235,14 @@
     "brechaBuffer": "{{n}} readings were lost",
     "causaBufferAgotado": "local buffer full",
     "periodoBrecha": "Affected period: {{desde}} – {{hasta}}",
+    "periodoBrechaSinHora": "Affected period has no node time.",
+    "periodoBrechaSecuencia": "Affected period has no node time: boot {{boot}}, samples {{desde}}–{{hasta}}.",
+    "brechaEnCurso": "ongoing",
+    "brechaHastaAhora": "now",
+    "brechasBufferTitulo": "Gaps caused by a full buffer",
+    "rangoEstimado": "estimated",
+    "bufferCuarentena": "In quarantine: {{n}}",
+    "bufferReportado": "Last buffer status: {{fecha}}",
     "incidentesRecientes": "Recovered incidents ({{n}})",
     "incidenteRecuperado": "Data connection recovered: {{fecha}}.",
     "puertaSuperaUmbral": "Open for more than {{segundos}}s. Check the door.",
@@ -220,13 +257,14 @@
     "demoPuertaAbierta": "Simulate open door",
     "demoPuertaCerrada": "Simulate closed door",
     "demoRecuperar": "Recover and sync",
+    "demoSinHora": "Simulate a boot without a synchronized clock",
     "demoAplicado": "Scenario applied. Dashboard now shows the new state.",
     "demoAplicando": "Applying…",
     "demoError": "Could not apply scenario. Try again.",
     "iaExperimental": "Experimental AI",
     "iaExperimentalDetalle": "Class from the legacy model trained on simulated data: it does not open preventive alerts.",
     "sinClasificacionIa": "No AI classification",
-    "sinClasificacionIaDetalle": "Normal here comes only from the 2-8 °C range rule; the model did not classify this reading.",
+    "sinClasificacionIaDetalle": "Temperature is within 2⁠–⁠8 °C, but the model did not classify this reading, so it is not shown as Normal.",
     "excursionNoVerificada": "Critical excursion of unverified origin: {{temperatura}} °C ({{fecha}}). Check the refrigerator with the backup thermometer.",
     "encabezadoMeta_one": "{{count}} monitored unit",
     "encabezadoMeta_other": "{{count}} monitored units",
@@ -258,6 +296,10 @@
     "aperturasVentana_other": "{{count}} openings in {{ventana}}",
     "aperturasCorto_one": "{{count}} opening · {{ventana}}",
     "aperturasCorto_other": "{{count}} openings · {{ventana}}",
+    "aperturasCortoParcial_one": "≥{{count}} opening · {{ventana}}",
+    "aperturasCortoParcial_other": "≥{{count}} openings · {{ventana}}",
+    "aperturasVentanaParcial_one": "At least {{count}} opening in {{ventana}}: only the {{mostradas}} most recent readings were loaded.",
+    "aperturasVentanaParcial_other": "At least {{count}} openings in {{ventana}}: only the {{mostradas}} most recent readings were loaded.",
     "detalles": "Details",
     "bufferTitulo": "Local buffer",
     "bufferSincronizado": "Synced {{hora}}",
@@ -382,6 +424,18 @@
     "idLectura": "Reading code",
     "evidenciaNoDisponible": "Classification evidence is not available for this reading.",
     "evidenciaDemo": "Simulated example. This is not real model evidence or a validated measurement.",
+    "modeloExperimental": "Experimental model (not approved).",
+    "modeloExperimentalAyuda": "Its classification is informational: it does not open preventive alerts or replace the 2⁠–⁠8 °C rule.",
+    "probabilidadesModelo": "Model probabilities",
+    "variablesEntradaModelo": "Model input data",
+    "versionAprobadaAlClasificar": "Active and approved version when classified",
+    "versionAprobadaSinDato": "No data: the model did not classify this reading",
+    "versionActivaEraOtra": "The active version at that time was {{version}}.",
+    "sinVersionActivaRegistrada": "No registered version was active.",
+    "calibracionVencidaTitulo": "Calibration expired",
+    "calibracionVencidaAviso": "{{equipo}}: the sensor calibration expired on {{fecha}}. Later readings come from a sensor without a valid certificate until a new calibration is recorded.",
+    "calibracionVencidaFila": "Captured with an expired calibration",
+    "calibracionSensor": "Sensor calibration",
     "claseModelo": "Level suggested by model",
     "riesgoEfectivo": "Risk shown by system",
     "versionModelo": "Model version",
@@ -398,7 +452,7 @@
       "fallida": "Failed",
       "modelo_no_disponible": "Model unavailable"
     },
-    "meta": "{{n}} readings · {{desde}} – {{hasta}}",
+    "meta": "{{n}} readings · {{periodo}}",
     "guia": {
       "enRango": "The whole period stayed within 2⁠–⁠8 °C.",
       "excursiones_one": "{{count}} excursion in the period: it lasted {{duracion}} on {{equipo}}.",
@@ -426,12 +480,28 @@
       "panelTitulo": "Filter history",
       "mas": "Filters",
       "masActivos_one": "Filters ({{count}})",
-      "masActivos_other": "Filters ({{count}})"
+      "masActivos_other": "Filters ({{count}})",
+      "resultadosPeriodo_one": "{{count}} reading in the period",
+      "resultadosPeriodo_other": "{{count}} readings in the period"
     },
     "curva": {
       "titulo": "Period curve",
       "meta": "{{equipo}} · {{n}} readings · 2⁠–⁠8 °C range",
-      "equipo": "Curve device"
+      "equipo": "Curve device",
+      "banda": "Interval min–max",
+      "bufferAgotado": "Buffer exhausted",
+      "minimo": "min",
+      "maximo": "max",
+      "lecturas": "readings",
+      "agregada": "Average and min–max every {{intervalo}}",
+      "etiqueta": "Chart of the internal temperature for the period ({{periodo}}): {{n}} readings aggregated by interval, with the 2⁠–⁠8 °C storage range marked",
+      "sinHora_one": "{{count}} reading without a capture time is counted in the total but not plotted.",
+      "sinHora_other": "{{count}} readings without a capture time are counted in the total but not plotted.",
+      "manuales_one": "{{count}} manual reading is counted in the total but not plotted on the curve.",
+      "manuales_other": "{{count}} manual readings are counted in the total but not plotted on the curve.",
+      "brechasTruncadas": "The period has more than 500 gaps: the first 500 are shown.",
+      "equipoNoEncontrado": "We could not find unit “{{equipo}}”. Check the code to see its curve.",
+      "error": "We could not load the curve for the period. The table is still available."
     },
     "dia": {
       "resumen": "{{n}} readings · min {{min}} · max {{max}} °C",
@@ -469,7 +539,7 @@
     "rail": {
       "etiqueta": "Period context",
       "porEquipo": "By device",
-      "porEquipoMeta": "Last reading, minimum and maximum of the period",
+      "porEquipoMeta": "Last interval, minimum and maximum of the period",
       "porEquipoValor": "min {{min}} · avg {{prom}} · max {{max}} °C",
       "porEquipoRegla": "{{equipo}}: last {{ultima}} °C; minimum {{min}} °C; maximum {{max}} °C; range 2⁠–⁠8 °C",
       "enRango": "{{pct}} in range",
@@ -482,7 +552,9 @@
       "sinBrechas": "Continuous record, no gaps.",
       "brechaMayor": "Longest: {{duracion}} ({{fecha}})",
       "brechasTotal_one": "{{count}} gap on {{equipo}}",
-      "brechasTotal_other": "{{count}} gaps on {{equipo}}"
+      "brechasTotal_other": "{{count}} gaps on {{equipo}}",
+      "bufferAgotado_one": "{{count}} due to buffer exhaustion ({{perdidas}} samples lost)",
+      "bufferAgotado_other": "{{count}} due to buffer exhaustion ({{perdidas}} samples lost)"
     },
     "vacio": {
       "filtrosTitulo": "No readings for these filters",
@@ -490,7 +562,11 @@
       "ultimaLectura": "Last recorded reading: {{fecha}}",
       "sinDatosTitulo": "No readings recorded yet",
       "sinDatosDetalle": "Readings will appear when a device transmits.",
-      "irMonitoreo": "Go to Monitoring"
+      "irMonitoreo": "Go to Monitoring",
+      "periodoDetalle": "Period queried: {{periodo}}. Widen the period or choose another unit."
+    },
+    "periodo": {
+      "ultimas24h": "Last 24 h"
     }
   },
   "alertas": {
@@ -533,7 +609,7 @@
     "rectificada": "Amended",
     "rectificaA": "Amends the action from {{fecha}}",
     "motivo": "Reason",
-    "rectificarAyuda": "The original action is not modified: a new version is added with its reason.",
+    "rectificarAyuda": "The original action is not modified: a new version is added with its reason. Correct the decision, the action or the justification; whatever you leave unchanged is kept.",
     "nuevaDescripcion": "Corrected description",
     "motivoRectificacion": "Reason for the amendment",
     "motivoRectificacionAyuda": "10 to 500 characters. It stays in the history next to the correction.",
@@ -658,7 +734,10 @@
       "motivoCorto": "The reason needs at least 10 characters.",
       "descripcionVacia": "The corrected description can't be empty.",
       "rectificacionGuardada": "Amendment saved.",
-      "inicio": "Start"
+      "inicio": "Start",
+      "sinCambios": "Change the decision, the action or the justification: an amendment without changes is not recorded.",
+      "decisionVacia": "The corrected decision can't be empty.",
+      "justificacionVacia": "The corrected justification can't be empty."
     },
     "vacio": {
       "enOrdenTitulo": "All clear",
@@ -719,7 +798,9 @@
       "excursionCritica": "Simulate critical excursion",
       "riesgoPreventivo": "Simulate preventive risk",
       "error": "The alert could not be simulated."
-    }
+    },
+    "nuevaDecision": "Corrected decision",
+    "nuevaJustificacion": "Corrected justification"
   },
   "trazabilidad": {
     "titulo": "Record integrity",
@@ -762,7 +843,7 @@
     "totalRupturas": "Breaks detected",
     "posterioresConsistentes": "Subsequent records still linked",
     "posterioresConsistentesValor": "{{c}} of {{n}}",
-    "alcanceVerificacion": "This check verifies the consistency of the chain and detects the alterations identifiable with the mechanism and security conditions used and, if there is a break, where it occurred. It does not amount to immutability. It is not a sanitary, regulatory or DIGEMID compliance certification of how the medicines were stored.",
+    "alcanceVerificacion": "This verification checks the consistency of the traceability chain and detects the alterations identifiable under the chaining mechanism and the security conditions used; if there is a break, it reports where it occurred. In v1/v2 links (keyless SHA-256), a complete rewrite of the chain recalculating every later hash might go undetected; in v3 links (HMAC-SHA256), the protection assumes that the key stays secret. The result is not equivalent to immutability, does not by itself certify the whole history of the data, and is not a health, regulatory or DIGEMID compliance certification on the storage of medicines.",
     "confirmarAislar": "This record will be marked as isolated and excluded from the verifiable chain. The action is audited and cannot be undone.",
     "verificarSegmento": "Verify by device and period",
     "verificarSegmentoBoton": "Verify segment",
@@ -844,13 +925,23 @@
       "ultimo": "Last record",
       "ultimaVerificacionEquipo": "Last device check",
       "ninguna": "None recorded",
-      "integraDesde": "Intact since"
+      "integraDesde": "Intact since",
+      "noVerificables": "Not verifiable"
     },
     "segmento": {
       "ultima": "Last: {{device}} · {{fecha}} · {{resultado}}",
       "queRevisa": "What this check covers",
       "resultadoIntegro": "no changes",
-      "resultadoRoto": "changes found"
+      "resultadoRoto": "changes found",
+      "noConcluido": "Period verification not concluded",
+      "corruptas_one": "{{count}} corrupt.",
+      "corruptas_other": "{{count}} corrupt.",
+      "noVerificables_one": "{{count}} not verifiable (key missing).",
+      "noVerificables_other": "{{count}} not verifiable (key missing).",
+      "idRegistro": "Record ID",
+      "integra": "Intact",
+      "corrupta": "Corrupt",
+      "noVerificable": "Not verifiable"
     },
     "composicion": {
       "titulo": "Chain composition",
@@ -891,7 +982,25 @@
     "vacio": {
       "filtrosTitulo": "No records for this filter",
       "filtrosDetalle": "Choose another event type or remove the device filter."
-    }
+    },
+    "noConcluida": "Verification not concluded",
+    "noConcluidaDetalle_one": "{{count}} record sealed with a key (v3) could not be verified because the key is not available. The result is reported neither as intact nor as altered.",
+    "noConcluidaDetalle_other": "{{count}} records sealed with a key (v3) could not be verified because the key is not available. The result is reported neither as intact nor as altered.",
+    "cadena": {
+      "etiqueta": "Chain",
+      "todas": "All chains",
+      "sistema": "System (users and audit log)",
+      "opcion_one": "{{cadena}} · {{count}} record",
+      "opcion_other": "{{cadena}} · {{count}} records",
+      "ayuda": "Choose a unit’s chain or the system chain to verify it in full from its first record.",
+      "verificada": "Chain verified",
+      "mecanismo": "Sealing mechanism",
+      "mecanismoSinClave": "Keyless SHA-256 (v1/v2)",
+      "mecanismoHmac": "Keyed HMAC-SHA256 (v3)",
+      "sinRegistros": "Chain “{{cadena}}” has no records to verify.",
+      "sistemaCorto": "System"
+    },
+    "aislarNoConcluida": "It cannot be isolated: the verification of that chain did not conclude (the sealing key is missing)."
   },
   "reportes": {
     "titulo": "Monitoring reports",
@@ -973,8 +1082,8 @@
     "filtros": "Filters",
     "fecha": "Date",
     "accion": "Action",
-    "accionPlaceholder": "E.g. LOGIN",
-    "ayudaAccion": "Search by the action name or exact action code.",
+    "accionPlaceholder": "E.g. LOGIN_FALLIDO",
+    "ayudaAccion": "Exact action code; pick one from the list.",
     "recurso": "Resource",
     "usuario": "User",
     "usuarioId": "User ID",
@@ -1051,7 +1160,9 @@
       "MODELO_RECHAZADO": "Model rejected",
       "INTENTO_MODIFICAR_INFERENCIA": "Attempt to modify an inference",
       "CADENA_CORRUPCION_AISLADA": "Corrupted record isolated",
-      "RETENCION_INTENTOS_SUPRIMIDOS": "Attempts suppressed by retention"
+      "RETENCION_INTENTOS_SUPRIMIDOS": "Attempts suppressed by retention",
+      "SESION_RECHAZADA": "Session rejected",
+      "EXPORTAR_BITACORA": "Audit log exported"
     },
     "meta": "{{n}} actions · {{desde}} – {{hasta}}",
     "buscarAccion": "Search action",
@@ -1071,9 +1182,7 @@
     "filtroResultado": {
       "etiqueta": "Result",
       "todas": "All",
-      "fallidas": "Failed or denied",
-      "bloqueos": "Locks",
-      "ayuda": "Filters only the loaded actions."
+      "ayuda": "Queries the server for actions with that result only."
     },
     "chip": {
       "accion": "Action: {{valor}}",
@@ -1144,7 +1253,19 @@
       "filtrosTitulo": "No actions for these filters",
       "filtrosDetalle": "Try another period or remove a filter.",
       "sinDatosDetalle": "Access, user and device actions will appear here.",
-      "actualizar": "Refresh"
+      "actualizar": "Refresh",
+      "categoriaDetalle": "None of the loaded actions belongs to that category. Choose another or show all."
+    },
+    "errorFiltros": "Check the filters: the user must be their full identifier (UUID) and the period must be valid.",
+    "usuarioAyuda": "Full user identifier (UUID). “Show only this user”, in a row’s detail, fills it in.",
+    "exportando": "Exporting…",
+    "exportarAyuda": "The server exports the audit log with the period, user, action and result filters (up to 10,000 rows); the category is not applied. The export itself is recorded in the audit log.",
+    "exportarCuota": "You reached the per-minute export limit. Wait a moment.",
+    "exportarError": "We could not export the audit log. Try again.",
+    "limiteLista": "The {{n}} most recent actions are shown. Narrow the period or export the CSV (up to 10,000 rows).",
+    "kpi": {
+      "fallidos": "Failed",
+      "denegados": "Denied"
     }
   },
   "usuarios": {
@@ -1160,8 +1281,6 @@
     "nuevo": "New user",
     "nombre": "Full name",
     "email": "Email address",
-    "telefono": "Mobile (optional)",
-    "telefonoAyuda": "International format, e.g. +51999888777.",
     "password": "Password",
     "rol": "Role",
     "crear": "Create user",
@@ -1224,7 +1343,6 @@
     "passwordProvisionalAyuda": "At least 10 characters, with letters and numbers. Only needed if the email doesn't arrive: when activating the account, they choose their own.",
     "generarPassword": "Generate",
     "passwordGenerada": "Password generated and shown.",
-    "datosOpcionales": "Optional details",
     "errorPolitica": "The password doesn't meet the policy: at least 10 characters, with letters and numbers.",
     "exito": {
       "titulo": "Account created for {{nombre}}",
@@ -1299,6 +1417,7 @@
     "margenAviso": "Notify before (days)",
     "observaciones": "Notes",
     "calibracionGuardada": "Calibration registered successfully.",
+    "calibracionSinPermiso": "Your role cannot record calibrations.",
     "editarInstalacionA": "Edit installation for device {{id}}",
     "editarInstalacion": "Location and installation",
     "fechaInstalacion": "Installation date",
@@ -1308,8 +1427,7 @@
     "editarResponsable": "Notification contact",
     "responsableNombre": "Name",
     "responsableEmail": "Email",
-    "responsableTelefono": "Phone (SMS, optional)",
-    "responsableAviso": "This contact receives critical excursion alerts by email and, if the SMS channel is enabled, by text message.",
+    "responsableAviso": "This contact receives the critical excursion and missing-data notices for this equipment by email.",
     "responsableGuardado": "Contact updated successfully.",
     "verHistorialA": "View configuration history for device {{id}}",
     "historialConfiguracion": "Configuration history",
@@ -1585,7 +1703,9 @@
       "editarUbicacionA": "Edit location of {{id}}",
       "editarResponsableA": "Edit contact of {{id}}",
       "cambios": "Location and contact changes",
-      "sinResponsable": "No contact registered: critical excursion notices will have no recipient."
+      "sinResponsable": "No contact registered: critical excursion notices will have no recipient.",
+      "instaladoPor": "Installed by",
+      "instaladorSinNombre": "User {{id}}…"
     },
     "configuracionTab": {
       "nodo": "Node",
@@ -1608,7 +1728,12 @@
       "responsable_nombre": "Contact",
       "responsable_email": "Contact email",
       "responsable_telefono": "Contact phone",
-      "intervalo_reporte_segundos": "Report interval"
+      "intervalo_reporte_segundos": "Report interval",
+      "responsable_contacto": "Responsible person’s contact",
+      "reemplazado_por": "Replaced by",
+      "reemplaza_a": "Replaces",
+      "baja": "Unit decommissioned",
+      "sensores_habilitados": "Enabled sensors"
     },
     "seguridadTab": {
       "actualizadaEl": "Updated on {{fecha}}",
@@ -1656,6 +1781,13 @@
       "duracion": "lasted {{duracion}}",
       "sinMas": "No other activity in the last 7 days",
       "verHistorial": "View history"
+    },
+    "cambio": {
+      "actor": "By {{actor}}",
+      "sinActor": "By the system",
+      "origen": "source: {{origen}}",
+      "vigenteEntre": "In effect from {{desde}} to {{hasta}}",
+      "vigenteDesde": "In effect since {{desde}} (current)"
     }
   },
   "comunes": {
@@ -1801,7 +1933,76 @@
     "fichaTitulo": "Model identification",
     "anilloSr": "Weighted F1 {{valor}}. {{estado}}",
     "sinClases": "This evaluation has no per-class results.",
-    "porClaseTabla": "Results by situation table"
+    "porClaseTabla": "Results by situation table",
+    "versiones": {
+      "titulo": "Model versions",
+      "descripcion": "Approved Random Forest versions with their SHA-256 fingerprint and reproducibility metadata. Only the active version classifies in production.",
+      "soloLectura": "Read only. Registering and activating versions is up to the administrator.",
+      "registrar": "Register version",
+      "lista": "Registered model versions",
+      "vacio": "No versions are registered. No approved version classifies in production.",
+      "errorCarga": "We could not load the model versions.",
+      "activa": "Active",
+      "activable": "Ready to activate",
+      "bloqueada": "Cannot be activated",
+      "entrenada": "Trained on {{fecha}}",
+      "aprobada": "Approved on {{fecha}}",
+      "activadaEl": "Activated on {{fecha}}",
+      "desactivadaEl": "Deactivated on {{fecha}}",
+      "esquema": "Feature schema",
+      "dataset": "Dataset",
+      "horizonte": "Horizon H",
+      "horizonteValor": "{{min}} min",
+      "criterio": "Main criterion",
+      "criterios": {
+        "f1": "Macro F1",
+        "por_incidente": "Per incident"
+      },
+      "huella": "Artifact SHA-256 fingerprint",
+      "motivosTitulo": "Cannot be activated:",
+      "activar": "Activate",
+      "activarEtiqueta": "Activate version {{version}}",
+      "activando": "Activating…",
+      "confirmar": "Activate version",
+      "confirmarTitulo": "Activate version {{version}}?",
+      "confirmarReemplaza": "It replaces the active version {{actual}}, which stops classifying.",
+      "confirmarSinActiva": "There is no active version right now.",
+      "confirmarTraza": "The change is recorded in the audit log and the traceability chain.",
+      "confirmarBloqueo": "The system will reject the activation until this is resolved:",
+      "activada": "Version {{version}} activated. It is now the only one classifying in production.",
+      "rechazadaCriterios": "Version {{version}} was not activated: it does not meet the activation requirements. The active version stays in place.",
+      "rechazadaNoRegistrada": "Version {{version}} was not activated: it is not registered or approved. The active version stays in place.",
+      "motivoServidor": "Reason reported by the system: {{detalle}}",
+      "errorActivar": "We could not activate the version. Try again.",
+      "sinPermiso": "Your role cannot manage model versions.",
+      "registrada": "Version {{version}} registered. It is not active yet: activate it once it meets the requirements.",
+      "form": {
+        "titulo": "Register approved version",
+        "descripcion": "Record the reproducibility metadata of a trained and approved version.",
+        "version": "Version identifier",
+        "entrenadoEl": "Trained on",
+        "huella": "Artifact SHA-256 fingerprint",
+        "huellaAyuda": "64 hexadecimal characters: the sha256 of the deployed model file.",
+        "huellaInvalida": "The fingerprint must have 64 hexadecimal characters.",
+        "fechaRequerida": "Enter the training date and time.",
+        "horizonte": "Horizon H (minutes, optional)",
+        "horizonteAyuda": "Label look-ahead window. Without H the version cannot be activated.",
+        "horizonteInvalido": "The horizon must be a whole number between 1 and 1440 minutes.",
+        "metricas": "Metrics (JSON, optional)",
+        "metricasAyuda": "Object with numeric values of the acceptance criterion. Without them the version cannot be activated.",
+        "metricasNoNumericas": "Metrics: every value must be a number.",
+        "particiones": "Splits (JSON, optional)",
+        "particionesAyuda": "Object with entrenamiento, prueba and separacion_min. Without them the version cannot be activated.",
+        "particionesInvalidas": "Splits: every value must be text, a number or a list of texts.",
+        "jsonInvalido": "{{campo}}: enter a valid JSON object.",
+        "noActiva": "Registering does not activate the version. On activation, the system checks the criteria and that the deployed artifact matches the fingerprint.",
+        "duplicada": "The version was not registered.",
+        "invalida": "The system rejected the version data.",
+        "error": "We could not register the version. Try again.",
+        "enviando": "Registering…",
+        "guardar": "Register version"
+      }
+    }
   },
   "sesion": {
     "porExpirar": "Your session expires in {{restante}}. Save your work."
@@ -2127,6 +2328,7 @@
       "normal": "Normal",
       "riesgo_preventivo": "Preventive",
       "excursion_critica": "Critical",
+      "sin_clasificacion_ia": "No AI classification",
       "falla_sensor": "Sensor fault",
       "sin_datos": "No data",
       "suspendido": "Suspended",
@@ -2205,5 +2407,49 @@
       "mensaje": "Open it again from the ColdCare email, or type the code shown in the message.",
       "irLogin": "Back to ColdCare"
     }
+  },
+  "configuracionEquipos": {
+    "titulo": "Configuration history",
+    "descripcion": "Hardware changes with their author and validity. Read-only.",
+    "chipCategoria": "Category: {{valor}}",
+    "chipPeriodo": "Period: {{valor}}",
+    "filtro": {
+      "etiqueta": "Filter the configuration history",
+      "equipo": "Unit",
+      "elegirEquipo": "Choose a unit",
+      "categoria": "Category",
+      "todas": "All"
+    },
+    "categorias": {
+      "instalacion": "Installation",
+      "calibracion": "Calibration",
+      "responsable": "Responsible person",
+      "intervalo": "Sampling interval",
+      "sensores": "Sensors",
+      "reemplazo": "Replacement and decommissioning",
+      "otro": "Other"
+    },
+    "resultados_one": "{{count}} change",
+    "resultados_other": "{{count}} changes",
+    "noEncontrado": "We could not find unit “{{equipo}}”.",
+    "sinEquipos": "There are no units with history yet",
+    "sinEquiposDetalle": "When a unit is registered, its configuration changes will appear here.",
+    "vacioFiltros": "No changes for these filters.",
+    "resumen": {
+      "etiqueta": "History summary",
+      "cambios": "Changes",
+      "vigentes": "In effect",
+      "actores": "Distinct people"
+    },
+    "rail": {
+      "etiqueta": "Scope of the history",
+      "soloLectura": "Read-only",
+      "soloLecturaDetalle": "This history cannot be edited or deleted: each configuration change adds a new entry with the previous value, the new one, who made it and when.",
+      "telemetria": "Telemetry untouched",
+      "telemetriaDetalle": "A configuration change does not recalculate or rewrite readings already recorded or their integrity seals.",
+      "rango": "Fixed 2⁠–⁠8 °C range",
+      "rangoDetalle": "The 2 to 8 °C target range is a research parameter: it is not part of the editable hardware configuration."
+    },
+    "cambiosRegistrados": "Recorded changes"
   }
 }

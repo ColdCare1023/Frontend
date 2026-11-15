@@ -58,7 +58,8 @@ function intervalosDe(equipo: Dispositivo, ahora: number): Intervalo[] {
   }
   for (const brecha of equipo.buffer_littlefs?.brechas ?? []) {
     const desde = ms(brecha.desde)
-    const hasta = ms(brecha.hasta)
+    // HU-48: una brecha abierta sigue perdiendo muestras hasta ahora.
+    const hasta = brecha.abierta ? ahora : ms(brecha.hasta)
     if (desde !== null && hasta !== null) intervalos.push({ desde, hasta: Math.max(hasta, desde + 1), estado: 'perdida' })
   }
   return intervalos

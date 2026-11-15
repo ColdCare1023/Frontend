@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalendarClock, History } from 'lucide-react'
 
 import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
-import { fechaCorta } from '@/lib/formato'
+import { fechaDia } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
-import { Input, Label, Textarea } from '../../../components/ui/input'
-import { SelectorFecha } from '../../../components/ui/selector-fecha'
-import { Dato, MensajeFormulario, PieFormulario, Tarjeta, type Mensaje } from '../compartido'
+import { FormCalibracion } from '../../compartido/FormCalibracion'
+import { Dato, MensajeFormulario, Tarjeta } from '../compartido'
 import { useFlota } from '../contextoFlota'
 import { CAMPOS_CALIBRACION, diasHasta } from '../estadoEquipo'
 import { useCambiosEquipo } from './datosEquipo'
@@ -21,6 +20,7 @@ const VARIANTE = { vigente: 'ok', proxima_a_vencer: 'warn', vencida: 'critical',
 export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Dispositivo; abrirRegistro: boolean }) {
   const { t } = useTranslation()
   const estado = estadoCalibracion(dispositivo)
+  const { registrarCalibracion } = useFlota()
   const { cambios, cargando, recargar } = useCambiosEquipo(dispositivo.id)
   const [editando, setEditando] = useState(abrirRegistro || estado === 'sin_registrar')
   const [aviso, setAviso] = useState<string | null>(null)
@@ -57,6 +57,9 @@ export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Di
         {editando ? (
           <FormCalibracion
             dispositivo={dispositivo}
+            registrar={(datos) =>
+              registrarCalibracion(dispositivo.id, datos.fecha, datos.certificado, datos.observaciones, datos.vencimiento, datos.margen)
+            }
             alCancelar={() => setEditando(false)}
             alGuardar={(texto) => {
               setAviso(texto)
@@ -87,10 +90,10 @@ export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Di
                 <span className="codigo">{dispositivo.numero_certificado_calibracion ?? '—'}</span>
               </Dato>
               <Dato etiqueta={t('dispositivos.fechaCalibracion')}>
-                <span className="nums">{dispositivo.fecha_ultima_calibracion ? fechaCorta(dispositivo.fecha_ultima_calibracion) : '—'}</span>
+                <span className="nums">{dispositivo.fecha_ultima_calibracion ? fechaDia(dispositivo.fecha_ultima_calibracion) : '—'}</span>
               </Dato>
               <Dato etiqueta={t('dispositivos.validaHasta')}>
-                <span className="nums">{dispositivo.fecha_proxima_calibracion ? fechaCorta(dispositivo.fecha_proxima_calibracion) : '—'}</span>
+                <span className="nums">{dispositivo.fecha_proxima_calibracion ? fechaDia(dispositivo.fecha_proxima_calibracion) : '—'}</span>
               </Dato>
               <Dato etiqueta={t('dispositivos.margenAviso')}>
                 <span className="nums">{dispositivo.margen_aviso_calibracion_dias ?? 30}</span>
@@ -122,116 +125,6 @@ export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Di
   )
 }
 
-/** Misma validación y misma llamada que el diálogo anterior (HU-30, B-12). */
-function FormCalibracion({
-  dispositivo,
-  alCancelar,
-  alGuardar,
-}: {
-  dispositivo: Dispositivo
-  alCancelar: () => void
-  alGuardar: (texto: string) => void
-}) {
-  const { t } = useTranslation()
-  const { registrarCalibracion } = useFlota()
-  const [form, setForm] = useState({
-    fecha: '',
-    certificado: dispositivo.numero_certificado_calibracion ?? '',
-    vencimiento: '',
-    margen: String(dispositivo.margen_aviso_calibracion_dias ?? 30),
-    observaciones: dispositivo.observaciones_calibracion ?? '',
-  })
-  // El selector de fecha no tiene `required` nativo: la fecha vacía se marca aquí.
-  const [fechaInvalida, setFechaInvalida] = useState(false)
-  const [enviando, setEnviando] = useState(false)
-  const [mensaje, setMensaje] = useState<Mensaje>(null)
-
-  useEffect(() => {
-    document.getElementById('c-fecha')?.focus()
-  }, [])
-
-  const enviar = async (evento: React.FormEvent) => {
-    evento.preventDefault()
-    if (!form.fecha) {
-      setFechaInvalida(true)
-      document.getElementById('c-fecha')?.focus()
-      return
-    }
-    if (!form.certificado) return
-    if (!(form.vencimiento > form.fecha)) {
-      setMensaje({ tipo: 'error', texto: t('dispositivos.vencimientoInvalido') })
-      return
-    }
-    setEnviando(true)
-    setMensaje(null)
-    const resultado = await registrarCalibracion(
-      dispositivo.id,
-      form.fecha,
-      form.certificado,
-      form.observaciones,
-      form.vencimiento,
-      Number(form.margen) || 30,
-    )
-    setEnviando(false)
-    if (resultado === 'ok') {
-      setMensaje({ tipo: 'ok', texto: t('dispositivos.calibracionGuardada') })
-      alGuardar(t('dispositivos.calibracionGuardada'))
-    } else {
-      setMensaje({ tipo: 'error', texto: t('comunes.error') })
-    }
-  }
-
-  return (
-    <form onSubmit={(e) => void enviar(e)} className="grid gap-3 animate-(--animate-pop-in) sm:grid-cols-2">
-      <div>
-        <Label htmlFor="c-fecha">{t('dispositivos.fechaCalibracion')}</Label>
-        <SelectorFecha
-          id="c-fecha"
-          valor={form.fecha}
-          invalido={fechaInvalida}
-          onCambiar={(fecha) => {
-            setForm((previo) => ({ ...previo, fecha }))
-            if (fecha) setFechaInvalida(false)
-          }}
-        />
-      </div>
-      <div>
-        <Label htmlFor="c-vencimiento">{t('dispositivos.fechaVencimiento')}</Label>
-        <SelectorFecha id="c-vencimiento" valor={form.vencimiento} onCambiar={(vencimiento) => setForm((previo) => ({ ...previo, vencimiento }))} />
-      </div>
-      <div>
-        <Label htmlFor="c-certificado">{t('dispositivos.numeroCertificado')}</Label>
-        <Input id="c-certificado" className="codigo" value={form.certificado} onChange={(e) => setForm({ ...form, certificado: e.target.value })} required />
-      </div>
-      <div>
-        <Label htmlFor="c-margen">{t('dispositivos.margenAviso')}</Label>
-        <Input
-          id="c-margen"
-          type="number"
-          min={1}
-          max={365}
-          value={form.margen}
-          onChange={(e) => setForm({ ...form, margen: e.target.value })}
-          aria-describedby="c-margen-ayuda"
-          required
-        />
-        <p id="c-margen-ayuda" className="mt-1 text-meta text-muted">{t('dispositivos.margenAvisoAyuda')}</p>
-      </div>
-      <div className="sm:col-span-2">
-        <Label htmlFor="c-observaciones">{t('dispositivos.observaciones')}</Label>
-        <Textarea id="c-observaciones" value={form.observaciones} onChange={(e) => setForm({ ...form, observaciones: e.target.value })} />
-      </div>
-      <MensajeFormulario mensaje={mensaje} className="sm:col-span-2" />
-      <div className="sm:col-span-2">
-        <PieFormulario>
-          <Button variant="ghost" onClick={alCancelar} disabled={enviando}>{t('usuarios.cancelar')}</Button>
-          <Button type="submit" disabled={enviando}>{enviando ? t('dispositivos.procesando') : t('comunes.guardar')}</Button>
-        </PieFormulario>
-      </div>
-    </form>
-  )
-}
-
 /** Vigencia del certificado: misma familia visual que la Regla (DIRECTION §4). */
 function ReglaVigencia({ dispositivo }: { dispositivo: Dispositivo }) {
   const { t } = useTranslation()
@@ -259,9 +152,9 @@ function ReglaVigencia({ dispositivo }: { dispositivo: Dispositivo }) {
         />
       </div>
       <div className="mt-2 flex justify-between gap-2 text-micro text-faint">
-        <span className="nums">{fechaCorta(inicio)}</span>
-        <span className="nums">{t('dispositivos.calibracionTab.avisoDesde', { fecha: fechaCorta(fechaAviso) })}</span>
-        <span className="nums">{fechaCorta(fin)}</span>
+        <span className="nums">{fechaDia(inicio)}</span>
+        <span className="nums">{t('dispositivos.calibracionTab.avisoDesde', { fecha: fechaDia(fechaAviso) })}</span>
+        <span className="nums">{fechaDia(fin)}</span>
       </div>
     </div>
   )

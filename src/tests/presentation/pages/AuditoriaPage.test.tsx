@@ -113,19 +113,19 @@ describe('AuditoriaPage — rediseño P6 (registros)', () => {
     expect(detalle).toHaveTextContent('credenciales_invalidas')
   })
 
-  it('el filtro local de resultado no consulta al backend', async () => {
+  it('HU-42/HU-50: el filtro de resultado consulta al servidor con el resultado real', async () => {
     const consultar = vi.fn()
     useAuditoria.mockReturnValue({
-      registros: [registro(), registro({ id: 'a-2', accion: 'LOGIN_FALLIDO', resultado: 'denegado', recurso: 'auth/login' })],
+      registros: [registro(), registro({ id: 'a-2', accion: 'LOGIN_FALLIDO', resultado: 'fallido', recurso: 'auth/login' })],
       cargando: false,
       consultar,
     })
     render(<AuditoriaPage />)
-    await userEvent.selectOptions(screen.getByLabelText(/^resultado$/i), 'fallidas')
-    expect(consultar).not.toHaveBeenCalled()
-    const tabla = screen.getByRole('region', { name: /bitácora de auditoría/i })
-    expect(within(tabla).queryByText('alertas/9f1')).not.toBeInTheDocument()
-    expect(within(tabla).getByText('auth/login')).toBeInTheDocument()
+    const selector = screen.getByLabelText(/^resultado$/i) as HTMLSelectElement
+    expect([...selector.options].map((o) => o.value)).toEqual(['', 'exitoso', 'fallido', 'denegado', 'bloqueado'])
+    await userEvent.selectOptions(selector, 'denegado')
+    expect(consultar).toHaveBeenCalledWith(expect.objectContaining({ resultado: 'denegado' }))
+    expect(screen.getByText('Resultado: Denegado')).toBeInTheDocument()
   })
 
   it('muestra Sin sesión cuando no hay usuario', () => {
@@ -135,9 +135,70 @@ describe('AuditoriaPage — rediseño P6 (registros)', () => {
   })
 
   it('el aviso de bloqueos se mantiene como guía con role status', () => {
-    useAuditoria.mockReturnValue({ registros: [registro({ accion: 'BLOQUEO_TEMPORAL', resultado: 'bloqueado' })], cargando: false })
+    useAuditoria.mockReturnValue({ registros: [registro({ accion: 'UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO', resultado: 'bloqueado' })], cargando: false })
     render(<AuditoriaPage />)
     expect(screen.getByRole('status', { name: '' , hidden: false })).toBeDefined()
     expect(screen.getByText(/bloqueo temporal de acceso registrado/i).closest('[role="status"]')).not.toBeNull()
+  })
+})
+
+describe('AuditoriaPage — HU-42/HU-50: resultado real, seguridad y exportación del servidor', () => {
+  beforeEach(() => useAuditoria.mockReset())
+
+  it('los KPI cuentan fallidas, denegadas y bloqueos por el resultado del backend', () => {
+    useAuditoria.mockReturnValue({
+      registros: [
+        registro({ id: 'a-1', accion: 'LOGIN_FALLIDO', resultado: 'fallido' }),
+        registro({ id: 'a-2', accion: 'RBAC_DENEGADO', resultado: 'denegado' }),
+        registro({ id: 'a-3', accion: 'SESION_RECHAZADA', resultado: 'denegado' }),
+        registro({ id: 'a-4', accion: 'UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO', resultado: 'bloqueado', usuario_id: null }),
+        registro({ id: 'a-5', accion: 'LOGIN_EXITOSO', resultado: 'exitoso' }),
+      ],
+      cargando: false,
+    })
+    render(<AuditoriaPage />)
+    const tira = screen.getByRole('region', { name: /resumen de la bitácora/i })
+    expect(tira).toHaveTextContent(/fallidas\s*1/i)
+    expect(tira).toHaveTextContent(/denegadas\s*2/i)
+    expect(tira).toHaveTextContent(/bloqueos temporales\s*1/i)
+    expect(screen.getByText(/1 bloqueo temporal de acceso registrado/i)).toBeInTheDocument()
+    // El resultado se rotula traducido, no con el código crudo.
+    const tabla = within(screen.getByRole('region', { name: /bitácora de auditoría/i }))
+    expect(tabla.getAllByText('Denegado')).toHaveLength(2)
+    expect(tabla.getByText('Límite de intentos superado')).toBeInTheDocument()
+    expect(tabla.getByText('Sesión rechazada')).toBeInTheDocument()
+  })
+
+  it('«Exportar CSV» pide la exportación al servidor con los filtros aplicados', async () => {
+    const exportar = vi.fn().mockResolvedValue('ok')
+    const consultar = vi.fn()
+    useAuditoria.mockReturnValue({ registros: [registro()], cargando: false, consultar, exportar, exportando: false })
+    render(<AuditoriaPage />)
+    await userEvent.selectOptions(screen.getByLabelText(/^resultado$/i), 'bloqueado')
+    await userEvent.click(screen.getByRole('button', { name: /exportar csv/i }))
+    expect(exportar).toHaveBeenCalledWith(expect.objectContaining({ resultado: 'bloqueado' }))
+    expect(screen.getByRole('button', { name: /exportar csv/i })).toHaveAccessibleDescription(/hasta 10 000 filas/i)
+  })
+
+  it('avisa del límite de exportaciones por minuto (429)', async () => {
+    const exportar = vi.fn().mockResolvedValue('cuota')
+    useAuditoria.mockReturnValue({ registros: [registro()], cargando: false, consultar: vi.fn(), exportar, exportando: false })
+    render(<AuditoriaPage />)
+    await userEvent.click(screen.getByRole('button', { name: /exportar csv/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/límite de exportaciones por minuto/i)
+  })
+
+  it('un usuario que no es UUID (422) explica qué corregir', () => {
+    useAuditoria.mockReturnValue({ registros: [], cargando: false, errorCarga: true, motivoError: 'validacion', consultar: vi.fn() })
+    render(<AuditoriaPage />)
+    expect(screen.getByRole('alert')).toHaveTextContent(/identificador completo \(UUID\)/i)
+  })
+
+  it('sugiere los códigos de seguridad en el filtro de acción', () => {
+    useAuditoria.mockReturnValue({ registros: [registro()], cargando: false })
+    render(<AuditoriaPage />)
+    const codigos = [...document.querySelectorAll('#fa-accion-codigos option')].map((o) => (o as HTMLOptionElement).value)
+    expect(codigos).toEqual(expect.arrayContaining(['LOGIN_FALLIDO', 'RBAC_DENEGADO', 'UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO', 'ALERTA_REVISADA']))
+    expect(codigos).not.toContain('BLOQUEO_TEMPORAL')
   })
 })

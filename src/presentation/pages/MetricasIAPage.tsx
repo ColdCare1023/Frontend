@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { Info } from 'lucide-react'
 
 import { useModeloIA } from '@/application/hooks/useModeloIA'
+import { useAuthStore } from '@/application/stores/authStore'
+import { tienePermiso } from '@/domain/value-objects/Rol'
 import { fechaCorta } from '@/lib/formato'
 import { EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
@@ -10,6 +12,7 @@ import { Esqueleto } from '../components/ui/esqueleto'
 import { ComoSeEvaluo, FichaModelo, ImportanciaVariables, ResultadosPorClase } from './metricas/MetodoClasificador'
 import { porcentaje } from './metricas/porcentaje'
 import { EstadoEvaluacion, ResultadoEvaluacion, type EstadoClasificador } from './metricas/ResultadoEvaluacion'
+import { VersionesModelo } from './metricas/VersionesModelo'
 
 // Umbral declarado en el RNF-04. Se presenta como criterio de evaluación del
 // prototipo, no como garantía de seguridad ni de cumplimiento operativo.
@@ -44,6 +47,12 @@ export function MetricasIAPage() {
   const { t, i18n } = useTranslation()
   const { datos, cargando, noEntrenado, error, consultar } = useModeloIA()
   const m = datos?.metricas
+  // HU-46: el versionado lo lee el auditor y lo gestiona el administrador
+  // (GET: ADMINISTRADOR, AUDITOR; POST: ADMINISTRADOR). El QF no lo ve: 403.
+  const rol = useAuthStore((s) => s.usuario?.rol)
+  const verVersiones = rol !== undefined && tienePermiso(rol, ['auditor'])
+  const versiones = (className?: string) =>
+    verVersiones ? <VersionesModelo puedeGestionar={rol !== undefined && tienePermiso(rol, [])} className={className} /> : null
 
   const encabezado = (
     <PageHeader
@@ -81,6 +90,8 @@ export function MetricasIAPage() {
             </Button>
           </EstadoError>
         )}
+        {/* Sin modelo cargado (503) el administrador necesita justo esto: registrar y activar. */}
+        {versiones('mt-3 xl:mt-4')}
       </div>
     )
   }
@@ -110,6 +121,7 @@ export function MetricasIAPage() {
           </div>
           <FichaModelo className="order-5 lg:col-span-12" metricas={m} />
         </div>
+        {versiones()}
         <p className="flex items-start gap-2 text-meta text-muted">
           <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
           {t('metricasIA.notaUsoProfesional')}

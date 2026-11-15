@@ -12,10 +12,12 @@ test('HU-50 registra bloqueos, resultado y exporta la bitácora filtrada', async
   await irA(page, '/auditoria')
   await expect(page.getByText(/bloqueos temporales de acceso registrados/i)).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Resultado' })).toBeVisible()
-  await expect(page.getByText('denegado', { exact: true }).first()).toBeVisible()
+  const tabla = page.locator('[role="region"][aria-label="Bitácora de auditoría"]')
+  await expect(tabla.getByText('Denegado', { exact: true }).first()).toBeVisible()
+  // HU-42/HU-50: el servidor exporta (nombre del Content-Disposition) y la exportación queda auditada.
   const descarga = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Exportar CSV' }).click()
-  expect((await descarga).suggestedFilename()).toBe('coldcare-auditoria.csv')
+  expect((await descarga).suggestedFilename()).toMatch(/^bitacora_\d{8}T\d{6}Z\.csv$/)
 })
 
 test('HU-26 presenta inconsistencia simulada con detalle verificable', async ({ page }) => {

@@ -7,27 +7,33 @@ import {
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import {
+  brechasRecientes,
   CAPACIDAD_BUFFER_LITTLEFS,
   type BufferLittleFS,
   type Dispositivo,
   type HistorialConfiguracion,
   type IncidenteOperativo,
 } from '@/domain/entities/Dispositivo'
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { MOTIVOS_DESACTIVACION, type Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { ROLES } from '@/domain/value-objects/Rol'
 import {
+  completarLecturaDemo,
   crearTokenDemo,
   estadoDemo,
+  forzarPuertaDemo,
   generarLecturaEnVivo,
   generarLecturasBuffer,
   METRICAS_IA_DEMO,
+  simularRelojSinSincronizarDemo,
 } from './datosDemo'
 import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
+import { calcularSerieDemo } from './serieDemo'
+import { activarVersionDemo, listarVersionesDemo, registrarVersionDemo, versionActivaEnDemo } from './versionesModeloDemo'
 
 // Flujos que tienen estado propio del adapter durante la sesión demo.
-const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>()
+const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>(semillaHistorialConfiguracion())
 const registrosAisladosDemo = new Set<string>()
 const registrosCorrompidosDemo = new Set<string>()
 const intentosLoginDemo = new Map<string, { cantidad: number; inicio: number; bloqueadoHasta: number }>()
@@ -45,6 +51,85 @@ const MAX_INTENTOS_CODIGO_DEMO = 5
 const desafiosDemo = new Map<string, { email: string; expiraEn: number; reenviarDesde: number; intentos: number }>()
 /** Contraseñas fijadas con recuperación o activación durante la sesión demo. */
 const passwordsDemo = new Map<string, string>()
+
+/**
+ * HU-49: historia de configuración de partida (instalación, responsable,
+ * calibración e intervalo), para que la vista del auditor muestre vigencias.
+ */
+function semillaHistorialConfiguracion(): Array<[string, HistorialConfiguracion[]]> {
+  const dia = 24 * 60 * 60 * 1000
+  const hace = (dias: number) => new Date(Date.now() - dias * dia).toISOString()
+  const cambio = (id: string, device: string, campo: string, anterior: string | null, nuevo: string, dias: number, actor = 'u-02') => ({
+    id: `cfg-semilla-${id}`,
+    device_id: device,
+    campo,
+    valor_anterior: anterior,
+    valor_nuevo: nuevo,
+    actor_id: actor,
+    created_at: hace(dias),
+  })
+  const farm1 = [
+    cambio('1', 'FARM-01-CDL', 'intervalo_reporte_segundos (administrador)', '60', '30', 30),
+    cambio('2', 'FARM-01-CDL', 'numero_certificado_calibracion', 'CAL-2025-0388', 'CAL-2026-0412', 186, 'u-01'),
+    cambio('3', 'FARM-01-CDL', 'fecha_ultima_calibracion', '2025-05-10', '2026-05-12', 186, 'u-01'),
+    cambio('4', 'FARM-01-CDL', 'ubicacion', 'Almacén', 'Sala de dispensación', 90),
+    cambio('5', 'FARM-01-CDL', 'responsable_nombre', null, 'Farmacéutica Demo', 119),
+    cambio('6', 'FARM-01-CDL', 'ubicacion', null, 'Almacén', 120),
+  ]
+  const farm2 = [cambio('7', 'FARM-02-CDL', 'ubicacion', null, 'Almacén', 7)]
+  return [['FARM-01-CDL', farm1], ['FARM-02-CDL', farm2]]
+}
+
+/** Mismas categorías que `CATEGORIAS_HISTORIAL` del backend (HU-49). */
+const CATEGORIA_CAMPO_DEMO: Record<string, string> = {
+  ubicacion: 'instalacion',
+  fecha_instalacion: 'instalacion',
+  observaciones_instalacion: 'instalacion',
+  instalado_por: 'instalacion',
+  fecha_ultima_calibracion: 'calibracion',
+  numero_certificado_calibracion: 'calibracion',
+  fecha_proxima_calibracion: 'calibracion',
+  margen_aviso_calibracion_dias: 'calibracion',
+  observaciones_calibracion: 'calibracion',
+  responsable_nombre: 'responsable',
+  responsable_contacto: 'responsable',
+  responsable_email: 'responsable',
+  responsable_telefono: 'responsable',
+  intervalo_reporte_segundos: 'intervalo',
+  sensores_habilitados: 'sensores',
+  baja: 'reemplazo',
+  reemplazado_por: 'reemplazo',
+  reemplaza_a: 'reemplazo',
+}
+
+/** HU-49 esc. 2: campo base, origen, categoría, vigencia y nombre del actor (como el backend). */
+function describirHistorialDemo(filas: HistorialConfiguracion[], params: Record<string, string>): HistorialConfiguracion[] {
+  const descritas = filas.map((fila) => {
+    const conOrigen = /^([a-z_]+) \(([^)]+)\)$/.exec(fila.campo)
+    const campoBase = conOrigen ? conOrigen[1] : fila.campo
+    return {
+      ...fila,
+      campo_base: campoBase,
+      origen: conOrigen ? conOrigen[2] : null,
+      categoria: CATEGORIA_CAMPO_DEMO[campoBase] ?? 'otro',
+      vigente_desde: fila.created_at,
+      vigente_hasta: null as string | null,
+      actor_nombre: fila.actor_id ? (estadoDemo.usuarios.find((u) => u.id === fila.actor_id)?.nombre ?? null) : null,
+    }
+  })
+  const siguiente = new Map<string, string>()
+  for (const fila of [...descritas].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))) {
+    fila.vigente_hasta = siguiente.get(fila.campo_base) ?? null
+    siguiente.set(fila.campo_base, fila.created_at)
+  }
+  const desde = params.desde ? Date.parse(params.desde) : Number.NEGATIVE_INFINITY
+  const hasta = params.hasta ? Date.parse(params.hasta) : Number.POSITIVE_INFINITY
+  return descritas
+    .filter((f) => !params.categoria || f.categoria === params.categoria)
+    .filter((f) => !params.campo || f.campo_base === params.campo)
+    .filter((f) => Date.parse(f.created_at) >= desde && Date.parse(f.created_at) <= hasta)
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+}
 
 function enmascararEmailDemo(email: string): string {
   const [local, dominio] = email.split('@')
@@ -299,8 +384,8 @@ function esperar(ms: number): Promise<void> {
   return new Promise((resolver) => setTimeout(resolver, ms))
 }
 
-function responder<T>(config: InternalAxiosRequestConfig, data: T, status = 200): AxiosResponse<T> {
-  return { data, status, statusText: 'OK', headers: {}, config }
+function responder<T>(config: InternalAxiosRequestConfig, data: T, status = 200, headers: Record<string, string> = {}): AxiosResponse<T> {
+  return { data, status, statusText: 'OK', headers, config }
 }
 
 function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: string): never {
@@ -347,19 +432,59 @@ function cuerpoJson(config: InternalAxiosRequestConfig): Record<string, unknown>
   return (config.data ?? {}) as Record<string, unknown>
 }
 
-function lecturasFiltradas(params: Record<string, string>): LecturaTermica[] {
+/**
+ * Igual que el backend: `device_id` exacto, fechas como instantes, orden
+ * descendente, `limite` + `offset` y el total sin paginar (`X-Total-Count`,
+ * HU-31/HU-36) para que la tabla del Historial pagine todo el periodo.
+ */
+function lecturasFiltradas(params: Record<string, string>): { pagina: LecturaTermica[]; total: number } {
   let resultado = [...estadoDemo.lecturas].reverse() // más recientes primero
-  if (params.device_id) {
-    resultado = resultado.filter((l) =>
-      l.device_id.toLowerCase().includes(params.device_id.toLowerCase()),
-    )
-  }
+  if (params.device_id) resultado = resultado.filter((l) => l.device_id === params.device_id)
   if (params.nivel_riesgo) resultado = resultado.filter((l) => l.nivel_riesgo === params.nivel_riesgo)
   // HU-36 / B-14: el historial filtra por riesgo efectivo, como el backend.
   if (params.riesgo_efectivo) resultado = resultado.filter((l) => l.riesgo_efectivo === params.riesgo_efectivo)
-  if (params.desde) resultado = resultado.filter((l) => l.timestamp >= params.desde)
-  if (params.hasta) resultado = resultado.filter((l) => l.timestamp <= params.hasta)
-  return resultado.slice(0, Number(params.limite ?? 200))
+  const desde = params.desde ? Date.parse(params.desde) : Number.NEGATIVE_INFINITY
+  const hasta = params.hasta ? Date.parse(params.hasta) : Number.POSITIVE_INFINITY
+  if (params.desde || params.hasta) {
+    resultado = resultado.filter((l) => {
+      const t = Date.parse(l.timestamp)
+      return t >= desde && t <= hasta
+    })
+  }
+  const offset = Math.max(0, Number(params.offset ?? 0) || 0)
+  const pagina = resultado.slice(offset, offset + Number(params.limite ?? 100)).map(completarLecturaDemo)
+  return { pagina, total: resultado.length }
+}
+
+/** Brecha de buffer agotado con los campos del backend actual (HU-48). */
+function brechaBufferDemo(desde: string | null, hasta: string | null, perdidas: number, abierta: boolean, ahora: string) {
+  return {
+    desde,
+    hasta,
+    muestras_perdidas: perdidas,
+    perdidas,
+    causa: 'buffer_agotado' as const,
+    causa_nodo: 'buffer_lleno',
+    descripcion:
+      'El almacenamiento local (LittleFS) del nodo se llenó durante una desconexión prolongada y las muestras de este tramo no se pudieron guardar.',
+    abierta,
+    registrada_en: ahora,
+    actualizada_en: ahora,
+    cerrada_en: abierta ? null : ahora,
+  }
+}
+
+/** Buffer del estado operativo con los campos del backend actual (HU-48). */
+function bufferRespuestaDemo(buffer: BufferLittleFS | undefined): BufferLittleFS | undefined {
+  if (!buffer) return undefined
+  return {
+    ...buffer,
+    ocupacion_pct: buffer.limite > 0 ? Math.min(100, Math.round((buffer.pendientes / buffer.limite) * 100)) : null,
+    rango_estimado: buffer.rango_estimado ?? false,
+    cuarentena: buffer.cuarentena ?? 0,
+    // Como el backend: de la más reciente a la más antigua.
+    brechas: brechasRecientes(buffer),
+  }
 }
 
 function alertasFiltradas(params: Record<string, string>): AlertaTermica[] {
@@ -477,6 +602,19 @@ function cambiarCampoDispositivo(
   Object.assign(dispositivo, { [campo]: valor })
 }
 
+/** Igual que el backend: acción exacta, usuario, periodo y resultado (HU-42/HU-50). */
+function auditoriaFiltrada(params: Record<string, string>) {
+  let registros = [...estadoDemo.auditoria].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+  if (params.accion) registros = registros.filter((registro) => registro.accion === String(params.accion))
+  if (params.usuario_id) registros = registros.filter((registro) => registro.usuario_id === String(params.usuario_id))
+  if (params.resultado) registros = registros.filter((registro) => (registro.resultado ?? 'exitoso') === params.resultado)
+  const desde = params.desde ? Date.parse(String(params.desde)) : Number.NEGATIVE_INFINITY
+  const hasta = params.hasta ? Date.parse(String(params.hasta)) : Number.POSITIVE_INFINITY
+  if (Number.isFinite(desde)) registros = registros.filter((registro) => Date.parse(registro.created_at) >= desde)
+  if (Number.isFinite(hasta)) registros = registros.filter((registro) => Date.parse(registro.created_at) <= hasta)
+  return registros
+}
+
 export const demoAdapter: AxiosAdapter = async (config) => {
   await esperar(180 + Math.random() * 240)
 
@@ -499,7 +637,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       intentosLoginDemo.set(emailNormalizado, control)
     }
     if (control.bloqueadoHasta > ahora) {
-      registrarAuditoriaDemo('BLOQUEO_TEMPORAL', '/api/auth/login', usuario?.id ?? null, 'bloqueado')
+      registrarAuditoriaDemo('UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO', 'auth/login', usuario?.id ?? null, 'bloqueado')
       fallar(config, 429, 'Demasiados intentos fallidos')
     }
     const passwordValida = password === 'demo-2026' || passwordsDemo.get(emailNormalizado) === password
@@ -509,7 +647,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       intentosLoginDemo.set(emailNormalizado, control)
       registrarAuditoriaDemo('LOGIN_FALLIDO', '/api/auth/login', usuario?.id ?? null, 'fallido')
       if (control.bloqueadoHasta > ahora) {
-        registrarAuditoriaDemo('BLOQUEO_TEMPORAL', '/api/auth/login', usuario?.id ?? null, 'bloqueado')
+        registrarAuditoriaDemo('UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO', 'auth/login', usuario?.id ?? null, 'bloqueado')
         fallar(config, 429, 'Demasiados intentos fallidos')
       }
       fallar(config, 401, 'Correo o contraseña incorrectos')
@@ -625,7 +763,17 @@ export const demoAdapter: AxiosAdapter = async (config) => {
 
   /* ── Lecturas y alertas ─────────────────────────────────────── */
   if (metodo === 'get' && url === '/api/lecturas') {
-    return responder(config, lecturasFiltradas(params))
+    if (params.desde && params.hasta && Date.parse(params.desde) > Date.parse(params.hasta)) {
+      fallar(config, 422, 'desde no puede ser posterior a hasta')
+    }
+    const { pagina, total } = lecturasFiltradas(params)
+    return responder(config, pagina, 200, { 'x-total-count': String(total) })
+  }
+  // HU-31 / HU-36: serie agregada del periodo completo (mismas validaciones que el backend).
+  if (metodo === 'get' && url === '/api/lecturas/serie') {
+    const resultado = calcularSerieDemo(params, params.device_id ? dispositivoDemo(params.device_id) : undefined, estadoDemo.lecturas)
+    if (!resultado.ok) fallar(config, resultado.status, resultado.detalle)
+    return responder(config, resultado.serie)
   }
   if (metodo === 'get' && url === '/api/alertas') {
     return responder(config, alertasFiltradas(params))
@@ -704,26 +852,59 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       fallar(config, 409, 'La acción ya fue rectificada: solo se puede rectificar la versión vigente.')
     }
     const cuerpo = cuerpoJson(config)
+    // HU-28 esc. 2: decisión, acción y justificación; lo no enviado se hereda.
+    const nuevo = (campo: 'decision' | 'descripcion' | 'justificacion') =>
+      typeof cuerpo[campo] === 'string' && (cuerpo[campo] as string).trim() ? (cuerpo[campo] as string).trim() : (anterior[campo] ?? null)
+    const motivo = String(cuerpo.motivo_rectificacion ?? '').trim()
+    if (motivo.length < 10) fallar(config, 422, 'El motivo de la rectificación necesita al menos 10 caracteres')
+    const sinCambios = (['decision', 'descripcion', 'justificacion'] as const).every((campo) => nuevo(campo) === (anterior[campo] ?? null))
+    if (sinCambios) fallar(config, 422, 'La rectificación debe cambiar la decisión, la acción o la justificación')
     const rectificacion = {
       id: `ac-vivo-${Date.now()}`,
       alert_id: anterior.alert_id,
       usuario_id: 'u-01',
-      descripcion: String(cuerpo.descripcion ?? ''),
+      decision: nuevo('decision'),
+      descripcion: nuevo('descripcion') ?? '',
+      justificacion: nuevo('justificacion'),
       created_at: new Date().toISOString(),
       corrige_accion_id: anterior.id,
-      motivo_rectificacion: String(cuerpo.motivo_rectificacion ?? ''),
+      motivo_rectificacion: motivo,
     }
     estadoDemo.acciones.push(rectificacion)
     return responder(config, rectificacion, 201)
   }
 
   /* ── Trazabilidad ───────────────────────────────────────────── */
+  // HU-26: una cadena por equipo y la de SISTEMA (registros sin equipo).
+  if (metodo === 'get' && url === '/api/trazabilidad/cadenas') {
+    const cadenas = new Map<string, { total: number; ultimo: string | null }>()
+    for (const registro of estadoDemo.trazabilidad) {
+      const chainId = registro.device_id ?? 'SISTEMA'
+      const actual = cadenas.get(chainId) ?? { total: 0, ultimo: null }
+      actual.total += 1
+      if (!actual.ultimo || registro.timestamp > actual.ultimo) actual.ultimo = registro.timestamp
+      cadenas.set(chainId, actual)
+    }
+    return responder(
+      config,
+      [...cadenas.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([chain_id, c]) => ({ chain_id, es_sistema: chain_id === 'SISTEMA', total_registros: c.total, ultimo_registro_en: c.ultimo })),
+    )
+  }
   if (metodo === 'get' && url === '/api/trazabilidad/verificar') {
-    const inconsistente = [...estadoDemo.trazabilidad].find((registro) => !registrosAisladosDemo.has(registro.id) && registrosCorrompidosDemo.has(registro.id))
+    // HU-26 esc. 1: con `chain_id`, solo esa cadena; sin registros, 404 (nada que dar por íntegro).
+    const chainId = params.chain_id ? String(params.chain_id) : null
+    const deLaCadena = estadoDemo.trazabilidad.filter((registro) => !chainId || (registro.device_id ?? 'SISTEMA') === chainId)
+    if (chainId && deLaCadena.length === 0) fallar(config, 404, 'La cadena no tiene registros')
+    const inconsistente = deLaCadena.find((registro) => !registrosAisladosDemo.has(registro.id) && registrosCorrompidosDemo.has(registro.id))
+    const indice = inconsistente ? deLaCadena.indexOf(inconsistente) : -1
     return responder(config, {
       integra: !inconsistente,
-      total_registros: estadoDemo.trazabilidad.filter((registro) => !registrosAisladosDemo.has(registro.id)).length,
-      primer_registro_inconsistente: inconsistente ? estadoDemo.trazabilidad.indexOf(inconsistente) : null,
+      estado: inconsistente ? 'ruptura_detectada' : 'integra',
+      chain_id: chainId,
+      total_registros: deLaCadena.filter((registro) => !registrosAisladosDemo.has(registro.id)).length,
+      primer_registro_inconsistente: inconsistente ? indice : null,
       detalle_inconsistencia: inconsistente ? {
         id: inconsistente.id,
         tipo_evento: inconsistente.tipo_evento,
@@ -731,8 +912,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         hash_esperado: `${inconsistente.hash_actual.slice(0, -1)}0`,
         hash_almacenado: inconsistente.hash_actual,
         mensaje: 'Inconsistencia simulada en datos de demostración',
+        chain_id: inconsistente.device_id ?? 'SISTEMA',
+        tipo_discrepancia: 'payload_alterado',
       } : null,
-      registros_posteriores_afectados: inconsistente ? estadoDemo.trazabilidad.length - estadoDemo.trazabilidad.indexOf(inconsistente) - 1 : 0,
+      registros_posteriores_afectados: inconsistente ? deLaCadena.length - indice - 1 : 0,
+      total_rupturas: inconsistente ? 1 : 0,
+      total_no_verificables: 0,
+      versiones_hash: [],
     })
   }
   if (metodo === 'get' && url === '/api/trazabilidad/verificar-dispositivo') {
@@ -753,19 +939,29 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         !registrosAisladosDemo.has(registro.id)
       )
     })
+    // HU-37 esc. 2: la lectura alterada se señala con su ID y la verificación sigue.
+    const corrupto = (id: string) => registrosCorrompidosDemo.has(id)
+    const corruptos = registros.filter((registro) => corrupto(registro.id))
     return responder(config, {
       device_id: deviceId,
       desde,
       hasta,
-      integra: true,
+      integra: corruptos.length === 0,
+      estado: corruptos.length === 0 ? 'integra' : 'corrupta',
       total_bloques_verificados: registros.length,
+      total_corruptos: corruptos.length,
+      total_no_verificables: 0,
       registros_del_dispositivo: registros.map(({ id, tipo_evento, timestamp }) => ({
         id,
         tipo_evento,
         timestamp,
-        integro: true,
+        integro: !corrupto(id),
+        estado: corrupto(id) ? 'corrupto' : 'integro',
+        tipo_discrepancia: corrupto(id) ? 'payload_alterado' : null,
+        chain_seq: estadoDemo.trazabilidad.indexOf(estadoDemo.trazabilidad.find((r) => r.id === id)!) + 1,
       })),
-      primer_registro_inconsistente: null,
+      primer_registro_inconsistente: corruptos[0]?.id ?? null,
+      versiones_hash: [],
     })
   }
   if (metodo === 'post' && url === '/api/demo/trazabilidad/simular-inconsistencia') {
@@ -839,6 +1035,33 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'get' && url === '/api/ia/modelo') {
     return responder(config, METRICAS_IA_DEMO)
   }
+  /* ── Versionado operativo del modelo (HU-46) ───────────────────── */
+  if (metodo === 'get' && url === '/api/ia/modelo/versiones') {
+    return responder(config, listarVersionesDemo())
+  }
+  if (metodo === 'post' && url === '/api/ia/modelo/versiones') {
+    const resultado = registrarVersionDemo(cuerpoJson(config), actorDemo(config))
+    if (!resultado.data) fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida')
+    registrarAuditoriaDemo('REGISTRAR_VERSION_MODELO_IA', `ia/modelo/versiones/${resultado.data.version}`, actorDemo(config), 'exitoso', {
+      version: resultado.data.version,
+      model_hash: resultado.data.model_hash,
+    })
+    return responder(config, resultado.data, resultado.status)
+  }
+  const activarVersion = /^\/api\/ia\/modelo\/versiones\/([^/]+)\/activar$/.exec(url)
+  if (metodo === 'post' && activarVersion) {
+    const version = decodeURIComponent(activarVersion[1])
+    const recurso = `ia/modelo/versiones/${version}/activar`
+    const resultado = activarVersionDemo(version)
+    if (!resultado.data) {
+      // HU-46 esc. 2: el rechazo también queda en la bitácora; la activa no cambia.
+      registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA_RECHAZADO', recurso, actorDemo(config), 'fallido',
+        resultado.status === 404 ? { motivo: 'version_no_registrada' } : { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos ?? [] })
+      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo activar la versión')
+    }
+    registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA', recurso, actorDemo(config), 'exitoso', { version })
+    return responder(config, resultado.data)
+  }
   const detalleInferencia = /^\/api\/ia\/inferencia\/([^/]+)$/.exec(url)
   if (metodo === 'get' && detalleInferencia) {
     const lectura = estadoDemo.lecturas.find((item) => item.id === detalleInferencia[1])
@@ -851,6 +1074,9 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         : clase === 'excursion_critica'
           ? { excursion_critica: 0.88, riesgo_preventivo: 0.09, normal: 0.03 }
           : null
+    // HU-47 esc. 2: se cruza con el versionado demo (HU-46) en el momento de la inferencia.
+    const huboInferencia = lectura.estado_inferencia === 'completada' && Boolean(lectura.modelo_version)
+    const versionVigente = huboInferencia ? versionActivaEnDemo(lectura.timestamp) : null
     // B-13: misma forma que InferenciaLecturaResponse del backend.
     return responder(config, {
       lectura_id: lectura.id,
@@ -866,10 +1092,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       clasificacion_final: clase,
       confianza: null,
       origen_clasificacion: lectura.origen_clasificacion ?? null,
-      version_era_activa_y_aprobada_en_ese_momento: null,
+      version_era_activa_y_aprobada_en_ese_momento: huboInferencia ? versionVigente === lectura.modelo_version : null,
+      version_activa_en_ese_momento: versionVigente,
       estado_inferencia: lectura.estado_inferencia,
       excursion_confirmada: lectura.excursion_confirmada,
       riesgo_efectivo: lectura.riesgo_efectivo,
+      // HU-34 esc. 4: lo que se rotula, como `estado_riesgo` del backend.
+      estado_riesgo: estadoRiesgoDe(lectura),
       ia_experimental: true,
     })
   }
@@ -937,6 +1166,10 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       responsable_telefono: null,
     }
     estadoDemo.dispositivos.push(dispositivo)
+    // HU-49: como el backend, la configuración inicial consta en el historial
+    // con origen «alta» (desde cuándo rigen la ubicación y los sensores).
+    registrarCambioDispositivo(deviceId, 'ubicacion (alta)', null, ubicacion, config)
+    registrarCambioDispositivo(deviceId, 'sensores_habilitados (alta)', null, modelos.join(', '), config)
     return responder(config, {
       ...dispositivo,
       credencial: {
@@ -987,9 +1220,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const respuesta = (esConsultaTodos ? equipos : equiposConIncidencias)
       .map((dispositivo) => ({
         ...dispositivo,
-        buffer_littlefs: dispositivo.buffer_littlefs
-          ? { ...dispositivo.buffer_littlefs, brechas: [...(dispositivo.buffer_littlefs.brechas ?? [])] }
-          : undefined,
+        buffer_littlefs: bufferRespuestaDemo(dispositivo.buffer_littlefs),
         incidencias_operativas: eventosRecientes.filter((evento) => evento.device_id === dispositivo.id),
       }))
     return responder(config, respuesta)
@@ -1114,6 +1345,8 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       buffer.pendientes = 12
       buffer.desde = momento(360_000)
       buffer.hasta = momento(0)
+      buffer.rango_estimado = false
+      buffer.reportado_en = momento(0)
     } else if (escenario === 'buffer_lleno') {
       dispositivo.estado_conectividad = 'offline'
       dispositivo.estado_operativo = 'OPERATIVO'
@@ -1121,16 +1354,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       buffer.pendientes = buffer.limite
       buffer.desde = momento(3_600_000)
       buffer.hasta = momento(0)
+      buffer.rango_estimado = false
+      buffer.reportado_en = momento(0)
       buffer.perdidas += 3
+      // HU-48 esc. 2: el episodio sigue abierto mientras el nodo no pueda almacenar.
       buffer.brechas = [
-        ...(buffer.brechas ?? []),
-        {
-          desde: momento(5 * 60_000),
-          hasta: momento(0),
-          muestras_perdidas: 3,
-          causa: 'buffer_agotado',
-          registrada_en: momento(0),
-        },
+        ...(buffer.brechas ?? []).map((b) => (b.abierta ? { ...b, abierta: false, cerrada_en: momento(5 * 60_000) } : b)),
+        brechaBufferDemo(momento(5 * 60_000), momento(0), 3, true, momento(0)),
       ]
     } else if (escenario === 'falla_sensor') {
       const sensor = sensores.find((item) => item.modelo === 'DS18B20')
@@ -1181,7 +1411,13 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       buffer.pendientes = 0
       buffer.desde = null
       buffer.hasta = null
+      buffer.rango_estimado = false
+      buffer.reportado_en = momento(0)
       buffer.ultima_sincronizacion_en = momento(0)
+      // HU-48 esc. 3: con la conexión de vuelta el episodio de buffer lleno se cierra.
+      buffer.brechas = (buffer.brechas ?? []).map((b) => (b.abierta ? { ...b, abierta: false, cerrada_en: momento(0), actualizada_en: momento(0) } : b))
+      // HU-07: el nodo sincroniza su reloj y el backend reancla las lecturas sin hora.
+      simularRelojSinSincronizarDemo(false)
       dispositivo.ultimo_evento = {
         schema_version: '1.0',
         boot_id: `demo-recovery-${Date.now()}`,
@@ -1194,9 +1430,17 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     } else if (escenario === 'puerta_abierta' || escenario === 'puerta_cerrada') {
       dispositivo.estado_conectividad = 'online'
       dispositivo.ultimo_reporte_en = momento(0)
-      const lectura = generarLecturaEnVivo()
-      lectura.apertura_refrigerador = escenario === 'puerta_abierta'
-      lectura.duracion_apertura_segundos = escenario === 'puerta_abierta' ? 240 : 0
+      // HU-35: la puerta queda así hasta el próximo escenario; abierta, sigue
+      // sumando segundos desde 4 min (más que el umbral por defecto).
+      forzarPuertaDemo(escenario === 'puerta_abierta', escenario === 'puerta_abierta' ? 240 : 0)
+      generarLecturaEnVivo()
+    } else if (escenario === 'sin_hora') {
+      // HU-07 (H2): arranque sin hora sincronizada. Las lecturas llegan sin
+      // hora de captura ni clasificación IA hasta «Recuperar y sincronizar».
+      dispositivo.estado_conectividad = 'online'
+      dispositivo.ultimo_reporte_en = momento(0)
+      simularRelojSinSincronizarDemo(true)
+      generarLecturaEnVivo()
     } else if (escenario === 'excursion_critica' || escenario === 'riesgo_preventivo') {
       // Una lectura fuera de rango (o junto al límite) y su alerta PENDIENTE
       // con evidencia, que llega a las pantallas abiertas por el stream demo,
@@ -1336,7 +1580,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   if (metodo === 'get' && historialDispositivo) {
     const deviceId = historialDispositivo[1]
     if (!dispositivoDemo(deviceId)) fallar(config, 404, 'Dispositivo no encontrado')
-    return responder(config, [...(historialConfiguracionDemo.get(deviceId) ?? [])])
+    return responder(config, describirHistorialDemo([...(historialConfiguracionDemo.get(deviceId) ?? [])], params))
   }
 
   /* ── Sesión ──────────────────────────────────────────────────── */
@@ -1418,19 +1662,30 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     return responder(config, { usuario: { ...usuario }, password_temporal: temporal })
   }
   if (metodo === 'get' && url === '/api/auditoria') {
-    let registros = [...estadoDemo.auditoria]
-    if (params.accion) {
-      const accion = String(params.accion).toLocaleLowerCase()
-      registros = registros.filter((registro) => registro.accion.toLocaleLowerCase().includes(accion))
+    return responder(config, auditoriaFiltrada(params).slice(0, Number(params.limite ?? 100)))
+  }
+  // HU-42 esc. 1 / HU-50 esc. 4: exportación CSV del servidor (mismo formato
+  // que el backend: BOM, línea de alcance, columnas y la propia exportación auditada).
+  if (metodo === 'get' && url === '/api/auditoria/exportar') {
+    const filas = auditoriaFiltrada(params)
+    const MAX = 10_000
+    const celda = (valor: unknown) => {
+      let texto = valor == null ? '' : String(valor)
+      if (/^[=+\-@\t\r]/.test(texto)) texto = `'${texto}`
+      return /[",\r\n]/.test(texto) ? `"${texto.replaceAll('"', '""')}"` : texto
     }
-    if (params.usuario_id) {
-      registros = registros.filter((registro) => registro.usuario_id === String(params.usuario_id))
+    const lineas = ['# ColdCare — bitácora de auditoría. Supervisión y evidencia técnica de los controles registrados por el sistema. No constituye una certificación de seguridad ni la confirmación de un ataque.']
+    if (filas.length > MAX) lineas.push(`# Exportación recortada a las ${MAX} filas más recientes del filtro.`)
+    lineas.push('fecha_utc,id,usuario_id,accion,resultado,recurso,ip_origen,detalle')
+    for (const r of filas.slice(0, MAX)) {
+      lineas.push([new Date(r.created_at).toISOString(), r.id, r.usuario_id ?? '', r.accion, r.resultado ?? 'exitoso', r.recurso, r.ip_origen ?? '', JSON.stringify(r.detalle ?? {})].map(celda).join(','))
     }
-    const desde = params.desde ? Date.parse(String(params.desde)) : Number.NEGATIVE_INFINITY
-    const hasta = params.hasta ? Date.parse(String(params.hasta)) : Number.POSITIVE_INFINITY
-    if (Number.isFinite(desde)) registros = registros.filter((registro) => Date.parse(registro.created_at) >= desde)
-    if (Number.isFinite(hasta)) registros = registros.filter((registro) => Date.parse(registro.created_at) <= hasta)
-    return responder(config, registros.slice(0, Number(params.limite ?? 200)))
+    registrarAuditoriaDemo('EXPORTAR_BITACORA', 'auditoria/exportar', actorDemo(config), 'exitoso', { filas: Math.min(filas.length, MAX), truncado: filas.length > MAX })
+    const nombre = `bitacora_${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')}.csv`
+    return responder(config, new Blob([`\uFEFF${lineas.join('\r\n')}\r\n`], { type: 'text/csv;charset=utf-8' }) as unknown, 200, {
+      'content-type': 'text/csv; charset=utf-8',
+      'content-disposition': `attachment; filename="${nombre}"`,
+    })
   }
 
   fallar(config, 404, `Ruta demo no implementada: ${metodo.toUpperCase()} ${url}`)

@@ -9,7 +9,7 @@ import { Input, Label, Textarea } from '../../../components/ui/input'
 import { SelectorFecha } from '../../../components/ui/selector-fecha'
 import { Aviso, Dato, MensajeFormulario, PieFormulario, Tarjeta, type Mensaje } from '../compartido'
 import { useFlota } from '../contextoFlota'
-import { CAMPOS_RESPONSABLE, CAMPOS_UBICACION } from '../estadoEquipo'
+import { CAMPOS_RESPONSABLE, CAMPOS_UBICACION, nombreInstalador } from '../estadoEquipo'
 import { useCambiosEquipo } from './datosEquipo'
 import { LineaTiempoCambios } from './LineaTiempoCambios'
 
@@ -20,6 +20,7 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
   const { t } = useTranslation()
   const { actualizarInstalacion, actualizarResponsable } = useFlota()
   const { cambios, cargando, recargar } = useCambiosEquipo(dispositivo.id)
+  const instalador = nombreInstalador(dispositivo.instalado_por, cambios)
 
   return (
     <div className="grid grid-cols-12 items-start gap-3 xl:gap-4">
@@ -43,6 +44,20 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
             <Dato etiqueta={t('dispositivos.ubicacion')}>{dispositivo.ubicacion || '—'}</Dato>
             <Dato etiqueta={t('dispositivos.fechaInstalacion')}>
               <span className="nums">{dispositivo.fecha_instalacion ? fechaCorta(dispositivo.fecha_instalacion) : '—'}</span>
+            </Dato>
+            {/* HU-51 esc. 2: responsable de la instalación registrada. */}
+            <Dato etiqueta={t('dispositivos.ubicacionTab.instaladoPor')}>
+              {!dispositivo.instalado_por ? (
+                '—'
+              ) : instalador ? (
+                instalador
+              ) : cargando ? (
+                '…'
+              ) : (
+                <span className="codigo text-subtle" title={dispositivo.instalado_por}>
+                  {t('dispositivos.ubicacionTab.instaladorSinNombre', { id: dispositivo.instalado_por.slice(0, 8) })}
+                </span>
+              )}
             </Dato>
             <Dato etiqueta={t('dispositivos.observaciones')} className="sm:col-span-2">{dispositivo.observaciones_instalacion || '—'}</Dato>
           </dl>
@@ -74,6 +89,8 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
         inicial={{
           nombre: dispositivo.responsable_nombre ?? '',
           email: dispositivo.responsable_email ?? '',
+          // HU-53 (SMS) está fuera del alcance: el teléfono ya no se pide ni se
+          // muestra, pero el que exista se reenvía igual para no borrarlo al guardar.
           telefono: dispositivo.responsable_telefono ?? '',
         }}
         guardar={async (f) => {
@@ -89,7 +106,6 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
             <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
               <Dato etiqueta={t('dispositivos.responsableNombre')}>{dispositivo.responsable_nombre || '—'}</Dato>
               <Dato etiqueta={t('dispositivos.responsableEmail')}>{dispositivo.responsable_email || '—'}</Dato>
-              <Dato etiqueta={t('dispositivos.responsableTelefono')}><span className="nums">{dispositivo.responsable_telefono || '—'}</span></Dato>
             </dl>
           </>
         }
@@ -102,10 +118,6 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
             <div>
               <Label htmlFor="r-email">{t('dispositivos.responsableEmail')}</Label>
               <Input id="r-email" type="email" value={f.email} onChange={(e) => set({ ...f, email: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="r-telefono">{t('dispositivos.responsableTelefono')}</Label>
-              <Input id="r-telefono" type="tel" placeholder="+51999999999" value={f.telefono} onChange={(e) => set({ ...f, telefono: e.target.value })} />
             </div>
             <p className="text-meta text-faint">{t('dispositivos.responsableAviso')}</p>
           </>

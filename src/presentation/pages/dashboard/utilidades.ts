@@ -1,4 +1,5 @@
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import type { ResumenCurva } from '@/domain/entities/SerieTermica'
 import type { EstadoTramo } from '@/domain/value-objects/Disponibilidad'
 import type { Rol } from '@/domain/value-objects/Rol'
 
@@ -40,15 +41,11 @@ export function submuestrear(valores: readonly number[], max = MAX_PUNTOS): numb
 }
 
 
-export interface ResumenVentana {
-  minima: number
-  maxima: number
-  promedio: number
-  fueraDeRango: number
-}
+export type ResumenVentana = ResumenCurva
 
+/** Resumen de lecturas crudas (ventana de 1 h, o sin serie agregada). */
 export function resumenVentana(serie: readonly LecturaTermica[]): ResumenVentana | null {
-  const temps = serie.map((l) => l.temperatura_interna).filter((v): v is number => v != null)
+  const temps = serie.map((l) => l.temperatura_interna).filter((v): v is number => v != null && Number.isFinite(v))
   if (temps.length === 0) return null
   return {
     minima: Math.min(...temps),
@@ -57,7 +54,16 @@ export function resumenVentana(serie: readonly LecturaTermica[]): ResumenVentana
     // HU-34: cuenta excursiones CONFIRMADAS por la regla directa de rango,
     // no por lo que haya clasificado la IA (`nivel_riesgo`/model_class).
     fueraDeRango: serie.filter((l) => l.excursion_confirmada).length,
+    lecturas: serie.length,
   }
+}
+
+/** Duración de un intervalo de la serie agregada: «1 min», «10 min», «1 h», «1 d». */
+export function etiquetaIntervalo(segundos: number): string {
+  if (segundos >= 86_400 && segundos % 86_400 === 0) return `${segundos / 86_400} d`
+  if (segundos >= 3600 && segundos % 3600 === 0) return `${segundos / 3600} h`
+  if (segundos >= 60 && segundos % 60 === 0) return `${segundos / 60} min`
+  return `${segundos} s`
 }
 
 

@@ -23,6 +23,9 @@ export interface BrechaEquipo {
   equipo: string
   inicio: number
   fin: number
+  /** HU-48: causa informada por la serie del backend (sin ella, «sin datos»). */
+  causa?: 'sin_datos' | 'buffer_agotado'
+  perdidas?: number | null
 }
 
 export interface ResumenEquipo {

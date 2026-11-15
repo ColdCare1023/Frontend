@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { estadoCalibracion, type Dispositivo, type EstadoCalibracion } from '@/domain/entities/Dispositivo'
+import { estadoCalibracion, type Dispositivo, type EstadoCalibracion, type HistorialConfiguracion } from '@/domain/entities/Dispositivo'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 import type { TonoEstado } from '../../components/ui/estado-tonos'
 
@@ -218,4 +218,27 @@ export const CAMPOS_CALIBRACION = [
   'observaciones_calibracion',
 ] as const
 export const CAMPOS_UBICACION = ['ubicacion', 'fecha_instalacion', 'observaciones_instalacion'] as const
-export const CAMPOS_RESPONSABLE = ['responsable_nombre', 'responsable_email', 'responsable_telefono'] as const
+// HU-49: el backend graba `responsable_contacto`; los demás se conservan para
+// el historial anterior y el modo demo.
+export const CAMPOS_RESPONSABLE = ['responsable_nombre', 'responsable_contacto', 'responsable_email', 'responsable_telefono'] as const
+export const CAMPOS_INTERVALO = ['intervalo_reporte_segundos'] as const
+
+/** Campo sin el origen («intervalo_reporte_segundos (administrador)» → «intervalo_reporte_segundos»). */
+export function campoBase(cambio: Pick<HistorialConfiguracion, 'campo' | 'campo_base'>): string {
+  return cambio.campo_base ?? cambio.campo.replace(/\s*\([^)]*\)\s*$/, '')
+}
+export const CAMPOS_REEMPLAZO = ['baja', 'reemplazado_por', 'reemplaza_a'] as const
+
+/**
+ * HU-51 esc. 2: nombre de quien registró la instalación vigente. La ficha
+ * guarda solo su id (`instalado_por`); el nombre lo resuelve el backend en
+ * cada fila del historial que ese usuario firmó (`actor_nombre`). null si no
+ * hay instalador o si el historial cargado no trae su nombre.
+ */
+export function nombreInstalador(
+  instaladoPor: string | null | undefined,
+  cambios: readonly Pick<HistorialConfiguracion, 'actor_id' | 'actor_nombre'>[],
+): string | null {
+  if (!instaladoPor) return null
+  return cambios.find((c) => c.actor_id === instaladoPor && c.actor_nombre)?.actor_nombre ?? null
+}

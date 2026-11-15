@@ -5,6 +5,8 @@ vi.mock('@/infrastructure/sse/sseClient', () => ({ suscribirseTiempoReal: () => 
 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import { obtenerEvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
+import { cuerpoCalibracion } from '@/application/hooks/useCalibracion'
+import { cuerpoRegistroVersion } from '@/application/hooks/useVersionesModelo'
 import { TIME_QUALITY_LECTURA } from '@/domain/entities/LecturaTermica'
 import openapi from './openapi-backend.json'
 import { instalarAdaptadorFalso } from '../ayudas'
@@ -80,7 +82,42 @@ describe('contrato con el backend — Dispositivos', () => {
 
     const peticion = adaptador.peticiones[0]
     expect(existeRuta('get', peticion.url!)).toBe(true)
-    expect(evidencia).toMatchObject({ reading_id: 'L1', model_class: 'normal', effective_risk: 'normal', datos_simulados: true })
+    // HU-47: `ia_experimental` es el modelo no aprobado, no la demo.
+    expect(evidencia).toMatchObject({
+      reading_id: 'L1', model_class: 'normal', effective_risk: 'normal',
+      datos_simulados: false, ia_experimental: true, version_activa_y_aprobada: null,
+    })
+  })
+
+  it('HU-47: mapea el cruce con el versionado operativo (HU-46)', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({
+      data: {
+        lectura_id: 'L2', device_id: 'FARM-09', timestamp_inferencia: '2026-10-26T00:00:00Z', modelo_version: 'v4',
+        vector_features: {}, probabilidades_por_clase: null, clasificacion_final: 'normal', confianza: 0.9,
+        origen_clasificacion: 'random_forest', version_era_activa_y_aprobada_en_ese_momento: false,
+        version_activa_en_ese_momento: 'v3', estado_inferencia: 'completada', excursion_confirmada: false,
+        riesgo_efectivo: 'normal', ia_experimental: false,
+      },
+    }))
+    const evidencia = await obtenerEvidenciaInferencia('L2')
+    expect(evidencia).toMatchObject({ ia_experimental: false, version_activa_y_aprobada: false, version_activa_en_ese_momento: 'v3' })
+  })
+
+  it('HU-30 / HU-46: rutas y cuerpos nuevos coinciden con el backend', () => {
+    expect(existeRuta('get', '/api/dispositivos/estado-operativo')).toBe(true)
+    expect(existeRuta('get', '/api/ia/modelo/versiones')).toBe(true)
+    expect(existeRuta('post', '/api/ia/modelo/versiones')).toBe(true)
+    expect(existeRuta('post', '/api/ia/modelo/versiones/4.0.0/activar')).toBe(true)
+    // Lo que sale por la red: JSON.stringify omite los `undefined`.
+    const calibracion = JSON.parse(JSON.stringify(cuerpoCalibracion('2026-10-01', 'CERT-1', undefined, '2027-10-01', 30)))
+    expect(errores(calibracion, esquemaPeticion('patch', '/api/dispositivos/FARM-09/calibracion'))).toEqual([])
+    const minima = cuerpoRegistroVersion({
+      version: '4.0.0', model_hash: 'f'.repeat(64), feature_schema_version: '4', dataset_version: 'd',
+      scikit_learn_version: '1.9.0', python_version: '3.12', trained_at: '2026-10-20T10:00:00.000Z',
+      horizonte_min: null, metricas: null, particiones: null,
+    })
+    expect(Object.keys(minima)).not.toContain('metricas')
+    expect(errores(minima, esquemaPeticion('post', '/api/ia/modelo/versiones'))).toEqual([])
   })
 
   it('B-15: time_quality de las lecturas usa los valores que publica la API', () => {
@@ -89,5 +126,23 @@ describe('contrato con el backend — Dispositivos', () => {
     }).components.schemas.LecturaResponse.properties.time_quality
     const valores = propiedad.anyOf.find((o) => o.enum)?.enum ?? []
     expect([...valores].sort()).toEqual([...TIME_QUALITY_LECTURA].sort())
+  })
+})
+
+describe('contrato con el backend — HU-28 rectificación', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+  afterEach(() => adaptador?.restaurar())
+
+  it('la rectificación envía solo campos que AccionCorrectivaRectificarRequest acepta', async () => {
+    const { useAlertas } = await import('@/application/hooks/useAlertas')
+    adaptador = instalarAdaptadorFalso(() => ({ data: [] }))
+    const { result } = renderHook(() => useAlertas())
+    await act(async () => {
+      await result.current.rectificarAccion('3f2b9c1e-7d4a-4f6b-9a0e-1c2d3e4f5a6b', { justificacion: 'Excursión de 55 min', decision: 'Cuarentena' }, 'Duración mal calculada.')
+    })
+    const peticion = adaptador.peticiones.find((p) => p.method === 'post')!
+    const cuerpo = JSON.parse(peticion.data as string)
+    expect(cuerpo).toEqual({ justificacion: 'Excursión de 55 min', decision: 'Cuarentena', motivo_rectificacion: 'Duración mal calculada.' })
+    expect(errores(cuerpo, esquemaPeticion('post', peticion.url))).toEqual([])
   })
 })

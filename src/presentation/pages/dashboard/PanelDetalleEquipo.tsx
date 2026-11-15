@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, CalendarPlus } from 'lucide-react'
 
-import { CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { registrarCalibracionDispositivo } from '@/application/hooks/useCalibracion'
+import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { tramosDisponibilidad } from '@/domain/value-objects/Disponibilidad'
-import { fechaCorta, fechaHora } from '@/lib/formato'
+import { fechaDia, fechaHora } from '@/lib/formato'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
 import { Button } from '../../components/ui/button'
 import {
@@ -17,10 +18,16 @@ import {
   SidePanelHeader,
   SidePanelTitle,
 } from '../../components/ui/side-panel'
+import { FormCalibracion } from '../compartido/FormCalibracion'
+import { MensajeFormulario } from '../dispositivos/compartido'
+import { claveBrecha, textoRangoBuffer, textosBrecha } from './bufferNodo'
 import { AnilloBuffer, EstadoCalibracionCorto } from './CeldaEquipo'
 import { BadgeEstadoOperativo } from './CeldaEstadoEquipos'
 import { CintaDisponibilidad } from './CintaDisponibilidad'
 import { useMinuto } from '../../hooks/useReloj'
+
+/** Brechas por buffer agotado que caben en el panel (las más recientes). */
+const BRECHAS_EN_PANEL = 3
 
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -39,6 +46,8 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
 export function PanelDetalleEquipo({
   equipo,
   puedeGestionar,
+  puedeCalibrar = false,
+  onCalibracionRegistrada,
   onCerrar,
   onMostrar,
   onCloseAutoFocus,
@@ -46,6 +55,9 @@ export function PanelDetalleEquipo({
   onCloseAutoFocus?: (evento: Event) => void
   equipo: Dispositivo | null
   puedeGestionar: boolean
+  /** HU-30: el Químico Farmacéutico registra la calibración y su margen sin entrar a Dispositivos. */
+  puedeCalibrar?: boolean
+  onCalibracionRegistrada?: () => void | Promise<void>
   onCerrar: () => void
   onMostrar: (id: string) => void
 }) {
@@ -65,7 +77,13 @@ export function PanelDetalleEquipo({
           </SidePanelHeader>
           {/* Enfocable: con contenido solo de lectura, el teclado también debe poder desplazarlo. */}
           <SidePanelBody tabIndex={0} className="focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
-            <DetalleEquipo equipo={equipo} tramos={tramos} />
+            <DetalleEquipo
+              key={equipo.id}
+              equipo={equipo}
+              tramos={tramos}
+              puedeCalibrar={puedeCalibrar}
+              onCalibracionRegistrada={onCalibracionRegistrada}
+            />
           </SidePanelBody>
           <SidePanelFooter>
             {puedeGestionar && (
@@ -87,11 +105,26 @@ export function PanelDetalleEquipo({
   )
 }
 
-function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: ReturnType<typeof tramosDisponibilidad> }) {
+function DetalleEquipo({
+  equipo,
+  tramos,
+  puedeCalibrar,
+  onCalibracionRegistrada,
+}: {
+  equipo: Dispositivo
+  tramos: ReturnType<typeof tramosDisponibilidad>
+  puedeCalibrar: boolean
+  onCalibracionRegistrada?: () => void | Promise<void>
+}) {
   const { t } = useTranslation()
+  const [registrando, setRegistrando] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const botonCalibrar = useRef<HTMLButtonElement>(null)
   const buffer = equipo.buffer_littlefs
   const limite = buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS
   const pendientes = buffer?.pendientes ?? 0
+  const rango = textoRangoBuffer(buffer, t)
+  const brechas = brechasRecientes(buffer, BRECHAS_EN_PANEL)
   const incidentes = equipo.incidencias_operativas ?? []
   const silencio = incidentes.find((i) => i.estado === 'activo' && i.tipo === 'sin_datos')
   const excursion = incidentes.find((i) => i.estado === 'activo' && i.tipo === 'excursion_no_verificada')
@@ -142,23 +175,29 @@ function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: Return
               />
               <div className="space-y-1">
                 <p className="nums text-foreground">{t('dispositivos.bufferLittlefs', { n: pendientes, max: limite })}</p>
-                {buffer.desde && (
-                  <p className="nums">
-                    {t('dispositivos.rangoBuffer', { desde: fechaHora(buffer.desde), hasta: buffer.hasta ? fechaHora(buffer.hasta) : '—' })}
-                  </p>
-                )}
+                {rango && <p className="nums" data-testid="panel-buffer-rango">{rango}</p>}
                 <p className={buffer.perdidas > 0 ? 'font-semibold text-warning-700' : undefined}>{t('dispositivos.perdidas', { n: buffer.perdidas ?? 0 })}</p>
+                {(buffer.cuarentena ?? 0) > 0 && <p className="nums">{t('dashboard.bufferCuarentena', { n: buffer.cuarentena })}</p>}
               </div>
             </div>
             {pendientes === 0 && buffer.ultima_sincronizacion_en && (
               <p className="text-success-700">{t('dashboard.sinPendientes', { fecha: fechaHora(buffer.ultima_sincronizacion_en) })}</p>
             )}
-            {buffer.brechas?.slice(-2).map((brecha) => (
-              <p key={`${brecha.desde}-${brecha.hasta}`} className="rounded-(--radius-field) bg-critical-tint px-2 py-1 text-danger-700">
-                {t('dashboard.brechaBuffer', { n: brecha.muestras_perdidas })} · {t('dashboard.causaBufferAgotado')}
-                <span className="block">{t('dashboard.periodoBrecha', { desde: fechaHora(brecha.desde), hasta: fechaHora(brecha.hasta) })}</span>
-              </p>
-            ))}
+            {buffer.reportado_en && <p className="nums text-meta text-faint">{t('dashboard.bufferReportado', { fecha: fechaHora(buffer.reportado_en) })}</p>}
+            {/* HU-48 esc. 2: las brechas más recientes primero, con su periodo (o su secuencia si el nodo no tenía hora). */}
+            {brechas.length > 0 && (
+              <ul className="space-y-1" aria-label={t('dashboard.brechasBufferTitulo')}>
+                {brechas.map((brecha, indice) => {
+                  const { resumen, periodo } = textosBrecha(brecha, t)
+                  return (
+                    <li key={claveBrecha(brecha, indice)} className="rounded-(--radius-field) bg-critical-tint px-2 py-1 text-danger-700">
+                      {resumen}
+                      <span className="block">{periodo}</span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </>
         ) : (
           <p>—</p>
@@ -170,7 +209,7 @@ function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: Return
         {(calibracion === 'vencida' || calibracion === 'proxima_a_vencer') && (
           <p className="text-warning-700">
             {t(calibracion === 'vencida' ? 'dashboard.calibracionVencida' : 'dashboard.calibracionPorVencer', {
-              fecha: fechaCorta(equipo.fecha_proxima_calibracion),
+              fecha: fechaDia(equipo.fecha_proxima_calibracion),
             })}
           </p>
         )}
@@ -179,6 +218,44 @@ function DetalleEquipo({ equipo, tramos }: { equipo: Dispositivo; tramos: Return
             {t('dispositivos.numeroCertificado')}: {equipo.numero_certificado_calibracion}
           </p>
         )}
+        {equipo.fecha_proxima_calibracion && (
+          <p className="nums">{t('dashboard.margenAvisoCalibracion', { dias: equipo.margen_aviso_calibracion_dias ?? 30 })}</p>
+        )}
+        {puedeCalibrar &&
+          (registrando ? (
+            <div className="pt-2 text-foreground">
+              <FormCalibracion
+                dispositivo={equipo}
+                registrar={(datos) => registrarCalibracionDispositivo(equipo.id, datos)}
+                alCancelar={() => {
+                  setRegistrando(false)
+                  requestAnimationFrame(() => botonCalibrar.current?.focus())
+                }}
+                alGuardar={(texto) => {
+                  setAviso(texto)
+                  setRegistrando(false)
+                  void onCalibracionRegistrada?.()
+                  requestAnimationFrame(() => botonCalibrar.current?.focus())
+                }}
+              />
+            </div>
+          ) : (
+            <div className="space-y-2 pt-1">
+              <Button
+                ref={botonCalibrar}
+                size="sm"
+                variant={calibracion === 'vencida' || calibracion === 'sin_registrar' ? 'primary' : 'secondary'}
+                onClick={() => {
+                  setAviso(null)
+                  setRegistrando(true)
+                }}
+              >
+                <CalendarPlus aria-hidden />
+                {t('dispositivos.registrarCalibracion')}
+              </Button>
+              {aviso && <MensajeFormulario mensaje={{ tipo: 'ok', texto: aviso }} />}
+            </div>
+          ))}
       </Seccion>
 
       <Seccion titulo={t('dashboard.seccionIncidentes')}>

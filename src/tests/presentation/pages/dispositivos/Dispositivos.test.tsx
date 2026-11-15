@@ -250,6 +250,24 @@ describe('Detalle de dispositivo (pestañas)', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Instalación actualizada correctamente.')
   })
 
+  it('HU-53: el responsable no pide ni muestra teléfono (SMS fuera de alcance) y conserva el registrado', async () => {
+    const actualizarResponsable = vi.fn().mockResolvedValue('ok')
+    montar(
+      [dispositivo({ responsable_nombre: 'QF Ana', responsable_email: 'ana@farmacia.pe', responsable_telefono: '+51999999999' })],
+      { actualizarResponsable },
+      '/dispositivos/FARM-01-CDL?tab=ubicacion',
+    )
+    expect(screen.queryByText('+51999999999')).not.toBeInTheDocument()
+    expect(screen.queryByText(/SMS/)).not.toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Editar responsable de FARM-01-CDL' }))
+    expect(screen.queryByLabelText(/teléfono/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/recibe por correo los avisos/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    // Guardar no borra un teléfono ya registrado (el PATCH lo reemplazaría por null).
+    expect(actualizarResponsable).toHaveBeenCalledWith('FARM-01-CDL', 'QF Ana', 'ana@farmacia.pe', '+51999999999')
+  })
+
   it('pide motivo para rotar y muestra el token una sola vez', async () => {
     const rotarCredencial = vi.fn().mockResolvedValue({
       device_id: 'FARM-01-CDL', token: 'token-visible-una-vez', generado_en: '2026-10-21T10:00:00Z', sesion_broker_cerrada: true,

@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { CalendarClock, HardDrive } from 'lucide-react'
 
 import { CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, type Dispositivo, type EstadoCalibracion } from '@/domain/entities/Dispositivo'
-import { fechaCorta, fechaHora } from '@/lib/formato'
+import { fechaDia, fechaHora } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { diasHasta } from '../estadoEquipo'
 
@@ -54,7 +54,7 @@ export function RailContexto({ dispositivos }: { dispositivos: readonly Disposit
                   {d.id}
                 </Link>
                 <p className="nums text-meta text-muted">
-                  {d.fecha_proxima_calibracion ? fechaCorta(d.fecha_proxima_calibracion) : t('dispositivos.rail.sinCertificado')}
+                  {d.fecha_proxima_calibracion ? fechaDia(d.fecha_proxima_calibracion) : t('dispositivos.rail.sinCertificado')}
                   {dias !== null && (
                     <span className={cn('ml-1', dias < 0 ? 'text-critical' : estado === 'proxima_a_vencer' && 'text-warning-700')}>
                       {' · '}

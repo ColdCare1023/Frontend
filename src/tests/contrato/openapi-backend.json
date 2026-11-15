@@ -898,6 +898,106 @@
         }
       }
     },
+    "/api/lecturas/serie": {
+      "get": {
+        "tags": [
+          "lecturas"
+        ],
+        "summary": "Serie Termica",
+        "description": "HU-31 / HU-36: serie agregada (mín., máx., promedio y conteo por\nintervalo) del periodo COMPLETO, con brechas y resumen. Reemplaza, para la\ncurva y el resumen, a pedir miles de lecturas crudas con tope. Mismos\nroles que GET /api/lecturas. Se declara antes de `/{lectura_id}`.",
+        "operationId": "serie_termica_api_lecturas_serie_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,50}$",
+              "title": "Device Id"
+            }
+          },
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Por defecto, 24 h antes de `hasta` (HU-31 esc. 4)",
+              "title": "Desde"
+            },
+            "description": "Por defecto, 24 h antes de `hasta` (HU-31 esc. 4)"
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Por defecto, ahora",
+              "title": "Hasta"
+            },
+            "description": "Por defecto, ahora"
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(auto|\\d{1,6})$",
+              "description": "Segundos por intervalo (10 a 86400) o `auto` (a lo sumo 1500 intervalos)",
+              "default": "auto",
+              "title": "Bucket"
+            },
+            "description": "Segundos por intervalo (10 a 86400) o `auto` (a lo sumo 1500 intervalos)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SerieTermicaResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/lecturas/{lectura_id}": {
       "get": {
         "tags": [
@@ -1224,7 +1324,7 @@
           "alertas"
         ],
         "summary": "Rectificar Accion Correctiva",
-        "description": "HU-28: corrige una justificación previamente registrada creando un\nnuevo evento que referencia a la anterior, sin sobrescribirla. Solo la\nversión vigente (409 si ya fue rectificada), por su autor o un\nfarmacéutico (403 en otro caso), y con motivo obligatorio (422).",
+        "description": "HU-28: corrige la decisión, la acción y/o la justificación de la\nversión vigente creando un nuevo evento que referencia a la anterior, sin\nsobrescribirla (lo no enviado se hereda). Solo la versión vigente (409 si\nya fue rectificada), por su autor o un farmacéutico (403 en otro caso),\ncon motivo obligatorio y al menos un cambio real (422).",
         "operationId": "rectificar_accion_correctiva_api_alertas_acciones_correctivas__accion_id__rectificar_post",
         "security": [
           {
@@ -1397,7 +1497,7 @@
           "trazabilidad"
         ],
         "summary": "Verificar Integridad",
-        "description": "HU-26 + HU-47 Escenarios 1-2: sin chain_id, verifica todas las cadenas\na la vez (vista de administrador); con chain_id, verifica solo la cadena\nde esa unidad monitoreada (o \"SISTEMA\"), tal como exige el criterio de\naceptación. Si detecta corrupción, además notifica (flag global, snapshot\nforense, evento de emergencia encadenado en la misma cadena afectada).",
+        "description": "HU-26 + HU-47 Escenarios 1-2: sin chain_id, verifica todas las cadenas\na la vez (vista de administrador); con chain_id, verifica solo la cadena\nde esa unidad monitoreada (o \"SISTEMA\"), tal como exige el criterio de\naceptación (404 si esa cadena no tiene registros: no hay nada que dar por\níntegro). Si detecta corrupción, además notifica (flag global, snapshot\nforense, evento de emergencia encadenado en la misma cadena afectada); un\nresultado `no_concluida` (eslabones v3 sin clave) no notifica nada.",
         "operationId": "verificar_integridad_api_trazabilidad_verificar_get",
         "security": [
           {
@@ -1412,7 +1512,8 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$"
                 },
                 {
                   "type": "null"
@@ -1444,6 +1545,37 @@
             }
           }
         }
+      }
+    },
+    "/api/trazabilidad/cadenas": {
+      "get": {
+        "tags": [
+          "trazabilidad"
+        ],
+        "summary": "Listar Cadenas",
+        "description": "HU-26: cadenas existentes (una por dispositivo y la de SISTEMA) con su\nnúmero de eslabones, para elegir el `chain_id` de /verificar.",
+        "operationId": "listar_cadenas_api_trazabilidad_cadenas_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CadenaTrazabilidadResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Listar Cadenas Api Trazabilidad Cadenas Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
       }
     },
     "/api/trazabilidad/verificar-dispositivo": {
@@ -1833,6 +1965,28 @@
               ],
               "title": "Accion"
             }
+          },
+          {
+            "name": "resultado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "exitoso",
+                    "fallido",
+                    "denegado",
+                    "bloqueado"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resultado"
+            }
           }
         ],
         "responses": {
@@ -1848,6 +2002,130 @@
                   "title": "Response Listar Auditoria Api Auditoria Get"
                 }
               }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auditoria/exportar": {
+      "get": {
+        "tags": [
+          "auditoria"
+        ],
+        "summary": "Exportar Auditoria",
+        "description": "HU-42 esc. 1 / HU-50 esc. 4: exporta la bitácora filtrada en CSV. La\npropia exportación es una operación sensible y queda auditada (quién, qué\nfiltros y cuántas filas). El archivo declara su alcance en la primera línea.",
+        "operationId": "exportar_auditoria_api_auditoria_exportar_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Desde"
+            }
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hasta"
+            }
+          },
+          {
+            "name": "usuario_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Usuario Id"
+            }
+          },
+          {
+            "name": "accion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Accion"
+            }
+          },
+          {
+            "name": "resultado",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "exitoso",
+                    "fallido",
+                    "denegado",
+                    "bloqueado"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resultado"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bitácora filtrada en CSV",
+            "content": {
+              "text/csv": {}
             }
           },
           "422": {
@@ -3034,7 +3312,7 @@
           "dispositivos"
         ],
         "summary": "Historial Configuracion",
-        "description": "HU-49: historial auditable de cambios de configuración/instalación/\ncalibración de un dispositivo, de solo lectura.",
+        "description": "HU-49: historial auditable de cambios de configuración/instalación/\ncalibración/reemplazo de un dispositivo, de solo lectura. Esc. 2: cada\ncambio dice desde cuándo y hasta cuándo estuvo vigente, quién lo hizo\n(`actor_nombre`) y se filtra por categoría, campo o periodo.",
         "operationId": "historial_configuracion_api_dispositivos__device_id__historial_configuracion_get",
         "security": [
           {
@@ -3050,6 +3328,82 @@
               "type": "string",
               "pattern": "^[A-Za-z0-9_-]{1,50}$",
               "title": "Device Id"
+            }
+          },
+          {
+            "name": "categoria",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "instalacion",
+                    "calibracion",
+                    "responsable",
+                    "intervalo",
+                    "sensores",
+                    "reemplazo",
+                    "otro"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Categoria"
+            }
+          },
+          {
+            "name": "campo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Campo"
+            }
+          },
+          {
+            "name": "desde",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Desde"
+            }
+          },
+          {
+            "name": "hasta",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hasta"
             }
           }
         ],
@@ -3513,10 +3867,43 @@
       "AccionCorrectivaRectificarRequest": {
         "properties": {
           "descripcion": {
-            "type": "string",
-            "maxLength": 2000,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Descripcion"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision"
+          },
+          "justificacion": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Justificacion"
           },
           "motivo_rectificacion": {
             "type": "string",
@@ -3528,11 +3915,10 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "descripcion",
           "motivo_rectificacion"
         ],
         "title": "AccionCorrectivaRectificarRequest",
-        "description": "HU-28: nueva justificación que corrige la anterior, con su motivo (P6)."
+        "description": "HU-28 esc. 2: corrige la decisión, la acción ejecutada (`descripcion`)\ny/o la justificación de la acción vigente, con su motivo (P6). Lo que no se\nenvía se hereda de la versión corregida; al menos un campo debe venir."
       },
       "AccionCorrectivaResponse": {
         "properties": {
@@ -3862,6 +4248,18 @@
             "type": "boolean",
             "title": "Historica",
             "default": false
+          },
+          "normalizacion_desde": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalizacion Desde"
           }
         },
         "type": "object",
@@ -3928,6 +4326,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "resultado": {
+            "type": "string",
+            "enum": [
+              "exitoso",
+              "fallido",
+              "denegado",
+              "bloqueado"
+            ],
+            "title": "Resultado",
+            "default": "exitoso"
           }
         },
         "type": "object",
@@ -4000,6 +4409,380 @@
           "password"
         ],
         "title": "Body_login_api_auth_login_post"
+      },
+      "BrechaBufferResponse": {
+        "properties": {
+          "desde": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desde"
+          },
+          "hasta": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hasta"
+          },
+          "muestras_perdidas": {
+            "type": "integer",
+            "title": "Muestras Perdidas"
+          },
+          "perdidas": {
+            "type": "integer",
+            "title": "Perdidas"
+          },
+          "causa": {
+            "type": "string",
+            "const": "buffer_agotado",
+            "title": "Causa",
+            "default": "buffer_agotado"
+          },
+          "causa_nodo": {
+            "type": "string",
+            "title": "Causa Nodo"
+          },
+          "descripcion": {
+            "type": "string",
+            "title": "Descripcion"
+          },
+          "abierta": {
+            "type": "boolean",
+            "title": "Abierta"
+          },
+          "registrada_en": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Registrada En"
+          },
+          "actualizada_en": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Actualizada En"
+          },
+          "cerrada_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cerrada En"
+          },
+          "desde_boot_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desde Boot Id"
+          },
+          "desde_seq_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desde Seq No"
+          },
+          "hasta_boot_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hasta Boot Id"
+          },
+          "hasta_seq_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hasta Seq No"
+          }
+        },
+        "type": "object",
+        "required": [
+          "desde",
+          "hasta",
+          "muestras_perdidas",
+          "perdidas",
+          "causa_nodo",
+          "descripcion",
+          "abierta",
+          "registrada_en",
+          "actualizada_en"
+        ],
+        "title": "BrechaBufferResponse",
+        "description": "HU-48 esc. 2: tramo en que LittleFS estuvo lleno y el nodo no pudo\nalmacenar muestras nuevas. `desde`/`hasta` son None si el nodo no tenía\nhora al perderlas (se identifican por `*_boot_id`/`*_seq_no`)."
+      },
+      "BrechaSerieResponse": {
+        "properties": {
+          "desde": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Desde"
+          },
+          "hasta": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hasta"
+          },
+          "duracion_segundos": {
+            "type": "integer",
+            "title": "Duracion Segundos"
+          },
+          "causa": {
+            "type": "string",
+            "enum": [
+              "sin_datos",
+              "buffer_agotado"
+            ],
+            "title": "Causa"
+          },
+          "perdidas": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Perdidas"
+          },
+          "abierta": {
+            "type": "boolean",
+            "title": "Abierta",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "desde",
+          "hasta",
+          "duracion_segundos",
+          "causa"
+        ],
+        "title": "BrechaSerieResponse",
+        "description": "Tramo sin telemetría mayor que el umbral de silencio del nodo."
+      },
+      "BucketSerieResponse": {
+        "properties": {
+          "inicio": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Inicio"
+          },
+          "fin": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Fin"
+          },
+          "lecturas": {
+            "type": "integer",
+            "title": "Lecturas"
+          },
+          "temperatura_interna": {
+            "$ref": "#/components/schemas/EstadisticaMagnitudResponse"
+          },
+          "temperatura_ambiental": {
+            "$ref": "#/components/schemas/EstadisticaMagnitudResponse"
+          },
+          "humedad_ambiental": {
+            "$ref": "#/components/schemas/EstadisticaMagnitudResponse"
+          },
+          "fuera_de_rango": {
+            "type": "integer",
+            "title": "Fuera De Rango",
+            "default": 0
+          },
+          "excursiones": {
+            "type": "integer",
+            "title": "Excursiones",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "inicio",
+          "fin",
+          "lecturas",
+          "temperatura_interna",
+          "temperatura_ambiental",
+          "humedad_ambiental"
+        ],
+        "title": "BucketSerieResponse"
+      },
+      "BufferLittleFSResponse": {
+        "properties": {
+          "pendientes": {
+            "type": "integer",
+            "title": "Pendientes"
+          },
+          "limite": {
+            "type": "integer",
+            "title": "Limite"
+          },
+          "ocupacion_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocupacion Pct"
+          },
+          "desde": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Desde"
+          },
+          "hasta": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hasta"
+          },
+          "rango_estimado": {
+            "type": "boolean",
+            "title": "Rango Estimado",
+            "default": false
+          },
+          "perdidas": {
+            "type": "integer",
+            "title": "Perdidas"
+          },
+          "cuarentena": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cuarentena"
+          },
+          "reportado_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reportado En"
+          },
+          "ultima_sincronizacion_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultima Sincronizacion En"
+          },
+          "brechas": {
+            "items": {
+              "$ref": "#/components/schemas/BrechaBufferResponse"
+            },
+            "type": "array",
+            "title": "Brechas"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pendientes",
+          "limite",
+          "perdidas"
+        ],
+        "title": "BufferLittleFSResponse",
+        "description": "HU-48: datos pendientes de sincronizar en el buffer LittleFS del nodo\n(último `estado_nodo`) y brechas por capacidad agotada.\n\n`desde`/`hasta`: rango temporal de los pendientes (None si no hay). Si el\nfirmware no lo informa se estima (`rango_estimado = true`): desde la\núltima lectura persistida del nodo hasta su último latido."
+      },
+      "CadenaTrazabilidadResponse": {
+        "properties": {
+          "chain_id": {
+            "type": "string",
+            "title": "Chain Id"
+          },
+          "es_sistema": {
+            "type": "boolean",
+            "title": "Es Sistema"
+          },
+          "total_registros": {
+            "type": "integer",
+            "title": "Total Registros"
+          },
+          "ultimo_registro_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultimo Registro En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chain_id",
+          "es_sistema",
+          "total_registros"
+        ],
+        "title": "CadenaTrazabilidadResponse",
+        "description": "HU-26: cadenas existentes (una por dispositivo y SISTEMA) para elegir\ncuál verificar."
       },
       "CalibracionRequest": {
         "properties": {
@@ -5399,6 +6182,51 @@
         ],
         "title": "DispositivoResponse"
       },
+      "EstadisticaMagnitudResponse": {
+        "properties": {
+          "min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          },
+          "promedio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promedio"
+          },
+          "n": {
+            "type": "integer",
+            "title": "N",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "EstadisticaMagnitudResponse",
+        "description": "Mínimo, máximo y promedio de una magnitud; `n` cuenta solo lecturas con valor."
+      },
       "EstadoCadenaResponse": {
         "properties": {
           "cadena_comprometida": {
@@ -5554,6 +6382,27 @@
             },
             "type": "array",
             "title": "Incidencias Operativas"
+          },
+          "umbral_puerta_abierta_segundos": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Umbral Puerta Abierta Segundos"
+          },
+          "buffer_littlefs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BufferLittleFSResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5590,6 +6439,43 @@
           "integro": {
             "type": "boolean",
             "title": "Integro"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "integro",
+              "corrupto",
+              "no_verificable"
+            ],
+            "title": "Estado",
+            "default": "integro"
+          },
+          "tipo_discrepancia": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "payload_alterado",
+                  "enlace_roto",
+                  "no_verificable"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tipo Discrepancia"
+          },
+          "chain_seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chain Seq"
           }
         },
         "type": "object",
@@ -5879,6 +6765,74 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "campo_base": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campo Base"
+          },
+          "origen": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origen"
+          },
+          "categoria": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Categoria"
+          },
+          "vigente_desde": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vigente Desde"
+          },
+          "vigente_hasta": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vigente Hasta"
+          },
+          "actor_nombre": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Nombre"
           }
         },
         "type": "object",
@@ -6098,6 +7052,17 @@
             ],
             "title": "Version Era Activa Y Aprobada En Ese Momento"
           },
+          "version_activa_en_ese_momento": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Activa En Ese Momento"
+          },
           "estado_inferencia": {
             "anyOf": [
               {
@@ -6123,6 +7088,17 @@
                 "type": "null"
               }
             ]
+          },
+          "estado_riesgo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estado Riesgo"
           },
           "horizonte_min": {
             "anyOf": [
@@ -6557,6 +7533,24 @@
               }
             ]
           },
+          "estado_riesgo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "normal",
+                  "riesgo_preventivo",
+                  "excursion_critica",
+                  "sin_clasificacion_ia",
+                  "falla_sensor"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estado Riesgo"
+          },
           "time_quality": {
             "anyOf": [
               {
@@ -6601,6 +7595,34 @@
               }
             ],
             "title": "Registrado Por"
+          },
+          "sin_hora": {
+            "type": "boolean",
+            "title": "Sin Hora",
+            "default": false
+          },
+          "origen_hora": {
+            "type": "string",
+            "enum": [
+              "nodo",
+              "reconstruida",
+              "recepcion",
+              "manual"
+            ],
+            "title": "Origen Hora",
+            "default": "nodo"
+          },
+          "recibida_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recibida En"
           }
         },
         "type": "object",
@@ -7025,6 +8047,72 @@
         "title": "RestablecerPasswordRequest",
         "description": "Dos formas, excluyentes:\n\n- legado (BE-025): `{token, password_nueva}` con el token del enlace;\n- por código: `{email, codigo, password_nueva}` con el código de\n  recuperación o de activación recibido por correo.\n\n`nueva_password` se acepta como sinónimo de `password_nueva`."
       },
+      "ResumenSerieResponse": {
+        "properties": {
+          "lecturas": {
+            "type": "integer",
+            "title": "Lecturas"
+          },
+          "temperatura_interna": {
+            "$ref": "#/components/schemas/EstadisticaMagnitudResponse"
+          },
+          "temperatura_ambiental": {
+            "$ref": "#/components/schemas/EstadisticaMagnitudResponse"
+          },
+          "humedad_ambiental": {
+            "$ref": "#/components/schemas/EstadisticaMagnitudResponse"
+          },
+          "fuera_de_rango": {
+            "type": "integer",
+            "title": "Fuera De Rango",
+            "default": 0
+          },
+          "excursiones": {
+            "type": "integer",
+            "title": "Excursiones",
+            "default": 0
+          },
+          "por_riesgo_efectivo": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Por Riesgo Efectivo"
+          },
+          "primera_lectura_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primera Lectura En"
+          },
+          "ultima_lectura_en": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ultima Lectura En"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lecturas",
+          "temperatura_interna",
+          "temperatura_ambiental",
+          "humedad_ambiental"
+        ],
+        "title": "ResumenSerieResponse"
+      },
       "RevocarCredencialRequest": {
         "properties": {
           "motivo": {
@@ -7121,6 +8209,92 @@
           "campo_telemetria"
         ],
         "title": "SensorIoTResponse"
+      },
+      "SerieTermicaResponse": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "desde": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Desde"
+          },
+          "hasta": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hasta"
+          },
+          "bucket_segundos": {
+            "type": "integer",
+            "title": "Bucket Segundos"
+          },
+          "bucket_automatico": {
+            "type": "boolean",
+            "title": "Bucket Automatico"
+          },
+          "intervalo_reporte_segundos": {
+            "type": "integer",
+            "title": "Intervalo Reporte Segundos"
+          },
+          "umbral_brecha_segundos": {
+            "type": "integer",
+            "title": "Umbral Brecha Segundos"
+          },
+          "total_lecturas": {
+            "type": "integer",
+            "title": "Total Lecturas"
+          },
+          "lecturas_sin_hora": {
+            "type": "integer",
+            "title": "Lecturas Sin Hora"
+          },
+          "lecturas_manuales": {
+            "type": "integer",
+            "title": "Lecturas Manuales"
+          },
+          "buckets": {
+            "items": {
+              "$ref": "#/components/schemas/BucketSerieResponse"
+            },
+            "type": "array",
+            "title": "Buckets"
+          },
+          "brechas": {
+            "items": {
+              "$ref": "#/components/schemas/BrechaSerieResponse"
+            },
+            "type": "array",
+            "title": "Brechas"
+          },
+          "brechas_truncadas": {
+            "type": "boolean",
+            "title": "Brechas Truncadas",
+            "default": false
+          },
+          "resumen": {
+            "$ref": "#/components/schemas/ResumenSerieResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "device_id",
+          "desde",
+          "hasta",
+          "bucket_segundos",
+          "bucket_automatico",
+          "intervalo_reporte_segundos",
+          "umbral_brecha_segundos",
+          "total_lecturas",
+          "lecturas_sin_hora",
+          "lecturas_manuales",
+          "buckets",
+          "brechas",
+          "resumen"
+        ],
+        "title": "SerieTermicaResponse",
+        "description": "HU-31 / HU-36: serie agregada del periodo completo, sin tope de filas.\n\nCada intervalo (`bucket_segundos`, alineado a la época UNIX) trae mínimo,\nmáximo, promedio y conteo; los intervalos sin lecturas no se incluyen y\nlos tramos sin datos se listan en `brechas`. `total_lecturas` es el número\nde lecturas del nodo con hora en el periodo (la suma de `lecturas` de los\nintervalos): la interfaz lo compara con lo que trajo `/api/lecturas` para\navisar de un recorte. Las lecturas sin hora (HU-07) y las manuales no\nentran en la curva y se cuentan aparte."
       },
       "SolicitudRecuperacionResponse": {
         "properties": {
@@ -7501,7 +8675,8 @@
             "enum": [
               "integra",
               "ruptura_aislada",
-              "ruptura_detectada"
+              "ruptura_detectada",
+              "no_concluida"
             ],
             "title": "Estado",
             "default": "integra"
@@ -7538,6 +8713,47 @@
           "alcance": {
             "type": "string",
             "title": "Alcance"
+          },
+          "chain_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chain Id"
+          },
+          "versiones_hash": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Versiones Hash"
+          },
+          "total_no_verificables": {
+            "type": "integer",
+            "title": "Total No Verificables",
+            "default": 0
+          },
+          "no_verificables": {
+            "items": {
+              "$ref": "#/components/schemas/DetalleInconsistenciaResponse"
+            },
+            "type": "array",
+            "title": "No Verificables"
+          },
+          "hash_final": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hash Final"
           }
         },
         "type": "object",
@@ -7595,6 +8811,44 @@
           "alcance": {
             "type": "string",
             "title": "Alcance"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "integra",
+              "corrupta",
+              "no_concluida"
+            ],
+            "title": "Estado",
+            "default": "integra"
+          },
+          "total_corruptos": {
+            "type": "integer",
+            "title": "Total Corruptos",
+            "default": 0
+          },
+          "total_no_verificables": {
+            "type": "integer",
+            "title": "Total No Verificables",
+            "default": 0
+          },
+          "versiones_hash": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Versiones Hash"
+          },
+          "hash_ancla": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hash Ancla"
           }
         },
         "type": "object",

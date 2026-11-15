@@ -17,7 +17,7 @@ const fechaHoraBreve = (ms: number) => {
   return `${fechaCorta(iso)} ${hora(iso).slice(0, 5)}`
 }
 
-/** Rail de contexto del Historial: solo con datos ya cargados. */
+/** Rail de contexto del Historial: resumen de la serie del periodo completo (HU-36). */
 export function RailHistorial({
   resumen,
   onVerExcursion,
@@ -86,18 +86,16 @@ export function RailHistorial({
                     })}
                   </p>
                 </div>
-                {excursion.idInicio && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-8 px-0 sm:h-8 shrink-0 text-muted max-sm:w-11 pointer-coarse:w-11 sm:pointer-coarse:h-11"
-                    aria-label={`${t('historial.rail.verEnTabla')}: ${excursion.equipo} ${fechaHoraBreve(excursion.inicio)}`}
-                    title={t('historial.rail.verEnTabla')}
-                    onClick={() => onVerExcursion(excursion)}
-                  >
-                    <ChevronRight aria-hidden className="size-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-8 px-0 sm:h-8 shrink-0 text-muted max-sm:w-11 pointer-coarse:w-11 sm:pointer-coarse:h-11"
+                  aria-label={`${t('historial.rail.verEnTabla')}: ${excursion.equipo} ${fechaHoraBreve(excursion.inicio)}`}
+                  title={t('historial.rail.verEnTabla')}
+                  onClick={() => onVerExcursion(excursion)}
+                >
+                  <ChevronRight aria-hidden className="size-4" />
+                </Button>
               </li>
             ))}
             {excursiones.length > 5 && (
@@ -119,6 +117,9 @@ export function RailHistorial({
               .filter((equipo) => equipo.brechas.length > 0)
               .map((equipo) => {
                 const mayor = equipo.brechas.reduce((a, b) => (b.fin - b.inicio > a.fin - a.inicio ? b : a))
+                // HU-48: brechas con causa conocida (buffer LittleFS agotado) y sus pérdidas.
+                const porBuffer = equipo.brechas.filter((b) => b.causa === 'buffer_agotado')
+                const perdidas = porBuffer.reduce((suma, b) => suma + (b.perdidas ?? 0), 0)
                 return (
                   <li key={equipo.equipo}>
                     <p className="flex items-start gap-2 text-body text-foreground">
@@ -131,6 +132,11 @@ export function RailHistorial({
                             fecha: fechaHoraBreve(mayor.inicio),
                           })}
                         </span>
+                        {porBuffer.length > 0 && (
+                          <span className="nums block text-meta text-muted">
+                            {t('historial.rail.bufferAgotado', { count: porBuffer.length, perdidas })}
+                          </span>
+                        )}
                       </span>
                     </p>
                     <div aria-hidden className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-sunken">

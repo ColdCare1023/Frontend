@@ -1,20 +1,25 @@
 import { memo, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { OctagonAlert, TriangleAlert } from 'lucide-react'
+import { CalendarX2, Info, OctagonAlert, TriangleAlert } from 'lucide-react'
 
-import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
+import type { CoberturaHistorial } from '@/application/hooks/useMonitoreoTermico'
+import { estadoRiesgoDe, lecturaSinHora, serieGraficable, type LecturaTermica } from '@/domain/entities/LecturaTermica'
+import { resumenCombinado, type ResumenCurva, type SerieTermica } from '@/domain/entities/SerieTermica'
+import { anotarCalibracionVencida } from '@/infrastructure/charts/calibracionCurva'
+import { construirOpcionCurvaAgregada, puntosCurvaAgregada, type PuntoCurva } from '@/infrastructure/charts/curvaAgregada'
 import { construirOpcionCurvaTermica } from '@/infrastructure/charts/curvaTermica'
 import { useTemaResuelto } from '@/infrastructure/tema/tema'
-import { fechaHora, hora as formatearHora } from '@/lib/formato'
+import { fechaDia, fechaHora, hora as formatearHora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { GraficaDiferida } from '../../components/GraficaDiferida'
+import { HoraLectura } from '../../components/HoraLectura'
 import { Paginacion } from '../../components/Paginacion'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Button } from '../../components/ui/button'
 import { Esqueleto } from '../../components/ui/esqueleto'
 import { Segmentado } from '../../components/ui/segmentado'
 import { useReloj } from '../../hooks/useReloj'
-import { resumenVentana } from './utilidades'
+import { etiquetaIntervalo, resumenVentana } from './utilidades'
 
 // HU-31 criterio 4: opciones de rango para la curva térmica del dashboard.
 // 24 h es el valor por defecto exigido por el criterio; las demás son la
@@ -59,15 +64,14 @@ function TablaLecturasVentana({ serie, titulo }: { serie: readonly LecturaTermic
             {visibles.map((lectura) => (
               <tr key={lectura.id || lectura.timestamp} className="h-9">
                 <td className="nums px-3 whitespace-nowrap text-muted">
-                  <time dateTime={lectura.timestamp} title={fechaHora(lectura.timestamp)}>
-                    {formatearHora(lectura.timestamp)}
-                  </time>
+                  {/* HU-07: un arranque sin hora sincronizada se rotula «Sin hora». */}
+                  <HoraLectura lectura={lectura} formato="hora" />
                 </td>
                 <td className="nums px-3 font-semibold text-foreground">{lectura.temperatura_interna?.toFixed(1) ?? '—'}</td>
                 <td className="nums px-3">{lectura.temperatura_ambiental?.toFixed(1) ?? '—'}</td>
                 <td className="nums px-3">{lectura.humedad_ambiental?.toFixed(0) ?? '—'}</td>
                 <td className="px-3">
-                  <RiskBadge nivel={lectura.riesgo_efectivo} />
+                  <RiskBadge nivel={estadoRiesgoDe(lectura)} />
                 </td>
                 <td className="px-3">{lectura.excursion_confirmada ? t('dashboard.excursionEvento') : '—'}</td>
               </tr>
@@ -80,10 +84,27 @@ function TablaLecturasVentana({ serie, titulo }: { serie: readonly LecturaTermic
   )
 }
 
+const valorCon = (v: number | null | undefined, unidad: string, decimales = 1) =>
+  v == null || !Number.isFinite(v) ? '—' : `${v.toFixed(decimales)} ${unidad}`
+
+const filaTooltip = ([k, v]: [string, string]) =>
+  `<div style="display:flex;justify-content:space-between;gap:16px"><span>${escapar(k)}</span><b style="font-variant-numeric:tabular-nums">${escapar(v)}</b></div>`
+
+interface AvisoCurva {
+  clave: string
+  texto: string
+  tono: 'aviso' | 'info'
+}
+
 /**
  * Curva de la ventana (Dribbble D1, Finance Bento): título, selector de
  * periodo, vista Gráfica/Lista y la fila de cifras pegada a la curva. El
  * crosshair desglosa interna, ambiente, humedad y puerta del instante.
+ *
+ * HU-31: con `agregada` (24 h y 7 d) la curva y el resumen cubren el periodo
+ * completo con la serie agregada del backend; sin ella (1 h o backend
+ * anterior) se dibujan las lecturas crudas y, si el historial vino recortado
+ * (`X-Total-Count` mayor que lo recibido), se avisa en vez de callarlo.
  */
 export const CeldaCurva = memo(function CeldaCurva({
   serie,
@@ -93,6 +114,11 @@ export const CeldaCurva = memo(function CeldaCurva({
   horasVentana,
   onCambiarVentana,
   ventana,
+  agregada = null,
+  resumen: resumenExterno,
+  cobertura = null,
+  calibracionVencidaDesde = null,
+  vencimientoCalibracion = null,
 }: {
   serie: LecturaTermica[]
   ultimaPresente: boolean
@@ -101,68 +127,131 @@ export const CeldaCurva = memo(function CeldaCurva({
   horasVentana: number
   onCambiarVentana: (horas: number) => void
   ventana: string
+  /** HU-31: serie agregada del periodo completo (null: lecturas crudas). */
+  agregada?: SerieTermica | null
+  /** Resumen ya calculado (el de la serie agregada); si falta, el de lo crudo. */
+  resumen?: ResumenCurva | null
+  /** Lecturas crudas recibidas frente al total de la ventana. */
+  cobertura?: CoberturaHistorial | null
+  /** HU-30 esc. 3: desde cuándo (ms) el sensor en pantalla tiene la calibración vencida. */
+  calibracionVencidaDesde?: number | null
+  vencimientoCalibracion?: string | null
 }) {
   const { t } = useTranslation()
   // Cuarto de minuto en curso: la ventana termina en «ahora» y avanza cada 15 s.
   const marcaVentana = Math.floor(useReloj(15_000) / 15_000)
   const [vista, setVista] = useState<'grafica' | 'lista'>('grafica')
   const tema = useTemaResuelto()
-  const resumen = useMemo(() => resumenVentana(serie), [serie])
+  const resumenPropio = useMemo(
+    () => (resumenExterno !== undefined ? null : agregada ? resumenCombinado(agregada, serie) : resumenVentana(serie)),
+    [resumenExterno, agregada, serie],
+  )
+  const resumen = resumenExterno === undefined ? resumenPropio : resumenExterno
+  // HU-07: lo que se dibuja (sin las lecturas sin hora, en su hora de captura).
+  const graficable = useMemo(() => serieGraficable(serie), [serie])
+  const puntos = useMemo(() => (agregada ? puntosCurvaAgregada(agregada, serie) : null), [agregada, serie])
+  const intervalo = agregada ? etiquetaIntervalo(agregada.bucket_segundos) : null
 
   const opcion = useMemo(() => {
-    const hasta = Math.max(marcaVentana * 15_000, Date.parse(serie.at(-1)?.timestamp ?? '') || 0)
-    const base = construirOpcionCurvaTermica(
-      serie,
-      {
-        interna: t('dashboard.tempInterna'),
-        ambiental: t('dashboard.tempAmbiental'),
-        rangoEsperado: t('dashboard.rangoEsperadoCorto'),
-        ahora: t('dashboard.ejeAhora'),
-        excursion: t('dashboard.graficaExcursion'),
-        sinDatos: t('dashboard.graficaSinDatos'),
-      },
-      { desde: hasta - horasVentana * 60 * 60 * 1000, hasta },
-      tema,
-    )
+    const ultimoMs = puntos ? (puntos.at(-1)?.x ?? 0) : Date.parse(graficable.at(-1)?.timestamp ?? '') || 0
+    const hasta = Math.max(marcaVentana * 15_000, ultimoMs)
+    const rango = { desde: hasta - horasVentana * 60 * 60 * 1000, hasta }
+    const etiquetas = {
+      interna: t('dashboard.tempInterna'),
+      ambiental: t('dashboard.tempAmbiental'),
+      rangoEsperado: t('dashboard.rangoEsperadoCorto'),
+      ahora: t('dashboard.ejeAhora'),
+      excursion: t('dashboard.graficaExcursion'),
+      sinDatos: t('dashboard.graficaSinDatos'),
+      bufferAgotado: t('dashboard.graficaBufferAgotado'),
+    }
+    const base =
+      puntos && agregada
+        ? construirOpcionCurvaAgregada(puntos, agregada, etiquetas, rango, tema)
+        : construirOpcionCurvaTermica(serie, etiquetas, rango, tema)
     // Desglose del instante (FB): la lectura completa, no solo la serie bajo el cursor.
     const porInstante = new Map<number, LecturaTermica>()
-    for (const lectura of serie) porInstante.set(Date.parse(lectura.timestamp), lectura)
-    const valor = (v: number | null | undefined, unidad: string, decimales = 1) =>
-      v == null ? '—' : `${v.toFixed(decimales)} ${unidad}`
-    const formatter = (params: unknown) => {
-      const lista = Array.isArray(params) ? params : [params]
-      const primero = lista[0] as { axisValue?: number; value?: [number, number] } | undefined
-      const instante = typeof primero?.axisValue === 'number' ? primero.axisValue : primero?.value?.[0]
-      const lectura = instante != null ? porInstante.get(instante) : undefined
-      if (!lectura) return ''
+    const porPunto = new Map<number, PuntoCurva>()
+    if (puntos) for (const punto of puntos) porPunto.set(punto.x, punto)
+    else for (const lectura of graficable) porInstante.set(Date.parse(lectura.timestamp), lectura)
+    const detalleLectura = (lectura: LecturaTermica) => {
       const filas: Array<[string, string]> = [
-        [t('dashboard.tempInterna'), valor(lectura.temperatura_interna, '°C')],
-        [t('dashboard.ambienteCorto'), valor(lectura.temperatura_ambiental, '°C')],
-        [t('dashboard.humedadCorta'), valor(lectura.humedad_ambiental, '%', 0)],
+        [t('dashboard.tempInterna'), valorCon(lectura.temperatura_interna, '°C')],
+        [t('dashboard.ambienteCorto'), valorCon(lectura.temperatura_ambiental, '°C')],
+        [t('dashboard.humedadCorta'), valorCon(lectura.humedad_ambiental, '%', 0)],
       ]
       if (lectura.apertura_refrigerador !== null && lectura.apertura_refrigerador !== undefined) {
         filas.push([t('dashboard.puerta'), lectura.apertura_refrigerador ? t('dashboard.puertaAbierta') : t('dashboard.puertaCerrada')])
       }
       return [
         `<div style="font-weight:600;margin-bottom:4px">${escapar(fechaHora(lectura.timestamp))}</div>`,
-        ...filas.map(
-          ([k, v]) =>
-            `<div style="display:flex;justify-content:space-between;gap:16px"><span>${escapar(k)}</span><b style="font-variant-numeric:tabular-nums">${escapar(v)}</b></div>`,
-        ),
+        ...filas.map(filaTooltip),
         lectura.excursion_confirmada ? `<div style="margin-top:4px;font-weight:600">${escapar(t('dashboard.graficaExcursion'))}</div>` : '',
       ].join('')
     }
+    const detallePunto = (punto: PuntoCurva) => {
+      if (punto.lectura) return detalleLectura(punto.lectura)
+      const { interna } = punto
+      const filas: Array<[string, string]> = [
+        [t('dashboard.tempInterna'), valorCon(interna.promedio, '°C')],
+        [t('dashboard.tooltipExtremos'), interna.min == null ? '—' : t('dashboard.tooltipMinMax', { min: interna.min.toFixed(1), max: (interna.max ?? interna.min).toFixed(1) })],
+        [t('dashboard.ambienteCorto'), valorCon(punto.ambiental.promedio, '°C')],
+        [t('dashboard.humedadCorta'), valorCon(punto.humedad.promedio, '%', 0)],
+      ]
+      return [
+        `<div style="font-weight:600">${escapar(`${fechaHora(new Date(punto.inicio).toISOString())} – ${formatearHora(new Date(punto.fin).toISOString())}`)}</div>`,
+        `<div style="margin-bottom:4px;opacity:.8">${escapar(t('dashboard.tooltipLecturas', { count: punto.lecturas, intervalo: intervalo ?? '' }))}</div>`,
+        ...filas.map(filaTooltip),
+        punto.excursiones > 0
+          ? `<div style="margin-top:4px;font-weight:600">${escapar(t('dashboard.tooltipExcursiones', { count: punto.excursiones }))}</div>`
+          : '',
+      ].join('')
+    }
+    const formatter = (params: unknown) => {
+      const lista = Array.isArray(params) ? params : [params]
+      const primero = lista[0] as { axisValue?: number; value?: [number, number] } | undefined
+      const instante = typeof primero?.axisValue === 'number' ? primero.axisValue : primero?.value?.[0]
+      if (instante == null) return ''
+      if (puntos) {
+        const punto = porPunto.get(instante)
+        return punto ? detallePunto(punto) : ''
+      }
+      const lectura = porInstante.get(instante)
+      return lectura ? detalleLectura(lectura) : ''
+    }
     const tooltip = (base as { tooltip?: Record<string, unknown> }).tooltip ?? {}
-    return { ...base, tooltip: { ...tooltip, formatter } }
+    const conTooltip = { ...base, tooltip: { ...tooltip, formatter } }
+    if (calibracionVencidaDesde === null) return conTooltip
+    return anotarCalibracionVencida(
+      conTooltip,
+      [{ desde: Math.max(calibracionVencidaDesde, hasta - horasVentana * 60 * 60 * 1000), hasta, etiqueta: t('dashboard.graficaCalibracionVencida') }],
+      tema,
+    )
     // Con el tema cambian los colores del canvas (tokens CSS): se reconstruye.
-  }, [serie, t, horasVentana, marcaVentana, tema])
+  }, [serie, graficable, puntos, agregada, intervalo, t, horasVentana, marcaVentana, tema, calibracionVencidaDesde])
 
-  const titulo = t('dashboard.graficaEtiqueta', { n: serie.length })
+  // HU-31: lo crudo no cubre la ventana si el total supera lo recibido.
+  const recorte =
+    cobertura && cobertura.total !== null && cobertura.total > cobertura.recibidas
+      ? { mostradas: cobertura.recibidas.toLocaleString(), total: cobertura.total.toLocaleString() }
+      : null
+  const sinHora = agregada ? agregada.lecturas_sin_hora : serie.filter((l) => lecturaSinHora(l)).length
+  const avisos: AvisoCurva[] = []
+  if (recorte && !agregada) avisos.push({ clave: 'recorte', tono: 'aviso', texto: t('dashboard.curvaRecortada', recorte) })
+  if (recorte && agregada && vista === 'lista') avisos.push({ clave: 'lista', tono: 'info', texto: t('dashboard.listaRecortada', recorte) })
+  if (sinHora > 0 && vista === 'grafica') avisos.push({ clave: 'sin-hora', tono: 'info', texto: t('dashboard.lecturasSinHoraCurva', { count: sinHora }) })
+  if (agregada?.brechas_truncadas && vista === 'grafica') avisos.push({ clave: 'brechas', tono: 'info', texto: t('dashboard.brechasTruncadas') })
+
+  const lecturasEnCurva = agregada ? (resumen?.lecturas ?? agregada.total_lecturas) : serie.length
+  const hayDatos = puntos ? puntos.length > 0 : serie.length > 0
+  const titulo = intervalo
+    ? t('dashboard.graficaEtiquetaAgregada', { n: lecturasEnCurva.toLocaleString(), ventana, intervalo })
+    : t('dashboard.graficaEtiqueta', { n: serie.length })
 
   let cuerpo: React.ReactNode
   if (!ultimaPresente && estadoHistorial === 'cargando') {
     cuerpo = <Esqueleto className="h-full rounded-(--radius-field)" />
-  } else if (estadoHistorial === 'error' && serie.length === 0) {
+  } else if (estadoHistorial === 'error' && !hayDatos) {
     cuerpo = (
       <div role="alert" className="flex h-full flex-col items-start justify-center gap-3 rounded-(--radius-field) border border-dashed border-border p-4">
         <p className="flex items-center gap-2 text-body font-medium text-danger-700">
@@ -174,7 +263,7 @@ export const CeldaCurva = memo(function CeldaCurva({
         </Button>
       </div>
     )
-  } else if (serie.length === 0 && estadoHistorial !== 'cargando') {
+  } else if (!hayDatos && estadoHistorial !== 'cargando') {
     cuerpo = (
       <div role="status" className="trama-sin-datos flex h-full items-center justify-center rounded-(--radius-field) text-body text-muted">
         <span className="rounded-(--radius-small) bg-surface px-2 py-1">{t('dashboard.curvaSinLecturas', { ventana })}</span>
@@ -198,7 +287,10 @@ export const CeldaCurva = memo(function CeldaCurva({
             {t('dashboard.curvaTermica')}
           </h2>
           <p className="nums text-meta text-faint">
-            {t('dashboard.ultimasLecturas', { n: serie.length })} · {t('dashboard.rangoConservacion')}
+            {intervalo
+              ? t('dashboard.lecturasAgregadas', { n: lecturasEnCurva.toLocaleString(), intervalo })
+              : t('dashboard.ultimasLecturas', { n: serie.length })}{' '}
+            · {t('dashboard.rangoConservacion')}
           </p>
         </div>
         {estadoHistorial === 'cargando' && ultimaPresente && (
@@ -226,6 +318,12 @@ export const CeldaCurva = memo(function CeldaCurva({
           ]}
         />
       </div>
+      {calibracionVencidaDesde !== null && (
+        <p role="note" className="mt-2 flex items-start gap-1.5 text-meta font-medium text-warning-700">
+          <CalendarX2 aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+          {t('dashboard.curvaCalibracionVencida', { fecha: fechaDia(vencimientoCalibracion) })}
+        </p>
+      )}
       {resumen && (
         <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-meta text-muted">
           {(
@@ -246,7 +344,23 @@ export const CeldaCurva = memo(function CeldaCurva({
           ))}
         </dl>
       )}
+      {avisos.map((aviso) => (
+        <p
+          key={aviso.clave}
+          role="note"
+          data-testid={`aviso-curva-${aviso.clave}`}
+          className={clsx('mt-1.5 flex items-start gap-1.5 text-meta', aviso.tono === 'aviso' ? 'font-medium text-warning-700' : 'text-muted')}
+        >
+          {aviso.tono === 'aviso' ? (
+            <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
+          ) : (
+            <Info aria-hidden className="mt-px size-3.5 shrink-0" />
+          )}
+          {aviso.texto}
+        </p>
+      ))}
       <p id="curva-resumen" className="sr-only">
+        {intervalo && `${t('dashboard.franjaAgregada', { intervalo })} `}
         {resumen
           ? t('dashboard.resumenCurva', {
               ventana,

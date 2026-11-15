@@ -4,9 +4,10 @@ import { Link } from 'react-router'
 import { ArrowUpRight, Sigma } from 'lucide-react'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
-import { fechaHora } from '@/lib/formato'
+import { estadoRiesgoDe } from '@/domain/entities/LecturaTermica'
 import { rangoPagina } from '@/lib/paginacion'
 import { EstadoError } from '../../../components/EstadoPagina'
+import { HoraLectura } from '../../../components/HoraLectura'
 import { Paginacion } from '../../../components/Paginacion'
 import { RiskBadge } from '../../../components/RiskBadge'
 import { Button } from '../../../components/ui/button'
@@ -87,11 +88,13 @@ export function TabHistorial({ dispositivo }: { dispositivo: Dispositivo }) {
                 <tbody className="divide-y divide-border">
                   {visibles.map((l) => (
                     <tr key={l.id ?? `${l.timestamp}-${l.device_id}`}>
-                      <td className="nums px-4 py-2 text-meta text-muted">{fechaHora(l.timestamp)}</td>
+                      {/* HU-07: hora de captura (≈ si se reconstruyó; «Sin hora» si no la hay). */}
+                      <td className="nums px-4 py-2 text-meta text-muted"><HoraLectura lectura={l} formato="fechaHora" /></td>
                       <td className="nums px-4 py-2">{l.temperatura_interna !== null ? formatearTemperatura(l.temperatura_interna) : '—'}</td>
                       <td className="nums px-4 py-2 text-subtle">{l.temperatura_ambiental !== null ? formatearTemperatura(l.temperatura_ambiental) : '—'}</td>
                       <td className="nums px-4 py-2 text-subtle">{l.humedad_ambiental !== null ? `${l.humedad_ambiental.toFixed(0)} %` : '—'}</td>
-                      <td className="px-4 py-2"><RiskBadge nivel={l.riesgo_efectivo} /></td>
+                      {/* HU-34 esc. 4: sin clasificación IA o falla de sensor no se rotulan Normal. */}
+                      <td className="px-4 py-2"><RiskBadge nivel={estadoRiesgoDe(l)} /></td>
                     </tr>
                   ))}
                 </tbody>
