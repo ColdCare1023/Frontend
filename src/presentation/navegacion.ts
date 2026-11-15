@@ -1,6 +1,7 @@
 import { Activity, Bell, BookOpen, Brain, FileText, HardDrive, History, Link2, ScrollText, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
 
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
+import { destinoSeguro } from '@/lib/destinoTrasLogin'
 
 export interface ItemNav {
   ruta: string
@@ -71,4 +72,17 @@ export function ubicarRuta(pathname: string): { seccion: SeccionNav; item: ItemN
     if (item) return { seccion, item }
   }
   return null
+}
+
+/**
+ * HU-52: a dónde ir tras abrir sesión. El destino guardado por RequireAuth
+ * (p. ej. `/alertas?id=…` del correo) si el rol lo puede abrir, con el mismo
+ * mapa que el riel y RequireRoles; si no, el monitoreo. Así un enlace
+ * reenviado a otra persona no la deja en «Sin permiso».
+ */
+export function destinoTrasLogin(estado: unknown, rol: Rol | null | undefined, porDefecto = '/dashboard'): string {
+  const destino = destinoSeguro(estado)
+  if (!destino || !rol) return porDefecto
+  const ubicada = ubicarRuta(destino.split(/[?#]/, 1)[0])
+  return ubicada && tienePermiso(rol, ubicada.item.roles) ? destino : porDefecto
 }

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { accionAlerta, irA } from './helpers'
+import { accionAlerta, cerrarSesion, irA } from './helpers'
 
 /**
  * Alertas (P5a): acciones visibles por fila según el rol (HU-23/27/28/41),
@@ -19,37 +19,84 @@ async function entrarComo(page: Page, perfil: string) {
 
 const fila = (page: Page) => page.getByRole('row').nth(1)
 
-test('farmacéutico revisa una pendiente con un clic y pasa a Revisadas', async ({ page }) => {
+test('farmacéutico reconoce una pendiente con un clic y pasa a Reconocidas', async ({ page }) => {
   await entrarComo(page, 'Químico Farmacéutico')
   const pendientes = await page.getByRole('row').count()
 
-  await accionAlerta(page, /^revisar alerta de/i)
+  await accionAlerta(page, /^reconocer alerta de/i)
   await expect(page.getByRole('row')).toHaveCount(pendientes - 1)
 
-  await page.getByRole('button', { name: 'Revisadas', exact: true }).click()
+  await page.getByRole('button', { name: 'Reconocidas', exact: true }).click()
   await expect(fila(page).getByRole('button', { name: /registrar acción correctiva/i })).toBeVisible()
-  await expect(fila(page).getByRole('button', { name: /^revisar alerta/i })).toHaveCount(0)
+  await expect(fila(page).getByRole('button', { name: /^reconocer alerta/i })).toHaveCount(0)
 })
 
-test('técnico registra acción correctiva sin ver Revisar', async ({ page }) => {
-  await entrarComo(page, 'Técnico de Farmacia')
-  await expect(page.getByRole('button', { name: /^revisar alerta/i })).toHaveCount(0)
-
+test('HU-23: la acción sobre una PENDIENTE la reconoce y la cronología lo muestra en orden', async ({ page }) => {
+  await entrarComo(page, 'Químico Farmacéutico')
   await accionAlerta(page, /registrar acción correctiva/i)
   const panel = page.getByRole('dialog')
-  await expect(panel.getByRole('tab', { name: 'Acción correctiva' })).toHaveAttribute('aria-selected', 'true')
-  await expect(panel.getByLabel('Decisión adoptada')).toBeFocused()
   await panel.getByLabel('Decisión adoptada').fill('Cuarentena del lote')
   await panel.getByLabel('Descripción de la acción correctiva').fill('Se trasladó el lote al equipo de respaldo.')
   await panel.getByLabel('Justificación').fill('Superó 8 °C durante la excursión.')
   await panel.getByRole('button', { name: 'Guardar acción' }).click()
   await expect(panel.getByText('Acción correctiva registrada.')).toBeVisible()
+
+  const cronologia = panel.getByRole('list', { name: 'Cronología de atención' })
+  await expect(cronologia.getByText('Acción correctiva registrada')).toBeVisible()
+  const eventos = cronologia.getByRole('listitem')
+  await expect(eventos.nth(1)).toContainText('Alerta reconocida')
+  await expect(eventos.nth(1)).toContainText('Reconocida al registrar la acción correctiva')
+  await expect(eventos.nth(1)).toContainText('Responsable: Farmacéutica Demo')
+  await expect(eventos.nth(2)).toContainText('Acción correctiva registrada')
+})
+
+test('técnico consulta la cronología sin Reconocer ni Registrar acción (H16)', async ({ page }) => {
+  await entrarComo(page, 'Técnico de Farmacia')
+  await expect(page.getByRole('button', { name: /^reconocer alerta/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /registrar acción correctiva/i })).toHaveCount(0)
+
+  await accionAlerta(page, /ver cronología de atención/i)
+  const panel = page.getByRole('dialog')
+  await expect(panel.getByRole('tablist')).toHaveCount(0)
   await expect(panel.getByRole('heading', { name: 'Cronología de atención' })).toBeVisible()
+})
+
+test('HU-52: el enlace del correo (/alertas?id=…) pasa por el login y abre esa alerta', async ({ page }) => {
+  await entrarComo(page, 'Químico Farmacéutico')
+  const id = await fila(page).getAttribute('data-alerta-id')
+  const equipo = (await fila(page).locator('.codigo').first().textContent())!.trim()
+  expect(id).toBeTruthy()
+
+  // Sin sesión (el JWT vive solo en memoria), el enlace lleva al login…
+  await cerrarSesion(page)
+  await expect(page).toHaveURL(/\/login$/)
+  await irA(page, `/alertas?id=${id}`)
+  await expect(page).toHaveURL(/\/login$/)
+
+  // …y tras entrar vuelve a la alerta del correo, con su panel abierto.
+  await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
+  await expect(page).toHaveURL(new RegExp(`/alertas\\?id=${id}$`))
+  const panel = page.getByRole('dialog')
+  await expect(panel).toContainText(equipo)
+  await expect(page.locator(`[data-alerta-id="${id}"]`)).toHaveAttribute('data-seleccionada')
+
+  // Al cerrar, el id sale de la URL.
+  await page.keyboard.press('Escape')
+  await expect(page).toHaveURL(/\/alertas$/)
+})
+
+test('HU-54: el enlace SIN_DATOS (/alertas) muestra el rail de incidentes tras el login', async ({ page }) => {
+  await page.goto('/alertas')
+  await expect(page).toHaveURL(/\/login$/)
+  await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
+  await expect(page).toHaveURL(/\/alertas$/)
+  const rail = page.getByRole('complementary', { name: 'Contexto operativo' })
+  await expect(rail.getByRole('heading', { name: 'Incidentes operativos' })).toBeVisible()
 })
 
 test('auditor solo consulta la cronología', async ({ page }) => {
   await entrarComo(page, 'Auditor Consulta de registros')
-  await expect(page.getByRole('button', { name: /^revisar alerta/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /^reconocer alerta/i })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /registrar acción correctiva/i })).toHaveCount(0)
 
   await accionAlerta(page, /ver cronología de atención/i)
@@ -61,15 +108,15 @@ test('auditor solo consulta la cronología', async ({ page }) => {
 
 test('administrador ve las mismas acciones que el farmacéutico', async ({ page }) => {
   await entrarComo(page, 'Administrador')
-  await expect(fila(page).getByRole('button', { name: /^revisar alerta/i })).toBeVisible()
+  await expect(fila(page).getByRole('button', { name: /^reconocer alerta/i })).toBeVisible()
   await expect(fila(page).getByRole('button', { name: /registrar acción correctiva/i })).toBeVisible()
   await expect(fila(page).getByRole('button', { name: /ver cronología de atención/i })).toBeVisible()
 })
 
-test('teclado: Tab recorre Revisar, Registrar acción y Cronología; Esc cierra y devuelve el foco', async ({ page }) => {
+test('teclado: Tab recorre Reconocer, Registrar acción y Cronología; Esc cierra y devuelve el foco', async ({ page }) => {
   await entrarComo(page, 'Químico Farmacéutico')
-  const revisar = fila(page).getByRole('button', { name: /^revisar alerta/i })
-  await revisar.focus()
+  const reconocer = fila(page).getByRole('button', { name: /^reconocer alerta/i })
+  await reconocer.focus()
   await page.keyboard.press('Tab')
   const registrar = fila(page).getByRole('button', { name: /registrar acción correctiva/i })
   await expect(registrar).toBeFocused()
@@ -126,7 +173,8 @@ test('demo: simular excursión crítica hace llegar una fila nueva sin recargar'
 
   // La alerta llega por el stream en vivo, como por SSE: una fila más, con su evidencia.
   await expect(page.getByRole('row')).toHaveCount(filas + 1)
-  const nueva = page.getByRole('row').filter({ hasText: 'Temperatura interna 8.6 °C fuera del rango' })
+  // La fila simulada (id `al-sim-…`): la serie demo puede traer otra de 8.6 °C.
+  const nueva = page.locator('tr[data-alerta-id^="al-sim-"]').filter({ hasText: 'Temperatura interna 8.6 °C fuera del rango' })
   await expect(nueva).toBeVisible()
   // Evidencia: el pico con su Regla S (el lector oye «Pico 8.6 °C»).
   await expect(nueva).toContainText(/Pico 8\.6\s°C/)

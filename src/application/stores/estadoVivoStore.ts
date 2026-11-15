@@ -4,6 +4,7 @@ import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import type { EstadoRiesgo } from '@/domain/entities/LecturaTermica'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
+import type { MotivoDesconexionSse } from '@/infrastructure/sse/sseClient'
 import { ordenarAlertas } from '@/lib/ordenAlertas'
 
 /**
@@ -63,6 +64,8 @@ export type CargaVivo = 'cargando' | 'listo' | 'parcial' | 'error'
 interface EstadoVivo {
   carga: CargaVivo
   conectado: boolean | null
+  /** HU-32 esc. 3: causa conocida del corte del flujo en vivo. */
+  motivoDesconexion: MotivoDesconexionSse | null
   equipos: EquipoVivo[]
   ultimas: Record<string, LecturaVivo>
   /** `null` = no disponible (falló la consulta). */
@@ -77,6 +80,7 @@ interface EstadoVivo {
 const INICIAL = {
   carga: 'cargando' as CargaVivo,
   conectado: null,
+  motivoDesconexion: null as MotivoDesconexionSse | null,
   equipos: [] as EquipoVivo[],
   ultimas: {} as Record<string, LecturaVivo>,
   alertas: null as ResumenAlertas | null,

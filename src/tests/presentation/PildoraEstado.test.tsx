@@ -65,6 +65,18 @@ describe('PildoraEstado', () => {
     ).toBeInTheDocument()
   })
 
+  it('HU-32 esc. 3: con el tope de flujos dice «Demasiadas pestañas en tiempo real», no «Sin conexión»', async () => {
+    estadoDemo()
+    useEstadoVivoStore.setState({ conectado: false, motivoDesconexion: 'demasiados_flujos' })
+    montar()
+
+    const boton = screen.getByRole('button', { name: /Estado en vivo/ })
+    expect(boton).toHaveAccessibleName(/Demasiadas pestañas en tiempo real/)
+    expect(boton).not.toHaveAccessibleName(/Sin conexión en vivo/)
+    await userEvent.setup().click(boton)
+    expect(await screen.findByText('Demasiadas pestañas en tiempo real')).toBeInTheDocument()
+  })
+
   it('muestra el estado con texto, no solo con color', () => {
     estadoDemo()
     montar()

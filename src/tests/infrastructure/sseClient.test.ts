@@ -4,7 +4,9 @@ import { aplicarCambioConectividad, type Dispositivo } from '@/domain/entities/D
 import { setAccessToken } from '@/infrastructure/api/apiClient'
 import {
   type CambioConectividad,
+  type MotivoDesconexionSse,
   REINTENTO_BASE_MS,
+  REINTENTO_FLUJOS_MS,
   REINTENTO_MAX_MS,
   suscribirseLecturas,
   suscribirseTiempoReal,
@@ -83,6 +85,84 @@ describe('suscribirseLecturas: reconexión con backoff (HU-32)', () => {
     await caer()
     await vi.advanceTimersByTimeAsync(REINTENTO_BASE_MS)
     expect(tickets()).toBe(antes + 1)
+
+    cerrar()
+  })
+})
+
+describe('HU-32 esc. 3: 429 «demasiados_flujos» del ticket SSE', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+  let tope = true
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    tope = true
+    EventSourceFalso.instancias = []
+    vi.stubGlobal('EventSource', EventSourceFalso)
+    setAccessToken('token-de-prueba')
+    adaptador = instalarAdaptadorFalso(() =>
+      tope
+        ? { status: 429, data: { detail: 'demasiados_flujos' }, headers: { 'retry-after': '15' } }
+        : { data: { ticket: 't' } },
+    )
+  })
+
+  afterEach(() => {
+    adaptador.restaurar()
+    setAccessToken(null)
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  const tickets = () => adaptador.peticiones.filter((p) => p.url === '/api/auth/sse-ticket').length
+
+  it('avisa el motivo, no abre el stream y reintenta tras el Retry-After del backend', async () => {
+    const estados: Array<[boolean, MotivoDesconexionSse | undefined]> = []
+    const cerrar = suscribirseLecturas(() => {}, (conectado, motivo) => estados.push([conectado, motivo]))
+
+    await vi.waitFor(() => expect(estados).toEqual([[false, 'demasiados_flujos']]))
+    expect(EventSourceFalso.instancias).toHaveLength(0)
+    expect(tickets()).toBe(1)
+
+    // No reintenta con el backoff de 1 s: espera los 15 s que pide el backend
+    // (vi.waitFor ya avanzó unas decenas de ms el reloj falso).
+    await vi.advanceTimersByTimeAsync(14_000)
+    expect(tickets()).toBe(1)
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(tickets()).toBe(2)
+
+    // Al cerrarse otra pestaña, el siguiente ticket entra y el motivo se limpia.
+    tope = false
+    await vi.advanceTimersByTimeAsync(REINTENTO_FLUJOS_MS)
+    await vi.waitFor(() => expect(EventSourceFalso.instancias).toHaveLength(1))
+    EventSourceFalso.instancias[0].onopen?.()
+    expect(estados.at(-1)).toEqual([true, undefined])
+
+    cerrar()
+  })
+
+  it('un suscriptor nuevo recibe el motivo vigente', async () => {
+    const cerrarA = suscribirseLecturas(() => {}, () => {})
+    await vi.waitFor(() => expect(tickets()).toBe(1))
+    await vi.advanceTimersByTimeAsync(0)
+
+    const estados: Array<[boolean, MotivoDesconexionSse | undefined]> = []
+    const cerrarB = suscribirseTiempoReal({ onEstado: (conectado, motivo) => estados.push([conectado, motivo]) })
+    expect(estados).toEqual([[false, 'demasiados_flujos']])
+
+    cerrarA()
+    cerrarB()
+  })
+
+  it('otro 429 (cuota de login, por ejemplo) no se confunde con demasiadas pestañas', async () => {
+    adaptador.restaurar()
+    adaptador = instalarAdaptadorFalso(() => ({ status: 429, data: { detail: 'Demasiados intentos' } }))
+    const estados: Array<[boolean, MotivoDesconexionSse | undefined]> = []
+    const cerrar = suscribirseLecturas(() => {}, (conectado, motivo) => estados.push([conectado, motivo]))
+
+    await vi.waitFor(() => expect(estados).toEqual([[false, undefined]]))
+    await vi.advanceTimersByTimeAsync(REINTENTO_BASE_MS)
+    expect(tickets()).toBe(2)
 
     cerrar()
   })

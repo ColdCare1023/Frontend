@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAuthStore } from '@/application/stores/authStore'
-import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
+import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { Rol } from '@/domain/value-objects/Rol'
 
 const useAlertas = vi.hoisted(() => vi.fn())
@@ -192,5 +192,96 @@ describe('Panel de acción correctiva (HU-27)', () => {
 
     expect(within(dialogo).queryByRole('tablist')).not.toBeInTheDocument()
     expect(within(dialogo).queryByLabelText('Decisión adoptada')).not.toBeInTheDocument()
+  })
+})
+
+describe('HU-23: acción sobre una PENDIENTE (reconocimiento implícito) y RBAC', () => {
+  beforeEach(() => {
+    useAlertas.mockReset()
+    useIncidentesOperativos.mockReturnValue({ incidentes: [], cargando: false, errorCarga: false, consultar: vi.fn() })
+    useAtendidasRecientes.mockReturnValue({ alertas: [], estado: 'listo', limite: 50, recargar: vi.fn() })
+    sesionCon('farmaceutico')
+  })
+
+  const accionDe = (over: Partial<AccionCorrectiva> = {}): AccionCorrectiva => ({
+    id: 'ac-1',
+    alert_id: 'al-1',
+    usuario_id: 'u-7',
+    usuario_nombre: 'Farmacéutica Siete',
+    decision: 'Inmovilizar el lote',
+    descripcion: 'Se trasladaron los viales',
+    justificacion: 'Superó 8 °C',
+    created_at: '2026-07-25T12:30:00.200Z',
+    corrige_accion_id: null,
+    ...over,
+  })
+
+  it('la cronología muestra REVISAR_ALERTA y luego la acción, en orden y con quien la reconoció', async () => {
+    // Lo que devuelve el backend tras la acción sobre una pendiente: reconocida
+    // y atendida en el mismo instante y por la misma persona.
+    const atendida = alerta({
+      estado: 'atendida',
+      revisada: true,
+      revisada_por: 'u-7',
+      reconocida_en: '2026-07-25T12:30:00Z',
+      atendida_en: '2026-07-25T12:30:00Z',
+    })
+    montar([atendida], { filtro: 'atendida', obtenerCicloAtencion: vi.fn().mockResolvedValue([accionDe()]) })
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /cronología de atención/i }))
+    const dialogo = await screen.findByRole('dialog')
+    const lista = within(dialogo).getByRole('list', { name: 'Cronología de atención' })
+    await within(lista).findByText('Acción correctiva registrada')
+
+    const titulos = within(lista)
+      .getAllByRole('listitem')
+      .map((item) => item.querySelector('p')?.textContent)
+    expect(titulos).toEqual(['Alerta generada', 'Alerta reconocida', 'Acción correctiva registrada'])
+    const reconocida = within(lista).getAllByRole('listitem')[1]
+    expect(reconocida).toHaveTextContent('Responsable: Farmacéutica Siete')
+    expect(reconocida).toHaveTextContent('Reconocida al registrar la acción correctiva')
+  })
+
+  it('un reconocimiento previo (PATCH /revisar) no se rotula como implícito', async () => {
+    const atendida = alerta({
+      estado: 'atendida',
+      revisada: true,
+      revisada_por: 'u-7',
+      revisada_por_nombre: 'Farmacéutica Siete',
+      reconocida_en: '2026-07-25T12:05:00Z',
+      atendida_en: '2026-07-25T12:30:00Z',
+    })
+    montar([atendida], { filtro: 'atendida', obtenerCicloAtencion: vi.fn().mockResolvedValue([accionDe()]) })
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /cronología de atención/i }))
+    const dialogo = await screen.findByRole('dialog')
+    await within(dialogo).findByText('Acción correctiva registrada')
+    expect(within(dialogo).getByText('Alerta reconocida')).toBeInTheDocument()
+    expect(within(dialogo).queryByText('Reconocida al registrar la acción correctiva')).not.toBeInTheDocument()
+  })
+
+  it('«Registrar acción» se ofrece en una PENDIENTE (el backend la reconoce al registrar)', () => {
+    montar([alerta()])
+    expect(screen.getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
+  })
+
+  it('un 403 del backend se explica y conserva el borrador', async () => {
+    montar([alerta()], { registrarAccionCorrectiva: vi.fn().mockResolvedValue('prohibido') })
+    const { usuario, dialogo } = await abrirAccion()
+    await completar(usuario, dialogo)
+    await usuario.click(within(dialogo).getByRole('button', { name: /guardar acción/i }))
+
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent(/tu rol no puede registrar acciones correctivas/i)
+    expect(within(dialogo).getByLabelText('Decisión adoptada')).toHaveValue('  Inmovilizar  ')
+  })
+
+  it.each<Rol>(['tecnico', 'auditor'])('%s no ve «Registrar acción» ni la pestaña Acción', async (rol) => {
+    sesionCon(rol)
+    montar([alerta()])
+
+    expect(screen.queryByRole('button', { name: /registrar acción/i })).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: /cronología de atención/i }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).queryByRole('tab', { name: 'Acción correctiva' })).not.toBeInTheDocument()
   })
 })

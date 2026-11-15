@@ -480,6 +480,13 @@ describe('DashboardPage — HU-33: falla por sensor en las tarjetas KPI', () => 
     expect(condiciones().getByText('5.2')).toBeInTheDocument()
   })
 
+  it('esc. 1: la humedad se muestra con un decimal (exacta en % HR), no redondeada a entero', () => {
+    renderizar(lectura({ humedad_ambiental: 58.37 }))
+
+    expect(condiciones().getByText('58.4')).toBeInTheDocument()
+    expect(condiciones().queryByText('58')).not.toBeInTheDocument()
+  })
+
   it('sin estado_sensores (backend anterior), una humedad imposible también es falla', () => {
     renderizar(lectura({ humedad_ambiental: 140 }))
 

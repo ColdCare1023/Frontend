@@ -26,7 +26,7 @@ export async function cerrarSesion(page: Page) {
 }
 
 /**
- * Alertas: las acciones van visibles en cada fila (Revisar, Registrar acción y
+ * Alertas: las acciones van visibles en cada fila (Reconocer, Registrar acción y
  * Cronología). Pulsa la acción `nombre` de la fila `indice` con acciones.
  */
 export async function accionAlerta(page: Page, nombre: RegExp, indice = 0) {

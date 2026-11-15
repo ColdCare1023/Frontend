@@ -42,6 +42,9 @@ function tonoVisual(clave: ClaveEstado | 'sin_equipos' | 'desconocido'): TonoEst
   }
 }
 
+/** Estado del flujo en vivo que se rotula (`estadoVivo.conexion.*`). */
+type Conexion = 'conectado' | 'reconectando' | 'sinConexion' | 'demasiadasPestanas'
+
 const TEXTO_TONO: Record<Tono, string> = {
   ok: 'text-success-700',
   aviso: 'text-warning-700',
@@ -83,10 +86,11 @@ function useAhora(activo: boolean) {
 export function PildoraEstado({ className }: { className?: string }) {
   const { t } = useTranslation()
   const [abierto, setAbierto] = useState(false)
-  const { carga, conectado, equipos, ultimas, alertas, actualizadoEn } = useEstadoVivoStore(
+  const { carga, conectado, motivoDesconexion, equipos, ultimas, alertas, actualizadoEn } = useEstadoVivoStore(
     useShallow((s) => ({
       carga: s.carga,
       conectado: s.conectado,
+      motivoDesconexion: s.motivoDesconexion,
       equipos: s.equipos,
       ultimas: s.ultimas,
       alertas: s.alertas,
@@ -102,7 +106,15 @@ export function PildoraEstado({ className }: { className?: string }) {
   const temperatura = foco?.lectura?.temperatura ?? null
   const mostrarTemperatura = clave !== 'falla_sensor' && temperatura !== null
 
-  const conexion = conectado === false ? 'sinConexion' : conectado ? 'conectado' : 'reconectando'
+  // HU-32 esc. 3: con la cuenta en su tope de flujos se nombra la causa.
+  const conexion: Conexion =
+    conectado === false
+      ? motivoDesconexion === 'demasiados_flujos'
+        ? 'demasiadasPestanas'
+        : 'sinConexion'
+      : conectado
+        ? 'conectado'
+        : 'reconectando'
   const nombreEquipo = foco ? foco.equipo.nombre ?? foco.equipo.id : null
   const partes = [
     t('estadoVivo.titulo'),
@@ -228,7 +240,7 @@ function PanelEstadoVivo({
   abierto: boolean
   cerrar: () => void
   filas: FilaEquipo[]
-  conexion: 'conectado' | 'reconectando' | 'sinConexion'
+  conexion: Conexion
   actualizadoEn: number | null
 }) {
   const { t } = useTranslation()
@@ -242,8 +254,8 @@ function PanelEstadoVivo({
     <div className="max-h-[min(80dvh,30rem)] overflow-y-auto">
       <div className="flex items-center justify-between gap-3 px-3 pt-2.5 pb-2">
         <h2 className="text-body font-semibold">{t('estadoVivo.titulo')}</h2>
-        <p className={cn('flex items-center gap-1.5 text-meta', conexion === 'sinConexion' ? 'text-warning-700' : 'text-faint')}>
-          <span aria-hidden className={cn('size-1.5 rounded-full', conexion === 'conectado' ? 'bg-success-600 pulso-vivo' : conexion === 'sinConexion' ? 'bg-warning-600' : 'ring-1 ring-faint')} />
+        <p className={cn('flex items-center gap-1.5 text-meta', conexion === 'sinConexion' || conexion === 'demasiadasPestanas' ? 'text-warning-700' : 'text-faint')}>
+          <span aria-hidden className={cn('size-1.5 rounded-full', conexion === 'conectado' ? 'bg-success-600 pulso-vivo' : conexion === 'reconectando' ? 'ring-1 ring-faint' : 'bg-warning-600')} />
           {t(`estadoVivo.conexion.${conexion}`)}
         </p>
       </div>

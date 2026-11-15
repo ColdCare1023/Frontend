@@ -112,7 +112,7 @@ export function useFuenteEstadoVivo() {
     void cargar()
 
     const cancelar = suscribirseTiempoReal({
-      onEstado: (conectado) => vivo && store.setState({ conectado }),
+      onEstado: (conectado, motivo) => vivo && store.setState({ conectado, motivoDesconexion: conectado ? null : (motivo ?? null) }),
       onLectura: (lectura) => {
         if (!vivo) return
         const { ultimas } = store.getState()

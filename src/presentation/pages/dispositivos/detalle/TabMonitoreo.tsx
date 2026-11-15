@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import { BadgeConectividad } from '../../../components/BadgeConectividad'
 import { Cinta24h } from '../../../components/ui/cinta-24h'
 import { EsqueletoTexto } from '../../../components/ui/esqueleto'
-import { ESPACIO_FINO, formatearCifra, formatearTemperatura } from '../../../components/ui/formato-cifra'
+import { DECIMALES_HUMEDAD, ESPACIO_FINO, formatearCifra, formatearTemperatura } from '../../../components/ui/formato-cifra'
 import { Regla } from '../../../components/ui/regla'
 import { segmentarLecturas } from '../../../components/ui/segmentar-lecturas'
 import { useMinuto } from '../../../hooks/useReloj'
@@ -285,7 +285,7 @@ function Condiciones({ lectura }: { lectura: LecturaTermica | null }) {
       clave: 'humedad',
       icono: Droplets,
       etiqueta: t('dispositivos.monitoreo.humedad'),
-      valor: lectura.humedad_ambiental != null ? `${Math.round(lectura.humedad_ambiental)}${ESPACIO_FINO}%` : '—',
+      valor: lectura.humedad_ambiental != null ? `${formatearCifra(lectura.humedad_ambiental, DECIMALES_HUMEDAD)}${ESPACIO_FINO}%` : '—',
       clase: 'text-foreground',
     },
     {

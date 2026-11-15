@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useAuthStore } from '@/application/stores/authStore'
 import { suscribirseTiempoReal, type TipoAvisoDispositivo } from '@/infrastructure/sse/sseClient'
+import { duracionLegible } from '@/lib/formato'
 import { notificarNotch } from './notificaciones/notificarNotch'
 
 type Nivel = 'critico' | 'aviso' | 'ok'
@@ -42,6 +43,28 @@ const AVISOS_DISPOSITIVO: Partial<Record<TipoAvisoDispositivo, { clave: string; 
   ota_rechazada: { clave: 'ota_rechazada', nivel: 'aviso' },
   ota_fallida: { clave: 'ota_fallida', nivel: 'critico' },
   ota_revertida: { clave: 'ota_revertida', nivel: 'critico' },
+}
+
+/** Entero no negativo del `detail` del nodo, o null si falta o no es válido. */
+function enteroDe(valor: unknown): number | null {
+  return typeof valor === 'number' && Number.isFinite(valor) && valor >= 0 ? Math.round(valor) : null
+}
+
+/**
+ * HU-08 esc. 3: el nodo avisa al reconectar (sin red no puede antes), con
+ * `intentos_fallidos` y `duracion_s` en el `detail` (contrato v1.0). El aviso
+ * dice que ya se reconectó y tras cuánto, no que «lleva tiempo intentando».
+ */
+function textoReconexionWifi(
+  t: (clave: string, opciones?: Record<string, unknown>) => string,
+  device: string,
+  detalle: Record<string, unknown> | null,
+): string {
+  const intentos = enteroDe(detalle?.intentos_fallidos)
+  const segundos = enteroDe(detalle?.duracion_s)
+  if (intentos === null) return t('avisosTiempoReal.wifi_reconexion_prolongada', { device })
+  if (segundos === null) return t('avisosTiempoReal.wifiReconectadoIntentos', { device, count: intentos })
+  return t('avisosTiempoReal.wifiReconectado', { device, count: intentos, duracion: duracionLegible(segundos) })
 }
 
 /**
@@ -116,7 +139,9 @@ export function AvisosTiempoReal() {
       },
       onAvisoDispositivo: (aviso) => {
         const definicion = AVISOS_DISPOSITIVO[aviso.tipo]
-        if (definicion) {
+        if (definicion?.clave === 'wifi_reconexion_prolongada') {
+          publicar(definicion.nivel, textoReconexionWifi(t, aviso.device_id, aviso.detalle))
+        } else if (definicion) {
           publicar(
             definicion.nivel,
             t(`avisosTiempoReal.${definicion.clave}`, {

@@ -488,7 +488,10 @@ function bufferRespuestaDemo(buffer: BufferLittleFS | undefined): BufferLittleFS
 }
 
 function alertasFiltradas(params: Record<string, string>): AlertaTermica[] {
-  let resultado = [...estadoDemo.alertas].reverse()
+  // D7: como el backend, el nombre de quien la reconoció ya resuelto.
+  let resultado = [...estadoDemo.alertas]
+    .reverse()
+    .map((a) => (a.revisada_por ? { ...a, revisada_por_nombre: usuarioDemo(a.revisada_por)?.nombre ?? null } : a))
   // HU-23: `estado` es el filtro real; `revisada` se conserva solo por si
   // algún consumidor viejo del demo todavía lo manda.
   if (params.estado) resultado = resultado.filter((a) => a.estado === params.estado)
@@ -567,6 +570,21 @@ function sesionDemo(config: InternalAxiosRequestConfig): { sub?: unknown; email?
 function actorDemo(config: InternalAxiosRequestConfig): string | null {
   const actor = sesionDemo(config)?.sub
   return typeof actor === 'string' ? actor : null
+}
+
+/**
+ * `require_roles` del backend en la demo: el administrador pasa siempre; otro
+ * rol fuera de `roles` recibe 403 y queda RBAC_DENEGADO en la bitácora.
+ */
+function exigirRolDemo(config: InternalAxiosRequestConfig, roles: Rol[], recurso: string): Usuario {
+  const actor = actorDemo(config)
+  const usuario = actor ? usuarioDemo(actor) : undefined
+  if (!usuario || !usuario.is_active) fallar(config, 401, 'Sesión no válida')
+  if (usuario.rol !== 'administrador' && !roles.includes(usuario.rol)) {
+    registrarAuditoriaDemo('RBAC_DENEGADO', recurso, usuario.id, 'denegado', { rol: usuario.rol })
+    fallar(config, 403, 'No tiene permisos para esta operación')
+  }
+  return usuario
 }
 
 function registrarCambioDispositivo(
@@ -783,6 +801,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   // 409, igual que en el backend (`AlertaTermica.reconocer()`).
   const revisar = /^\/api\/alertas\/([^/]+)\/revisar$/.exec(url)
   if (metodo === 'patch' && revisar) {
+    const actor = exigirRolDemo(config, ['farmaceutico'], `alertas/${revisar[1]}`)
     const alerta = estadoDemo.alertas.find((a) => a.id === revisar[1])
     if (!alerta) fallar(config, 404, 'Alerta no encontrada')
     if (alerta.estado !== 'pendiente') {
@@ -791,30 +810,46 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     alerta.estado = 'reconocida'
     alerta.reconocida_en = new Date().toISOString()
     alerta.revisada = true
-    alerta.revisada_por = 'u-01'
-    return responder(config, alerta)
+    alerta.revisada_por = actor.id
+    registrarAuditoriaDemo('REVISAR_ALERTA', `alertas/${alerta.id}`, actor.id, 'exitoso', { nivel_riesgo: alerta.nivel_riesgo })
+    return responder(config, { ...alerta, revisada_por_nombre: actor.nombre })
   }
 
-  // HU-23 Escenario 2: registrar la acción marca ATENDIDA (desde PENDIENTE o
-  // RECONOCIDA — el backend no exige el paso intermedio). Ya atendida es 409.
+  // HU-27 + HU-23 (como el backend desde fix/backlog-r2-alertas): solo el
+  // farmacéutico (y el administrador) registra la acción; el técnico recibe
+  // 403 (H16). Sobre una PENDIENTE, quien registra la reconoce primero
+  // (REVISAR_ALERTA con origen `accion_correctiva`, mismo instante) y luego
+  // queda ATENDIDA. Ya atendida es 409.
   const accion = /^\/api\/alertas\/([^/]+)\/acciones-correctivas$/.exec(url)
   if (metodo === 'post' && accion) {
+    const actor = exigirRolDemo(config, ['farmaceutico'], `alertas/${accion[1]}/acciones-correctivas`)
     const alerta = estadoDemo.alertas.find((a) => a.id === accion[1])
     if (!alerta) fallar(config, 404, 'Alerta no encontrada')
     if (alerta.estado === 'atendida') {
       fallar(config, 409, 'La alerta ya fue atendida por otra acción correctiva')
     }
+    const ahora = new Date().toISOString()
+    if (alerta.estado === 'pendiente') {
+      alerta.estado = 'reconocida'
+      alerta.reconocida_en = ahora
+      alerta.revisada = true
+      alerta.revisada_por = actor.id
+      registrarAuditoriaDemo('REVISAR_ALERTA', `alertas/${alerta.id}`, actor.id, 'exitoso', {
+        nivel_riesgo: alerta.nivel_riesgo,
+        origen: 'accion_correctiva',
+      })
+    }
     alerta.estado = 'atendida'
-    alerta.atendida_en = new Date().toISOString()
+    alerta.atendida_en = ahora
 
     const nueva = {
       id: `ac-vivo-${Date.now()}`,
       alert_id: accion[1],
-      usuario_id: 'u-01',
+      usuario_id: actor.id,
       decision: String(cuerpoJson(config).decision ?? ''),
       descripcion: String(cuerpoJson(config).descripcion ?? ''),
       justificacion: String(cuerpoJson(config).justificacion ?? ''),
-      created_at: new Date().toISOString(),
+      created_at: ahora,
       corrige_accion_id: null,
     }
     estadoDemo.acciones.push(nueva)

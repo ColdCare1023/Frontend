@@ -141,4 +141,46 @@ describe('AvisosTiempoReal', () => {
     })
     expect(screen.getByRole('status')).toHaveTextContent('FARM-02 probó la credencial nueva')
   })
+
+  describe('HU-08 esc. 3: reconexión Wi-Fi prolongada', () => {
+    const avisar = (detalle: Record<string, unknown> | null, tipo: 'wifi_reconexion_prolongada' | 'reconexion_prolongada' = 'wifi_reconexion_prolongada') =>
+      act(() => {
+        suscriptores[0].onAvisoDispositivo?.({ tipo, device_id: 'FARM-01', timestamp: 'x', detalle })
+      })
+
+    it('dice que se reconectó tras N intentos y cuánto duró, con el detalle del nodo', () => {
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 7, duracion_s: 45, umbral_intentos: 5 })
+
+      expect(screen.getByRole('status')).toHaveTextContent('FARM-01 se reconectó tras 7 intentos (45 s).')
+      expect(screen.queryByText(/lleva tiempo intentando/i)).not.toBeInTheDocument()
+    })
+
+    it('episodios largos con duración legible, y el nombre heredado del evento igual', () => {
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 12, duracion_s: 185 }, 'reconexion_prolongada')
+
+      expect(screen.getByRole('status')).toHaveTextContent('FARM-01 se reconectó tras 12 intentos (3 min 5 s).')
+    })
+
+    it('sin duración dice los intentos; sin detalle, que se reconectó tras un periodo prolongado', () => {
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 1 })
+      avisar(null)
+
+      const textos = screen.getAllByRole('status').map((n) => n.textContent)
+      expect(textos).toEqual([
+        'FARM-01 se reconectó tras 1 intento.',
+        'FARM-01 se reconectó a la red tras un periodo prolongado sin conexión.',
+      ])
+    })
+
+    it('en inglés usa el mismo dato', async () => {
+      await i18n.changeLanguage('en')
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 7, duracion_s: 45 })
+
+      expect(screen.getByRole('status')).toHaveTextContent('FARM-01 reconnected after 7 attempts (45 s).')
+    })
+  })
 })

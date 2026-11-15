@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
-import { suscribirseLecturas } from '@/infrastructure/sse/sseClient'
+import { suscribirseLecturas, type MotivoDesconexionSse } from '@/infrastructure/sse/sseClient'
 
 // HU-31 criterio 4: ventana por defecto de 24 horas para la curva térmica del
 // dashboard (antes era un conteo fijo de las últimas 60 lecturas, sin
@@ -29,6 +29,8 @@ interface MonitoreoTermico {
   ultima: LecturaTermica | null
   serie: LecturaTermica[]
   sseConectado: boolean
+  /** HU-32 esc. 3: causa conocida del corte (p. ej. demasiadas pestañas abiertas). */
+  motivoDesconexion: MotivoDesconexionSse | null
   estadoHistorial: 'cargando' | 'completo' | 'error'
   reintentar: () => void
   cobertura: CoberturaHistorial | null
@@ -64,6 +66,7 @@ export function useMonitoreoTermico(
   const [serie, setSerie] = useState<LecturaTermica[]>([])
   const [ultima, setUltima] = useState<LecturaTermica | null>(null)
   const [sseConectado, setSseConectado] = useState(false)
+  const [motivoDesconexion, setMotivoDesconexion] = useState<MotivoDesconexionSse | null>(null)
   const [estadoHistorial, setEstadoHistorial] = useState<MonitoreoTermico['estadoHistorial']>('cargando')
   const [intento, setIntento] = useState(0)
   const [cobertura, setCobertura] = useState<CoberturaHistorial | null>(null)
@@ -144,7 +147,10 @@ export function useMonitoreoTermico(
           return [...previa, lectura].slice(-MAX_LECTURAS_EN_MEMORIA)
         })
       },
-      (conectado) => setSseConectado(conectado),
+      (conectado, motivo) => {
+        setSseConectado(conectado)
+        setMotivoDesconexion(conectado ? null : (motivo ?? null))
+      },
     )
 
     return () => {
@@ -153,5 +159,5 @@ export function useMonitoreoTermico(
     }
   }, [horasVentana, deviceId, intento])
 
-  return { ultima, serie, sseConectado, estadoHistorial, reintentar, cobertura }
+  return { ultima, serie, sseConectado, motivoDesconexion, estadoHistorial, reintentar, cobertura }
 }

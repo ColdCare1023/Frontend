@@ -58,7 +58,7 @@ export function FormularioAccionCorrectiva({
   const { t } = useTranslation()
   const idFaltan = useId()
   const [estado, setEstado] = useState<Estado>('editando')
-  const [error, setError] = useState<'conflicto' | 'error' | null>(null)
+  const [error, setError] = useState<Exclude<ResultadoAccionAlerta, 'ok'> | null>(null)
   const enviando = useRef(false)
 
   const faltan = CAMPOS.filter((campo) => borrador[campo].trim().length === 0)
@@ -152,9 +152,10 @@ export function FormularioAccionCorrectiva({
             </Button>
           </div>
         )}
-        {error === 'error' && (
+        {(error === 'error' || error === 'prohibido') && (
           <p role="alert" className="rounded-(--radius-field) bg-critical-tint px-3 py-2 text-body text-critical">
-            {t('alertas.panel.errorGuardar')}
+            {/* 403 (H16): el rol no registra acciones; el borrador se conserva. */}
+            {t(error === 'prohibido' ? 'alertas.panel.errorProhibido' : 'alertas.panel.errorGuardar')}
           </p>
         )}
       </SidePanelBody>

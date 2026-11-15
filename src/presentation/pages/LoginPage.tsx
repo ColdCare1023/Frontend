@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, CircleAlert, Eye, EyeOff, Info, Loader2, Lock, Mail } from 'lucide-react'
 
@@ -14,6 +14,7 @@ import { GoogleAuthSection } from '@/presentation/components/auth/GoogleAuthSect
 import { PasoCodigoLogin, type DestinoVolver } from '@/presentation/components/auth/PasoCodigoLogin'
 import { TransicionPasos } from '@/presentation/components/auth/TransicionPasos'
 import { Input } from '@/presentation/components/ui/input'
+import { destinoTrasLogin } from '@/presentation/navegacion'
 
 /**
  * Acceso con contraseña. Con el segundo factor del backend activo
@@ -23,7 +24,10 @@ import { Input } from '@/presentation/components/ui/input'
 export function LoginPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const ubicacion = useLocation()
   const [searchParams] = useSearchParams()
+  // HU-52: a dónde iba la persona antes del login (enlace de un correo).
+  const [estadoPrevio] = useState<unknown>(() => ubicacion.state)
   // El motivo llega por `?sesion=` o, al expirar/recargar, por las marcas de
   // sessionStorage (avisoSesion.ts). Se consume una sola vez al montar.
   const [avisoSesion] = useState(() => searchParams.get('sesion') ?? consumirMotivoAviso())
@@ -47,9 +51,10 @@ export function LoginPage() {
 
   const irAlPanel = useCallback(() => {
     // FE-004: con una contraseña temporal solo se puede cambiarla.
-    const destino = useAuthStore.getState().requiereCambioPassword ? '/cambiar-password' : '/dashboard'
+    const { requiereCambioPassword, usuario } = useAuthStore.getState()
+    const destino = requiereCambioPassword ? '/cambiar-password' : destinoTrasLogin(estadoPrevio, usuario?.rol)
     void navigate(destino, { replace: true })
-  }, [navigate])
+  }, [navigate, estadoPrevio])
 
   const autenticar = async (correo: string, clave: string, accesoRapidoDemo = false) => {
     setError(null)

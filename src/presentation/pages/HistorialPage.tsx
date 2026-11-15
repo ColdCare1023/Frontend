@@ -30,7 +30,7 @@ import { BotonCopiar, BotonMasFiltros, ChipsFiltro, Dato, PlantillaBandeja, type
 import { CeldaRegistro, EncabezadoRegistro, TablaRegistros } from '../components/registros/TablaRegistros'
 import { Button } from '../components/ui/button'
 import { tonoDesdeRiesgo } from '../components/ui/estado-tonos'
-import { formatearCifra } from '../components/ui/formato-cifra'
+import { DECIMALES_HUMEDAD, formatearCifra } from '../components/ui/formato-cifra'
 import { Input, Label, NativeSelect } from '../components/ui/input'
 import { Regla } from '../components/ui/regla'
 import { SelectorFecha } from '../components/ui/selector-fecha'
@@ -449,7 +449,7 @@ export function HistorialPage() {
             {conAmbiente && (
               <>
                 <CeldaRegistro area="oculta" className="nums text-right text-meta text-muted">{cifra(lectura.temperatura_ambiental)} °C</CeldaRegistro>
-                <CeldaRegistro area="oculta" className="nums text-right text-meta text-muted">{cifra(lectura.humedad_ambiental, 0)} %</CeldaRegistro>
+                <CeldaRegistro area="oculta" className="nums text-right text-meta text-muted">{cifra(lectura.humedad_ambiental, DECIMALES_HUMEDAD)} %</CeldaRegistro>
               </>
             )}
           </>
@@ -577,7 +577,7 @@ function DetalleLectura({
     <>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 xl:grid-cols-4">
         <Dato etiqueta={t('historial.tempAmbiental')} icono={ThermometerSun} className="nums">{cifra(lectura.temperatura_ambiental)} °C</Dato>
-        <Dato etiqueta={t('historial.humedad')} icono={Droplets} className="nums">{cifra(lectura.humedad_ambiental, 0)} %</Dato>
+        <Dato etiqueta={t('historial.humedad')} icono={Droplets} className="nums">{cifra(lectura.humedad_ambiental, DECIMALES_HUMEDAD)} %</Dato>
         <Dato etiqueta={t('historial.puerta')} icono={lectura.apertura_refrigerador ? DoorOpen : DoorClosed}>
           {lectura.apertura_refrigerador === null
             ? t('dashboard.puertaSinSensor')
