@@ -773,7 +773,8 @@
       "verMenos": "Ver menos",
       "queSon": "¿Qué son?",
       "atendidasRecientes": "Atendidas recientemente",
-      "atendidaHace": "Atendida {{hace}}"
+      "atendidaHace": "Atendida {{hace}}",
+      "resumenCintaSinPreventiva": "{{equipo}}: {{criticas}} tramos críticos y {{sinDatos}} sin datos en 24 h"
     },
     "incidenteActivoDesde": "Activo desde {{hace}}",
     "ahora": {
@@ -1907,7 +1908,6 @@
     "noDisponible": "No disponible",
     "notaReproducibilidad": "Estos datos ayudan a identificar la evaluación. Una semilla o una huella, por sí solas, no garantizan que el entrenamiento pueda repetirse exactamente.",
     "notaUsoProfesional": "Estas métricas evalúan un clasificador. Para atender una alerta, sigue el procedimiento de tu farmacia; este resultado no sustituye la revisión profesional.",
-    "noEntrenado": "Aún no hay una evaluación disponible para este modelo. Contacta al administrador para revisar su configuración.",
     "errorCarga": "No pudimos cargar los resultados del modelo. Inténtalo nuevamente.",
     "reintentar": "Volver a intentar",
     "variables": {
@@ -2001,6 +2001,89 @@
         "error": "No pudimos registrar la versión. Inténtalo nuevamente.",
         "enviando": "Registrando…",
         "guardar": "Registrar versión"
+      },
+      "artefactoPreventivo": "Al activar, el sistema comprueba el artefacto del modelo preventivo desplegado.",
+      "artefactoPreventivoVersion": "Al activar, el sistema comprueba el artefacto del modelo preventivo desplegado (versión {{version}}).",
+      "artefactoLegado": "Al activar, el sistema comprueba el artefacto del modelo legado desplegado.",
+      "rechazadaArtefacto_preventivo": "No se activó la versión {{version}}: el artefacto del modelo preventivo desplegado no corresponde a esta versión. La versión activa se mantiene.",
+      "rechazadaArtefacto_legado": "No se activó la versión {{version}}: el artefacto del modelo legado desplegado no corresponde a esta versión. La versión activa se mantiene.",
+      "rechazadaArtefacto_desconocido": "No se activó la versión {{version}}: el artefacto desplegado no corresponde a esta versión. La versión activa se mantiene.",
+      "rechazadaInvalida": "No se activó la versión {{version}}: la solicitud no es válida. La versión activa se mantiene.",
+      "grupos": {
+        "criterios": "Requisitos de la versión:",
+        "artefacto_preventivo": "Artefacto del modelo preventivo:",
+        "artefacto_legado": "Artefacto del modelo legado:",
+        "artefacto_desconocido": "Artefacto desplegado:",
+        "otros": "Otros motivos:"
+      },
+      "motivos": {
+        "sinHorizonte": "falta el horizonte H de la etiqueta",
+        "sinEsquema": "falta la versión del esquema de características",
+        "faltanParticiones": "faltan las particiones ({{campos}})",
+        "separacionMenor": "la separación entre particiones es menor que H",
+        "faltanMetricas": "faltan métricas del criterio principal ({{criterio}})",
+        "noCumpleCriterio": "no cumple el criterio principal ({{criterio}})",
+        "criterioDesconocido": "criterio principal desconocido: {{criterio}}",
+        "versionNoConfigurada": "no hay una versión preventiva desplegada (IA_PREVENTIVO_VERSION)",
+        "versionNoDesplegada": "la versión no es la desplegada ({{desplegada}})",
+        "sha256NoConfigurado": "falta la huella esperada del artefacto (IA_PREVENTIVO_SHA256)",
+        "sha256Distinto": "la huella configurada (IA_PREVENTIVO_SHA256) no coincide con la registrada",
+        "manifiestoIlegible": "no se pudo leer el manifiesto del modelo preventivo",
+        "manifiestoNoAprobado": "el manifiesto está en estado {{estado}}; activar exige {{exigido}}",
+        "artefactoDistinto": "el artefacto desplegado no coincide con la huella registrada"
+      }
+    },
+    "modelo": {
+      "continuaMonitoreo": "La ingesta de lecturas, la regla de 2⁠–⁠8 °C, las alertas críticas y el historial siguen operando.",
+      "disponible": {
+        "titulo": "Modelo disponible.",
+        "detalle": "El artefacto se cargó y superó la verificación de integridad.",
+        "detalleVersion": "La versión {{version}} se cargó y superó la verificación de integridad."
+      },
+      "no_entrenado": {
+        "titulo": "Modelo no entrenado.",
+        "motivos": {
+          "no_entrenado": "Este entorno no tiene un modelo Random Forest entrenado.",
+          "sin_metricas": "El modelo no tiene métricas de entrenamiento registradas, así que no hay una evaluación que mostrar.",
+          "generico": "Aún no hay una evaluación disponible para este modelo. Contacta al administrador para revisar su configuración."
+        }
+      },
+      "rechazado": {
+        "titulo": "Modelo rechazado por verificación.",
+        "sinInferencia": "No se ejecuta ninguna clasificación con ese archivo.",
+        "motivos": {
+          "checksum_invalido": "La huella del artefacto no coincide con la de su metadata: el archivo pudo alterarse.",
+          "hash_distinto_de_la_version_activa": "El artefacto desplegado no es el de la versión activa y aprobada del registro.",
+          "sin_verificacion_de_integridad": "El artefacto no tiene metadata de integridad ni una versión activa registrada contra la cual verificarlo.",
+          "incompatible": "El artefacto no es compatible con esta instalación (versión de scikit-learn, clases o variables).",
+          "error_de_lectura": "No se pudo leer el artefacto del modelo.",
+          "generico": "El artefacto no superó la verificación de integridad o compatibilidad al cargarse."
+        }
+      }
+    },
+    "preventivo": {
+      "titulo": "Clasificación preventiva",
+      "enOperacion": "En operación",
+      "enSombra": "Modo sombra",
+      "fueraDeOperacion": "Fuera de operación",
+      "demostracion": "Demostración",
+      "detalleOperativa": "Modelo preventivo {{version}}: es la versión activa y aprobada del registro. El riesgo efectivo puede mostrarse como Riesgo preventivo y abrir alertas preventivas.",
+      "detalleSombra": "Registra predicciones como evidencia, pero no decide el riesgo ni abre alertas preventivas.",
+      "reglaDecide": "El riesgo efectivo lo decide la regla de 2⁠–⁠8 °C: no se muestran estados ni alertas preventivas del modelo.",
+      "versionRegistro": "Versión activa del registro: {{version}}",
+      "ninguna": "ninguna",
+      "motivos": {
+        "modo_desactivado": "La clasificación preventiva está desactivada en este entorno.",
+        "version_no_configurada": "No hay una versión del modelo preventivo desplegada (IA_PREVENTIVO_VERSION).",
+        "sha256_no_configurado": "Falta la huella esperada del artefacto preventivo (IA_PREVENTIVO_SHA256).",
+        "sin_version_activa_registrada": "No hay una versión activa en el registro de versiones: sin ella no se carga ningún modelo preventivo.",
+        "version_distinta_de_la_activa": "La versión desplegada no es la versión activa del registro.",
+        "hash_distinto_del_registrado": "La huella configurada no coincide con la de la versión activa del registro.",
+        "artefacto_no_verificado": "El artefacto preventivo no superó la verificación de integridad.",
+        "estado_no_admitido": "El manifiesto del modelo preventivo no está aprobado para este modo.",
+        "incompatible": "El artefacto preventivo no es compatible con esta instalación.",
+        "error_de_carga": "No se pudo cargar el artefacto preventivo.",
+        "generico": "El modelo preventivo no está disponible."
       }
     }
   },
@@ -2046,7 +2129,10 @@
       },
       "preventivo": {
         "titulo": "Riesgo preventivo",
-        "descripcion": "La lectura se acerca a uno de los límites; revisa antes de que salga del rango."
+        "descripcion": "La lectura se acerca a uno de los límites; revisa antes de que salga del rango.",
+        "fueraDeOperacion": "Fuera de operación en este sistema: no hay un modelo preventivo aprobado y activo. El estado se decide con la regla de 2⁠–⁠8 °C y no se generan alertas preventivas.",
+        "condicional": "Solo aparece cuando el sistema tiene activo un modelo preventivo aprobado; si no, el estado se decide con la regla de 2⁠–⁠8 °C.",
+        "insignia": "Fuera de operación"
       },
       "critico": {
         "titulo": "Excursión crítica",

@@ -257,6 +257,8 @@ function montarMetricas(over: Record<string, unknown> = {}) {
       metadata: null,
       metricas: metricas({ dataset_hash: 'dataset-hash', model_hash: 'model-hash', particion: 'test', ...over }),
     },
+    estado: 'disponible',
+    motivo: null,
     cargando: false,
     noEntrenado: false,
     error: null,

@@ -773,7 +773,8 @@
       "verMenos": "Show less",
       "queSon": "What are these?",
       "atendidasRecientes": "Recently resolved",
-      "atendidaHace": "Resolved {{hace}}"
+      "atendidaHace": "Resolved {{hace}}",
+      "resumenCintaSinPreventiva": "{{equipo}}: {{criticas}} critical and {{sinDatos}} no-data slots in 24 h"
     },
     "incidenteActivoDesde": "Active since {{hace}}",
     "ahora": {
@@ -1907,7 +1908,6 @@
     "noDisponible": "Not available",
     "notaReproducibilidad": "These details help identify the evaluation. A random seed or fingerprint alone does not guarantee that training can be repeated exactly.",
     "notaUsoProfesional": "These metrics evaluate a classifier. Follow your pharmacy's procedure when responding to an alert; this result does not replace professional review.",
-    "noEntrenado": "No evaluation is available for this model yet. Contact the administrator to review its setup.",
     "errorCarga": "We couldn't load the model results. Try again.",
     "reintentar": "Try again",
     "variables": {
@@ -2001,6 +2001,89 @@
         "error": "We could not register the version. Try again.",
         "enviando": "Registering…",
         "guardar": "Register version"
+      },
+      "artefactoPreventivo": "On activation, the system checks the deployed preventive model artifact.",
+      "artefactoPreventivoVersion": "On activation, the system checks the deployed preventive model artifact (version {{version}}).",
+      "artefactoLegado": "On activation, the system checks the deployed legacy model artifact.",
+      "rechazadaArtefacto_preventivo": "Version {{version}} was not activated: the deployed preventive model artifact does not match this version. The active version stays in place.",
+      "rechazadaArtefacto_legado": "Version {{version}} was not activated: the deployed legacy model artifact does not match this version. The active version stays in place.",
+      "rechazadaArtefacto_desconocido": "Version {{version}} was not activated: the deployed artifact does not match this version. The active version stays in place.",
+      "rechazadaInvalida": "Version {{version}} was not activated: the request is not valid. The active version stays in place.",
+      "grupos": {
+        "criterios": "Version requirements:",
+        "artefacto_preventivo": "Preventive model artifact:",
+        "artefacto_legado": "Legacy model artifact:",
+        "artefacto_desconocido": "Deployed artifact:",
+        "otros": "Other reasons:"
+      },
+      "motivos": {
+        "sinHorizonte": "the label horizon H is missing",
+        "sinEsquema": "the feature schema version is missing",
+        "faltanParticiones": "the partitions are missing ({{campos}})",
+        "separacionMenor": "the separation between partitions is shorter than H",
+        "faltanMetricas": "metrics for the main criterion are missing ({{criterio}})",
+        "noCumpleCriterio": "it does not meet the main criterion ({{criterio}})",
+        "criterioDesconocido": "unknown main criterion: {{criterio}}",
+        "versionNoConfigurada": "no preventive version is deployed (IA_PREVENTIVO_VERSION)",
+        "versionNoDesplegada": "the version is not the deployed one ({{desplegada}})",
+        "sha256NoConfigurado": "the expected artifact fingerprint is missing (IA_PREVENTIVO_SHA256)",
+        "sha256Distinto": "the configured fingerprint (IA_PREVENTIVO_SHA256) does not match the registered one",
+        "manifiestoIlegible": "the preventive model manifest could not be read",
+        "manifiestoNoAprobado": "the manifest is in state {{estado}}; activation requires {{exigido}}",
+        "artefactoDistinto": "the deployed artifact does not match the registered fingerprint"
+      }
+    },
+    "modelo": {
+      "continuaMonitoreo": "Reading ingestion, the 2⁠–⁠8 °C rule, critical alerts and history keep working.",
+      "disponible": {
+        "titulo": "Model available.",
+        "detalle": "The artifact loaded and passed the integrity check.",
+        "detalleVersion": "Version {{version}} loaded and passed the integrity check."
+      },
+      "no_entrenado": {
+        "titulo": "Model not trained.",
+        "motivos": {
+          "no_entrenado": "This environment has no trained Random Forest model.",
+          "sin_metricas": "The model has no recorded training metrics, so there is no evaluation to show.",
+          "generico": "No evaluation is available for this model yet. Contact the administrator to review its setup."
+        }
+      },
+      "rechazado": {
+        "titulo": "Model rejected by verification.",
+        "sinInferencia": "No classification runs with that file.",
+        "motivos": {
+          "checksum_invalido": "The artifact fingerprint does not match its metadata: the file may have been altered.",
+          "hash_distinto_de_la_version_activa": "The deployed artifact is not the one of the active, approved registry version.",
+          "sin_verificacion_de_integridad": "The artifact has no integrity metadata and no active registered version to verify it against.",
+          "incompatible": "The artifact is not compatible with this installation (scikit-learn version, classes or variables).",
+          "error_de_lectura": "The model artifact could not be read.",
+          "generico": "The artifact did not pass the integrity or compatibility check when loading."
+        }
+      }
+    },
+    "preventivo": {
+      "titulo": "Preventive classification",
+      "enOperacion": "In operation",
+      "enSombra": "Shadow mode",
+      "fueraDeOperacion": "Out of operation",
+      "demostracion": "Demo",
+      "detalleOperativa": "Preventive model {{version}}: it is the active, approved registry version. The effective risk can show Preventive risk and open preventive alerts.",
+      "detalleSombra": "It records predictions as evidence but does not decide the risk or open preventive alerts.",
+      "reglaDecide": "The effective risk is decided by the 2⁠–⁠8 °C rule: no preventive states or alerts from the model are shown.",
+      "versionRegistro": "Active registry version: {{version}}",
+      "ninguna": "none",
+      "motivos": {
+        "modo_desactivado": "Preventive classification is turned off in this environment.",
+        "version_no_configurada": "No preventive model version is deployed (IA_PREVENTIVO_VERSION).",
+        "sha256_no_configurado": "The expected preventive artifact fingerprint is missing (IA_PREVENTIVO_SHA256).",
+        "sin_version_activa_registrada": "There is no active version in the version registry: without it no preventive model is loaded.",
+        "version_distinta_de_la_activa": "The deployed version is not the active registry version.",
+        "hash_distinto_del_registrado": "The configured fingerprint does not match the active registry version.",
+        "artefacto_no_verificado": "The preventive artifact did not pass the integrity check.",
+        "estado_no_admitido": "The preventive model manifest is not approved for this mode.",
+        "incompatible": "The preventive artifact is not compatible with this installation.",
+        "error_de_carga": "The preventive artifact could not be loaded.",
+        "generico": "The preventive model is not available."
       }
     }
   },
@@ -2046,7 +2129,10 @@
       },
       "preventivo": {
         "titulo": "Preventive risk",
-        "descripcion": "The reading is approaching a limit; review it before it leaves the range."
+        "descripcion": "The reading is approaching a limit; review it before it leaves the range.",
+        "fueraDeOperacion": "Out of operation in this system: there is no approved, active preventive model. The state is decided by the 2⁠–⁠8 °C rule and no preventive alerts are created.",
+        "condicional": "It only appears when the system has an approved preventive model active; otherwise the state is decided by the 2⁠–⁠8 °C rule.",
+        "insignia": "Out of operation"
       },
       "critico": {
         "titulo": "Critical excursion",

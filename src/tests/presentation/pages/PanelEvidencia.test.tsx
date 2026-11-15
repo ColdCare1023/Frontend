@@ -70,6 +70,27 @@ describe('PanelEvidencia (HU-47)', () => {
     expect(screen.queryByText('Modelo experimental (no aprobado).')).not.toBeInTheDocument()
   })
 
+  it('inferencia del preventivo activo y aprobado (backend con registro): «Sí» y política «Versión aprobada»', () => {
+    montar(
+      aEvidencia(
+        api({
+          modelo_version: 'p-1.0.0',
+          ia_experimental: false,
+          version_era_activa_y_aprobada_en_ese_momento: true,
+          version_activa_en_ese_momento: 'p-1.0.0',
+          politica_operativa: 'aprobada',
+          horizonte_min: 30,
+          feature_schema_version: '4',
+        }),
+      ),
+    )
+    expect(screen.getByText('Versión activa y aprobada al clasificar')).toBeInTheDocument()
+    expect(screen.getByTestId('version-aprobada-al-clasificar')).toHaveTextContent(/^Sí$/)
+    expect(screen.getByText('Versión aprobada')).toBeInTheDocument()
+    expect(screen.getByText('30 min')).toBeInTheDocument()
+    expect(screen.queryByText('Modelo experimental (no aprobado).')).not.toBeInTheDocument()
+  })
+
   it('sin inferencia del modelo no afirma ni niega la aprobación', () => {
     montar(aEvidencia(api({ version_era_activa_y_aprobada_en_ese_momento: null, estado_inferencia: 'omitida', clasificacion_final: null })))
     expect(screen.getByTestId('version-aprobada-al-clasificar')).toHaveTextContent('Sin dato: el modelo no clasificó esta lectura')
