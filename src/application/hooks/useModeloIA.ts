@@ -115,12 +115,11 @@ export function useModeloIA() {
   const [estado, setEstado] = useState<EstadoModeloIA>('cargando')
   const [motivo, setMotivo] = useState<MotivoRechazo | MotivoNoEntrenado | null>(null)
 
-  const consultar = useCallback(async () => {
-    setEstado('cargando')
-    setMotivo(null)
+  const leer = useCallback(async () => {
     try {
       const { data } = await apiClient.get<RespuestaModelo>('/api/ia/modelo')
       setDatos(data)
+      setMotivo(null)
       setEstado('disponible')
     } catch (err) {
       setDatos(null)
@@ -129,10 +128,24 @@ export function useModeloIA() {
         setEstado(noDisponible.estado)
         setMotivo(noDisponible.motivo)
       } else {
+        setMotivo(null)
         setEstado('error')
       }
     }
   }, [])
+
+  const consultar = useCallback(async () => {
+    setEstado('cargando')
+    setMotivo(null)
+    await leer()
+  }, [leer])
+
+  /**
+   * Vuelve a leer sin pasar por «cargando» (p. ej. tras activar o desactivar
+   * una versión del modelo): la página no se reemplaza por el esqueleto ni
+   * pierde lo que se acaba de anunciar.
+   */
+  const recargar = useCallback(() => leer(), [leer])
 
   useEffect(() => {
     void consultar()
@@ -147,5 +160,6 @@ export function useModeloIA() {
     rechazado: estado === 'rechazado',
     error: estado === 'error',
     consultar,
+    recargar,
   }
 }

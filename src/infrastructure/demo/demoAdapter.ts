@@ -32,6 +32,7 @@ import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
 import { calcularSerieDemo } from './serieDemo'
 import {
   activarVersionDemo,
+  desactivarVersionDemo,
   estadoPreventivoDemo,
   listarVersionesDemo,
   modeloNoDisponibleDemo,
@@ -395,8 +396,8 @@ function responder<T>(config: InternalAxiosRequestConfig, data: T, status = 200,
   return { data, status, statusText: 'OK', headers, config }
 }
 
-function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: string): never {
-  const respuesta = responder(config, { detail: mensaje }, status)
+function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: string, extra: Record<string, unknown> = {}): never {
+  const respuesta = responder(config, { detail: mensaje, ...extra }, status)
   throw new AxiosError(mensaje, 'ERR_BAD_REQUEST', config, null, respuesta)
 }
 
@@ -1121,10 +1122,39 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     if (!resultado.data) {
       // HU-46 esc. 2: el rechazo también queda en la bitácora; la activa no cambia.
       registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA_RECHAZADO', recurso, actorDemo(config), 'fallido',
-        resultado.status === 404 ? { motivo: 'version_no_registrada' } : { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos ?? [] })
-      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo activar la versión')
+        resultado.status === 404
+          ? { motivo: 'version_no_registrada' }
+          : { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos ?? [], codigos: resultado.codigos ?? [] })
+      // IA-B05: el 409 trae `codigos` junto al `detail`, uno por motivo y en el mismo orden.
+      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo activar la versión', resultado.codigos ? { codigos: resultado.codigos } : {})
     }
     registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA', recurso, actorDemo(config), 'exitoso', { version })
+    return responder(config, resultado.data)
+  }
+  const desactivarVersion = /^\/api\/ia\/modelo\/versiones\/([^/]+)\/desactivar$/.exec(url)
+  if (metodo === 'post' && desactivarVersion) {
+    // P-12: sin versión activa, el preventivo no se carga y el riesgo vuelve a la línea base.
+    const version = decodeURIComponent(desactivarVersion[1])
+    const recurso = `ia/modelo/versiones/${version}/desactivar`.slice(0, 100)
+    const cuerpo = cuerpoJson(config)
+    // El backend guarda el motivo ya recortado (strip_whitespace).
+    const motivo = typeof cuerpo.motivo === 'string' ? cuerpo.motivo.trim() : cuerpo.motivo
+    const resultado = desactivarVersionDemo(version, cuerpo)
+    if (!resultado.data) {
+      // Como el backend: 404 y 409 quedan en la bitácora (un 422 no llega a la ruta).
+      if (resultado.status === 404 || resultado.status === 409) {
+        registrarAuditoriaDemo('DESACTIVAR_VERSION_MODELO_IA_RECHAZADO', recurso, actorDemo(config), 'fallido', {
+          motivo: resultado.status === 409 ? 'version_no_activa' : 'version_no_registrada',
+          justificacion: motivo,
+        })
+      }
+      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo desactivar la versión')
+    }
+    registrarAuditoriaDemo('DESACTIVAR_VERSION_MODELO_IA', recurso, actorDemo(config), 'exitoso', {
+      version,
+      motivo,
+      model_hash: resultado.data.model_hash,
+    })
     return responder(config, resultado.data)
   }
   const detalleInferencia = /^\/api\/ia\/inferencia\/([^/]+)$/.exec(url)

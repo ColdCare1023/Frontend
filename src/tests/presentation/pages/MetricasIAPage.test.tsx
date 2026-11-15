@@ -1,7 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { aClasificacionPreventiva, type EstadoPreventivoApi } from '@/application/hooks/useClasificacionPreventiva'
+import type { VersionModeloIA } from '@/application/hooks/useVersionesModelo'
 import { useAuthStore } from '@/application/stores/authStore'
 import type { Rol } from '@/domain/value-objects/Rol'
 
@@ -17,9 +19,20 @@ vi.mock('@/application/hooks/useClasificacionPreventiva', async (original) => ({
 }))
 // HU-46: el versionado se prueba aparte (VersionesModelo.test.tsx); aquí, quién lo ve.
 const useVersionesModelo = vi.hoisted(() =>
-  vi.fn(() => ({ versiones: [], cargando: false, error: false, consultar: vi.fn(), registrar: vi.fn(), activar: vi.fn() })),
+  vi.fn(() => ({
+    versiones: [] as unknown[],
+    cargando: false,
+    error: false,
+    consultar: vi.fn(),
+    registrar: vi.fn(),
+    activar: vi.fn(),
+    desactivar: vi.fn(),
+  })),
 )
-vi.mock('@/application/hooks/useVersionesModelo', () => ({ useVersionesModelo }))
+vi.mock('@/application/hooks/useVersionesModelo', async (original) => ({
+  ...(await original<typeof import('@/application/hooks/useVersionesModelo')>()),
+  useVersionesModelo,
+}))
 
 import { MetricasIAPage } from '@/presentation/pages/MetricasIAPage'
 
@@ -283,5 +296,55 @@ describe('MetricasIAPage — clasificación preventiva', () => {
     montar()
     expect(screen.getByTestId('artefacto-gobernado')).toHaveAttribute('data-modelo', 'legado')
     expect(screen.getByTestId('artefacto-gobernado')).toHaveTextContent('artefacto del modelo legado desplegado')
+  })
+})
+
+/** P-12: desactivar la versión activa desde la página del Clasificador. */
+describe('MetricasIAPage — P-12: desactivar la versión activa', () => {
+  beforeEach(() => useModeloIA.mockReset())
+
+  const ACTIVA: VersionModeloIA = {
+    version: 'p-1.0.0', model_hash: 'a'.repeat(64), feature_schema_version: '4', dataset_version: 'd',
+    scikit_learn_version: '1.9.0', python_version: '3.12', trained_at: '2026-10-20T10:00:00Z',
+    aprobado_por: 'u-1', activa: true, activable: true, motivos_bloqueo: [],
+  }
+
+  function estadoModelo(over: Record<string, unknown>) {
+    return { datos: null, estado: 'rechazado', motivo: 'hash_distinto_de_la_version_activa', cargando: false, noEntrenado: false, error: null, consultar: vi.fn(), recargar: vi.fn(), ...over }
+  }
+
+  it('relee el estado preventivo y el del modelo sin volver a montar la sección (el aviso anunciado se conserva)', async () => {
+    sesion('administrador')
+    const recargarPreventiva = vi.fn()
+    useClasificacionPreventiva.mockReturnValue({ clasificacion: null, cargando: false, operativa: false, recargar: recargarPreventiva })
+    const desactivar = vi.fn(async () => ({ resultado: 'ok' as const, version: { ...ACTIVA, activa: false } }))
+    useVersionesModelo.mockReturnValue({
+      versiones: [ACTIVA], cargando: false, error: false, consultar: vi.fn(), registrar: vi.fn(), activar: vi.fn(), desactivar,
+    })
+    const recargarModelo = vi.fn()
+    // Con la versión activa, el legado está rechazado por hash (503).
+    useModeloIA.mockReturnValue(estadoModelo({ recargar: recargarModelo }))
+    const { rerender } = render(<MetricasIAPage />)
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Desactivar la versión p-1.0.0' }))
+    const dialogo = screen.getByRole('alertdialog')
+    await user.type(within(dialogo).getByLabelText('Motivo de la desactivación'), 'Vuelta atrás por falsas alarmas')
+    await user.click(within(dialogo).getByRole('button', { name: 'Desactivar versión' }))
+
+    const seccion = screen.getByRole('region', { name: 'Versiones del modelo' })
+    // La región de estado ya existía (vacía): se espera al texto, no al rol.
+    await waitFor(() => expect(within(seccion).getByRole('status')).toHaveTextContent('Versión p-1.0.0 desactivada.'))
+    expect(desactivar).toHaveBeenCalledWith('p-1.0.0', 'Vuelta atrás por falsas alarmas')
+    expect(recargarPreventiva).toHaveBeenCalledTimes(1)
+    expect(recargarModelo).toHaveBeenCalledTimes(1)
+
+    // Sin versión activa vuelve la línea base: el modelo legado está disponible y la página cambia de forma.
+    useModeloIA.mockReturnValue(estadoModelo({ datos: { modelo_disponible: true, metadata: null, metricas: metricas() }, estado: 'disponible', motivo: null }))
+    rerender(<MetricasIAPage />)
+    expect(screen.getByTestId('estado-modelo')).toHaveAttribute('data-estado', 'disponible')
+    const misma = screen.getByRole('region', { name: 'Versiones del modelo' })
+    expect(misma).toBe(seccion)
+    expect(within(misma).getByRole('status')).toHaveTextContent('Versión p-1.0.0 desactivada.')
   })
 })

@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { GitBranch, Lock, Plus, TriangleAlert } from 'lucide-react'
+import { GitBranch, Lock, Plus, PowerOff, TriangleAlert } from 'lucide-react'
 
 import {
+  MOTIVO_DESACTIVACION_MAX,
+  MOTIVO_DESACTIVACION_MIN,
+  largoMotivoDesactivacion,
   useVersionesModelo,
   type NuevaVersionModelo,
   type ResultadoVersion,
@@ -27,7 +30,14 @@ import {
   SidePanelHeader,
   SidePanelTitle,
 } from '../../components/ui/side-panel'
-import { clasificarRechazo, textoMotivo, type GrupoMotivo, type ModeloArtefacto, type RechazoActivacion } from './motivosActivacion'
+import {
+  clasificarRechazo,
+  esVersionNoActiva,
+  textoMotivo,
+  type GrupoMotivo,
+  type ModeloArtefacto,
+  type RechazoActivacion,
+} from './motivosActivacion'
 import { FORM_VERSION_VACIO, validarNuevaVersion, type FormularioVersion } from './validarVersion'
 
 type Aviso = { tipo: 'ok' | 'error'; texto: string; detalle?: string | null; rechazo?: RechazoActivacion } | null
@@ -65,13 +75,13 @@ function MotivosRechazo({ rechazo }: { rechazo: RechazoActivacion }) {
   )
 }
 
+/** Contenido del aviso; el rol lo ponen las regiones vivas que lo contienen (RegionesAviso). */
 function AvisoResultado({ aviso, className }: { aviso: Aviso; className?: string }) {
   const { t } = useTranslation()
   if (!aviso) return null
   const conMotivos = (aviso.rechazo?.motivos.length ?? 0) > 0
   return (
     <div
-      role={aviso.tipo === 'error' ? 'alert' : 'status'}
       className={cn(
         'rounded-(--radius-field) px-3 py-2 text-meta',
         aviso.tipo === 'ok' ? 'bg-success-100 text-success-700' : 'bg-critical-tint text-critical',
@@ -88,6 +98,26 @@ function AvisoResultado({ aviso, className }: { aviso: Aviso; className?: string
   )
 }
 
+/**
+ * Dos regiones vivas siempre montadas (WCAG 4.1.3): `status` para el éxito y
+ * `alert` para el rechazo. Insertar el contenedor a la vez que el texto es la
+ * causa habitual de que un anuncio no llegue a leerse (ver AnuncioRiesgo).
+ */
+function RegionesAviso({ aviso, className, soloErrores = false }: { aviso: Aviso; className?: string; soloErrores?: boolean }) {
+  return (
+    <>
+      {!soloErrores && (
+        <div role="status" aria-atomic="true">
+          {aviso?.tipo === 'ok' && <AvisoResultado aviso={aviso} className={className} />}
+        </div>
+      )}
+      <div role="alert" aria-atomic="true">
+        {aviso?.tipo === 'error' && <AvisoResultado aviso={aviso} className={className} />}
+      </div>
+    </>
+  )
+}
+
 function textoArtefacto(artefacto: ArtefactoGobernado, t: TFunction): string {
   return artefacto.modelo === 'preventivo'
     ? artefacto.version
@@ -98,11 +128,15 @@ function textoArtefacto(artefacto: ArtefactoGobernado, t: TFunction): string {
 
 /**
  * HU-46: versionado operativo del modelo en la página del Clasificador. El
- * administrador lista, registra y activa; el auditor solo consulta. Los
- * rechazos del backend (409 por criterios o porque el artefacto desplegado
- * —preventivo o legado— no es el de la versión, 404 por versión no
+ * administrador lista, registra, activa y desactiva; el auditor solo
+ * consulta. Los rechazos del backend (409 por criterios o porque el artefacto
+ * desplegado —preventivo o legado— no es el de la versión, 404 por versión no
  * registrada, 422 por solicitud no válida) se muestran con sus motivos: la
  * versión activa vigente no cambia y el intento queda en la bitácora.
+ *
+ * P-12: desactivar la versión activa (con motivo) deja el registro sin versión
+ * activa, de modo que el modelo preventivo no se carga y el riesgo vuelve a la
+ * línea base; el backend lo encadena como MODELO_IA_VERSION_DESACTIVADA.
  */
 export function VersionesModelo({
   puedeGestionar,
@@ -118,13 +152,39 @@ export function VersionesModelo({
   className?: string
 }) {
   const { t } = useTranslation()
-  const { versiones, cargando, error, consultar, registrar, activar } = useVersionesModelo(true)
+  const { versiones, cargando, error, consultar, registrar, activar, desactivar } = useVersionesModelo(true)
   const [aviso, setAviso] = useState<Aviso>(null)
   const [registroAbierto, setRegistroAbierto] = useState(false)
   const [porActivar, setPorActivar] = useState<VersionModeloIA | null>(null)
   const [activando, setActivando] = useState(false)
+  const [porDesactivar, setPorDesactivar] = useState<VersionModeloIA | null>(null)
   const botonRegistrar = useRef<HTMLButtonElement>(null)
+  const titulo = useRef<HTMLHeadingElement>(null)
+  // Botón que abrió la confirmación: si la acción lo retiró de la lista (la
+  // fila cambió de «Activar» a «Desactivar» o al revés), el foco vuelve al
+  // título de la sección en vez de perderse en <body>.
+  const disparador = useRef<HTMLElement | null>(null)
+  // Resultado de un diálogo, que se publica en las regiones vivas cuando el
+  // diálogo termina de cerrarse: mientras está abierto (y durante su
+  // animación de salida) Radix oculta el resto de la página con aria-hidden,
+  // y un cambio dentro de una región oculta no se anuncia.
+  const avisoAlCerrar = useRef<Aviso>(null)
   const activa = versiones.find((v) => v.activa) ?? null
+
+  const publicarAviso = () => {
+    const pendiente = avisoAlCerrar.current
+    avisoAlCerrar.current = null
+    if (pendiente) setAviso(pendiente)
+  }
+
+  const devolverFoco = (evento: Event) => {
+    evento.preventDefault()
+    const origen = disparador.current
+    disparador.current = null
+    if (origen?.isConnected) origen.focus()
+    else titulo.current?.focus()
+    publicarAviso()
+  }
 
   const confirmarActivacion = async () => {
     if (!porActivar) return
@@ -132,8 +192,8 @@ export function VersionesModelo({
     setActivando(true)
     const resultado = await activar(version)
     setActivando(false)
+    avisoAlCerrar.current = avisoDeActivacion(resultado, version, artefacto?.modelo ?? null, t)
     setPorActivar(null)
-    setAviso(avisoDeActivacion(resultado, version, artefacto?.modelo ?? null, t))
     onCambio?.()
   }
 
@@ -141,7 +201,7 @@ export function VersionesModelo({
     <section aria-labelledby="versiones-modelo-titulo" className={cn('superficie p-4 xl:p-5', className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 basis-72">
-          <h2 id="versiones-modelo-titulo" className="flex items-center gap-2 text-title text-foreground">
+          <h2 ref={titulo} id="versiones-modelo-titulo" tabIndex={-1} className="flex items-center gap-2 text-title text-foreground outline-none">
             <GitBranch aria-hidden className="size-4 text-muted" />
             {t('metricasIA.versiones.titulo')}
           </h2>
@@ -173,7 +233,7 @@ export function VersionesModelo({
         )}
       </div>
 
-      <AvisoResultado aviso={aviso} className="mt-3" />
+      <RegionesAviso aviso={aviso} className="mt-3" />
 
       <div className="mt-3">
         {cargando && versiones.length === 0 ? (
@@ -199,9 +259,15 @@ export function VersionesModelo({
                 key={version.version}
                 version={version}
                 puedeGestionar={puedeGestionar}
-                onActivar={() => {
+                onActivar={(boton) => {
+                  disparador.current = boton
                   setAviso(null)
                   setPorActivar(version)
+                }}
+                onDesactivar={(boton) => {
+                  disparador.current = boton
+                  setAviso(null)
+                  setPorDesactivar(version)
                 }}
               />
             ))}
@@ -213,7 +279,7 @@ export function VersionesModelo({
         <>
           <Dialog open={porActivar !== null} onOpenChange={(abierto) => !abierto && !activando && setPorActivar(null)}>
             {porActivar && (
-              <DialogContent destructivo>
+              <DialogContent destructivo onCloseAutoFocus={devolverFoco}>
                 <DialogTitle>{t('metricasIA.versiones.confirmarTitulo', { version: porActivar.version })}</DialogTitle>
                 <DialogDescription>
                   {activa
@@ -241,21 +307,37 @@ export function VersionesModelo({
               </DialogContent>
             )}
           </Dialog>
+          <DialogoDesactivar
+            version={porDesactivar}
+            desactivar={desactivar}
+            onCerrar={() => setPorDesactivar(null)}
+            onResultado={(resultado, version) => {
+              avisoAlCerrar.current = avisoDeDesactivacion(resultado, version, t)
+              setPorDesactivar(null)
+              // Sin versión activa cambian el estado preventivo y el del modelo legado.
+              if (resultado.resultado !== 'sin_permiso') onCambio?.()
+            }}
+            // Falla de red o 5xx: la desactivación pudo aplicarse antes de perderse la respuesta.
+            onResultadoIncierto={() => onCambio?.()}
+            onCloseAutoFocus={devolverFoco}
+          />
           <PanelRegistrarVersion
             abierto={registroAbierto}
             onAbiertoChange={setRegistroAbierto}
             registrar={registrar}
             onRegistrada={(version, activa) => {
-              setRegistroAbierto(false)
-              setAviso({
+              avisoAlCerrar.current = {
                 tipo: 'ok',
                 texto: t(activa ? 'metricasIA.versiones.registradaYActivada' : 'metricasIA.versiones.registrada', { version }),
-              })
+              }
+              setRegistroAbierto(false)
+              // Registrada y activada: cambian el estado preventivo y el del modelo legado.
               if (activa) onCambio?.()
             }}
             onCloseAutoFocus={(evento) => {
               evento.preventDefault()
               botonRegistrar.current?.focus()
+              publicarAviso()
             }}
           />
         </>
@@ -268,7 +350,7 @@ function avisoDeActivacion(resultado: ResultadoVersion, version: string, goberna
   if (resultado.resultado === 'ok') return { tipo: 'ok', texto: t('metricasIA.versiones.activada', { version }) }
   if (resultado.resultado === 'conflicto') {
     // 409: criterios de la versión y/o el artefacto que se cargará (HU-16 esc. 4).
-    const rechazo = clasificarRechazo(resultado.detalle, gobernado, t)
+    const rechazo = clasificarRechazo(resultado.detalle, gobernado, t, resultado.codigos)
     const texto = rechazo.soloArtefacto
       ? t(`metricasIA.versiones.rechazadaArtefacto_${rechazo.artefacto ?? 'desconocido'}`, { version })
       : t('metricasIA.versiones.rechazadaCriterios', { version })
@@ -280,7 +362,172 @@ function avisoDeActivacion(resultado: ResultadoVersion, version: string, goberna
   return { tipo: 'error', texto: t('metricasIA.versiones.errorActivar'), detalle: resultado.detalle }
 }
 
-function FilaVersion({ version, puedeGestionar, onActivar }: { version: VersionModeloIA; puedeGestionar: boolean; onActivar: () => void }) {
+/** P-12: resultado de desactivar que se muestra (y se anuncia) en la sección. */
+function avisoDeDesactivacion(resultado: ResultadoVersion, version: string, t: TFunction): Aviso {
+  if (resultado.resultado === 'ok') return { tipo: 'ok', texto: t('metricasIA.versiones.desactivada', { version }) }
+  if (resultado.resultado === 'conflicto') {
+    return esVersionNoActiva(resultado.detalle)
+      ? { tipo: 'error', texto: t('metricasIA.versiones.desactivarNoActiva', { version }) }
+      : { tipo: 'error', texto: t('metricasIA.versiones.desactivarConflicto', { version }), detalle: resultado.detalle }
+  }
+  if (resultado.resultado === 'no_encontrada') return { tipo: 'error', texto: t('metricasIA.versiones.desactivarNoRegistrada', { version }) }
+  if (resultado.resultado === 'sin_permiso') return { tipo: 'error', texto: t('metricasIA.versiones.sinPermiso') }
+  return { tipo: 'error', texto: t('metricasIA.versiones.errorDesactivar'), detalle: resultado.detalle }
+}
+
+/** Por qué el motivo no se acepta: largo fuera de 10–500 aquí, o 422 del backend. */
+type ErrorMotivo = { tipo: 'corto' | 'largo' } | { tipo: 'servidor'; detalle: string | null } | null
+
+/**
+ * P-12: confirmación con motivo obligatorio (10–500 caracteres, el mismo
+ * límite que el backend). Un 422 o una falla de red dejan el diálogo abierto
+ * con el motivo escrito; 200, 404, 409 y 403 lo cierran y el resultado se
+ * anuncia en la sección.
+ */
+function DialogoDesactivar({
+  version,
+  desactivar,
+  onCerrar,
+  onResultado,
+  onResultadoIncierto,
+  onCloseAutoFocus,
+}: {
+  version: VersionModeloIA | null
+  desactivar: (version: string, motivo: string) => Promise<ResultadoVersion>
+  onCerrar: () => void
+  onResultado: (resultado: ResultadoVersion, version: string) => void
+  /** Falla de red o 5xx: no se sabe si el cambio se aplicó (la lista ya se releyó). */
+  onResultadoIncierto: () => void
+  onCloseAutoFocus: (evento: Event) => void
+}) {
+  const { t } = useTranslation()
+  const [motivo, setMotivo] = useState('')
+  const [errorMotivo, setErrorMotivo] = useState<ErrorMotivo>(null)
+  const [aviso, setAviso] = useState<Aviso>(null)
+  const [enviando, setEnviando] = useState(false)
+  const campo = useRef<HTMLTextAreaElement>(null)
+  const limites = { min: MOTIVO_DESACTIVACION_MIN, max: MOTIVO_DESACTIVACION_MAX }
+  // Como el backend: sin espacios de borde y por carácter (un emoji cuenta uno).
+  const largo = largoMotivoDesactivacion(motivo)
+
+  const reiniciar = () => {
+    setMotivo('')
+    setErrorMotivo(null)
+    setAviso(null)
+  }
+
+  const cerrar = () => {
+    if (enviando) return
+    reiniciar()
+    onCerrar()
+  }
+
+  const enviar = async (evento: React.FormEvent) => {
+    evento.preventDefault()
+    if (!version || enviando) return
+    const invalido: ErrorMotivo =
+      largo < MOTIVO_DESACTIVACION_MIN ? { tipo: 'corto' } : largo > MOTIVO_DESACTIVACION_MAX ? { tipo: 'largo' } : null
+    setErrorMotivo(invalido)
+    setAviso(null)
+    if (invalido) {
+      campo.current?.focus()
+      return
+    }
+    setEnviando(true)
+    const resultado = await desactivar(version.version, motivo)
+    setEnviando(false)
+    if (resultado.resultado === 'invalida') {
+      setErrorMotivo({ tipo: 'servidor', detalle: resultado.detalle })
+      campo.current?.focus()
+      return
+    }
+    if (resultado.resultado === 'error') {
+      setAviso({ tipo: 'error', texto: t('metricasIA.versiones.errorDesactivar'), detalle: resultado.detalle })
+      onResultadoIncierto()
+      return
+    }
+    reiniciar()
+    onResultado(resultado, version.version)
+  }
+
+  const idAyuda = 'desactivar-motivo-ayuda'
+  const idContador = 'desactivar-motivo-contador'
+  const idError = 'desactivar-motivo-error'
+  return (
+    <Dialog open={version !== null} onOpenChange={(abierto) => !abierto && cerrar()}>
+      {version && (
+        <DialogContent destructivo onCloseAutoFocus={onCloseAutoFocus}>
+          <DialogTitle>{t('metricasIA.versiones.desactivarTitulo', { version: version.version })}</DialogTitle>
+          <DialogDescription>
+            {t('metricasIA.versiones.desactivarEfecto')} {t('metricasIA.versiones.desactivarTraza')}
+          </DialogDescription>
+          <form onSubmit={(e) => void enviar(e)} noValidate className="mt-4 space-y-3">
+            <div>
+              <Label htmlFor="desactivar-motivo">{t('metricasIA.versiones.desactivarMotivo')}</Label>
+              <Textarea
+                ref={campo}
+                id="desactivar-motivo"
+                value={motivo}
+                onChange={(e) => {
+                  setMotivo(e.target.value)
+                  if (errorMotivo) setErrorMotivo(null)
+                }}
+                maxLength={MOTIVO_DESACTIVACION_MAX}
+                rows={3}
+                aria-required="true"
+                aria-invalid={errorMotivo !== null || undefined}
+                aria-describedby={[errorMotivo ? idError : null, idAyuda, idContador].filter(Boolean).join(' ')}
+                readOnly={enviando}
+              />
+              <div className="mt-1 flex items-start justify-between gap-3 text-meta text-faint">
+                <p id={idAyuda}>{t('metricasIA.versiones.desactivarMotivoAyuda', limites)}</p>
+                <p id={idContador} aria-live={largo >= MOTIVO_DESACTIVACION_MAX - 10 ? 'polite' : 'off'} className="nums shrink-0">
+                  {t('metricasIA.versiones.contador', { actual: largo, max: MOTIVO_DESACTIVACION_MAX })}
+                </p>
+              </div>
+              {errorMotivo && (
+                <div id={idError} role="alert" className="mt-1 text-meta text-critical">
+                  <p>
+                    {errorMotivo.tipo === 'corto'
+                      ? t('metricasIA.versiones.desactivarMotivoCorto', limites)
+                      : errorMotivo.tipo === 'largo'
+                        ? t('metricasIA.versiones.desactivarMotivoLargo', limites)
+                        : t('metricasIA.versiones.desactivarInvalida', limites)}
+                  </p>
+                  {errorMotivo.tipo === 'servidor' && errorMotivo.detalle && (
+                    <p className="mt-0.5">{t('metricasIA.versiones.motivoServidor', { detalle: errorMotivo.detalle })}</p>
+                  )}
+                </div>
+              )}
+              {/* Dentro del bloque del campo: un hijo vacío del formulario sumaría su separación. */}
+              <RegionesAviso aviso={aviso} className="mt-3" soloErrores />
+            </div>
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+              <Button variant="ghost" onClick={cerrar} disabled={enviando}>
+                {t('comunes.cancelar')}
+              </Button>
+              <Button type="submit" variant="danger" disabled={enviando}>
+                {enviando ? t('metricasIA.versiones.desactivando') : t('metricasIA.versiones.desactivarConfirmar')}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      )}
+    </Dialog>
+  )
+}
+
+function FilaVersion({
+  version,
+  puedeGestionar,
+  onActivar,
+  onDesactivar,
+}: {
+  version: VersionModeloIA
+  puedeGestionar: boolean
+  onActivar: (boton: HTMLButtonElement) => void
+  onDesactivar: (boton: HTMLButtonElement) => void
+}) {
   const { t } = useTranslation()
   const motivos = version.motivos_bloqueo ?? []
   const criterio = version.criterio_principal
@@ -295,17 +542,32 @@ function FilaVersion({ version, puedeGestionar, onActivar }: { version: VersionM
         ) : (
           <Badge variant="outline">{t('metricasIA.versiones.activable')}</Badge>
         )}
-        {puedeGestionar && !version.activa && (
-          <Button
-            size="sm"
-            variant="secondary"
-            className="ml-auto"
-            aria-label={t('metricasIA.versiones.activarEtiqueta', { version: version.version })}
-            onClick={onActivar}
-          >
-            {t('metricasIA.versiones.activar')}
-          </Button>
-        )}
+        {/* Claves distintas: al cambiar de estado la fila monta otro botón (el foco no salta al nuevo). */}
+        {puedeGestionar &&
+          (version.activa ? (
+            <Button
+              key="desactivar"
+              size="sm"
+              variant="secondary"
+              className="ml-auto"
+              aria-label={t('metricasIA.versiones.desactivarEtiqueta', { version: version.version })}
+              onClick={(e) => onDesactivar(e.currentTarget)}
+            >
+              <PowerOff aria-hidden />
+              {t('metricasIA.versiones.desactivar')}
+            </Button>
+          ) : (
+            <Button
+              key="activar"
+              size="sm"
+              variant="secondary"
+              className="ml-auto"
+              aria-label={t('metricasIA.versiones.activarEtiqueta', { version: version.version })}
+              onClick={(e) => onActivar(e.currentTarget)}
+            >
+              {t('metricasIA.versiones.activar')}
+            </Button>
+          ))}
       </div>
       <p className="nums mt-1 text-meta text-muted">
         {[
@@ -504,10 +766,13 @@ function PanelRegistrarVersion({
               />
               <span>{t('metricasIA.versiones.form.activarAlRegistrar')}</span>
             </label>
-            <p id="v-activar-ayuda" className="text-meta text-muted sm:col-span-2">
-              {t(activarAlRegistrar ? 'metricasIA.versiones.form.activarAlRegistrarAyuda' : 'metricasIA.versiones.form.noActiva')}
-            </p>
-            <AvisoResultado aviso={aviso} className="sm:col-span-2" />
+            {/* La región va en la misma celda: vacía, como celda propia, sumaría un hueco de la rejilla. */}
+            <div className="sm:col-span-2">
+              <p id="v-activar-ayuda" className="text-meta text-muted">
+                {t(activarAlRegistrar ? 'metricasIA.versiones.form.activarAlRegistrarAyuda' : 'metricasIA.versiones.form.noActiva')}
+              </p>
+              <RegionesAviso aviso={aviso} className="mt-3" soloErrores />
+            </div>
           </form>
         </SidePanelBody>
         <SidePanelFooter>
