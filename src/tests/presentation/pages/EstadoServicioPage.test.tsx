@@ -7,8 +7,9 @@ import { fechaHora } from '@/lib/formato'
 import { EstadoServicioPage } from '@/presentation/pages/EstadoServicioPage'
 import { instalarAdaptadorFalso } from '../../ayudas'
 
-/** IP de documentación (RFC 5737) y lista de proxies: nunca deben llegar al DOM. */
+/** IP de documentación (RFC 5737): nunca debe llegar al DOM. */
 const IP_CLIENTE = '203.0.113.24'
+/** FORWARDED_ALLOW_IPS: configuración del servidor (no la IP de nadie), se muestra. */
 const PROXIES_CONFIANZA = '100.64.0.0/10'
 
 /** Respuesta de GET /health/detalle con la forma de src/interface/main.py del backend. */
@@ -53,6 +54,9 @@ const fecha = (iso: string) => fechaHora(iso).replace(/\s+/g, ' ')
 
 const region = (nombre: string) => screen.getByRole('region', { name: nombre })
 
+/** Valor (`dd`) del par cuya etiqueta (`dt`) contiene `etiqueta`. */
+const valorDe = (contenedor: HTMLElement, etiqueta: string) => within(contenedor).getByText(etiqueta).closest('dt')!.nextElementSibling
+
 beforeEach(async () => {
   await i18n.changeLanguage('es')
 })
@@ -70,7 +74,11 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
 
     const resumen = region('Resumen del servicio')
     expect(resumen).toHaveTextContent('La base de datos y la API del broker responden.')
-    expect(within(resumen).getByText('Consumidor MQTT único').nextElementSibling).toHaveTextContent('Sí')
+    expect(valorDe(resumen, 'Consumidor MQTT único')).toHaveTextContent('Sí')
+    // En móvil la etiqueta es corta; y nada en la tira se corta con «…».
+    expect(within(resumen).getByText('Consumidor único')).toHaveClass('sm:hidden')
+    expect(within(resumen).getByText('Consumidor MQTT único')).toHaveClass('max-sm:hidden')
+    expect(resumen.querySelector('.truncate')).toBeNull()
 
     const bd = region('Base de datos')
     expect(within(bd).getAllByText('Al día').length).toBeGreaterThan(0)
@@ -89,15 +97,30 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
 
     expect(region('Proxy')).toHaveTextContent('https')
     expect(region('Notificaciones por correo')).toHaveTextContent('Activo')
-    expect(region('Vigilancia SIN_DATOS')).toHaveTextContent(fecha('2026-11-15T15:29:40+00:00'))
+    expect(region('Vigilancia de equipos sin datos')).toHaveTextContent(fecha('2026-11-15T15:29:40+00:00'))
 
     const respaldos = region('Respaldos')
+    expect(respaldos).toHaveAttribute('data-tono', 'ok')
     expect(respaldos).toHaveTextContent('Al día')
     expect(respaldos).toHaveTextContent(fecha('2026-11-15T07:00:47+00:00'))
     expect(respaldos).toHaveTextContent(fecha('2026-11-15T15:26:00+00:00'))
 
     // Nada interrumpe cuando todo está bien.
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('los pares de ancho completo ocupan las dos columnas del bloque (el contenedor, no el valor)', async () => {
+    montar({ data: estado() })
+    await screen.findByText('Operativo')
+    for (const [bloque, etiqueta] of [
+      ['MQTT', 'API de administración del broker'],
+      ['Arranque', 'Consumidor MQTT único'],
+      ['Respaldos', 'Última revisión del vigilante'],
+    ]) {
+      const dt = within(region(bloque)).getByText(etiqueta).closest('dt')!
+      expect(dt.parentElement).toHaveClass('sm:col-span-2')
+      expect(dt.nextElementSibling).not.toHaveClass('sm:col-span-2')
+    }
   })
 
   it('la IA preventiva apagada a propósito se informa como neutra, no como error', async () => {
@@ -120,7 +143,8 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     expect(bd).toHaveTextContent('0041_hu20_normalizacion_preventiva')
     expect(bd).toHaveTextContent('0042_bigint_identidad')
     expect(bd).toHaveTextContent('el pre-deploy «alembic upgrade head» no se aplicó')
-    expect(region('Resumen del servicio')).toHaveTextContent('Migraciones pendientes')
+    // En la tira, valor corto (el bloque trae el texto completo).
+    expect(valorDe(region('Resumen del servicio'), 'Base de datos')).toHaveTextContent('Por migrar')
   })
 
   it.each([
@@ -130,7 +154,7 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     montar({ data: estado({ respaldos: { vigilancia_activa: true, estado: estadoRespaldo, ultimo_completado: '2026-11-13T07:00:40+00:00', ultima_pasada: '2026-11-15T15:26:00+00:00' } }) })
     const alerta = await screen.findByRole('alert')
     expect(alerta).toHaveTextContent(texto)
-    expect(alerta).toHaveTextContent('Revise el servicio cron de respaldo.')
+    expect(alerta).toHaveTextContent('Revisa el servicio programado de respaldo (cron).')
     expect(alerta).toHaveTextContent(fecha('2026-11-13T07:00:40+00:00'))
     expect(region('Respaldos')).toHaveAttribute('data-tono', 'critico')
   })
@@ -141,9 +165,51 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
   ])('sin vigilancia de respaldos cuando %s', async (_caso, respaldos) => {
     montar({ data: estado({ respaldos }) })
     const bloque = await screen.findByRole('region', { name: 'Respaldos' })
-    expect(bloque).toHaveTextContent('Sin vigilancia de respaldos')
-    expect(region('Resumen del servicio')).toHaveTextContent('Sin vigilancia de respaldos')
+    expect(bloque).toHaveTextContent('Sin vigilancia')
+    expect(valorDe(region('Resumen del servicio'), 'Respaldos')).toHaveTextContent('Sin vigilancia')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'la primera pasada del vigilante no terminó (o falló)',
+      { vigilancia_activa: true, estado: null, ultimo_completado: null, ultima_pasada: null },
+      'Sin revisar',
+      'neutro',
+      'sinDatos',
+      'El vigilante aún no completa ninguna revisión',
+    ],
+    [
+      'no hay ningún respaldo y el plazo máximo está en 0 (por omisión)',
+      { vigilancia_activa: true, estado: null, ultimo_completado: null, ultima_pasada: '2026-11-15T15:26:00+00:00' },
+      'Sin respaldos',
+      'aviso',
+      'aviso',
+      'RESPALDO_MAX_ANTIGUEDAD_HORAS',
+    ],
+  ])('HU-29 esc. 3: «estado: null» no se presenta como «Al día» cuando %s', async (_caso, respaldos, texto, tonoBloque, tonoTira, nota) => {
+    montar({ data: estado({ respaldos }) })
+    const bloque = await screen.findByRole('region', { name: 'Respaldos' })
+    expect(bloque).toHaveAttribute('data-tono', tonoBloque)
+    expect(bloque).toHaveTextContent(texto)
+    expect(bloque).toHaveTextContent(nota)
+    expect(bloque).not.toHaveTextContent('Al día')
+    const segmento = valorDe(region('Resumen del servicio'), 'Respaldos')!
+    expect(segmento).toHaveTextContent(texto)
+    expect(segmento.parentElement).toHaveAttribute('data-tono', tonoTira)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['desconectado', { habilitado: true, tarea_activa: true, conectado: false, desde: null }, 'Sin conexión', 'Desconectado', 'critico'],
+    ['deshabilitado', { habilitado: false, tarea_activa: false, conectado: false, desde: null }, 'Apagado', 'Deshabilitado', 'aviso'],
+  ])('MQTT %s: valor corto en la tira y texto completo en el bloque', async (_caso, mqtt, corto, completo, tono) => {
+    montar({ data: estado({ mqtt }) })
+    const bloque = await screen.findByRole('region', { name: 'MQTT' })
+    expect(bloque).toHaveTextContent(completo)
+    const segmento = valorDe(region('Resumen del servicio'), 'MQTT')!
+    expect(segmento).toHaveTextContent(corto)
+    expect(segmento.parentElement).toHaveAttribute('data-tono', tono)
   })
 
   it('arranque no reproducible: 2 workers son 2 consumidores MQTT', async () => {
@@ -152,7 +218,7 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     expect(arranque).toHaveAttribute('data-tono', 'critico')
     expect(arranque).toHaveTextContent('Varios consumidores')
     expect(arranque).toHaveTextContent('Con 2 workers habría 2 consumidores MQTT procesando la misma telemetría.')
-    expect(within(region('Resumen del servicio')).getByText('Consumidor MQTT único').nextElementSibling).toHaveTextContent('No')
+    expect(valorDe(region('Resumen del servicio'), 'Consumidor MQTT único')).toHaveTextContent('No')
   })
 
   it('arranque no reproducible: sin lanzador registrado (otro comando de arranque)', async () => {
@@ -165,26 +231,28 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     expect(arranque).not.toHaveTextContent('Arrancó con scripts.arrancar_api y 1 worker')
   })
 
-  it('proxy http sin X-Forwarded-For: pide revisar el proxy', async () => {
+  it('proxy http sin X-Forwarded-For: pide revisar el proxy y muestra FORWARDED_ALLOW_IPS', async () => {
     montar({ data: estado({ proxy: { forwarded_allow_ips: '127.0.0.1', esquema: 'http', ip_cliente: '100.64.3.7', x_forwarded_for_presente: false } }) })
     const proxy = await screen.findByRole('region', { name: 'Proxy' })
     expect(proxy).toHaveAttribute('data-tono', 'aviso')
     expect(proxy).toHaveTextContent('Revisar')
     expect(within(proxy).getByText('Esquema recibido').nextElementSibling).toHaveTextContent('http')
-    expect(proxy).toHaveTextContent('El backend recibe las peticiones como http')
+    expect(proxy).toHaveTextContent('El servidor recibe las peticiones como http')
+    // B-11: con el valor por omisión el proxy de la plataforma no es de confianza.
+    expect(within(proxy).getByText('Proxies de confianza (FORWARDED_ALLOW_IPS)').nextElementSibling).toHaveTextContent('127.0.0.1')
     expect(within(proxy).getByText('IP de cliente pública').nextElementSibling).toHaveTextContent('No')
     expect(proxy).toHaveTextContent('probablemente la del proxy')
     expect(document.body.innerHTML).not.toContain('100.64.3.7')
   })
 
-  it('la IP del cliente y FORWARDED_ALLOW_IPS nunca llegan al DOM; solo si la IP es pública', async () => {
+  it('la IP del cliente nunca llega al DOM (solo si es pública); FORWARDED_ALLOW_IPS sí, es configuración', async () => {
     const { container } = montar({ data: estado() })
     const proxy = await screen.findByRole('region', { name: 'Proxy' })
     expect(within(proxy).getByText('IP de cliente pública').nextElementSibling).toHaveTextContent('Sí')
     expect(proxy).toHaveTextContent('La IP del cliente no se muestra')
     expect(container.innerHTML).not.toContain(IP_CLIENTE)
-    expect(container.innerHTML).not.toContain(PROXIES_CONFIANZA)
     expect(document.body.textContent).not.toContain(IP_CLIENTE)
+    expect(within(proxy).getByText(PROXIES_CONFIANZA)).toBeInTheDocument()
   })
 
   it('error 403: solo el administrador, sin datos ni botón de actualizar', async () => {
@@ -203,6 +271,8 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     let fallar = true
     montar(() => (fallar ? { status: 500, data: {} } : { data: estado() }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos consultar el estado del servicio.')
+    // Una sola acción: «Volver a intentar» de la tarjeta, sin un «Actualizar» duplicado en el encabezado.
+    expect(screen.queryByRole('button', { name: 'Actualizar' })).not.toBeInTheDocument()
     fallar = false
     await userEvent.click(screen.getByRole('button', { name: 'Volver a intentar' }))
     expect(await screen.findByText('Operativo')).toBeInTheDocument()
@@ -255,9 +325,9 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     for (const clave of ['alembic_head', 'arranque', 'respaldos', 'modelo_ia']) delete anterior[clave]
     montar({ data: anterior })
     await screen.findByText('Operativo')
-    expect(region('Base de datos')).toHaveTextContent('El backend no informó la revisión aplicada')
-    expect(region('Arranque')).toHaveTextContent('El backend no informa con qué comando arrancó.')
-    expect(region('Respaldos')).toHaveTextContent('Sin vigilancia de respaldos')
-    expect(region('Modelo de IA')).toHaveTextContent('El backend no informa el estado del modelo de IA.')
+    expect(region('Base de datos')).toHaveTextContent('El servidor no informó la revisión aplicada')
+    expect(region('Arranque')).toHaveTextContent('El servidor no informa con qué comando arrancó.')
+    expect(region('Respaldos')).toHaveTextContent('Sin vigilancia')
+    expect(region('Modelo de IA')).toHaveTextContent('El servidor no informa el estado del modelo de IA.')
   })
 })

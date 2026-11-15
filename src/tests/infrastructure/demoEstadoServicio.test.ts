@@ -43,7 +43,7 @@ describe('demo — Estado del servicio', () => {
     expect(e.alembic_revision).toBe(e.alembic_head)
     expect(e.arranque).toEqual({ lanzador: 'scripts.arrancar_api', workers: 1 })
     expect(e.mqtt).toMatchObject({ habilitado: true, conectado: true, tarea_activa: true })
-    expect(e.proxy).toEqual({ esquema: 'https', x_forwarded_for_presente: true, ip_cliente_publica: true })
+    expect(e.proxy).toEqual({ forwarded_allow_ips: '*', esquema: 'https', x_forwarded_for_presente: true, ip_cliente_publica: true })
     expect(e.respaldos).toMatchObject({ vigilancia_activa: true, estado: null })
     expect(Date.parse(e.respaldos!.ultimo_completado!)).toBeLessThanOrEqual(Date.now())
     expect(e.modelo_ia).toMatchObject({ version_activa_registrada: null, preventivo: { modo: 'desactivado' }, en_uso: { modelo: 'regla_2_8' } })

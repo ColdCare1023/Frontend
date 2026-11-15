@@ -37,6 +37,7 @@ export function TiraEstado({
   etiqueta,
   guia,
   apilarGuia = false,
+  ajustarTexto = false,
   className,
 }: {
   segmentos: readonly SegmentoTira[]
@@ -48,6 +49,12 @@ export function TiraEstado({
    * en una fila y el último segmento queda huérfano en otra, con medio borde.
    */
   apilarGuia?: boolean
+  /**
+   * Etiquetas y valores pasan a otra línea en vez de cortarse con «…». Para
+   * tiras cuyos valores son palabras (estados), no cifras: entre 640 y 1279 px
+   * los segmentos miden ~145 px y un estado con icono no cabe en una línea.
+   */
+  ajustarTexto?: boolean
   className?: string
 }) {
   // Con algún «detalle» (tercera línea), los segmentos se alinean arriba: si
@@ -78,12 +85,13 @@ export function TiraEstado({
                 claseSegmento,
               )}
             >
-              <dt className="truncate text-meta font-medium text-muted">{texto}</dt>
-              <dd className={cn('nums flex items-center gap-1.5 text-page', VALOR[tono])}>
-                {tono === 'critico' && <OctagonAlert aria-hidden className="size-4 shrink-0" />}
-                {tono === 'aviso' && <TriangleAlert aria-hidden className="size-4 shrink-0" />}
-                {tono === 'sinDatos' && <Hourglass aria-hidden className="size-4 shrink-0" />}
-                <span className="min-w-0 truncate">{valor}</span>
+              <dt className={cn('text-meta font-medium text-muted', ajustarTexto ? 'text-pretty break-words' : 'truncate')}>{texto}</dt>
+              <dd className={cn('nums flex gap-1.5 text-page', ajustarTexto ? 'items-start' : 'items-center', VALOR[tono])}>
+                {/* Con varias líneas, el icono se alinea con la primera (línea de 28 px, icono de 16). */}
+                {tono === 'critico' && <OctagonAlert aria-hidden className={cn('size-4 shrink-0', ajustarTexto && 'mt-1.5')} />}
+                {tono === 'aviso' && <TriangleAlert aria-hidden className={cn('size-4 shrink-0', ajustarTexto && 'mt-1.5')} />}
+                {tono === 'sinDatos' && <Hourglass aria-hidden className={cn('size-4 shrink-0', ajustarTexto && 'mt-1.5')} />}
+                <span className={cn('min-w-0', ajustarTexto ? 'text-pretty break-words' : 'truncate')}>{valor}</span>
               </dd>
               {detalle && <dd className="truncate text-meta text-faint">{detalle}</dd>}
             </div>

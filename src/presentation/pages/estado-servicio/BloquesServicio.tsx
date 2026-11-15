@@ -193,7 +193,7 @@ export function BloqueMqtt({ e }: { e: EstadoServicio }) {
         )}
       </Dato>
       <Dato etiqueta={t('estadoServicio.mqtt.habilitado')}>{m ? siNo(m.habilitado) : '—'}</Dato>
-      <Dato etiqueta={t('estadoServicio.mqtt.brokerApi')} className="sm:col-span-2">
+      <Dato etiqueta={t('estadoServicio.mqtt.brokerApi')} claseContenedor="sm:col-span-2">
         {broker === 'ok' ? (
           <Valor tono="ok">{t('estadoServicio.mqtt.brokerApiEstados.ok')}</Valor>
         ) : broker === 'error' ? (
@@ -243,7 +243,7 @@ export function BloqueArranque({ e }: { e: EstadoServicio }) {
       <Dato etiqueta={t('estadoServicio.arranque.workers')}>
         <span className={cn('nums', variosWorkers && 'font-semibold text-critical')}>{a?.workers ?? '—'}</span>
       </Dato>
-      <Dato etiqueta={t('estadoServicio.arranque.consumidorUnico')} className="sm:col-span-2">
+      <Dato etiqueta={t('estadoServicio.arranque.consumidorUnico')} claseContenedor="sm:col-span-2">
         <Valor tono={unico ? 'ok' : variosWorkers ? 'critico' : 'aviso'}>{siNo(unico)}</Valor>
       </Dato>
     </Bloque>
@@ -286,12 +286,16 @@ export function BloqueProxy({ e }: { e: EstadoServicio }) {
           <Valor tono={p.x_forwarded_for_presente ? 'ok' : 'aviso'}>{siNo(p.x_forwarded_for_presente)}</Valor>
         )}
       </Dato>
-      <Dato etiqueta={t('estadoServicio.proxy.ipPublica')} className="sm:col-span-2">
+      <Dato etiqueta={t('estadoServicio.proxy.ipPublica')}>
         {p?.ip_cliente_publica == null ? (
           <span className="text-muted">{t('estadoServicio.proxy.noDeterminable')}</span>
         ) : (
           <Valor tono={p.ip_cliente_publica ? 'ok' : 'aviso'}>{siNo(p.ip_cliente_publica)}</Valor>
         )}
+      </Dato>
+      {/* Configuración del servidor, no la IP de nadie: con 127.0.0.1 (su valor por omisión) el proxy de la plataforma no es de confianza (B-11). */}
+      <Dato etiqueta={t('estadoServicio.proxy.proxiesConfianza')}>
+        {p?.forwarded_allow_ips ? <Codigo>{p.forwarded_allow_ips}</Codigo> : <span className="text-muted">{t('estadoServicio.sinDato')}</span>}
       </Dato>
     </Bloque>
   )
@@ -361,7 +365,10 @@ export function BloqueRespaldos({ e }: { e: EstadoServicio }) {
   const { t } = useTranslation()
   const r = e.respaldos
   const situacion = situacionRespaldos(r)
-  const tono: TonoServicio = situacion === 'al_dia' ? 'ok' : situacion === 'sin_vigilancia' ? 'neutro' : 'critico'
+  // Solo «al día» es ok: sin pasada o sin vigilante no prueban nada (neutro), y
+  // ningún respaldo completado es un aviso aunque el backend no lo marque.
+  const tono: TonoServicio =
+    situacion === 'al_dia' ? 'ok' : situacion === 'sin_vigilancia' || situacion === 'sin_pasada' ? 'neutro' : situacion === 'sin_respaldos' ? 'aviso' : 'critico'
   return (
     <Bloque
       id="servicio-respaldos"
@@ -371,14 +378,18 @@ export function BloqueRespaldos({ e }: { e: EstadoServicio }) {
       pie={
         situacion === 'sin_vigilancia' ? (
           <Nota>{t('estadoServicio.respaldos.sinVigilancia')}</Nota>
+        ) : situacion === 'sin_pasada' ? (
+          <Nota>{t('estadoServicio.respaldos.sinPasada')}</Nota>
+        ) : situacion === 'sin_respaldos' ? (
+          <Nota tono="aviso">{t('estadoServicio.respaldos.sinRespaldos')}</Nota>
         ) : situacion === 'fallido' || situacion === 'vencido' ? (
           <Nota tono="aviso">{t('estadoServicio.respaldos.alerta.accion')}</Nota>
         ) : null
       }
     >
       <Dato etiqueta={t('estadoServicio.respaldos.estado')}>
-        {situacion === 'sin_vigilancia' ? (
-          <span className="text-muted">{t('estadoServicio.respaldos.estados.sin_vigilancia')}</span>
+        {tono === 'neutro' ? (
+          <span className="text-muted">{t(`estadoServicio.respaldos.estados.${situacion}`)}</span>
         ) : (
           <Valor tono={tono}>{t(`estadoServicio.respaldos.estados.${situacion}`)}</Valor>
         )}
@@ -386,7 +397,7 @@ export function BloqueRespaldos({ e }: { e: EstadoServicio }) {
       <Dato etiqueta={t('estadoServicio.respaldos.ultimoCompletado')}>
         <Fecha iso={r?.ultimo_completado ?? null} vacio={t('estadoServicio.respaldos.ninguno')} />
       </Dato>
-      <Dato etiqueta={t('estadoServicio.respaldos.ultimaPasada')} className="sm:col-span-2">
+      <Dato etiqueta={t('estadoServicio.respaldos.ultimaPasada')} claseContenedor="sm:col-span-2">
         <Fecha iso={r?.ultima_pasada ?? null} />
       </Dato>
     </Bloque>

@@ -1,8 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
+import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { INTERVALO_ESTADO_SERVICIO_MS, useEstadoServicio } from '@/application/hooks/useEstadoServicio'
-import { setAccessToken } from '@/infrastructure/api/apiClient'
+import { apiClient, setAccessToken } from '@/infrastructure/api/apiClient'
 import { instalarAdaptadorFalso } from '../../ayudas'
 import { existeRuta } from '../../contrato/validarOpenApi'
 
@@ -52,11 +53,57 @@ describe('useEstadoServicio — GET /health/detalle', () => {
     expect(adaptador.peticiones).toHaveLength(3)
   })
 
-  it('403 es «sin permiso» y descarta los datos', async () => {
-    adaptador = instalarAdaptadorFalso(() => ({ status: 403, data: { detail: 'No tiene permisos para esta operación' } }))
+  it.each([
+    [403, 'sin_permiso'],
+    [401, 'sin_sesion'],
+  ] as const)('un %i tras una consulta exitosa descarta los datos ya cargados (%s)', async (codigo, motivo) => {
+    let status = 200
+    adaptador = instalarAdaptadorFalso(() => ({ status, data: status === 200 ? ESTADO : { detail: 'No autorizado' } }))
     const { result } = renderHook(() => useEstadoServicio())
-    await waitFor(() => expect(result.current.error).toBe('sin_permiso'))
+    await waitFor(() => expect(result.current.datos?.status).toBe('ok'))
+    status = codigo
+    await act(() => result.current.actualizar())
+    expect(result.current.error).toBe(motivo)
     expect(result.current.datos).toBeNull()
+  })
+
+  it('solo «Actualizar» marca refrescandoManual; el sondeo cada 30 s no', async () => {
+    vi.useFakeTimers()
+    const pendientes: Array<() => void> = []
+    const previo = apiClient.defaults.adapter
+    apiClient.defaults.adapter = (config: InternalAxiosRequestConfig) =>
+      new Promise<AxiosResponse>((resolve) => {
+        pendientes.push(() => resolve({ data: ESTADO, status: 200, statusText: '', headers: {}, config }))
+      })
+    const responder = () =>
+      act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+        pendientes.shift()?.()
+        await vi.advanceTimersByTimeAsync(0)
+      })
+    try {
+      const { result } = renderHook(() => useEstadoServicio())
+      // Primera consulta, automática.
+      expect(result.current.refrescando).toBe(true)
+      expect(result.current.refrescandoManual).toBe(false)
+      await responder()
+      expect(result.current.refrescando).toBe(false)
+
+      // Sondeo: hay consulta en curso, pero no es «manual».
+      await act(() => vi.advanceTimersByTimeAsync(INTERVALO_ESTADO_SERVICIO_MS))
+      expect(result.current.refrescando).toBe(true)
+      expect(result.current.refrescandoManual).toBe(false)
+      await responder()
+
+      // «Actualizar».
+      act(() => void result.current.actualizar())
+      expect(result.current.refrescandoManual).toBe(true)
+      await responder()
+      expect(result.current.refrescandoManual).toBe(false)
+      expect(result.current.refrescando).toBe(false)
+    } finally {
+      apiClient.defaults.adapter = previo
+    }
   })
 
   it('una falla tras una consulta exitosa conserva los últimos datos', async () => {

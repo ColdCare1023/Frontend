@@ -50,11 +50,11 @@ describe('normalizarEstadoServicio', () => {
     respaldos: { vigilancia_activa: true, estado: null, ultimo_completado: null, ultima_pasada: null },
   }
 
-  it('no conserva la IP del cliente ni la lista de proxies de confianza', () => {
+  it('no conserva la IP del cliente; sí FORWARDED_ALLOW_IPS, que es configuración del servidor', () => {
     const e = normalizarEstadoServicio(crudo)!
-    expect(e.proxy).toEqual({ esquema: 'https', x_forwarded_for_presente: true, ip_cliente_publica: true })
+    expect(e.proxy).toEqual({ forwarded_allow_ips: '*', esquema: 'https', x_forwarded_for_presente: true, ip_cliente_publica: true })
     expect(JSON.stringify(e)).not.toContain('203.0.113.24')
-    expect(JSON.stringify(e)).not.toContain('forwarded_allow_ips')
+    expect(normalizarEstadoServicio({ ...crudo, proxy: { esquema: 'https' } })!.proxy?.forwarded_allow_ips).toBeNull()
   })
 
   it('sin `status` no es un estado de servicio (vacío)', () => {
@@ -92,12 +92,22 @@ describe('reglas derivadas', () => {
   })
 
   it('respaldos: fallido/vencido mandan; null o sin vigilante es «sin vigilancia»', () => {
-    const r = { vigilancia_activa: true, estado: null, ultimo_completado: null, ultima_pasada: null }
+    const r = { vigilancia_activa: true, estado: null, ultimo_completado: '2026-11-15T07:00:47+00:00', ultima_pasada: '2026-11-15T15:26:00+00:00' }
     expect(situacionRespaldos(r)).toBe('al_dia')
     expect(situacionRespaldos({ ...r, estado: 'fallido' })).toBe('fallido')
     expect(situacionRespaldos({ ...r, vigilancia_activa: false, estado: 'vencido' })).toBe('vencido')
     expect(situacionRespaldos({ ...r, vigilancia_activa: false })).toBe('sin_vigilancia')
     expect(situacionRespaldos(null)).toBe('sin_vigilancia')
+  })
+
+  it('respaldos: `estado: null` sin prueba de nada no es «al día»', () => {
+    // La primera pasada del vigilante aún no termina (o lanzó una excepción).
+    const sinPasada = { vigilancia_activa: true, estado: null, ultimo_completado: null, ultima_pasada: null }
+    expect(situacionRespaldos(sinPasada)).toBe('sin_pasada')
+    // RESPALDO_MAX_ANTIGUEDAD_HORAS=0 (por omisión) y ningún respaldo hecho nunca.
+    expect(situacionRespaldos({ ...sinPasada, ultima_pasada: '2026-11-15T15:26:00+00:00' })).toBe('sin_respaldos')
+    // Un fallo o un vencimiento siguen mandando aunque no haya pasada registrada.
+    expect(situacionRespaldos({ ...sinPasada, estado: 'vencido' })).toBe('vencido')
   })
 
   it('motivos de «degradado» con la regla del backend', () => {

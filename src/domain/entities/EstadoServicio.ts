@@ -11,9 +11,10 @@ import { esIpPublica } from '../value-objects/DireccionIp'
  * según la versión. Lo que falta queda en `null` («no informado»), nunca se
  * inventa.
  *
- * Privacidad: del bloque `proxy` NO se conservan `ip_cliente` ni
- * `forwarded_allow_ips` (la IP es la pública del propio usuario); solo si la IP
- * vista es pública.
+ * Privacidad: del bloque `proxy` NO se conserva `ip_cliente` (es la IP
+ * pública de quien consulta); solo si la IP vista es pública. Sí se conserva
+ * `forwarded_allow_ips`: no es la IP de nadie, es la configuración del servidor
+ * (FORWARDED_ALLOW_IPS) y el dato con que se diagnostica B-11.
  */
 export type EstadoGeneralServicio = 'ok' | 'degradado'
 export type EstadoBrokerApi = 'ok' | 'sin_configurar' | 'error'
@@ -40,6 +41,8 @@ export interface ArranqueServicio {
 }
 
 export interface ProxyServicio {
+  /** FORWARDED_ALLOW_IPS del servidor (p. ej. `*` o `127.0.0.1`, su valor por omisión). */
+  forwarded_allow_ips: string | null
   esquema: string | null
   x_forwarded_for_presente: boolean | null
   /** `null` si el backend no informó una IP reconocible. */
@@ -176,9 +179,10 @@ export function normalizarEstadoServicio(crudo: unknown): EstadoServicio | null 
       ? { worker_activo: notificaciones.worker_activo === true, cola_pendiente: entero(notificaciones.cola_pendiente) }
       : null,
     arranque: arranque ? { lanzador: texto(arranque.lanzador), workers: entero(arranque.workers) } : null,
-    // Sin `ip_cliente` ni `forwarded_allow_ips`: no salen de aquí.
+    // Sin `ip_cliente`: no sale de aquí.
     proxy: proxy
       ? {
+          forwarded_allow_ips: texto(proxy.forwarded_allow_ips),
           esquema: texto(proxy.esquema),
           x_forwarded_for_presente: booleano(proxy.x_forwarded_for_presente),
           ip_cliente_publica: esIpPublica(proxy.ip_cliente),
@@ -214,10 +218,23 @@ export function esConsumidorUnico(arranque: ArranqueServicio | null): boolean {
   return arranque?.lanzador === LANZADOR_REPRODUCIBLE && arranque.workers === 1
 }
 
-/** HU-29 esc. 3: vigilancia del respaldo programado. */
-export function situacionRespaldos(r: RespaldosServicio | null): EstadoRespaldo | 'al_dia' | 'sin_vigilancia' {
+export type SituacionRespaldos = EstadoRespaldo | 'al_dia' | 'sin_vigilancia' | 'sin_pasada' | 'sin_respaldos'
+
+/**
+ * HU-29 esc. 3: vigilancia del respaldo programado. Para el backend
+ * (`VigilanteRespaldos.ejecutar_una_vez`) `estado: null` es «al día **o sin
+ * nada que vigilar**»; aquí solo es «al día» si hay prueba de ello:
+ * - `sin_pasada`: el vigilante aún no completó ninguna revisión (recién
+ *   arrancado, o su primera pasada lanzó una excepción);
+ * - `sin_respaldos`: revisó y no hay ningún respaldo completado. Con
+ *   `estado: null` eso solo ocurre con RESPALDO_MAX_ANTIGUEDAD_HORAS = 0 (su
+ *   valor por omisión), que no avisa si el cron nunca corrió.
+ */
+export function situacionRespaldos(r: RespaldosServicio | null): SituacionRespaldos {
   if (r?.estado) return r.estado
   if (!r || r.vigilancia_activa === false) return 'sin_vigilancia'
+  if (!r.ultima_pasada) return 'sin_pasada'
+  if (!r.ultimo_completado) return 'sin_respaldos'
   return 'al_dia'
 }
 

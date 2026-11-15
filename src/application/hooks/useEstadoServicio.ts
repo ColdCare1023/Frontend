@@ -17,19 +17,24 @@ export type ErrorEstadoServicio = 'sin_sesion' | 'sin_permiso' | 'error'
  * pestaña visible y de inmediato al volver a ella. Una consulta fallida tras
  * otra exitosa conserva los últimos datos (y su hora) en vez de vaciar la
  * pantalla; un 401/403 sí los descarta: ya no se pueden ver.
+ *
+ * `refrescando` cubre cualquier consulta; `refrescandoManual` solo la que pidió
+ * la persona con «Actualizar» (el sondeo no debe girar ni renombrar el botón).
  */
 export function useEstadoServicio() {
   const [datos, setDatos] = useState<EstadoServicio | null>(null)
   const [cargando, setCargando] = useState(true)
   const [refrescando, setRefrescando] = useState(false)
+  const [refrescandoManual, setRefrescandoManual] = useState(false)
   const [error, setError] = useState<ErrorEstadoServicio | null>(null)
   /** Hora local de la última consulta que respondió, para «Consultado …». */
   const [consultadoEn, setConsultadoEn] = useState<string | null>(null)
   const turno = useRef(0)
 
-  const consultar = useCallback(async () => {
+  const consultar = useCallback(async (manual = false) => {
     const propio = ++turno.current
     setRefrescando(true)
+    if (manual) setRefrescandoManual(true)
     try {
       const { data } = await apiClient.get<unknown>('/health/detalle')
       if (propio !== turno.current) return
@@ -49,6 +54,7 @@ export function useEstadoServicio() {
       if (propio === turno.current) {
         setCargando(false)
         setRefrescando(false)
+        setRefrescandoManual(false)
       }
     }
   }, [])
@@ -68,5 +74,7 @@ export function useEstadoServicio() {
     }
   }, [consultar])
 
-  return { datos, cargando, refrescando, error, consultadoEn, actualizar: consultar }
+  const actualizar = useCallback(() => consultar(true), [consultar])
+
+  return { datos, cargando, refrescando, refrescandoManual, error, consultadoEn, actualizar }
 }

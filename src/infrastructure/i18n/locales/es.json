@@ -2616,7 +2616,7 @@
   },
   "estadoServicio": {
     "titulo": "Estado del servicio",
-    "descripcion": "Dependencias del backend de esta instancia; se actualiza cada 30 s.",
+    "descripcion": "Dependencias del servidor de esta instancia; se actualiza cada 30 s.",
     "consultado": "Consulta: {{fecha}}",
     "actualizar": "Actualizar",
     "actualizando": "Actualizando…",
@@ -2631,7 +2631,7 @@
     },
     "vacio": {
       "titulo": "Sin estado del servicio",
-      "detalle": "El backend respondió sin datos de estado. Vuelve a consultar en unos segundos."
+      "detalle": "El servidor respondió sin datos de estado. Vuelve a consultar en unos segundos."
     },
     "general": {
       "etiqueta": "Estado general",
@@ -2639,7 +2639,7 @@
       "degradado": "Degradado",
       "guiaOk": "La base de datos y la API del broker responden.",
       "guiaDegradado": "Degradado por: {{motivos}}.",
-      "guiaDegradadoSinMotivo": "El backend informa un estado degradado.",
+      "guiaDegradadoSinMotivo": "El servidor informa un estado degradado.",
       "motivos": {
         "db": "base de datos con error",
         "broker_api": "API del broker con error",
@@ -2657,7 +2657,7 @@
       "pendientes": "Pendientes",
       "migracionesPendientes": "Migraciones pendientes",
       "pendientesAyuda": "La base no está en la última migración del código desplegado: el pre-deploy «alembic upgrade head» no se aplicó.",
-      "sinDatoAyuda": "El backend no informó la revisión aplicada o la del código desplegado.",
+      "sinDatoAyuda": "El servidor no informó la revisión aplicada o la del código desplegado.",
       "revisionAplicada": "Revisión aplicada",
       "revisionCodigo": "Última del código desplegado"
     },
@@ -2683,24 +2683,24 @@
     },
     "arranque": {
       "titulo": "Arranque",
-      "descripcion": "Comando con el que arrancó el proceso del backend.",
+      "descripcion": "Comando con el que arrancó el proceso del servidor.",
       "lanzador": "Lanzador",
       "sinLanzador": "Sin registrar",
-      "workers": "Workers",
+      "workers": "Procesos (workers)",
       "consumidorUnico": "Consumidor MQTT único",
       "reproducible": "Reproducible",
       "noReproducible": "No reproducible",
       "variosConsumidores": "Varios consumidores",
       "ok": "Arrancó con {{lanzador}} y 1 worker: un solo consumidor MQTT.",
-      "ayudaSinBloque": "El backend no informa con qué comando arrancó.",
+      "ayudaSinBloque": "El servidor no informa con qué comando arrancó.",
       "ayudaSinLanzador": "El proceso no arrancó con {{lanzador}}: el comando de arranque configurado en la plataforma puede ser otro.",
       "ayudaOtroLanzador": "El proceso arrancó con «{{actual}}», no con {{lanzador}}.",
       "ayudaWorkers": "Con {{n}} workers habría {{n}} consumidores MQTT procesando la misma telemetría.",
-      "ayudaSinWorkers": "El backend no informó cuántos workers tiene."
+      "ayudaSinWorkers": "El servidor no informó cuántos procesos (workers) tiene."
     },
     "proxy": {
       "titulo": "Proxy",
-      "descripcion": "Lo que el backend ve detrás del proxy de la plataforma.",
+      "descripcion": "Lo que el servidor ve detrás del proxy de la plataforma.",
       "correcto": "Correcto",
       "revisar": "Revisar",
       "esquema": "Esquema recibido",
@@ -2708,20 +2708,21 @@
       "ipPublica": "IP de cliente pública",
       "noDeterminable": "No determinable",
       "privacidad": "La IP del cliente no se muestra: es la dirección pública de quien consulta.",
-      "ayudaHttp": "El backend recibe las peticiones como http: el proxy no reenvía X-Forwarded-Proto o el servidor no confía en él (FORWARDED_ALLOW_IPS).",
-      "ayudaSinXff": "La petición no trae X-Forwarded-For: el backend no puede saber la IP real del cliente.",
-      "ayudaIpPrivada": "El backend ve una IP interna, probablemente la del proxy y no la del navegador."
+      "ayudaHttp": "El servidor recibe las peticiones como http: el proxy no reenvía X-Forwarded-Proto o no está entre los proxies de confianza (FORWARDED_ALLOW_IPS).",
+      "ayudaSinXff": "La petición no trae X-Forwarded-For: el servidor no puede saber la IP real del cliente.",
+      "ayudaIpPrivada": "El servidor ve una IP interna, probablemente la del proxy y no la del navegador.",
+      "proxiesConfianza": "Proxies de confianza (FORWARDED_ALLOW_IPS)"
     },
     "notificaciones": {
       "titulo": "Notificaciones por correo",
       "descripcion": "Cola y envío de los avisos por correo.",
-      "worker": "Worker de envío",
+      "worker": "Proceso de envío",
       "activo": "Activo",
       "detenido": "Detenido",
       "cola": "Correos en cola"
     },
     "vigilancia": {
-      "titulo": "Vigilancia SIN_DATOS",
+      "titulo": "Vigilancia de equipos sin datos",
       "descripcion": "Detecta equipos que dejaron de enviar lecturas.",
       "estado": "Vigilante",
       "activa": "Activa",
@@ -2737,22 +2738,26 @@
         "al_dia": "Al día",
         "fallido": "Fallido",
         "vencido": "Vencido",
-        "sin_vigilancia": "Sin vigilancia de respaldos"
+        "sin_vigilancia": "Sin vigilancia",
+        "sin_pasada": "Sin revisar",
+        "sin_respaldos": "Sin respaldos"
       },
-      "sinVigilancia": "El backend no está revisando el resultado del respaldo programado.",
+      "sinVigilancia": "El servidor no está revisando el resultado del respaldo programado.",
       "ultimoCompletado": "Último respaldo completado",
       "ninguno": "Ninguno registrado",
       "ultimaPasada": "Última revisión del vigilante",
       "alerta": {
         "fallido": "El último respaldo programado falló.",
         "vencido": "El respaldo programado está vencido: no hay un respaldo completado dentro del plazo.",
-        "accion": "Revise el servicio cron de respaldo.",
+        "accion": "Revisa el servicio programado de respaldo (cron).",
         "ultimo": "Último respaldo completado: {{fecha}}"
-      }
+      },
+      "sinPasada": "El vigilante aún no completa ninguna revisión (recién arrancó o su primera pasada falló). Si sigue así, revisa el registro del servidor.",
+      "sinRespaldos": "No hay ningún respaldo completado y el servidor no tiene un plazo máximo configurado (RESPALDO_MAX_ANTIGUEDAD_HORAS en 0): no avisará si el respaldo programado nunca corre."
     },
     "modeloIA": {
       "titulo": "Modelo de IA",
-      "sinDato": "El backend no informa el estado del modelo de IA.",
+      "sinDato": "El servidor no informa el estado del modelo de IA.",
       "rechazado": "Artefacto rechazado",
       "enOperacion": "IA en operación",
       "regla": "Regla 2⁠–⁠8 °C",
@@ -2782,6 +2787,12 @@
         "desactivado": "desactivado"
       },
       "rechazadoAyuda": "Un artefacto rechazado degrada el estado del servicio; las lecturas siguen clasificándose con la regla de 2⁠–⁠8 °C."
+    },
+    "tira": {
+      "consumidorUnico": "Consumidor único",
+      "bdPendientes": "Por migrar",
+      "mqttDeshabilitado": "Apagado",
+      "mqttDesconectado": "Sin conexión"
     }
   }
 }

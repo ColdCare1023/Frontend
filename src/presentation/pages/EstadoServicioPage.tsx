@@ -63,6 +63,12 @@ function Resumen({ e }: { e: EstadoServicio }) {
   const migraciones = estadoMigraciones(e)
   const respaldos = situacionRespaldos(e.respaldos)
   const unico = esConsumidorUnico(e.arranque)
+  // Los valores de esta tira son estados en palabras (22 px), no cifras, y con
+  // «…» se perdía justo el de aviso o crítico. Por eso: valores cortos (el
+  // bloque de cada dependencia trae el texto completo); entre 640 y 1439 px,
+  // segmentos de 12rem como base (3 + 2 bajo 1280 px en vez de 5 de ~145 px;
+  // desde 1440 px la tira los deja a su ancho); etiqueta corta en móvil (mismo
+  // patrón que UsuariosPage) y, si aun así algo no cabe, salto de línea.
   const segmentos: SegmentoTira[] = [
     {
       clave: 'general',
@@ -73,7 +79,7 @@ function Resumen({ e }: { e: EstadoServicio }) {
     {
       clave: 'bd',
       etiqueta: t('estadoServicio.bd.titulo'),
-      valor: e.db !== 'ok' ? t('estadoServicio.bd.conError') : migraciones === 'pendientes' ? t('estadoServicio.bd.migracionesPendientes') : t('estadoServicio.bd.conectada'),
+      valor: e.db !== 'ok' ? t('estadoServicio.bd.conError') : migraciones === 'pendientes' ? t('estadoServicio.tira.bdPendientes') : t('estadoServicio.bd.conectada'),
       tono: e.db !== 'ok' ? 'critico' : migraciones === 'pendientes' ? 'aviso' : 'neutro',
     },
     {
@@ -82,15 +88,20 @@ function Resumen({ e }: { e: EstadoServicio }) {
       valor: !e.mqtt
         ? t('estadoServicio.sinDato')
         : !e.mqtt.habilitado
-          ? t('estadoServicio.mqtt.deshabilitado')
+          ? t('estadoServicio.tira.mqttDeshabilitado')
           : e.mqtt.conectado
             ? t('estadoServicio.mqtt.conectado')
-            : t('estadoServicio.mqtt.desconectado'),
+            : t('estadoServicio.tira.mqttDesconectado'),
       tono: !e.mqtt ? 'sinDatos' : !e.mqtt.habilitado ? 'aviso' : e.mqtt.conectado ? 'neutro' : 'critico',
     },
     {
       clave: 'consumidor',
-      etiqueta: t('estadoServicio.arranque.consumidorUnico'),
+      etiqueta: (
+        <>
+          <span className="sm:hidden">{t('estadoServicio.tira.consumidorUnico')}</span>
+          <span className="max-sm:hidden">{t('estadoServicio.arranque.consumidorUnico')}</span>
+        </>
+      ),
       valor: unico ? t('comunes.si') : t('comunes.no'),
       tono: unico ? 'neutro' : (e.arranque?.workers ?? 0) > 1 ? 'critico' : 'aviso',
     },
@@ -98,10 +109,25 @@ function Resumen({ e }: { e: EstadoServicio }) {
       clave: 'respaldos',
       etiqueta: t('estadoServicio.respaldos.titulo'),
       valor: t(`estadoServicio.respaldos.estados.${respaldos}`),
-      tono: respaldos === 'al_dia' ? 'neutro' : respaldos === 'sin_vigilancia' ? 'sinDatos' : 'critico',
+      tono:
+        respaldos === 'al_dia'
+          ? 'neutro'
+          : respaldos === 'sin_vigilancia' || respaldos === 'sin_pasada'
+            ? 'sinDatos'
+            : respaldos === 'sin_respaldos'
+              ? 'aviso'
+              : 'critico',
     },
   ]
-  return <TiraEstado etiqueta={t('estadoServicio.resumen')} guia={guia} segmentos={segmentos} apilarGuia />
+  return (
+    <TiraEstado
+      etiqueta={t('estadoServicio.resumen')}
+      guia={guia}
+      segmentos={segmentos.map((segmento) => ({ ...segmento, className: 'sm:max-[1440px]:flex-[1_1_12rem]' }))}
+      apilarGuia
+      ajustarTexto
+    />
+  )
 }
 
 /**
@@ -113,14 +139,16 @@ function Resumen({ e }: { e: EstadoServicio }) {
  */
 export function EstadoServicioPage() {
   const { t } = useTranslation()
-  const { datos, cargando, refrescando, error, consultadoEn, actualizar } = useEstadoServicio()
+  const { datos, cargando, refrescandoManual, error, consultadoEn, actualizar } = useEstadoServicio()
 
   // Hora de la consulta que se muestra (la del backend; si no la trae, la local).
   const momento = datos ? (datos.timestamp ?? consultadoEn) : null
+  // Solo la recarga que pide la persona gira y cambia el texto: el sondeo de
+  // cada 30 s no mueve el encabezado ni renombra el botón con el foco puesto.
   const botonActualizar = (
     <Button variant="secondary" size="sm" onClick={() => void actualizar()} aria-describedby={momento ? 'estado-servicio-consulta' : undefined}>
-      <RefreshCw aria-hidden className={cn(refrescando && 'animate-spin motion-reduce:animate-none')} />
-      {refrescando ? t('estadoServicio.actualizando') : t('estadoServicio.actualizar')}
+      <RefreshCw aria-hidden className={cn(refrescandoManual && 'animate-spin motion-reduce:animate-none')} />
+      {refrescandoManual ? t('estadoServicio.actualizando') : t('estadoServicio.actualizar')}
     </Button>
   )
 
@@ -175,7 +203,8 @@ export function EstadoServicioPage() {
         descripcion={t('estadoServicio.descripcion')}
         meta={momento ? <span id="estado-servicio-consulta">{t('estadoServicio.consultado', { fecha: fechaHora(momento) })}</span> : undefined}
       >
-        {(datos || error === 'error') && botonActualizar}
+        {/* Sin datos y con error, la única acción es «Volver a intentar» de la tarjeta de error. */}
+        {datos && botonActualizar}
       </PageHeader>
       {cuerpo}
     </div>
