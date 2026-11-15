@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { Trans, useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleAlert, Info, Loader2, Mail, RotateCw } from 'lucide-react'
 
 import { useCuentaRegresiva } from '@/application/hooks/useCuentaRegresiva'
-import { codigoCompleto } from '@/domain/value-objects/codigoVerificacion'
+import { codigoCompleto, codigoDesdeEnlace } from '@/domain/value-objects/codigoVerificacion'
 import { restablecerPasswordConCodigo, solicitarRecuperacion } from '@/infrastructure/auth/credencialesService'
 import { CODIGO_VERIFICACION_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
@@ -39,21 +39,28 @@ const ESPERA_REENVIO_S = 60
  * Los correos enlazan a `?email=<correo>&modo=activar` (bienvenida, código de
  * 48 h) o `?email=<correo>&modo=recuperar` (recuperación, 10 min): quien llega
  * así ya tiene el código, por eso se empieza en el paso 2. Pedir otro desde el
- * paso 1 anularía el que tiene en la mano.
+ * paso 1 anularía el que tiene en la mano. Los botones de esos correos añaden
+ * `#codigo=<código>`: las casillas llegan llenas y solo falta la contraseña.
  */
 export function RecuperarContrasenaPage() {
   const { t } = useTranslation()
-  const [parametros, setParametros] = useSearchParams()
+  const [parametros] = useSearchParams()
+  const ubicacion = useLocation()
+  const navegar = useNavigate()
   const modo = parametros.get('modo')
   const activacion = modo === 'activar' || modo === 'activacion'
   const conCodigoEnMano = activacion || modo === 'recuperar'
   const emailInicial = (parametros.get('email') ?? '').trim()
   const emailValido = PATRON_EMAIL.test(emailInicial)
 
-  const [paso, setPaso] = useState<Paso>(conCodigoEnMano && emailValido ? 'codigo' : 'correo')
+  const empiezaEnCodigo = conCodigoEnMano && emailValido
+  // Se lee una sola vez: el fragmento se borra de la URL al montar.
+  const [codigoDelEnlace] = useState(() => (empiezaEnCodigo ? codigoDesdeEnlace(ubicacion.hash) : null))
+
+  const [paso, setPaso] = useState<Paso>(empiezaEnCodigo ? 'codigo' : 'correo')
   const [direccion, setDireccion] = useState<1 | -1>(1)
   const [email, setEmail] = useState(emailValido ? emailInicial : '')
-  const [codigo, setCodigo] = useState('')
+  const [codigo, setCodigo] = useState(codigoDelEnlace ?? '')
   const [password, setPassword] = useState('')
   const [confirmacion, setConfirmacion] = useState('')
   const [estadoCodigo, setEstadoCodigo] = useState<EstadoCampoCodigo>('normal')
@@ -61,7 +68,9 @@ export function RecuperarContrasenaPage() {
   // Aviso del formulario (contraseña, servidor) y aviso junto a las casillas
   // (código incorrecto, reenvío): cada uno donde está el foco al aparecer.
   const [aviso, setAviso] = useState<Aviso>(null)
-  const [avisoCodigo, setAvisoCodigo] = useState<Aviso>(null)
+  const [avisoCodigo, setAvisoCodigo] = useState<Aviso>(() =>
+    codigoDelEnlace ? { tipo: 'info', texto: t('recuperarContrasena.codigoDelEnlace') } : null,
+  )
   const [cargando, setCargando] = useState(false)
   const [reenviando, setReenviando] = useState(false)
   // Pedir un código aquí emite uno de recuperación (10 min) que anula el de
@@ -76,21 +85,22 @@ export function RecuperarContrasenaPage() {
   const campoRef = useRef<CampoCodigoRef>(null)
   const volvioAlCorreo = useRef(false)
 
-  // El correo de la URL solo rellena el formulario: se quita de la barra de
-  // direcciones y del historial (`modo` se conserva para los textos).
+  // El correo y el código de la URL solo rellenan el formulario: se quitan de
+  // la barra de direcciones y del historial (`modo` se conserva para los textos).
   useEffect(() => {
-    if (!parametros.has('email')) return
-    setParametros(
-      (actuales) => {
-        const siguientes = new URLSearchParams(actuales)
-        siguientes.delete('email')
-        return siguientes
-      },
-      { replace: true },
-    )
-    // Solo al montar: el correo ya se copió al estado inicial.
+    if (!parametros.has('email') && !ubicacion.hash) return
+    const siguientes = new URLSearchParams(parametros)
+    siguientes.delete('email')
+    const busqueda = siguientes.toString()
+    navegar({ pathname: ubicacion.pathname, search: busqueda ? `?${busqueda}` : '', hash: '' }, { replace: true })
+    // Solo al montar: el correo y el código ya se copiaron al estado inicial.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Código del enlace: las casillas ya están llenas, el foco va a la contraseña.
+  useEffect(() => {
+    if (codigoDelEnlace) passwordRef.current?.focus()
+  }, [codigoDelEnlace])
 
   // «Usar otro correo»: el campo se monta al terminar la transición, por eso
   // se enfoca desde la referencia y no desde un efecto.
@@ -311,7 +321,7 @@ export function RecuperarContrasenaPage() {
                     estado={estadoCodigo}
                     intentoFallido={intentoFallido}
                     disabled={cargando}
-                    autoFocus
+                    autoFocus={!codigoDelEnlace}
                   />
                   <div className="flex min-h-11 items-center justify-between gap-3 text-[13px]">
                     <button

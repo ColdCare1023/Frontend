@@ -12,7 +12,8 @@ import { esperarAviso, instalarAdaptadorFalso } from '../../ayudas'
  * `{email, codigo, password_nueva}`.
  */
 function Ubicacion() {
-  return <output data-testid="ubicacion">{useLocation().search}</output>
+  const { search, hash } = useLocation()
+  return <output data-testid="ubicacion">{`${search}${hash}`}</output>
 }
 
 function montar(ruta = '/recuperar-contrasena') {
@@ -212,5 +213,40 @@ describe('Activación de cuenta', () => {
     montar('/recuperar-contrasena?modo=activacion')
     expect(screen.getByRole('heading', { name: 'Activa tu cuenta' })).toBeInTheDocument()
     expect(screen.getByLabelText('Correo electrónico')).toBeInTheDocument()
+  })
+
+  it('el botón del correo trae el código en #codigo=: llega rellenado y el foco va a la contraseña', async () => {
+    adaptador = instalarAdaptadorFalso(() => ({ status: 204, data: null }))
+    const user = userEvent.setup()
+    montar('/recuperar-contrasena?modo=activar&email=nuevo@upc.pe#codigo=482915')
+
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent(/^\?modo=activar$/)
+    expect(['1', '2', '3', '4', '5', '6'].map((n) => (screen.getByLabelText(`Dígito ${n} de 6`) as HTMLInputElement).value)).toEqual(
+      ['4', '8', '2', '9', '1', '5'],
+    )
+    expect(screen.getByText(/Completamos el código con el enlace de tu correo/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Nueva contraseña')).toHaveFocus()
+
+    await user.type(screen.getByLabelText('Nueva contraseña'), 'NuevaClave2026')
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'NuevaClave2026')
+    await user.click(screen.getByRole('button', { name: 'Activar cuenta' }))
+    expect(await screen.findByRole('heading', { name: 'Cuenta activada' })).toBeInTheDocument()
+    expect(JSON.parse(adaptador.ultima().data as string)).toMatchObject({ email: 'nuevo@upc.pe', codigo: '482915' })
+  })
+
+  it('un fragmento que no es exactamente el código no rellena nada y también se quita de la URL', () => {
+    adaptador = instalarAdaptadorFalso()
+    montar('/recuperar-contrasena?email=x@y.pe&modo=recuperar#codigo=12a456')
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent(/^\?modo=recuperar$/)
+    expect((screen.getByLabelText('Dígito 1 de 6') as HTMLInputElement).value).toBe('')
+    expect(screen.queryByText(/Completamos el código/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Dígito 1 de 6')).toHaveFocus()
+  })
+
+  it('sin correo válido en el enlace el código del fragmento se ignora', () => {
+    adaptador = instalarAdaptadorFalso()
+    montar('/recuperar-contrasena?modo=recuperar#codigo=482915')
+    expect(screen.getByLabelText('Correo electrónico')).toBeInTheDocument()
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent(/^\?modo=recuperar$/)
   })
 })
