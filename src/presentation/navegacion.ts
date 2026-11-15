@@ -1,4 +1,4 @@
-import { Activity, Bell, BookOpen, Brain, FileText, HardDrive, History, Link2, ScrollText, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
+import { Activity, Bell, BookOpen, Brain, FileText, HardDrive, History, Link2, ScrollText, ServerCog, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
 
 import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
 import { destinoSeguro } from '@/lib/destinoTrasLogin'
@@ -56,6 +56,9 @@ export const SECCIONES: SeccionNav[] = [
       { ruta: '/auditoria', icono: ScrollText, claveI18n: 'nav.auditoria', claveDescripcion: 'nav.descripciones.auditoria', roles: ['auditor'] },
       { ruta: '/usuarios', icono: Users, claveI18n: 'nav.usuarios', claveDescripcion: 'nav.descripciones.usuarios', roles: [] },
       { ruta: '/dispositivos', icono: HardDrive, claveI18n: 'nav.dispositivos', claveDescripcion: 'nav.descripciones.dispositivos', roles: [] },
+      // HU-12 esc. 4 / HU-55 / HU-29 esc. 3: GET /health/detalle es
+      // require_roles(ADMINISTRADOR); ni el auditor ni el QF lo ven.
+      { ruta: '/estado-servicio', icono: ServerCog, claveI18n: 'nav.estadoServicio', claveDescripcion: 'nav.descripciones.estadoServicio', roles: [] },
     ],
   },
 ]

@@ -14,6 +14,7 @@ export const CARGADORES: Record<string, () => Promise<unknown>> = {
   '/auditoria': () => import('@/presentation/pages/AuditoriaPage'),
   '/configuracion-equipos': () => import('@/presentation/pages/ConfiguracionEquiposPage'),
   '/usuarios': () => import('@/presentation/pages/UsuariosPage'),
+  '/estado-servicio': () => import('@/presentation/pages/EstadoServicioPage'),
   '/dispositivos': () =>
     Promise.all([
       import('@/presentation/pages/dispositivos/DispositivosLayout'),

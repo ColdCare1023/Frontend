@@ -83,9 +83,11 @@
       "auditoria": "System action log",
       "usuarios": "Accounts and roles",
       "dispositivos": "Devices, calibration and credentials",
-      "configuracionEquipos": "Hardware change history"
+      "configuracionEquipos": "Hardware change history",
+      "estadoServicio": "Database, MQTT, backups and AI model"
     },
-    "configuracionEquipos": "Hardware changes"
+    "configuracionEquipos": "Hardware changes",
+    "estadoServicio": "Service status"
   },
   "roles": {
     "administrador": "Administrator",
@@ -2271,6 +2273,10 @@
       "dispositivos": {
         "titulo": "Measurement devices",
         "descripcion": "Review device connection, location, and calibration dates."
+      },
+      "estadoServicio": {
+        "titulo": "Service status",
+        "descripcion": "Check the database, MQTT, startup, proxy, backups and AI model."
       }
     },
     "conceptosTitulo": "Useful terms",
@@ -2607,5 +2613,175 @@
       "rangoDetalle": "The 2 to 8 °C target range is a research parameter: it is not part of the editable hardware configuration."
     },
     "cambiosRegistrados": "Recorded changes"
+  },
+  "estadoServicio": {
+    "titulo": "Service status",
+    "descripcion": "Backend dependencies of this instance; refreshes every 30 s.",
+    "consultado": "Checked: {{fecha}}",
+    "actualizar": "Refresh",
+    "actualizando": "Refreshing…",
+    "cargando": "Checking the service status…",
+    "resumen": "Service summary",
+    "sinDato": "No data",
+    "errores": {
+      "sinPermiso": "Only the administrator can view the service status.",
+      "sinSesion": "Your session expired. Sign in again to view the service status.",
+      "carga": "We couldn't check the service status. Try again.",
+      "refresco": "Couldn't refresh: showing the data from the previous check ({{fecha}})."
+    },
+    "vacio": {
+      "titulo": "No service status",
+      "detalle": "The backend answered without status data. Check again in a few seconds."
+    },
+    "general": {
+      "etiqueta": "Overall status",
+      "ok": "Operational",
+      "degradado": "Degraded",
+      "guiaOk": "The database and the broker API respond.",
+      "guiaDegradado": "Degraded by: {{motivos}}.",
+      "guiaDegradadoSinMotivo": "The backend reports a degraded status.",
+      "motivos": {
+        "db": "database error",
+        "broker_api": "broker API error",
+        "modelo_ia": "rejected AI model"
+      }
+    },
+    "bd": {
+      "titulo": "Database",
+      "conexion": "Connection",
+      "conectada": "Connected",
+      "error": "Error: {{tipo}}",
+      "conError": "Error",
+      "migraciones": "Migrations",
+      "alDia": "Up to date",
+      "pendientes": "Pending",
+      "migracionesPendientes": "Pending migrations",
+      "pendientesAyuda": "The database is not on the latest migration of the deployed code: the «alembic upgrade head» pre-deploy step did not run.",
+      "sinDatoAyuda": "The backend did not report the applied revision or the deployed code's revision.",
+      "revisionAplicada": "Applied revision",
+      "revisionCodigo": "Latest in deployed code"
+    },
+    "mqtt": {
+      "titulo": "MQTT",
+      "descripcion": "Device telemetry ingestion.",
+      "conectado": "Connected",
+      "desconectado": "Disconnected",
+      "deshabilitado": "Disabled",
+      "conexion": "Connected to the broker",
+      "desde": "Since",
+      "tarea": "Ingestion task",
+      "tareaActiva": "Running",
+      "tareaDetenida": "Stopped",
+      "habilitado": "Ingestion enabled",
+      "brokerApi": "Broker admin API",
+      "brokerApiEstados": {
+        "ok": "Responding",
+        "sin_configurar": "Not configured",
+        "error": "Error"
+      },
+      "brokerApiErrorAyuda": "The broker API check at startup failed: it degrades the service status."
+    },
+    "arranque": {
+      "titulo": "Startup",
+      "descripcion": "Command the backend process started with.",
+      "lanzador": "Launcher",
+      "sinLanzador": "Not recorded",
+      "workers": "Workers",
+      "consumidorUnico": "Single MQTT consumer",
+      "reproducible": "Reproducible",
+      "noReproducible": "Not reproducible",
+      "variosConsumidores": "Several consumers",
+      "ok": "Started with {{lanzador}} and 1 worker: a single MQTT consumer.",
+      "ayudaSinBloque": "The backend does not report the command it started with.",
+      "ayudaSinLanzador": "The process did not start with {{lanzador}}: the start command configured on the platform may be a different one.",
+      "ayudaOtroLanzador": "The process started with «{{actual}}», not with {{lanzador}}.",
+      "ayudaWorkers": "With {{n}} workers there would be {{n}} MQTT consumers processing the same telemetry.",
+      "ayudaSinWorkers": "The backend did not report how many workers it has."
+    },
+    "proxy": {
+      "titulo": "Proxy",
+      "descripcion": "What the backend sees behind the platform proxy.",
+      "correcto": "Correct",
+      "revisar": "Check",
+      "esquema": "Received scheme",
+      "xff": "Receives X-Forwarded-For",
+      "ipPublica": "Public client IP",
+      "noDeterminable": "Cannot be determined",
+      "privacidad": "The client IP is not shown: it is the public address of whoever is checking.",
+      "ayudaHttp": "The backend receives requests as http: the proxy does not forward X-Forwarded-Proto or the server does not trust it (FORWARDED_ALLOW_IPS).",
+      "ayudaSinXff": "The request has no X-Forwarded-For: the backend cannot know the client's real IP.",
+      "ayudaIpPrivada": "The backend sees an internal IP, probably the proxy's rather than the browser's."
+    },
+    "notificaciones": {
+      "titulo": "Email notifications",
+      "descripcion": "Queue and delivery of email alerts.",
+      "worker": "Delivery worker",
+      "activo": "Running",
+      "detenido": "Stopped",
+      "cola": "Queued emails"
+    },
+    "vigilancia": {
+      "titulo": "SIN_DATOS watch",
+      "descripcion": "Detects devices that stopped sending readings.",
+      "estado": "Watcher",
+      "activa": "Running",
+      "detenida": "Stopped",
+      "ultimaPasada": "Last pass",
+      "sinPasada": "Has not run yet"
+    },
+    "respaldos": {
+      "titulo": "Backups",
+      "descripcion": "Result of the scheduled database backup.",
+      "estado": "Status",
+      "estados": {
+        "al_dia": "Up to date",
+        "fallido": "Failed",
+        "vencido": "Overdue",
+        "sin_vigilancia": "Backups not monitored"
+      },
+      "sinVigilancia": "The backend is not checking the result of the scheduled backup.",
+      "ultimoCompletado": "Last completed backup",
+      "ninguno": "None recorded",
+      "ultimaPasada": "Watcher's last check",
+      "alerta": {
+        "fallido": "The last scheduled backup failed.",
+        "vencido": "The scheduled backup is overdue: there is no completed backup within the allowed window.",
+        "accion": "Check the backup cron service.",
+        "ultimo": "Last completed backup: {{fecha}}"
+      }
+    },
+    "modeloIA": {
+      "titulo": "AI model",
+      "sinDato": "The backend does not report the AI model status.",
+      "rechazado": "Artifact rejected",
+      "enOperacion": "AI in operation",
+      "regla": "2⁠–⁠8 °C rule",
+      "versionActiva": "Registered active version",
+      "ninguna": "None",
+      "decide": "Decides the risk",
+      "enUso": {
+        "preventivo": "Preventive model {{version}}",
+        "legado": "Legacy model {{version}}",
+        "regla_2_8": "2⁠–⁠8 °C rule"
+      },
+      "preventiva": "Preventive AI",
+      "modosPreventivo": {
+        "desactivado": "Turned off on purpose",
+        "sombra": "Shadow mode (does not decide)",
+        "activo": "In operation",
+        "activoSinModelo": "Enabled, no model loaded"
+      },
+      "legado": "Legacy model",
+      "legadoDisponible": "Available ({{version}})",
+      "legadoDesactivado": "Disabled",
+      "legadoNoDisponible": "Not available",
+      "modoLegado": "Mode: {{modo}}",
+      "modosLegado": {
+        "experimental": "experimental, does not decide the risk",
+        "activo": "active",
+        "desactivado": "disabled"
+      },
+      "rechazadoAyuda": "A rejected artifact degrades the service status; readings are still classified with the 2⁠–⁠8 °C rule."
+    }
   }
 }

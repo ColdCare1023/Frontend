@@ -66,6 +66,7 @@ describe('GuiaPage', () => {
     expect(enlaceA('/reportes', /reportes de monitoreo/i)).toBeInTheDocument()
     expect(enlaceA('/metricas-ia', /cómo se comporta el clasificador/i)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /usuarios y roles/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /estado del servicio/i })).not.toBeInTheDocument()
   })
 
   it('muestra al auditor todas sus rutas de solo lectura', () => {
@@ -78,6 +79,7 @@ describe('GuiaPage', () => {
     expect(enlaceA('/auditoria', /bitácora de auditoría/i)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /controles de almacenamiento/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /usuarios y roles/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /estado del servicio/i })).not.toBeInTheDocument()
   })
 
   it('administra todas las secciones disponibles para el rol administrador', () => {
@@ -86,6 +88,7 @@ describe('GuiaPage', () => {
 
     expect(enlaceA('/usuarios', /usuarios y roles/i)).toBeInTheDocument()
     expect(enlaceA('/auditoria', /bitácora de auditoría/i)).toBeInTheDocument()
+    expect(enlaceA('/estado-servicio', /estado del servicio/i)).toBeInTheDocument()
   })
 
   it('ofrece la guía como pasos navegables (tablist)', async () => {

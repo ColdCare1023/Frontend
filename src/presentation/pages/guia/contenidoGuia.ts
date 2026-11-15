@@ -1,4 +1,4 @@
-import { Bell, FileText, History, Link2, ListChecks, Monitor, ScrollText, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
+import { Bell, FileText, History, Link2, ListChecks, Monitor, ScrollText, ServerCog, SlidersHorizontal, Users, type LucideIcon } from 'lucide-react'
 
 import type { Rol } from '@/domain/value-objects/Rol'
 
@@ -24,6 +24,7 @@ export const SECCIONES: Seccion[] = [
   { ruta: '/auditoria', icono: ScrollText, tituloKey: 'guia.pantallas.auditoria.titulo', descripcionKey: 'guia.pantallas.auditoria.descripcion', grupo: 'consultar', roles: ['auditor'] },
   { ruta: '/usuarios', icono: Users, tituloKey: 'guia.pantallas.usuarios.titulo', descripcionKey: 'guia.pantallas.usuarios.descripcion', grupo: 'administrar', roles: [] },
   { ruta: '/dispositivos', icono: SlidersHorizontal, tituloKey: 'guia.pantallas.dispositivos.titulo', descripcionKey: 'guia.pantallas.dispositivos.descripcion', grupo: 'administrar', roles: [] },
+  { ruta: '/estado-servicio', icono: ServerCog, tituloKey: 'guia.pantallas.estadoServicio.titulo', descripcionKey: 'guia.pantallas.estadoServicio.descripcion', grupo: 'administrar', roles: [] },
 ]
 
 export const GRUPOS: GrupoId[] = ['vigilar', 'consultar', 'administrar']
