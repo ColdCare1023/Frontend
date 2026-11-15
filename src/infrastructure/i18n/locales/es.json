@@ -2052,9 +2052,10 @@
         "manifiestoIlegible": "no se pudo leer el manifiesto del modelo preventivo",
         "manifiestoNoAprobado": "el manifiesto está en estado {{estado}}; activar exige {{exigido}}",
         "artefactoDistinto": "el artefacto desplegado no coincide con la huella registrada",
-        "horizonteNoCoincide": "el horizonte H registrado no coincide con el del manifiesto del artefacto desplegado",
-        "sklearnNoCoincide": "la versión de scikit-learn registrada no coincide con la del manifiesto del artefacto desplegado",
-        "manifiestoNoCoincide": "el manifiesto desplegado no es el aprobado en el historial (su huella SHA-256 es otra)"
+        "horizonteNoCoincide": "el horizonte H registrado ({{registrado}} min) no es el del manifiesto del artefacto desplegado ({{manifiesto}} min)",
+        "sklearnNoCoincide": "la versión de scikit-learn registrada ({{registrada}}) no es la del manifiesto del artefacto desplegado ({{manifiesto}})",
+        "sklearnIncompatible": "el modelo se entrenó con scikit-learn {{entrenado}} y la instalada es {{instalado}}: no se podría cargar",
+        "manifiestoNoCoincide": "el manifiesto desplegado se modificó fuera de la herramienta de registro: su huella SHA-256 no es la anotada en el historial"
       }
     },
     "modelo": {

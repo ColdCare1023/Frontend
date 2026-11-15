@@ -2052,9 +2052,10 @@
         "manifiestoIlegible": "the preventive model manifest could not be read",
         "manifiestoNoAprobado": "the manifest is in state {{estado}}; activation requires {{exigido}}",
         "artefactoDistinto": "the deployed artifact does not match the registered fingerprint",
-        "horizonteNoCoincide": "the registered horizon H does not match the one in the deployed artifact manifest",
-        "sklearnNoCoincide": "the registered scikit-learn version does not match the one in the deployed artifact manifest",
-        "manifiestoNoCoincide": "the deployed manifest is not the one approved in the history (its SHA-256 fingerprint differs)"
+        "horizonteNoCoincide": "the registered horizon H ({{registrado}} min) is not the one in the deployed artifact manifest ({{manifiesto}} min)",
+        "sklearnNoCoincide": "the registered scikit-learn version ({{registrada}}) is not the one in the deployed artifact manifest ({{manifiesto}})",
+        "sklearnIncompatible": "the model was trained with scikit-learn {{entrenado}} and {{instalado}} is installed: it could not be loaded",
+        "manifiestoNoCoincide": "the deployed manifest was changed outside the registration tool: its SHA-256 fingerprint is not the one recorded in the history"
       }
     },
     "modelo": {

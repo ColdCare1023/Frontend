@@ -41,23 +41,29 @@ function evaluarCriterios(metricas: Record<string, unknown> | null | undefined) 
   }
 }
 
-function motivosBloqueo(version: Pick<VersionModeloIA, 'horizonte_min' | 'feature_schema_version' | 'particiones' | 'metricas'>): string[] {
-  const motivos: string[] = []
-  if (!version.horizonte_min || version.horizonte_min <= 0) motivos.push('falta el horizonte H de la etiqueta')
-  if (!version.feature_schema_version) motivos.push('falta la versión del esquema de features')
+/** Motivo de bloqueo con su código estable (IA-B05: el 409 de /activar trae `codigos`). */
+type MotivoBloqueo = { codigo: string; texto: string }
+
+function motivosBloqueo(version: Pick<VersionModeloIA, 'horizonte_min' | 'feature_schema_version' | 'particiones' | 'metricas'>): MotivoBloqueo[] {
+  const motivos: MotivoBloqueo[] = []
+  if (!version.horizonte_min || version.horizonte_min <= 0) motivos.push({ codigo: 'falta_horizonte', texto: 'falta el horizonte H de la etiqueta' })
+  if (!version.feature_schema_version) motivos.push({ codigo: 'falta_esquema_features', texto: 'falta la versión del esquema de features' })
   const particiones = version.particiones ?? {}
   const faltan = CAMPOS_PARTICIONES.filter((campo) => {
     const valor = particiones[campo]
     return valor == null || valor === '' || (Array.isArray(valor) && valor.length === 0)
   })
   const separacion = numero(particiones.separacion_min)
-  if (faltan.length > 0) motivos.push(`faltan las particiones (${faltan.join(', ')})`)
+  if (faltan.length > 0) motivos.push({ codigo: 'faltan_particiones', texto: `faltan las particiones (${faltan.join(', ')})` })
   else if (separacion !== null && version.horizonte_min && separacion < version.horizonte_min) {
-    motivos.push('la separación entre particiones es menor que H')
+    motivos.push({ codigo: 'separacion_menor_que_horizonte', texto: 'la separación entre particiones es menor que H' })
   }
   const principal = evaluarCriterios(version.metricas)[CRITERIO_PRINCIPAL]
-  if (principal.cumple === null) motivos.push(`faltan métricas del criterio principal (${CRITERIO_PRINCIPAL})`)
-  else if (!principal.cumple) motivos.push(`no cumple el criterio principal (${CRITERIO_PRINCIPAL})`)
+  if (principal.cumple === null) {
+    motivos.push({ codigo: 'faltan_metricas_criterio_principal', texto: `faltan métricas del criterio principal (${CRITERIO_PRINCIPAL})` })
+  } else if (!principal.cumple) {
+    motivos.push({ codigo: 'no_cumple_criterio_principal', texto: `no cumple el criterio principal (${CRITERIO_PRINCIPAL})` })
+  }
   return motivos
 }
 
@@ -72,7 +78,7 @@ function aRespuesta(registro: Registro): VersionModeloIA {
     evaluacion_criterios: evaluarCriterios(registro.metricas),
     criterio_principal: CRITERIO_PRINCIPAL,
     activable: motivos.length === 0,
-    motivos_bloqueo: motivos,
+    motivos_bloqueo: motivos.map((motivo) => motivo.texto),
   }
 }
 
@@ -183,7 +189,7 @@ export function listarVersionesDemo(): VersionModeloIA[] {
   return registros.map(aRespuesta)
 }
 
-type Resultado = { status: number; data?: VersionModeloIA; detalle?: string; motivos?: string[] }
+type Resultado = { status: number; data?: VersionModeloIA; detalle?: string; motivos?: string[]; codigos?: string[] }
 
 const CAMPOS_TEXTO: Array<[keyof Registro, number, number]> = [
   ['version', 1, 50],
@@ -237,8 +243,11 @@ export function registrarVersionDemo(cuerpo: Record<string, unknown>, adminId: s
 export function activarVersionDemo(version: string): Resultado {
   const objetivo = registros.find((r) => r.version === version)
   if (!objetivo) return { status: 404, detalle: `La versión ${version} no está registrada/aprobada; no puede activarse` }
-  const motivos = motivosBloqueo(objetivo)
-  if (motivos.length > 0) return { status: 409, detalle: `La versión ${version} no puede activarse: ${motivos.join('; ')}`, motivos }
+  const bloqueos = motivosBloqueo(objetivo)
+  if (bloqueos.length > 0) {
+    const motivos = bloqueos.map((motivo) => motivo.texto)
+    return { status: 409, detalle: `La versión ${version} no puede activarse: ${motivos.join('; ')}`, motivos, codigos: bloqueos.map((motivo) => motivo.codigo) }
+  }
   const ahora = new Date().toISOString()
   for (const registro of registros) {
     if (registro.activa && registro.version !== version) {
@@ -254,15 +263,17 @@ export function activarVersionDemo(version: string): Resultado {
 
 /**
  * P-12: POST /api/ia/modelo/versiones/{version}/desactivar. Cuerpo
- * `{motivo}` de 10 a 500 caracteres (additionalProperties: false); 404 si no
- * está registrada y 409 `version_no_activa` si no es la activa. Sin versión
- * activa, el estado preventivo vuelve a `sin_version_activa_registrada`.
+ * `{motivo}` de 10 a 500 caracteres sin contar los espacios de los extremos
+ * (additionalProperties: false); 404 si no está registrada y 409
+ * `version_no_activa` si no es la activa. Sin versión activa, el estado
+ * preventivo vuelve a `sin_version_activa_registrada`.
  */
 export function desactivarVersionDemo(version: string, cuerpo: Record<string, unknown>): Resultado {
   const extra = Object.keys(cuerpo).find((campo) => campo !== 'motivo')
   if (extra) return { status: 422, detalle: `Campo no admitido: ${extra}` }
-  const motivo = cuerpo.motivo
-  if (typeof motivo !== 'string' || motivo.length < 10 || motivo.length > 500) return { status: 422, detalle: 'Valor no válido en motivo' }
+  // Como Pydantic (strip_whitespace, min/max_length): sin espacios de borde y por carácter.
+  const largo = typeof cuerpo.motivo === 'string' ? [...cuerpo.motivo.trim()].length : -1
+  if (largo < 10 || largo > 500) return { status: 422, detalle: 'Valor no válido en motivo' }
   const objetivo = registros.find((r) => r.version === version)
   if (!objetivo) return { status: 404, detalle: `La versión ${version} no está registrada` }
   if (!objetivo.activa) return { status: 409, detalle: 'version_no_activa' }

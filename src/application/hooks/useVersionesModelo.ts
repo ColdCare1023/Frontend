@@ -48,7 +48,12 @@ export interface NuevaVersionModelo {
 
 export type ResultadoVersion =
   | { resultado: 'ok'; version: VersionModeloIA }
-  | { resultado: 'conflicto' | 'no_encontrada' | 'invalida' | 'sin_permiso' | 'error'; detalle: string | null }
+  | {
+      resultado: 'conflicto' | 'no_encontrada' | 'invalida' | 'sin_permiso' | 'error'
+      detalle: string | null
+      /** IA-B05: 409 de `/activar`, un código estable por motivo del `detail` y en el mismo orden. */
+      codigos?: string[]
+    }
 
 /** B-12: cuerpo exacto de `POST /api/ia/modelo/versiones` (additionalProperties: false). */
 export function cuerpoRegistroVersion(nueva: NuevaVersionModelo) {
@@ -69,6 +74,15 @@ export function cuerpoRegistroVersion(nueva: NuevaVersionModelo) {
 /** P-12: límites del motivo de `POST /api/ia/modelo/versiones/{version}/desactivar`. */
 export const MOTIVO_DESACTIVACION_MIN = 10
 export const MOTIVO_DESACTIVACION_MAX = 500
+
+/**
+ * P-12: largo del motivo como lo mide el backend (StringConstraints con
+ * strip_whitespace): sin espacios de borde y por carácter, no por unidad
+ * UTF-16 (un emoji cuenta uno, no dos).
+ */
+export function largoMotivoDesactivacion(motivo: string): number {
+  return [...motivo.trim()].length
+}
 
 /** P-12: cuerpo exacto de la desactivación (additionalProperties: false). */
 export function cuerpoDesactivacion(motivo: string) {
@@ -99,10 +113,20 @@ export function detalleDelError(error: unknown): string | null {
   return null
 }
 
+/** `codigos` del 409 de `/activar` (aditivo al `detail`); undefined si no vienen. */
+export function codigosDelError(error: unknown): string[] | undefined {
+  if (!axios.isAxiosError(error)) return undefined
+  const codigos = (error.response?.data as { codigos?: unknown } | undefined)?.codigos
+  return Array.isArray(codigos) && codigos.every((codigo) => typeof codigo === 'string') ? codigos : undefined
+}
+
 function rechazo(error: unknown): ResultadoVersion {
   const estado = axios.isAxiosError(error) ? error.response?.status : undefined
   const detalle = detalleDelError(error)
-  if (estado === 409) return { resultado: 'conflicto', detalle }
+  if (estado === 409) {
+    const codigos = codigosDelError(error)
+    return codigos ? { resultado: 'conflicto', detalle, codigos } : { resultado: 'conflicto', detalle }
+  }
   if (estado === 404) return { resultado: 'no_encontrada', detalle }
   if (estado === 422) return { resultado: 'invalida', detalle }
   if (estado === 403) return { resultado: 'sin_permiso', detalle }
@@ -171,7 +195,10 @@ export function useVersionesModelo(habilitado = true) {
   // P-12: desactivar la versión activa deja el registro sin versión activa
   // (el modelo preventivo no se carga y el riesgo vuelve a la línea base).
   // 404 (no registrada) y 409 (ya no es la activa: otra persona se adelantó)
-  // dicen que la lista quedó vieja; 422 (motivo no válido) no cambia nada.
+  // dicen que la lista quedó vieja. Una falla de red o un 5xx tampoco dicen
+  // que nada cambió: el backend confirma la desactivación antes de recargar
+  // el modelo, así que la respuesta puede perderse con el cambio ya hecho.
+  // Solo 422 (motivo no válido) y 403 (sin permiso) no cambian nada.
   const desactivar = useCallback(
     async (version: string, motivo: string): Promise<ResultadoVersion> => {
       try {
@@ -183,7 +210,7 @@ export function useVersionesModelo(habilitado = true) {
         return { resultado: 'ok', version: data }
       } catch (error) {
         const resultado = rechazo(error)
-        if (resultado.resultado === 'conflicto' || resultado.resultado === 'no_encontrada') await consultar()
+        if (resultado.resultado !== 'invalida' && resultado.resultado !== 'sin_permiso') await consultar()
         return resultado
       }
     },

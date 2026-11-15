@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -333,7 +333,8 @@ describe('MetricasIAPage — P-12: desactivar la versión activa', () => {
     await user.click(within(dialogo).getByRole('button', { name: 'Desactivar versión' }))
 
     const seccion = screen.getByRole('region', { name: 'Versiones del modelo' })
-    expect(await within(seccion).findByRole('status')).toHaveTextContent('Versión p-1.0.0 desactivada.')
+    // La región de estado ya existía (vacía): se espera al texto, no al rol.
+    await waitFor(() => expect(within(seccion).getByRole('status')).toHaveTextContent('Versión p-1.0.0 desactivada.'))
     expect(desactivar).toHaveBeenCalledWith('p-1.0.0', 'Vuelta atrás por falsas alarmas')
     expect(recargarPreventiva).toHaveBeenCalledTimes(1)
     expect(recargarModelo).toHaveBeenCalledTimes(1)

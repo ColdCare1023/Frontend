@@ -7,6 +7,8 @@ import type { VersionModeloIA } from '@/application/hooks/useVersionesModelo'
 import { demoAdapter } from '@/infrastructure/demo/demoAdapter'
 import { estadoDemo } from '@/infrastructure/demo/datosDemo'
 import { reiniciarVersionesDemo, simularModeloIADemo } from '@/infrastructure/demo/versionesModeloDemo'
+import i18n from '@/infrastructure/i18n'
+import { clasificarRechazo } from '@/presentation/pages/metricas/motivosActivacion'
 import { errores, esquemaPeticion } from '../contrato/validarOpenApi'
 
 function config(over: Partial<InternalAxiosRequestConfig>): InternalAxiosRequestConfig {
@@ -66,10 +68,20 @@ describe('demo: versionado del modelo (HU-46)', () => {
     expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO', resultado: 'fallido' })
   })
 
-  it('activar sin H, particiones ni métricas responde 409 con el motivo', async () => {
+  it('activar sin H, particiones ni métricas responde 409 con el motivo y sus códigos, como el backend', async () => {
     const error = await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/activar' })))
     expect(error.status).toBe(409)
     expect(error.detail).toMatch(/no puede activarse: falta el horizonte H/)
+    // IA-B05: un código estable por motivo del `detail`, en el mismo orden.
+    const codigos = ['falta_horizonte', 'faltan_particiones', 'faltan_metricas_criterio_principal']
+    expect(error.data).toMatchObject({ codigos })
+    expect(error.detail?.split(': ')[1].split('; ')).toHaveLength(codigos.length)
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      detalle: { motivo: 'criterios_no_cumplidos', codigos },
+    })
+    const rechazo = clasificarRechazo(error.detail ?? null, 'preventivo', i18n.t.bind(i18n), (error.data as { codigos: string[] }).codigos)
+    expect(rechazo.motivos.map((m) => m.grupo)).toEqual(['criterios', 'criterios', 'criterios'])
   })
 
   it('registra (201), rechaza el duplicado (409) y activa una versión completa', async () => {
@@ -89,17 +101,20 @@ describe('demo: versionado del modelo (HU-46)', () => {
   it('P-12: desactivar la versión activa (200) vuelve a dejar la preventiva sin versión activa', async () => {
     await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(COMPLETA) }))
     await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/activar' }))
-    const cuerpo = { motivo: 'Vuelta atrás por falsas alarmas' }
+    const motivo = 'Vuelta atrás por falsas alarmas'
+    const cuerpo = { motivo: `  ${motivo}  ` }
     expect(errores(cuerpo, esquemaPeticion('post', '/api/ia/modelo/versiones/demo-4.0.0/desactivar'))).toEqual([])
     const respuesta = await demoAdapter(
       config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/desactivar', data: JSON.stringify(cuerpo) }),
     )
     expect(respuesta.status).toBe(200)
     expect(respuesta.data).toMatchObject({ version: 'demo-4.0.0', activa: false, desactivada_en: expect.any(String) })
+    // Como el backend: el motivo recortado y la huella de la versión desactivada.
     expect(estadoDemo.auditoria[0]).toMatchObject({
       accion: 'DESACTIVAR_VERSION_MODELO_IA',
+      recurso: 'ia/modelo/versiones/demo-4.0.0/desactivar',
       resultado: 'exitoso',
-      detalle: { version: 'demo-4.0.0', motivo: cuerpo.motivo },
+      detalle: { version: 'demo-4.0.0', motivo, model_hash: COMPLETA.model_hash },
     })
     const { data: lista } = await demoAdapter(config({ url: '/api/ia/modelo/versiones' }))
     expect((lista as VersionModeloIA[]).some((v) => v.activa)).toBe(false)
@@ -111,6 +126,11 @@ describe('demo: versionado del modelo (HU-46)', () => {
       demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/desactivar', data: JSON.stringify(cuerpo) })),
     )
     expect(otra).toMatchObject({ status: 409, detail: 'version_no_activa' })
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'DESACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      resultado: 'fallido',
+      detalle: { motivo: 'version_no_activa', justificacion: motivo },
+    })
   })
 
   it('P-12: desactivar responde 404 si no existe, 409 si no es la activa y 422 con un motivo no válido', async () => {
@@ -118,14 +138,41 @@ describe('demo: versionado del modelo (HU-46)', () => {
     const auditadas = estadoDemo.auditoria.length
     expect(await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/no-existe/desactivar', data: motivo }))))
       .toMatchObject({ status: 404 })
+    // Como el backend, el rechazo queda en la bitácora con su motivo y la justificación escrita.
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'DESACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      recurso: 'ia/modelo/versiones/no-existe/desactivar',
+      resultado: 'fallido',
+      detalle: { motivo: 'version_no_registrada', justificacion: 'Motivo suficientemente largo' },
+    })
     expect(await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/desactivar', data: motivo }))))
       .toMatchObject({ status: 409, detail: 'version_no_activa' })
-    for (const cuerpo of [{ motivo: 'corto' }, { motivo: 'x'.repeat(501) }, {}, { motivo: 'Motivo suficientemente largo', extra: 1 }]) {
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'DESACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      detalle: { motivo: 'version_no_activa', justificacion: 'Motivo suficientemente largo' },
+    })
+    const rechazosAuditados = estadoDemo.auditoria.length
+    for (const cuerpo of [
+      { motivo: 'corto' },
+      { motivo: 'x'.repeat(501) },
+      {},
+      { motivo: 'Motivo suficientemente largo', extra: 1 },
+      // Sin espacios de borde y por carácter, como Pydantic: 5 caracteres, no 13 ni 10.
+      { motivo: '    corto    ' },
+      { motivo: '🧊'.repeat(5) },
+    ]) {
       const error = await estadoDeError(
         demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/desactivar', data: JSON.stringify(cuerpo) })),
       )
       expect(error.status).toBe(422)
     }
+    // Un 422 no llega a la ruta del backend: no deja fila en la bitácora.
+    expect(estadoDemo.auditoria.length).toBe(rechazosAuditados)
+    // 500 caracteres con espacios alrededor siguen siendo 500: pasa la validación (y luego 409, no es la activa).
+    const alLimite = await estadoDeError(
+      demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/desactivar', data: JSON.stringify({ motivo: ` ${'x'.repeat(500)}  ` }) })),
+    )
+    expect(alLimite.status).toBe(409)
     // Los rechazos no desactivan nada ni dejan una desactivación en la bitácora.
     expect(estadoDemo.auditoria.slice(0, estadoDemo.auditoria.length - auditadas).some((a) => a.accion === 'DESACTIVAR_VERSION_MODELO_IA')).toBe(false)
   })

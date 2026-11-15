@@ -51,6 +51,10 @@ test('HU-46 / P-12: el administrador ve el rechazo 409, registra, activa y desac
   await expect(preventiva).toHaveAttribute('data-situacion', 'fuera')
   await expect(seccion.getByTestId('artefacto-gobernado')).toHaveAttribute('data-modelo', 'preventivo')
 
+  // Las regiones vivas de la sección existen (vacías) antes del resultado: así el lector de pantalla lo anuncia.
+  await expect(seccion.getByRole('alert')).toBeEmpty()
+  await expect(seccion.getByRole('status')).toBeEmpty()
+
   // Activar la versión sin H ni particiones: el backend (demo) la rechaza con su motivo.
   await seccion.getByRole('button', { name: 'Activar la versión demo-3.0.0' }).click()
   let dialogo = page.getByRole('alertdialog')
@@ -94,7 +98,8 @@ test('HU-46 / P-12: el administrador ve el rechazo 409, registra, activa y desac
   dialogo = page.getByRole('alertdialog')
   await expect(dialogo).toContainText('No quedará ninguna versión activa')
   await dialogo.getByRole('button', { name: 'Desactivar versión' }).click()
-  await expect(dialogo.getByRole('alert')).toContainText('Escribe un motivo de al menos 10 caracteres.')
+  // El diálogo tiene su propia región de errores (vacía); el error del campo es otra alerta.
+  await expect(dialogo.getByRole('alert').filter({ hasText: 'Escribe un motivo' })).toContainText('Escribe un motivo de al menos 10 caracteres.')
   await dialogo.getByLabel('Motivo de la desactivación').fill('Vuelta atrás: falsas alarmas en el banco')
   await dialogo.getByRole('button', { name: 'Desactivar versión' }).click()
   await expect(dialogo).toHaveCount(0)
