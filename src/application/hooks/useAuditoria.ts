@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 
 import type { RegistroAuditoria, ResultadoAuditoria } from '@/domain/entities/Usuario'
@@ -73,8 +73,13 @@ export function useAuditoria() {
   const [errorCarga, setErrorCarga] = useState(false)
   const [motivoError, setMotivoError] = useState<ErrorAuditoria | null>(null)
   const [exportando, setExportando] = useState(false)
+  // Solo cuenta la respuesta de la última consulta: si los filtros cambian
+  // antes de que llegue la anterior (p. ej. la carga inicial), la vieja
+  // pisaría la lista filtrada y cerraría la fila que se hubiera abierto.
+  const ultimaConsulta = useRef(0)
 
   const consultar = useCallback(async (filtros: FiltrosAuditoria = {}) => {
+    const consulta = ++ultimaConsulta.current
     setCargando(true)
     setErrorCarga(false)
     setMotivoError(null)
@@ -82,14 +87,15 @@ export function useAuditoria() {
       const { data } = await apiClient.get<RegistroAuditoria[]>('/api/auditoria', {
         params: { limite: String(LIMITE_AUDITORIA), ...parametros(filtros) },
       })
-      setRegistros(data)
+      if (consulta === ultimaConsulta.current) setRegistros(data)
     } catch (error) {
       // No se relanza: quien refresca tras una operación ya hecha no debe
       // perder su resultado por un fallo de la recarga.
+      if (consulta !== ultimaConsulta.current) return
       setErrorCarga(true)
       setMotivoError(axios.isAxiosError(error) && error.response?.status === 422 ? 'validacion' : 'error')
     } finally {
-      setCargando(false)
+      if (consulta === ultimaConsulta.current) setCargando(false)
     }
   }, [])
 

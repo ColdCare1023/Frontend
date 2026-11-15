@@ -257,6 +257,8 @@ function montarMetricas(over: Record<string, unknown> = {}) {
       metadata: null,
       metricas: metricas({ dataset_hash: 'dataset-hash', model_hash: 'model-hash', particion: 'test', ...over }),
     },
+    estado: 'disponible',
+    motivo: null,
     cargando: false,
     noEntrenado: false,
     error: null,
@@ -553,7 +555,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     expect(within(dialogo).getByLabelText(/descripción/i)).toBeInTheDocument()
   })
 
-  it('un técnico no puede marcar una alerta como revisada (RBAC en la vista)', async () => {
+  it('un técnico no puede reconocer la alerta ni registrar la acción (RBAC en la vista, H16)', async () => {
     useAuthStore.setState({
       usuario: {
         id: 'u-3',
@@ -566,11 +568,12 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     })
     montarAlertas()
 
-    expect(screen.queryByRole('button', { name: /revisar alerta/i })).toBeNull()
-    expect(screen.getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /reconocer alerta/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /registrar acción correctiva/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /cronología de atención/i })).toBeInTheDocument()
   })
 
-  it('el farmacéutico marca la alerta pendiente como revisada', async () => {
+  it('el farmacéutico marca la alerta pendiente como reconocida', async () => {
     useAuthStore.setState({
       usuario: {
         id: 'u-1',
@@ -583,7 +586,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const usuario = userEvent.setup()
     const { reconocerAlerta } = montarAlertas()
 
-    await usuario.click(screen.getByRole('button', { name: /revisar alerta de FARM-01-CDL/i }))
+    await usuario.click(screen.getByRole('button', { name: /reconocer alerta de FARM-01-CDL/i }))
 
     expect(reconocerAlerta).toHaveBeenCalledWith('a-1')
   })

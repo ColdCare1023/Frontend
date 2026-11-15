@@ -1,7 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+
 import { nombreDeContentDisposition, useAuditoria } from '@/application/hooks/useAuditoria'
+import type { RegistroAuditoria } from '@/domain/entities/Usuario'
+import { apiClient } from '@/infrastructure/api/apiClient'
 import { instalarAdaptadorFalso } from '../../ayudas'
 import { existeRuta } from '../../contrato/validarOpenApi'
 import openapi from '../../contrato/openapi-backend.json'
@@ -29,6 +33,76 @@ describe('useAuditoria — HU-42/HU-50: filtros del servidor', () => {
     for (const nombre of Object.keys(peticion.params)) expect(aceptados).toContain(nombre)
     const valores = parametrosDe('/api/auditoria').find((p) => p.name === 'resultado')?.schema?.anyOf?.find((o) => o.enum)?.enum
     expect(valores).toEqual(['exitoso', 'fallido', 'denegado', 'bloqueado'])
+  })
+
+  /** Adaptador que deja cada petición en curso hasta que la prueba la responde. */
+  function adaptadorManual() {
+    const enCurso: Array<{ params: Record<string, string>; responder: (data: unknown) => void }> = []
+    const previo = apiClient.defaults.adapter
+    apiClient.defaults.adapter = (config: InternalAxiosRequestConfig) =>
+      new Promise<AxiosResponse>((resolver) => {
+        enCurso.push({
+          params: { ...(config.params as Record<string, string>) },
+          responder: (data) => resolver({ data, status: 200, statusText: '', headers: {}, config }),
+        })
+      })
+    return { enCurso, restaurar: () => (apiClient.defaults.adapter = previo) }
+  }
+
+  it('una respuesta vieja no pisa la del filtro más reciente (llegan en otro orden)', async () => {
+    const manual = adaptadorManual()
+    try {
+      const fallido = { id: 'a-2', accion: 'LOGIN', resultado: 'fallido' } as unknown as RegistroAuditoria
+      const exitoso = { id: 'a-1', accion: 'LOGIN', resultado: 'exitoso' } as unknown as RegistroAuditoria
+      const { result } = renderHook(() => useAuditoria())
+      await waitFor(() => expect(manual.enCurso).toHaveLength(1))
+      let filtrada: Promise<void> = Promise.resolve()
+      act(() => {
+        filtrada = result.current.consultar({ resultado: 'fallido' })
+      })
+      await waitFor(() => expect(manual.enCurso).toHaveLength(2))
+      expect(manual.enCurso[1].params).toMatchObject({ resultado: 'fallido' })
+
+      // La filtrada llega primero…
+      await act(async () => {
+        manual.enCurso[1].responder([fallido])
+        await filtrada
+      })
+      expect(result.current.registros).toEqual([fallido])
+      expect(result.current.cargando).toBe(false)
+      // …y la carga inicial, sin filtro, llega tarde: se descarta.
+      await act(async () => {
+        manual.enCurso[0].responder([exitoso, fallido])
+      })
+      expect(result.current.registros).toEqual([fallido])
+      expect(result.current.cargando).toBe(false)
+    } finally {
+      manual.restaurar()
+    }
+  })
+
+  it('si la anterior llega antes que la última, «cargando» sigue hasta que llega la última', async () => {
+    const manual = adaptadorManual()
+    try {
+      const { result } = renderHook(() => useAuditoria())
+      await waitFor(() => expect(manual.enCurso).toHaveLength(1))
+      act(() => {
+        void result.current.consultar({ resultado: 'denegado' })
+      })
+      await waitFor(() => expect(manual.enCurso).toHaveLength(2))
+      await act(async () => {
+        manual.enCurso[0].responder([{ id: 'viejo' }])
+      })
+      expect(result.current.cargando).toBe(true)
+      expect(result.current.registros).toEqual([])
+      await act(async () => {
+        manual.enCurso[1].responder([])
+      })
+      await waitFor(() => expect(result.current.cargando).toBe(false))
+      expect(result.current.registros).toEqual([])
+    } finally {
+      manual.restaurar()
+    }
   })
 
   it('un 422 (usuario que no es UUID) se distingue de un fallo del servidor', async () => {

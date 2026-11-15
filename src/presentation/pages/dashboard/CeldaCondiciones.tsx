@@ -6,6 +6,7 @@ import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionBreve } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { Esqueleto } from '../../components/ui/esqueleto'
+import { DECIMALES_HUMEDAD } from '../../components/ui/formato-cifra'
 import { useSegundosDesde } from '../../hooks/useReloj'
 import { aperturasEnSerie, estadoPuerta, fallaSensor } from './puerta'
 import { submuestrear } from './utilidades'
@@ -154,6 +155,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   horasVentana,
   umbralPuertaEquipo = null,
   recorte = null,
+  puertaEnVivo = null,
 }: {
   ultima: LecturaTermica | null
   serie: readonly LecturaTermica[]
@@ -165,9 +167,12 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   umbralPuertaEquipo?: number | null
   /** HU-31: el historial crudo no cubre la ventana; el conteo de aperturas es parcial. */
   recorte?: { mostradas: number; total: number } | null
+  /** HU-35 esc. 1: cambio de puerta en vivo (evento SSE `puerta`) del equipo mostrado. */
+  puertaEnVivo?: { abierta: boolean; desde: string } | null
 }) {
   const { t } = useTranslation()
   const segundosDesdeUltima = useSegundosDesde(ultima?.timestamp)
+  const segundosDesdePuerta = useSegundosDesde(puertaEnVivo?.desde)
   const anterior = serie.at(-2) ?? null
 
   let contenido: React.ReactNode
@@ -205,7 +210,10 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
       </dl>
     )
   } else {
-    const puerta = estadoPuerta(ultima, segundosDesdeUltima, desactualizado, umbralPuertaEquipo)
+    const puerta = estadoPuerta(
+      ultima, segundosDesdeUltima, desactualizado, umbralPuertaEquipo,
+      puertaEnVivo ? { ...puertaEnVivo, segundosDesde: segundosDesdePuerta } : null,
+    )
     const hasta = Date.parse(ultima.timestamp) || 0
     const aperturas = puerta.sinSensor ? 0 : aperturasEnSerie(serie, puerta.umbral).length
     contenido = (
@@ -229,7 +237,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           etiqueta={t('dashboard.humedadCorta')}
           valor={ultima.humedad_ambiental}
           unidad="%"
-          decimales={0}
+          decimales={DECIMALES_HUMEDAD}
           campo="humedad_ambiental"
           ultima={ultima}
           anterior={anterior}

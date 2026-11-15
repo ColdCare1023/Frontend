@@ -17,6 +17,7 @@ import { Paginacion } from '../../components/Paginacion'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Button } from '../../components/ui/button'
 import { Esqueleto } from '../../components/ui/esqueleto'
+import { DECIMALES_HUMEDAD } from '../../components/ui/formato-cifra'
 import { Segmentado } from '../../components/ui/segmentado'
 import { useReloj } from '../../hooks/useReloj'
 import { etiquetaIntervalo, resumenVentana } from './utilidades'
@@ -69,7 +70,7 @@ function TablaLecturasVentana({ serie, titulo }: { serie: readonly LecturaTermic
                 </td>
                 <td className="nums px-3 font-semibold text-foreground">{lectura.temperatura_interna?.toFixed(1) ?? '—'}</td>
                 <td className="nums px-3">{lectura.temperatura_ambiental?.toFixed(1) ?? '—'}</td>
-                <td className="nums px-3">{lectura.humedad_ambiental?.toFixed(0) ?? '—'}</td>
+                <td className="nums px-3">{lectura.humedad_ambiental?.toFixed(DECIMALES_HUMEDAD) ?? '—'}</td>
                 <td className="px-3">
                   <RiskBadge nivel={estadoRiesgoDe(lectura)} />
                 </td>
@@ -178,7 +179,7 @@ export const CeldaCurva = memo(function CeldaCurva({
       const filas: Array<[string, string]> = [
         [t('dashboard.tempInterna'), valorCon(lectura.temperatura_interna, '°C')],
         [t('dashboard.ambienteCorto'), valorCon(lectura.temperatura_ambiental, '°C')],
-        [t('dashboard.humedadCorta'), valorCon(lectura.humedad_ambiental, '%', 0)],
+        [t('dashboard.humedadCorta'), valorCon(lectura.humedad_ambiental, '%', DECIMALES_HUMEDAD)],
       ]
       if (lectura.apertura_refrigerador !== null && lectura.apertura_refrigerador !== undefined) {
         filas.push([t('dashboard.puerta'), lectura.apertura_refrigerador ? t('dashboard.puertaAbierta') : t('dashboard.puertaCerrada')])
@@ -196,7 +197,7 @@ export const CeldaCurva = memo(function CeldaCurva({
         [t('dashboard.tempInterna'), valorCon(interna.promedio, '°C')],
         [t('dashboard.tooltipExtremos'), interna.min == null ? '—' : t('dashboard.tooltipMinMax', { min: interna.min.toFixed(1), max: (interna.max ?? interna.min).toFixed(1) })],
         [t('dashboard.ambienteCorto'), valorCon(punto.ambiental.promedio, '°C')],
-        [t('dashboard.humedadCorta'), valorCon(punto.humedad.promedio, '%', 0)],
+        [t('dashboard.humedadCorta'), valorCon(punto.humedad.promedio, '%', DECIMALES_HUMEDAD)],
       ]
       return [
         `<div style="font-weight:600">${escapar(`${fechaHora(new Date(punto.inicio).toISOString())} – ${formatearHora(new Date(punto.fin).toISOString())}`)}</div>`,

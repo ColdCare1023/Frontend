@@ -70,6 +70,27 @@ describe('PanelEvidencia (HU-47)', () => {
     expect(screen.queryByText('Modelo experimental (no aprobado).')).not.toBeInTheDocument()
   })
 
+  it('inferencia del preventivo activo y aprobado (backend con registro): «Sí» y política «Versión aprobada»', () => {
+    montar(
+      aEvidencia(
+        api({
+          modelo_version: 'p-1.0.0',
+          ia_experimental: false,
+          version_era_activa_y_aprobada_en_ese_momento: true,
+          version_activa_en_ese_momento: 'p-1.0.0',
+          politica_operativa: 'aprobada',
+          horizonte_min: 30,
+          feature_schema_version: '4',
+        }),
+      ),
+    )
+    expect(screen.getByText('Versión activa y aprobada al clasificar')).toBeInTheDocument()
+    expect(screen.getByTestId('version-aprobada-al-clasificar')).toHaveTextContent(/^Sí$/)
+    expect(screen.getByText('Versión aprobada')).toBeInTheDocument()
+    expect(screen.getByText('30 min')).toBeInTheDocument()
+    expect(screen.queryByText('Modelo experimental (no aprobado).')).not.toBeInTheDocument()
+  })
+
   it('sin inferencia del modelo no afirma ni niega la aprobación', () => {
     montar(aEvidencia(api({ version_era_activa_y_aprobada_en_ese_momento: null, estado_inferencia: 'omitida', clasificacion_final: null })))
     expect(screen.getByTestId('version-aprobada-al-clasificar')).toHaveTextContent('Sin dato: el modelo no clasificó esta lectura')
@@ -107,5 +128,38 @@ describe('PanelEvidencia: estado de riesgo rotulado (HU-34)', () => {
     expect(evidencia.estado_riesgo).toBeNull()
     montar(evidencia)
     expect(estadoRotulado()).toBe('normal')
+  })
+})
+
+/** HU-18 esc. 1 / HU-47 esc. 1: probabilidades de ambas clases del preventivo. */
+describe('PanelEvidencia: probabilidades sin calibrar (HU-18/HU-47)', () => {
+  it('muestra las dos clases y avisa que la salida de predict_proba no está calibrada', () => {
+    montar(
+      aEvidencia(
+        api({
+          modelo_version: 'p-1.0.0',
+          ia_experimental: false,
+          probabilidades_por_clase: { normal: 0.2, riesgo_preventivo: 0.8 },
+          probabilidades_calibradas: false,
+          clasificacion_final: 'riesgo_preventivo',
+        }),
+      ),
+    )
+    expect(screen.getByRole('heading', { name: 'Probabilidades del modelo' })).toBeInTheDocument()
+    expect(screen.getByTestId('probabilidades-sin-calibrar')).toHaveTextContent(/sin calibrar/)
+    expect(screen.getByText('20.0 %')).toBeInTheDocument()
+    expect(screen.getByText('80.0 %')).toBeInTheDocument()
+  })
+
+  it('sin el dato (modelo legado o backend anterior) no añade la nota', () => {
+    const evidencia = aEvidencia(api())
+    expect(evidencia.probabilities_calibrated).toBeNull()
+    montar(evidencia)
+    expect(screen.queryByTestId('probabilidades-sin-calibrar')).not.toBeInTheDocument()
+  })
+
+  it('con probabilidades declaradas calibradas tampoco la añade', () => {
+    montar(aEvidencia(api({ probabilidades_calibradas: true })))
+    expect(screen.queryByTestId('probabilidades-sin-calibrar')).not.toBeInTheDocument()
   })
 })

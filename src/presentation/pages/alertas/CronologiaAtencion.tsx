@@ -50,7 +50,7 @@ function Entrada({
 }
 
 /**
- * HU-23 criterio 4 y HU-28: cronología de atención (generada → revisada →
+ * HU-23 criterio 4 y HU-28: cronología de atención (generada → reconocida →
  * acciones, con sus rectificaciones). Solo lectura para el auditor; el autor
  * técnico, el farmacéutico y el administrador rectifican la versión vigente
  * en línea, sin borrar la original.
@@ -168,6 +168,16 @@ export function CronologiaAtencion({
 
   const fechaDeAccion = (id: string | null | undefined) => fechaHora(ciclo.find((a) => a.id === id)?.created_at ?? null)
 
+  // HU-23 esc. 1 y 3: una acción sobre una alerta PENDIENTE la reconoce en el
+  // mismo instante y a nombre de quien la registra (REVISAR_ALERTA con origen
+  // `accion_correctiva`, antes del eslabón de la acción). El nombre puede no
+  // haber llegado aún en la alerta (actualización local): se toma de su acción.
+  const reconocidaAlAtender = Boolean(
+    alerta.reconocida_en && alerta.atendida_en && Date.parse(alerta.reconocida_en) === Date.parse(alerta.atendida_en),
+  )
+  const nombreQuienReconocio =
+    alerta.revisada_por_nombre ?? ciclo.find((a) => a.usuario_id === alerta.revisada_por)?.usuario_nombre ?? alerta.revisada_por
+
   return (
     <div>
       <p role="status" className="sr-only">
@@ -190,9 +200,10 @@ export function CronologiaAtencion({
             </p>
             {alerta.revisada_por && (
               <p className="text-meta text-muted">
-                {t('alertas.responsable')}: {alerta.revisada_por_nombre ?? alerta.revisada_por}
+                {t('alertas.responsable')}: {nombreQuienReconocio}
               </p>
             )}
+            {reconocidaAlAtender && <p className="text-meta text-muted">{t('alertas.reconocidaConAccion')}</p>}
           </Entrada>
         )}
         {estado === 'cargando' &&

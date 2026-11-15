@@ -27,6 +27,9 @@ test('auditoría: el auditor filtra por resultado en el servidor y expande una f
   await page.getByLabel('Resultado', { exact: true }).selectOption('fallido')
   await expect(page.getByText('Resultado: Fallido', { exact: true })).toBeVisible()
   const tabla = page.locator('[role="region"][aria-label="Bitácora de auditoría"]')
+  // Hasta que llega la lista filtrada se ven las filas anteriores; al llegar,
+  // la vista se reinicia y cerraría la fila que se hubiera abierto antes.
+  await expect(tabla).not.toHaveAttribute('aria-busy', 'true')
   await tabla.getByRole('button', { name: /Ver detalle de/ }).first().click()
   await expect(page.locator('tr[data-detalle]')).toContainText('IP de origen')
   await expect(page.locator('tr[data-detalle]')).toContainText('Recurso')

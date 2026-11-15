@@ -30,7 +30,15 @@ import {
 } from './datosDemo'
 import { CODIGO_VERIFICACION_DEMO, EVENTO_SSE_DEMO } from './constantesDemo'
 import { calcularSerieDemo } from './serieDemo'
-import { activarVersionDemo, listarVersionesDemo, registrarVersionDemo, versionActivaEnDemo } from './versionesModeloDemo'
+import {
+  activarVersionDemo,
+  desactivarVersionDemo,
+  estadoPreventivoDemo,
+  listarVersionesDemo,
+  modeloNoDisponibleDemo,
+  registrarVersionDemo,
+  registroActivoEnDemo,
+} from './versionesModeloDemo'
 
 // Flujos que tienen estado propio del adapter durante la sesión demo.
 const historialConfiguracionDemo = new Map<string, HistorialConfiguracion[]>(semillaHistorialConfiguracion())
@@ -388,8 +396,8 @@ function responder<T>(config: InternalAxiosRequestConfig, data: T, status = 200,
   return { data, status, statusText: 'OK', headers, config }
 }
 
-function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: string): never {
-  const respuesta = responder(config, { detail: mensaje }, status)
+function fallar(config: InternalAxiosRequestConfig, status: number, mensaje: string, extra: Record<string, unknown> = {}): never {
+  const respuesta = responder(config, { detail: mensaje, ...extra }, status)
   throw new AxiosError(mensaje, 'ERR_BAD_REQUEST', config, null, respuesta)
 }
 
@@ -488,7 +496,13 @@ function bufferRespuestaDemo(buffer: BufferLittleFS | undefined): BufferLittleFS
 }
 
 function alertasFiltradas(params: Record<string, string>): AlertaTermica[] {
-  let resultado = [...estadoDemo.alertas].reverse()
+  // D7: como el backend, el nombre de quien la reconoció ya resuelto. Siempre
+  // copias, como una respuesta serializada: si la interfaz guardara el objeto
+  // del estado demo, una escritura posterior (reconocer, atender) lo cambiaría
+  // por debajo y la actualización local partiría de un estado que aún no le llegó.
+  let resultado = [...estadoDemo.alertas]
+    .reverse()
+    .map((a) => (a.revisada_por ? { ...a, revisada_por_nombre: usuarioDemo(a.revisada_por)?.nombre ?? null } : { ...a }))
   // HU-23: `estado` es el filtro real; `revisada` se conserva solo por si
   // algún consumidor viejo del demo todavía lo manda.
   if (params.estado) resultado = resultado.filter((a) => a.estado === params.estado)
@@ -569,6 +583,21 @@ function actorDemo(config: InternalAxiosRequestConfig): string | null {
   return typeof actor === 'string' ? actor : null
 }
 
+/**
+ * `require_roles` del backend en la demo: el administrador pasa siempre; otro
+ * rol fuera de `roles` recibe 403 y queda RBAC_DENEGADO en la bitácora.
+ */
+function exigirRolDemo(config: InternalAxiosRequestConfig, roles: Rol[], recurso: string): Usuario {
+  const actor = actorDemo(config)
+  const usuario = actor ? usuarioDemo(actor) : undefined
+  if (!usuario || !usuario.is_active) fallar(config, 401, 'Sesión no válida')
+  if (usuario.rol !== 'administrador' && !roles.includes(usuario.rol)) {
+    registrarAuditoriaDemo('RBAC_DENEGADO', recurso, usuario.id, 'denegado', { rol: usuario.rol })
+    fallar(config, 403, 'No tiene permisos para esta operación')
+  }
+  return usuario
+}
+
 function registrarCambioDispositivo(
   deviceId: string,
   campo: string,
@@ -576,7 +605,8 @@ function registrarCambioDispositivo(
   nuevo: unknown,
   config: InternalAxiosRequestConfig,
 ): void {
-  if (Object.is(anterior, nuevo)) return
+  // Vaciar un campo que ya estaba vacío (`null` frente a `undefined`) no es un cambio.
+  if (Object.is(anterior ?? null, nuevo ?? null)) return
   const historial = historialConfiguracionDemo.get(deviceId) ?? []
   historial.unshift({
     id: `cfg-demo-${siguienteCambioDemo++}`,
@@ -783,6 +813,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
   // 409, igual que en el backend (`AlertaTermica.reconocer()`).
   const revisar = /^\/api\/alertas\/([^/]+)\/revisar$/.exec(url)
   if (metodo === 'patch' && revisar) {
+    const actor = exigirRolDemo(config, ['farmaceutico'], `alertas/${revisar[1]}`)
     const alerta = estadoDemo.alertas.find((a) => a.id === revisar[1])
     if (!alerta) fallar(config, 404, 'Alerta no encontrada')
     if (alerta.estado !== 'pendiente') {
@@ -791,30 +822,46 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     alerta.estado = 'reconocida'
     alerta.reconocida_en = new Date().toISOString()
     alerta.revisada = true
-    alerta.revisada_por = 'u-01'
-    return responder(config, alerta)
+    alerta.revisada_por = actor.id
+    registrarAuditoriaDemo('REVISAR_ALERTA', `alertas/${alerta.id}`, actor.id, 'exitoso', { nivel_riesgo: alerta.nivel_riesgo })
+    return responder(config, { ...alerta, revisada_por_nombre: actor.nombre })
   }
 
-  // HU-23 Escenario 2: registrar la acción marca ATENDIDA (desde PENDIENTE o
-  // RECONOCIDA — el backend no exige el paso intermedio). Ya atendida es 409.
+  // HU-27 + HU-23 (como el backend desde fix/backlog-r2-alertas): solo el
+  // farmacéutico (y el administrador) registra la acción; el técnico recibe
+  // 403 (H16). Sobre una PENDIENTE, quien registra la reconoce primero
+  // (REVISAR_ALERTA con origen `accion_correctiva`, mismo instante) y luego
+  // queda ATENDIDA. Ya atendida es 409.
   const accion = /^\/api\/alertas\/([^/]+)\/acciones-correctivas$/.exec(url)
   if (metodo === 'post' && accion) {
+    const actor = exigirRolDemo(config, ['farmaceutico'], `alertas/${accion[1]}/acciones-correctivas`)
     const alerta = estadoDemo.alertas.find((a) => a.id === accion[1])
     if (!alerta) fallar(config, 404, 'Alerta no encontrada')
     if (alerta.estado === 'atendida') {
       fallar(config, 409, 'La alerta ya fue atendida por otra acción correctiva')
     }
+    const ahora = new Date().toISOString()
+    if (alerta.estado === 'pendiente') {
+      alerta.estado = 'reconocida'
+      alerta.reconocida_en = ahora
+      alerta.revisada = true
+      alerta.revisada_por = actor.id
+      registrarAuditoriaDemo('REVISAR_ALERTA', `alertas/${alerta.id}`, actor.id, 'exitoso', {
+        nivel_riesgo: alerta.nivel_riesgo,
+        origen: 'accion_correctiva',
+      })
+    }
     alerta.estado = 'atendida'
-    alerta.atendida_en = new Date().toISOString()
+    alerta.atendida_en = ahora
 
     const nueva = {
       id: `ac-vivo-${Date.now()}`,
       alert_id: accion[1],
-      usuario_id: 'u-01',
+      usuario_id: actor.id,
       decision: String(cuerpoJson(config).decision ?? ''),
       descripcion: String(cuerpoJson(config).descripcion ?? ''),
       justificacion: String(cuerpoJson(config).justificacion ?? ''),
-      created_at: new Date().toISOString(),
+      created_at: ahora,
       corrige_accion_id: null,
     }
     estadoDemo.acciones.push(nueva)
@@ -1033,19 +1080,44 @@ export const demoAdapter: AxiosAdapter = async (config) => {
 
   /* ── Métricas del modelo (RNF-04) ───────────────────────────── */
   if (metodo === 'get' && url === '/api/ia/modelo') {
+    // HU-16: los 503 llevan `motivo` y `rechazado_por_verificacion`, como el backend.
+    const noDisponible = modeloNoDisponibleDemo()
+    if (noDisponible) {
+      throw new AxiosError(noDisponible.detail, 'ERR_BAD_RESPONSE', config, null, responder(config, noDisponible, 503))
+    }
     return responder(config, METRICAS_IA_DEMO)
+  }
+  /* ── Clasificación preventiva (HU-20 / HU-34 / HU-46) ──────────── */
+  if (metodo === 'get' && url === '/api/ia/preventivo') {
+    return responder(config, estadoPreventivoDemo())
   }
   /* ── Versionado operativo del modelo (HU-46) ───────────────────── */
   if (metodo === 'get' && url === '/api/ia/modelo/versiones') {
     return responder(config, listarVersionesDemo())
   }
   if (metodo === 'post' && url === '/api/ia/modelo/versiones') {
-    const resultado = registrarVersionDemo(cuerpoJson(config), actorDemo(config))
-    if (!resultado.data) fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida')
+    const cuerpo = cuerpoJson(config)
+    const resultado = registrarVersionDemo(cuerpo, actorDemo(config))
+    if (!resultado.data) {
+      if (cuerpo.activar === true && resultado.motivos) {
+        // HU-46 esc. 2: el rechazo de «registrar y activar» también queda en la bitácora.
+        registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA_RECHAZADO', `ia/modelo/versiones/${String(cuerpo.version)}/activar`,
+          actorDemo(config), 'fallido',
+          { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos, codigos: resultado.codigos ?? [], al_registrar: true })
+      }
+      // Como /activar: el 409 de registrar y activar trae `codigos` junto al `detail`.
+      fallar(config, resultado.status, resultado.detalle ?? 'Solicitud no válida', resultado.codigos ? { codigos: resultado.codigos } : {})
+    }
     registrarAuditoriaDemo('REGISTRAR_VERSION_MODELO_IA', `ia/modelo/versiones/${resultado.data.version}`, actorDemo(config), 'exitoso', {
       version: resultado.data.version,
       model_hash: resultado.data.model_hash,
     })
+    if (resultado.data.activa) {
+      registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA', `ia/modelo/versiones/${resultado.data.version}/activar`, actorDemo(config), 'exitoso', {
+        version: resultado.data.version,
+        al_registrar: true,
+      })
+    }
     return responder(config, resultado.data, resultado.status)
   }
   const activarVersion = /^\/api\/ia\/modelo\/versiones\/([^/]+)\/activar$/.exec(url)
@@ -1056,10 +1128,39 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     if (!resultado.data) {
       // HU-46 esc. 2: el rechazo también queda en la bitácora; la activa no cambia.
       registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA_RECHAZADO', recurso, actorDemo(config), 'fallido',
-        resultado.status === 404 ? { motivo: 'version_no_registrada' } : { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos ?? [] })
-      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo activar la versión')
+        resultado.status === 404
+          ? { motivo: 'version_no_registrada' }
+          : { motivo: 'criterios_no_cumplidos', motivos: resultado.motivos ?? [], codigos: resultado.codigos ?? [] })
+      // IA-B05: el 409 trae `codigos` junto al `detail`, uno por motivo y en el mismo orden.
+      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo activar la versión', resultado.codigos ? { codigos: resultado.codigos } : {})
     }
     registrarAuditoriaDemo('ACTIVAR_VERSION_MODELO_IA', recurso, actorDemo(config), 'exitoso', { version })
+    return responder(config, resultado.data)
+  }
+  const desactivarVersion = /^\/api\/ia\/modelo\/versiones\/([^/]+)\/desactivar$/.exec(url)
+  if (metodo === 'post' && desactivarVersion) {
+    // P-12: sin versión activa, el preventivo no se carga y el riesgo vuelve a la línea base.
+    const version = decodeURIComponent(desactivarVersion[1])
+    const recurso = `ia/modelo/versiones/${version}/desactivar`.slice(0, 100)
+    const cuerpo = cuerpoJson(config)
+    // El backend guarda el motivo ya recortado (strip_whitespace).
+    const motivo = typeof cuerpo.motivo === 'string' ? cuerpo.motivo.trim() : cuerpo.motivo
+    const resultado = desactivarVersionDemo(version, cuerpo)
+    if (!resultado.data) {
+      // Como el backend: 404 y 409 quedan en la bitácora (un 422 no llega a la ruta).
+      if (resultado.status === 404 || resultado.status === 409) {
+        registrarAuditoriaDemo('DESACTIVAR_VERSION_MODELO_IA_RECHAZADO', recurso, actorDemo(config), 'fallido', {
+          motivo: resultado.status === 409 ? 'version_no_activa' : 'version_no_registrada',
+          justificacion: motivo,
+        })
+      }
+      fallar(config, resultado.status, resultado.detalle ?? 'No se pudo desactivar la versión')
+    }
+    registrarAuditoriaDemo('DESACTIVAR_VERSION_MODELO_IA', recurso, actorDemo(config), 'exitoso', {
+      version,
+      motivo,
+      model_hash: resultado.data.model_hash,
+    })
     return responder(config, resultado.data)
   }
   const detalleInferencia = /^\/api\/ia\/inferencia\/([^/]+)$/.exec(url)
@@ -1067,16 +1168,21 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     const lectura = estadoDemo.lecturas.find((item) => item.id === detalleInferencia[1])
     if (!lectura) fallar(config, 404, 'Lectura no encontrada')
     const clase = lectura.nivel_riesgo
+    // HU-18 esc. 4 / HU-47 esc. 1: el modelo es binario; la excursión crítica
+    // es de la regla 2–8 °C y nunca se muestra como probabilidad del modelo.
     const probabilidades = clase === 'normal'
-      ? { excursion_critica: 0.03, riesgo_preventivo: 0.08, normal: 0.89 }
+      ? { riesgo_preventivo: 0.08, normal: 0.92 }
       : clase === 'riesgo_preventivo'
-        ? { excursion_critica: 0.07, riesgo_preventivo: 0.84, normal: 0.09 }
-        : clase === 'excursion_critica'
-          ? { excursion_critica: 0.88, riesgo_preventivo: 0.09, normal: 0.03 }
-          : null
+        ? { riesgo_preventivo: 0.84, normal: 0.16 }
+        : null
     // HU-47 esc. 2: se cruza con el versionado demo (HU-46) en el momento de la inferencia.
     const huboInferencia = lectura.estado_inferencia === 'completada' && Boolean(lectura.modelo_version)
-    const versionVigente = huboInferencia ? versionActivaEnDemo(lectura.timestamp) : null
+    const registroVigente = huboInferencia ? registroActivoEnDemo(lectura.timestamp) : null
+    const versionVigente = registroVigente?.version ?? null
+    // La demo clasifica con su modelo experimental (demo-3.0.0, no activable):
+    // solo una lectura clasificada por la versión activa en ese momento sería «aprobada».
+    const aprobada = huboInferencia && versionVigente !== null && versionVigente === lectura.modelo_version
+    const experimental = huboInferencia && !aprobada
     // B-13: misma forma que InferenciaLecturaResponse del backend.
     return responder(config, {
       lectura_id: lectura.id,
@@ -1089,6 +1195,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
         humedad_ambiental: lectura.humedad_ambiental,
       },
       probabilidades_por_clase: probabilidades,
+      probabilidades_calibradas: probabilidades ? false : null,
       clasificacion_final: clase,
       confianza: null,
       origen_clasificacion: lectura.origen_clasificacion ?? null,
@@ -1099,7 +1206,11 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       riesgo_efectivo: lectura.riesgo_efectivo,
       // HU-34 esc. 4: lo que se rotula, como `estado_riesgo` del backend.
       estado_riesgo: estadoRiesgoDe(lectura),
-      ia_experimental: true,
+      ia_experimental: experimental || !huboInferencia,
+      // HU-18 esc. 4: horizonte, esquema y política vigentes (gestionar_modelo_ia.py).
+      horizonte_min: registroVigente?.horizonte_min ?? null,
+      feature_schema_version: registroVigente?.feature_schema_version ?? null,
+      politica_operativa: !huboInferencia ? null : aprobada ? 'aprobada' : 'experimental',
     })
   }
 

@@ -12,7 +12,7 @@ export type TemaGrafica = 'dark' | 'light'
 
 /**
  * Paleta de la curva (DIRECTION §3, §4 y §18): tinta navy de registrador
- * para el trazo, franja teal 2–8 °C con cotas discontinuas, carmesí solo
+ * para el trazo, franja verde 2–8 °C (HU-31) con cotas discontinuas, carmesí solo
  * para lo que sale del rango y acero con trama para «sin datos». Rosa y cian
  * son de la marca y no aparecen en datos.
  */
@@ -33,11 +33,11 @@ export function temaGrafica(tema: TemaGrafica = 'light') {
     primary: colorToken('grafica-1', oscuro ? '#DCE4F0' : '#1B2B47'),
     /** Ambiente: línea discontinua. */
     secondary: colorToken('grafica-2', oscuro ? '#6B778C' : '#7A879C'),
-    /** Franja 2–8 °C y sus cotas. */
-    banda: colorToken('banda', oscuro ? '#0F2730' : '#E6F5F8'),
-    safe: colorToken('banda-borde', oscuro ? '#3FB6CC' : '#2F93A8'),
-    // Texto sobre la franja: el tono «normal» legible (AA) en ambos temas.
-    safeText: colorToken('success-700', oscuro ? '#5CC6D4' : '#07546A'),
+    /** HU-31 esc. 1: franja 2–8 °C en verde («zonas rojo/verde») y sus cotas. */
+    banda: colorToken('grafica-zona', oscuro ? '#0F2418' : '#E8F6EC'),
+    safe: colorToken('grafica-zona-borde', oscuro ? '#46B06C' : '#2B8A4E'),
+    // Texto sobre la franja: verde legible (AA) en ambos temas.
+    safeText: colorToken('grafica-zona-texto', oscuro ? '#72D197' : '#1B6337'),
     /** Tramos fuera de 2–8 °C, episodios y marcadores de excursión. */
     critical: colorToken('danger-700', oscuro ? '#FF7A87' : '#A4233F'),
     /** HU-31 esc. 1: zonas por debajo de 2 °C y por encima de 8 °C, rojo tenue. */

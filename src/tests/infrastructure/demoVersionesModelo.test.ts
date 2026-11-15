@@ -1,10 +1,14 @@
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { aClasificacionPreventiva, type EstadoPreventivoApi } from '@/application/hooks/useClasificacionPreventiva'
+import { interpretarModeloNoDisponible } from '@/application/hooks/useModeloIA'
 import type { VersionModeloIA } from '@/application/hooks/useVersionesModelo'
 import { demoAdapter } from '@/infrastructure/demo/demoAdapter'
 import { estadoDemo } from '@/infrastructure/demo/datosDemo'
-import { reiniciarVersionesDemo } from '@/infrastructure/demo/versionesModeloDemo'
+import { reiniciarVersionesDemo, simularModeloIADemo } from '@/infrastructure/demo/versionesModeloDemo'
+import i18n from '@/infrastructure/i18n'
+import { clasificarRechazo } from '@/presentation/pages/metricas/motivosActivacion'
 import { errores, esquemaPeticion } from '../contrato/validarOpenApi'
 
 function config(over: Partial<InternalAxiosRequestConfig>): InternalAxiosRequestConfig {
@@ -16,13 +20,13 @@ function config(over: Partial<InternalAxiosRequestConfig>): InternalAxiosRequest
   } as InternalAxiosRequestConfig
 }
 
-async function estadoDeError(promesa: Promise<unknown>): Promise<{ status?: number; detail?: string }> {
+async function estadoDeError(promesa: Promise<unknown>): Promise<{ status?: number; detail?: string; data?: unknown }> {
   try {
     await promesa
     return {}
   } catch (error) {
     const respuesta = (error as AxiosError<{ detail: string }>).response
-    return { status: respuesta?.status, detail: respuesta?.data.detail }
+    return { status: respuesta?.status, detail: respuesta?.data.detail, data: respuesta?.data }
   }
 }
 
@@ -64,10 +68,20 @@ describe('demo: versionado del modelo (HU-46)', () => {
     expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO', resultado: 'fallido' })
   })
 
-  it('activar sin H, particiones ni métricas responde 409 con el motivo', async () => {
+  it('activar sin H, particiones ni métricas responde 409 con el motivo y sus códigos, como el backend', async () => {
     const error = await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/activar' })))
     expect(error.status).toBe(409)
     expect(error.detail).toMatch(/no puede activarse: falta el horizonte H/)
+    // IA-B05: un código estable por motivo del `detail`, en el mismo orden.
+    const codigos = ['falta_horizonte', 'faltan_particiones', 'faltan_metricas_criterio_principal']
+    expect(error.data).toMatchObject({ codigos })
+    expect(error.detail?.split(': ')[1].split('; ')).toHaveLength(codigos.length)
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      detalle: { motivo: 'criterios_no_cumplidos', codigos },
+    })
+    const rechazo = clasificarRechazo(error.detail ?? null, 'preventivo', i18n.t.bind(i18n), (error.data as { codigos: string[] }).codigos)
+    expect(rechazo.motivos.map((m) => m.grupo)).toEqual(['criterios', 'criterios', 'criterios'])
   })
 
   it('registra (201), rechaza el duplicado (409) y activa una versión completa', async () => {
@@ -84,6 +98,113 @@ describe('demo: versionado del modelo (HU-46)', () => {
     expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA', resultado: 'exitoso' })
   })
 
+  it('HU-46 esc. 1: registra y activa en una sola operación, auditada', async () => {
+    const cuerpo = { ...COMPLETA, activar: true }
+    expect(errores(cuerpo, esquemaPeticion('post', '/api/ia/modelo/versiones'))).toEqual([])
+    const alta = await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(cuerpo) }))
+    expect(alta.status).toBe(201)
+    expect(alta.data).toMatchObject({ version: 'demo-4.0.0', activa: true })
+    expect(estadoDemo.auditoria[0]).toMatchObject({ accion: 'ACTIVAR_VERSION_MODELO_IA', resultado: 'exitoso' })
+  })
+
+  it('HU-46 esc. 1: si la activación se rechazaría, tampoco queda registrada', async () => {
+    const incompleta = { ...COMPLETA, version: 'demo-5.0.0', horizonte_min: undefined, activar: true }
+    const error = await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(incompleta) })))
+    expect(error.status).toBe(409)
+    // Mismo cuerpo que el backend: el prefijo, el texto de /activar y `codigos`.
+    expect(error.detail).toBe('La versión no se registró ni se activó: La versión demo-5.0.0 no puede activarse: falta el horizonte H de la etiqueta')
+    expect(error.data).toMatchObject({ codigos: ['falta_horizonte'] })
+    const { data } = await demoAdapter(config({ url: '/api/ia/modelo/versiones' }))
+    expect((data as VersionModeloIA[]).some((v) => v.version === 'demo-5.0.0')).toBe(false)
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'ACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      resultado: 'fallido',
+      detalle: { motivo: 'criterios_no_cumplidos', codigos: ['falta_horizonte'], al_registrar: true },
+    })
+    // La interfaz lo explica con los mismos motivos que el 409 de /activar.
+    const rechazo = clasificarRechazo(error.detail ?? null, 'preventivo', i18n.t.bind(i18n), (error.data as { codigos: string[] }).codigos)
+    expect(rechazo.motivos).toEqual([{ grupo: 'criterios', texto: 'falta el horizonte H de la etiqueta' }])
+  })
+
+  it('P-12: desactivar la versión activa (200) vuelve a dejar la preventiva sin versión activa', async () => {
+    await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(COMPLETA) }))
+    await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/activar' }))
+    const motivo = 'Vuelta atrás por falsas alarmas'
+    const cuerpo = { motivo: `  ${motivo}  ` }
+    expect(errores(cuerpo, esquemaPeticion('post', '/api/ia/modelo/versiones/demo-4.0.0/desactivar'))).toEqual([])
+    const respuesta = await demoAdapter(
+      config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/desactivar', data: JSON.stringify(cuerpo) }),
+    )
+    expect(respuesta.status).toBe(200)
+    expect(respuesta.data).toMatchObject({ version: 'demo-4.0.0', activa: false, desactivada_en: expect.any(String) })
+    // Como el backend: el motivo recortado y la huella de la versión desactivada.
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'DESACTIVAR_VERSION_MODELO_IA',
+      recurso: 'ia/modelo/versiones/demo-4.0.0/desactivar',
+      resultado: 'exitoso',
+      detalle: { version: 'demo-4.0.0', motivo, model_hash: COMPLETA.model_hash },
+    })
+    const { data: lista } = await demoAdapter(config({ url: '/api/ia/modelo/versiones' }))
+    expect((lista as VersionModeloIA[]).some((v) => v.activa)).toBe(false)
+    const { data: preventivo } = await demoAdapter(config({ url: '/api/ia/preventivo' }))
+    expect(preventivo).toMatchObject({ disponible: false, motivo_codigo: 'sin_version_activa_registrada', version_activa_registrada: null })
+
+    // Una segunda llamada (o la concurrente) ya no encuentra la versión activa: 409.
+    const otra = await estadoDeError(
+      demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/desactivar', data: JSON.stringify(cuerpo) })),
+    )
+    expect(otra).toMatchObject({ status: 409, detail: 'version_no_activa' })
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'DESACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      resultado: 'fallido',
+      detalle: { motivo: 'version_no_activa', justificacion: motivo },
+    })
+  })
+
+  it('P-12: desactivar responde 404 si no existe, 409 si no es la activa y 422 con un motivo no válido', async () => {
+    const motivo = JSON.stringify({ motivo: 'Motivo suficientemente largo' })
+    const auditadas = estadoDemo.auditoria.length
+    expect(await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/no-existe/desactivar', data: motivo }))))
+      .toMatchObject({ status: 404 })
+    // Como el backend, el rechazo queda en la bitácora con su motivo y la justificación escrita.
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'DESACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      recurso: 'ia/modelo/versiones/no-existe/desactivar',
+      resultado: 'fallido',
+      detalle: { motivo: 'version_no_registrada', justificacion: 'Motivo suficientemente largo' },
+    })
+    expect(await estadoDeError(demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/desactivar', data: motivo }))))
+      .toMatchObject({ status: 409, detail: 'version_no_activa' })
+    expect(estadoDemo.auditoria[0]).toMatchObject({
+      accion: 'DESACTIVAR_VERSION_MODELO_IA_RECHAZADO',
+      detalle: { motivo: 'version_no_activa', justificacion: 'Motivo suficientemente largo' },
+    })
+    const rechazosAuditados = estadoDemo.auditoria.length
+    for (const cuerpo of [
+      { motivo: 'corto' },
+      { motivo: 'x'.repeat(501) },
+      {},
+      { motivo: 'Motivo suficientemente largo', extra: 1 },
+      // Sin espacios de borde y por carácter, como Pydantic: 5 caracteres, no 13 ni 10.
+      { motivo: '    corto    ' },
+      { motivo: '🧊'.repeat(5) },
+    ]) {
+      const error = await estadoDeError(
+        demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/desactivar', data: JSON.stringify(cuerpo) })),
+      )
+      expect(error.status).toBe(422)
+    }
+    // Un 422 no llega a la ruta del backend: no deja fila en la bitácora.
+    expect(estadoDemo.auditoria.length).toBe(rechazosAuditados)
+    // 500 caracteres con espacios alrededor siguen siendo 500: pasa la validación (y luego 409, no es la activa).
+    const alLimite = await estadoDeError(
+      demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-3.0.0/desactivar', data: JSON.stringify({ motivo: ` ${'x'.repeat(500)}  ` }) })),
+    )
+    expect(alLimite.status).toBe(409)
+    // Los rechazos no desactivan nada ni dejan una desactivación en la bitácora.
+    expect(estadoDemo.auditoria.slice(0, estadoDemo.auditoria.length - auditadas).some((a) => a.accion === 'DESACTIVAR_VERSION_MODELO_IA')).toBe(false)
+  })
+
   it('rechaza campos que el backend no admite (422)', async () => {
     const error = await estadoDeError(
       demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify({ ...COMPLETA, version: 'x', extra: 1 }) })),
@@ -95,5 +216,65 @@ describe('demo: versionado del modelo (HU-46)', () => {
     const lectura = estadoDemo.lecturas.find((l) => l.estado_inferencia === 'completada' && l.modelo_version)!
     const { data } = await demoAdapter(config({ url: `/api/ia/inferencia/${lectura.id}` }))
     expect(data).toMatchObject({ version_era_activa_y_aprobada_en_ese_momento: false, version_activa_en_ese_momento: null, ia_experimental: true })
+    // HU-18 esc. 4: solo normal y riesgo_preventivo; nunca excursion_critica como probabilidad.
+    const probabilidades = (data as { probabilidades_por_clase: Record<string, number> | null }).probabilidades_por_clase
+    if (probabilidades) expect(Object.keys(probabilidades).sort()).toEqual(['normal', 'riesgo_preventivo'])
+  })
+})
+
+/** HU-16 / HU-20 / HU-47 en la demostración: los estados nuevos del backend. */
+describe('demo: estado del modelo y de la clasificación preventiva', () => {
+  beforeEach(() => reiniciarVersionesDemo())
+
+  it('GET /api/ia/preventivo: sin versión activa en el registro, fuera de operación (como el backend en modo activo)', async () => {
+    const { data } = await demoAdapter(config({ url: '/api/ia/preventivo' }))
+    expect(data).toMatchObject({
+      modo: 'activo', disponible: false, motivo_codigo: 'sin_version_activa_registrada',
+      version_activa_registrada: null, es_version_activa_registrada: false, datos_simulados: true,
+    })
+    expect(aClasificacionPreventiva(data as EstadoPreventivoApi)).toMatchObject({ operativa: false, artefactoGobernado: 'preventivo' })
+  })
+
+  it('activar una versión completa pone en operación la clasificación preventiva', async () => {
+    await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones', data: JSON.stringify(COMPLETA) }))
+    await demoAdapter(config({ method: 'post', url: '/api/ia/modelo/versiones/demo-4.0.0/activar' }))
+    const { data } = await demoAdapter(config({ url: '/api/ia/preventivo' }))
+    expect(data).toMatchObject({ disponible: true, version: 'demo-4.0.0', version_activa_registrada: 'demo-4.0.0', es_version_activa_registrada: true })
+    expect(aClasificacionPreventiva(data as EstadoPreventivoApi).operativa).toBe(true)
+  })
+
+  it('GET /api/ia/modelo reproduce el 503 rechazado por verificación con su motivo', async () => {
+    simularModeloIADemo({ estado: 'rechazado', motivo: 'checksum_invalido' })
+    const error = await estadoDeError(demoAdapter(config({ url: '/api/ia/modelo' })))
+    expect(error.status).toBe(503)
+    expect(error.data).toMatchObject({ motivo: 'checksum_invalido', rechazado_por_verificacion: true })
+    expect(interpretarModeloNoDisponible(error.data)).toEqual({ estado: 'rechazado', motivo: 'checksum_invalido' })
+  })
+
+  it('GET /api/ia/modelo reproduce el 503 de modelo no entrenado', async () => {
+    simularModeloIADemo({ estado: 'no_entrenado', motivo: 'sin_metricas' })
+    const error = await estadoDeError(demoAdapter(config({ url: '/api/ia/modelo' })))
+    expect(error).toMatchObject({ status: 503, data: { motivo: 'sin_metricas', rechazado_por_verificacion: false } })
+    expect(interpretarModeloNoDisponible(error.data)).toEqual({ estado: 'no_entrenado', motivo: 'sin_metricas' })
+  })
+
+  it('por defecto el modelo de la demo está disponible', async () => {
+    const respuesta = await demoAdapter(config({ url: '/api/ia/modelo' }))
+    expect(respuesta.status).toBe(200)
+  })
+
+  it('HU-47: la evidencia demo declara la política operativa, como el backend', async () => {
+    const clasificada = estadoDemo.lecturas.find((l) => l.estado_inferencia === 'completada' && l.modelo_version)!
+    const { data } = await demoAdapter(config({ url: `/api/ia/inferencia/${clasificada.id}` }))
+    expect(data).toMatchObject({ politica_operativa: 'experimental', horizonte_min: null, feature_schema_version: null })
+    // Lectura que el modelo no clasificó (p. ej. sin hora sincronizada): no hay política que declarar.
+    const sinInferencia = { ...clasificada, id: 'demo-sin-inferencia', estado_inferencia: 'omitida' as const, modelo_version: null }
+    estadoDemo.lecturas.push(sinInferencia)
+    try {
+      const { data: otra } = await demoAdapter(config({ url: '/api/ia/inferencia/demo-sin-inferencia' }))
+      expect(otra).toMatchObject({ politica_operativa: null, version_era_activa_y_aprobada_en_ese_momento: null })
+    } finally {
+      estadoDemo.lecturas.splice(estadoDemo.lecturas.indexOf(sinInferencia), 1)
+    }
   })
 })

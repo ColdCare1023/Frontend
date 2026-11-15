@@ -1,11 +1,13 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { olvidarClasificacionPreventiva } from '@/application/hooks/useClasificacionPreventiva'
 import { useAuthStore } from '@/application/stores/authStore'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { GuiaPage } from '@/presentation/pages/GuiaPage'
+import { esperarMicrotasks, instalarAdaptadorFalso } from '../../ayudas'
 
 function sesionCon(rol: Rol) {
   useAuthStore.setState({
@@ -139,5 +141,45 @@ describe('GuiaPage', () => {
     expect(within(panel).getByRole('link', { name: /abrir monitoreo/i })).toHaveAttribute('href', '/dashboard')
     expect(within(panel).getByRole('link', { name: /abrir alertas/i })).toHaveAttribute('href', '/alertas')
     expect(within(panel).getByRole('link', { name: /abrir historial/i })).toHaveAttribute('href', '/historial')
+  })
+})
+
+/** HU-20 / HU-34: el estado «Riesgo preventivo» se describe según lo que informa el backend. */
+describe('GuiaPage — Riesgo preventivo según el backend', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso> | undefined
+  beforeEach(() => olvidarClasificacionPreventiva())
+  afterEach(() => adaptador?.restaurar())
+
+  const textoPreventivo = () => screen.getByTestId('guia-estado-preventivo')
+
+  it('en operación: describe el estado como siempre', async () => {
+    sesionCon('farmaceutico')
+    adaptador = instalarAdaptadorFalso(() => ({
+      data: { modo: 'activo', disponible: true, version: 'p-1', version_activa_registrada: 'p-1', es_version_activa_registrada: true },
+    }))
+    montar('/guia?paso=estados')
+    await waitFor(() => expect(textoPreventivo()).toHaveTextContent('La lectura se acerca a uno de los límites'))
+    expect(screen.queryByText('Fuera de operación')).not.toBeInTheDocument()
+    expect(adaptador.ultima().url).toBe('/api/ia/preventivo')
+  })
+
+  it('fuera de operación: lo dice y no promete el estado ni alertas preventivas', async () => {
+    sesionCon('auditor')
+    adaptador = instalarAdaptadorFalso(() => ({ data: { modo: 'desactivado', disponible: false, motivo_codigo: 'modo_desactivado' } }))
+    montar('/guia?paso=estados')
+    await waitFor(() => expect(textoPreventivo()).toHaveTextContent('Fuera de operación en este sistema'))
+    expect(textoPreventivo()).toHaveTextContent('no se generan alertas preventivas')
+    expect(screen.getByText('Fuera de operación')).toBeInTheDocument()
+    expect(screen.queryByText(/se acerca a uno de los límites/)).not.toBeInTheDocument()
+  })
+
+  it('el técnico no consulta el estado: se le dice cuándo aparece, sin afirmar que opera', async () => {
+    sesionCon('tecnico')
+    adaptador = instalarAdaptadorFalso(() => ({ data: {} }))
+    montar('/guia?paso=estados')
+    await esperarMicrotasks()
+    expect(adaptador.peticiones.some((p) => p.url === '/api/ia/preventivo')).toBe(false)
+    expect(textoPreventivo()).toHaveTextContent('Solo aparece cuando el sistema tiene activo un modelo preventivo aprobado')
+    expect(screen.queryByText('Fuera de operación')).not.toBeInTheDocument()
   })
 })

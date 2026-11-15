@@ -8,6 +8,7 @@ import type { RegistroTrazabilidad, VerificacionSegmento } from '@/domain/entiti
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { contarPorDia } from '@/lib/agruparPorDia'
+import { instanteDelPeriodo } from '@/lib/limitesPeriodo'
 import { fechaISOlocal, fechaHora, hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
 import { cn } from '@/lib/utils'
@@ -47,6 +48,9 @@ export function TrazabilidadPage() {
   const [segmentoDeviceId, setSegmentoDeviceId] = useState('')
   const [segmentoDesde, setSegmentoDesde] = useState('')
   const [segmentoHasta, setSegmentoHasta] = useState('')
+  // HU-37 esc. 1: el periodo se acota por hora, no solo por días completos.
+  const [segmentoHoraDesde, setSegmentoHoraDesde] = useState('')
+  const [segmentoHoraHasta, setSegmentoHoraHasta] = useState('')
   const [faltaDesde, setFaltaDesde] = useState(false)
   const [tipoEvento, setTipoEvento] = useState('')
   const [equipo, setEquipo] = useState('')
@@ -86,7 +90,9 @@ export function TrazabilidadPage() {
   const puedeAislar = usuario?.rol === 'administrador' && Boolean(detalle) && estadoVerificacion === 'ruptura_detectada'
 
   // El rango invertido se marca en los dos campos y se explica antes de enviar.
-  const segmentoInvertido = Boolean(segmentoDesde && segmentoHasta && segmentoDesde > segmentoHasta)
+  const inicioSegmento = segmentoDesde ? instanteDelPeriodo(segmentoDesde, segmentoHoraDesde, 'inicio') : null
+  const finSegmento = segmentoHasta ? instanteDelPeriodo(segmentoHasta, segmentoHoraHasta, 'fin') : null
+  const segmentoInvertido = Boolean(inicioSegmento && finSegmento && inicioSegmento.getTime() > finSegmento.getTime())
   const mensajeSegmento =
     segmentoInvertido || errorSegmento === 'rango_invalido' ? t('trazabilidad.rangoInvalido') : errorSegmento ? t('comunes.error') : null
 
@@ -147,10 +153,10 @@ export function TrazabilidadPage() {
       document.getElementById('seg-desde')?.focus()
       return
     }
-    if (!segmentoDeviceId || segmentoInvertido) return
-    const desdeISO = new Date(`${segmentoDesde}T00:00:00`).toISOString()
-    const hastaISO = segmentoHasta ? new Date(`${segmentoHasta}T23:59:59.999`).toISOString() : new Date().toISOString()
-    void verificarPorDispositivo(segmentoDeviceId, desdeISO, hastaISO)
+    if (!segmentoDeviceId || segmentoInvertido || !inicioSegmento) return
+    // Sin «Hasta», hasta ahora; con fecha y sin hora, hasta el final de ese día.
+    const hastaISO = finSegmento ? finSegmento.toISOString() : new Date().toISOString()
+    void verificarPorDispositivo(segmentoDeviceId, inicioSegmento.toISOString(), hastaISO)
   }
 
   const irAFila = (id: string) => {
@@ -399,12 +405,39 @@ export function TrazabilidadPage() {
                 </div>
                 <div>
                   <Label htmlFor="seg-desde">{t('historial.desde')}</Label>
-                  <SelectorFecha id="seg-desde" valor={segmentoDesde} onCambiar={setSegmentoDesde} invalido={(faltaDesde && !segmentoDesde) || segmentoInvertido} aria-describedby="segmento-desde-ayuda" />
+                  <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
+                    <SelectorFecha id="seg-desde" valor={segmentoDesde} onCambiar={setSegmentoDesde} invalido={(faltaDesde && !segmentoDesde) || segmentoInvertido} aria-describedby="segmento-desde-ayuda" />
+                    <Input
+                      id="seg-desde-hora"
+                      type="time"
+                      step={60}
+                      className="nums"
+                      value={segmentoHoraDesde}
+                      onChange={(e) => setSegmentoHoraDesde(e.target.value)}
+                      aria-label={t('trazabilidad.horaDesde')}
+                      aria-invalid={segmentoInvertido || undefined}
+                      aria-describedby="segmento-desde-ayuda"
+                    />
+                  </div>
                   <p id="segmento-desde-ayuda" className="mt-1 text-meta text-faint">{t('trazabilidad.desdeAyuda')}</p>
                 </div>
                 <div>
                   <Label htmlFor="seg-hasta">{t('historial.hasta')}</Label>
-                  <SelectorFecha id="seg-hasta" valor={segmentoHasta} onCambiar={setSegmentoHasta} invalido={segmentoInvertido} aria-describedby="segmento-hasta-ayuda" />
+                  <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
+                    <SelectorFecha id="seg-hasta" valor={segmentoHasta} onCambiar={setSegmentoHasta} invalido={segmentoInvertido} aria-describedby="segmento-hasta-ayuda" />
+                    <Input
+                      id="seg-hasta-hora"
+                      type="time"
+                      step={60}
+                      className="nums"
+                      value={segmentoHoraHasta}
+                      onChange={(e) => setSegmentoHoraHasta(e.target.value)}
+                      disabled={!segmentoHasta}
+                      aria-label={t('trazabilidad.horaHasta')}
+                      aria-invalid={segmentoInvertido || undefined}
+                      aria-describedby="segmento-hasta-ayuda"
+                    />
+                  </div>
                   <p id="segmento-hasta-ayuda" className="mt-1 text-meta text-faint">{t('trazabilidad.hastaOpcional')}</p>
                 </div>
                 <Button id="seg-enviar" type="submit" variant="secondary" disabled={verificandoSegmento || segmentoInvertido} className="w-full">

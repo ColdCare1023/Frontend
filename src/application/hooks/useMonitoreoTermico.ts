@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
-import { suscribirseLecturas } from '@/infrastructure/sse/sseClient'
+import { suscribirseLecturas, type AvisoDispositivo, type MotivoDesconexionSse } from '@/infrastructure/sse/sseClient'
 
 // HU-31 criterio 4: ventana por defecto de 24 horas para la curva térmica del
 // dashboard (antes era un conteo fijo de las últimas 60 lecturas, sin
@@ -25,10 +25,33 @@ export interface CoberturaHistorial {
   total: number | null
 }
 
+/**
+ * HU-35 esc. 1: último cambio de puerta que el nodo publicó como evento
+ * (`puerta`, con su `occurred_at`). Llega al instante, sin esperar la próxima
+ * lectura (hasta 30 s después). Solo cuenta si es posterior a la última lectura.
+ */
+export interface PuertaEnVivo {
+  device_id: string
+  abierta: boolean
+  /** Instante del cambio (ISO-8601). */
+  desde: string
+}
+
+/** El aviso SSE `puerta` como cambio de puerta, o null si no lo es. */
+export function puertaDesdeAviso(aviso: AvisoDispositivo): PuertaEnVivo | null {
+  const abierta = aviso.detalle?.door_open
+  if (aviso.tipo !== 'puerta' || typeof abierta !== 'boolean' || Number.isNaN(Date.parse(aviso.timestamp))) return null
+  return { device_id: aviso.device_id, abierta, desde: aviso.timestamp }
+}
+
 interface MonitoreoTermico {
   ultima: LecturaTermica | null
+  /** HU-35 esc. 1: cambio de puerta en vivo (ver `PuertaEnVivo`). */
+  puertaEnVivo?: PuertaEnVivo | null
   serie: LecturaTermica[]
   sseConectado: boolean
+  /** HU-32 esc. 3: causa conocida del corte (p. ej. demasiadas pestañas abiertas). */
+  motivoDesconexion: MotivoDesconexionSse | null
   estadoHistorial: 'cargando' | 'completo' | 'error'
   reintentar: () => void
   cobertura: CoberturaHistorial | null
@@ -64,9 +87,11 @@ export function useMonitoreoTermico(
   const [serie, setSerie] = useState<LecturaTermica[]>([])
   const [ultima, setUltima] = useState<LecturaTermica | null>(null)
   const [sseConectado, setSseConectado] = useState(false)
+  const [motivoDesconexion, setMotivoDesconexion] = useState<MotivoDesconexionSse | null>(null)
   const [estadoHistorial, setEstadoHistorial] = useState<MonitoreoTermico['estadoHistorial']>('cargando')
   const [intento, setIntento] = useState(0)
   const [cobertura, setCobertura] = useState<CoberturaHistorial | null>(null)
+  const [puertaEnVivo, setPuertaEnVivo] = useState<PuertaEnVivo | null>(null)
   const reintentar = useCallback(() => setIntento((actual) => actual + 1), [])
   const deviceAnterior = useRef<string | null>(deviceId)
 
@@ -81,6 +106,7 @@ export function useMonitoreoTermico(
       setSerie([])
       setUltima(null)
       setCobertura(null)
+      setPuertaEnVivo(null)
     }
 
     const desde = new Date(Date.now() - horasVentana * 60 * 60 * 1000).toISOString()
@@ -144,7 +170,16 @@ export function useMonitoreoTermico(
           return [...previa, lectura].slice(-MAX_LECTURAS_EN_MEMORIA)
         })
       },
-      (conectado) => setSseConectado(conectado),
+      (conectado, motivo) => {
+        setSseConectado(conectado)
+        setMotivoDesconexion(conectado ? null : (motivo ?? null))
+      },
+      (aviso) => {
+        const cambio = puertaDesdeAviso(aviso)
+        if (!cambio || (deviceId && cambio.device_id !== deviceId)) return
+        // Un evento repetido tras una reconexión (más antiguo) no pisa uno nuevo.
+        setPuertaEnVivo((previa) => (!previa || Date.parse(cambio.desde) > Date.parse(previa.desde) ? cambio : previa))
+      },
     )
 
     return () => {
@@ -153,5 +188,5 @@ export function useMonitoreoTermico(
     }
   }, [horasVentana, deviceId, intento])
 
-  return { ultima, serie, sseConectado, estadoHistorial, reintentar, cobertura }
+  return { ultima, serie, sseConectado, motivoDesconexion, estadoHistorial, reintentar, cobertura, puertaEnVivo }
 }

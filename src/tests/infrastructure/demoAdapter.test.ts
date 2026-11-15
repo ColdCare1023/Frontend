@@ -137,3 +137,37 @@ describe('demo: simular una excursión desde Alertas', () => {
     for (const a of atendidas) expect(estadoDemo.acciones.some((ac) => ac.alert_id === a.id && ac.decision && ac.justificacion)).toBe(true)
   })
 })
+
+describe('demoAdapter — instalación (HU-51)', () => {
+  async function patch(id: string, cuerpo: Record<string, unknown>) {
+    const respuesta = await demoAdapter(
+      crearConfig({ method: 'patch', url: `/api/dispositivos/${id}/instalacion`, data: JSON.stringify(cuerpo) }),
+    )
+    expect(respuesta.status).toBe(200)
+    return respuesta.data as Dispositivo
+  }
+
+  async function cambios(id: string): Promise<number> {
+    const respuesta = await demoAdapter(crearConfig({ method: 'get', url: `/api/dispositivos/${id}/historial-configuracion` }))
+    return (respuesta.data as unknown[]).length
+  }
+
+  it('como el backend: null borra el campo y un campo omitido se conserva', async () => {
+    await patch('FARM-01-CDL', { ubicacion: 'Estante 1', fecha_instalacion: '2026-08-01', observaciones: 'Sonda medio' })
+
+    const vaciado = await patch('FARM-01-CDL', { ubicacion: 'Estante 1', fecha_instalacion: null, observaciones: null })
+    expect(vaciado).toMatchObject({ ubicacion: 'Estante 1', fecha_instalacion: null, observaciones_instalacion: null })
+
+    const parcial = await patch('FARM-01-CDL', { observaciones: 'Otra nota' })
+    expect(parcial).toMatchObject({ ubicacion: 'Estante 1', fecha_instalacion: null, observaciones_instalacion: 'Otra nota' })
+  })
+
+  it('enviar null en un campo que nunca tuvo valor no agrega cambios al historial', async () => {
+    // El formulario envía null en los campos vacíos; en la semilla no existen (undefined).
+    const antes = await cambios('FARM-02-CDL')
+
+    await patch('FARM-02-CDL', { observaciones: null, fecha_instalacion: null })
+
+    expect(await cambios('FARM-02-CDL')).toBe(antes)
+  })
+})

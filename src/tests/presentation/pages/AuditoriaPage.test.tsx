@@ -40,7 +40,7 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     useAuditoria.mockReturnValue({ registros: [registro()], cargando: false })
     render(<AuditoriaPage />)
 
-    expect(screen.getByText(/alerta revisada|alert reviewed/i)).toBeInTheDocument()
+    expect(screen.getByText(/alerta reconocida|alert acknowledged/i)).toBeInTheDocument()
     expect(screen.getByText('alertas/9f1')).toBeInTheDocument()
   })
 

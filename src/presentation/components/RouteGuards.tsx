@@ -1,4 +1,4 @@
-import { Link, Navigate, Outlet } from 'react-router'
+import { Link, Navigate, Outlet, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight } from 'lucide-react'
 
@@ -7,10 +7,16 @@ import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
 import { seccionesPermitidas } from '../navegacion'
 import { IlustracionVacia } from './ui/ilustracion-vacia'
 
-/** Redirige a /login si no hay sesión activa. */
+/**
+ * Redirige a /login si no hay sesión activa. HU-52/HU-54: guarda el destino
+ * (ruta y consulta, p. ej. `/alertas?id=…` del correo) para volver tras el login.
+ */
 export function RequireAuth() {
   const autenticado = useAuthStore((s) => s.autenticado)
-  if (!autenticado) return <Navigate to="/login" replace />
+  const ubicacion = useLocation()
+  if (!autenticado) {
+    return <Navigate to="/login" replace state={{ desde: `${ubicacion.pathname}${ubicacion.search}${ubicacion.hash}` }} />
+  }
   return <Outlet />
 }
 

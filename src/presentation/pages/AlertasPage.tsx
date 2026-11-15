@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
 
 import { useAlertas, type FiltroEstado } from '@/application/hooks/useAlertas'
 import { useAtendidasRecientes } from '@/application/hooks/useAtendidasRecientes'
@@ -82,13 +83,15 @@ export function AlertasPage() {
   // La cinta se recalcula con los datos o cada 5 min, no con cada minuto.
   const ahoraCinta = Math.floor(ahora / 300_000) * 300_000
 
-  // ── RBAC (sin cambios): HU-23/HU-41 ─────────────────────────────────────
-  // Reconocer es exclusivo del farmacéutico (como `require_roles` en el
-  // backend); registrar la acción, farmacéutico y técnico; el administrador
-  // entra por `tienePermiso`. El auditor es de solo lectura: solo Cronología.
+  // ── RBAC: HU-23/HU-27/HU-41 ────────────────────────────────────────────
+  // Reconocer y registrar la acción correctiva son del farmacéutico, como
+  // `require_roles(FARMACEUTICO)` en el backend (H16: el técnico recibe 403);
+  // el administrador entra por `tienePermiso`. Técnico y auditor consultan la
+  // Cronología.
   const puedeReconocer = usuario !== null && tienePermiso(usuario.rol, ['farmaceutico'])
-  const puedeRegistrarAccion = usuario !== null && tienePermiso(usuario.rol, ['farmaceutico', 'tecnico'])
-  // HU-28: rectifica su autor técnico o un farmacéutico; nunca el auditor; solo la vigente.
+  const puedeRegistrarAccion = usuario !== null && tienePermiso(usuario.rol, ['farmaceutico'])
+  // HU-28: rectifica el autor técnico de una acción anterior a H16 o un
+  // farmacéutico (el backend no cambió); nunca el auditor; solo la vigente.
   const puedeRectificar = useCallback(
     (accion: AccionCorrectiva) =>
       usuario !== null &&
@@ -160,6 +163,7 @@ export function AlertasPage() {
         const resultado = await reconocerAlerta(alerta.id)
         if (resultado === 'ok') setAnuncio(t('alertas.anuncio.revisada', { equipo: alerta.device_id }))
         else if (resultado === 'conflicto') setAviso({ tipo: 'conflicto' })
+        else if (resultado === 'prohibido') setAviso({ tipo: 'prohibido' })
         else setAviso({ tipo: 'errorRevisar', equipo: alerta.device_id })
       } finally {
         setRevisando((previo) => {
@@ -204,7 +208,63 @@ export function AlertasPage() {
     (alerta: AlertaTermica, origen: HTMLElement) => abrirPanel(alerta, 'cronologia', origen),
     [abrirPanel],
   )
-  const cerrarPanel = useCallback(() => setPanel(null), [])
+  // HU-52: el correo de la excursión enlaza `/alertas?id=<alerta_id>` (también
+  // tras el login, que conserva el destino). La alerta se busca en el filtro
+  // actual y, si ya se reconoció o atendió, en «Todas»; al encontrarla se va a
+  // su página, se desplaza la fila a la vista y se abre su panel. Al cerrar el
+  // panel, el `id` sale de la URL para no volver a abrirla al recargar.
+  const [parametros, setParametros] = useSearchParams()
+  const idEnlace = parametros.get('id')
+  const enlaceResuelto = useRef<string | null>(null)
+  const enlaceBuscoEnTodas = useRef<string | null>(null)
+  const [filaEnlace, setFilaEnlace] = useState<AlertaTermica | null>(null)
+
+  useEffect(() => {
+    if (!idEnlace || enlaceResuelto.current === idEnlace || cargando || errorCarga) return
+    const indice = ordenadas.findIndex((a) => a.id === idEnlace)
+    if (indice >= 0) {
+      enlaceResuelto.current = idEnlace
+      setPagina(Math.floor(indice / tamanoPagina) + 1)
+      setFilaEnlace(ordenadas[indice])
+      return
+    }
+    if (filtro !== 'todas' && enlaceBuscoEnTodas.current !== idEnlace) {
+      enlaceBuscoEnTodas.current = idEnlace
+      setPagina(1)
+      setFiltro('todas')
+      return
+    }
+    enlaceResuelto.current = idEnlace
+    setAviso({ tipo: 'enlaceNoEncontrado' })
+  }, [idEnlace, cargando, errorCarga, ordenadas, filtro, tamanoPagina, setFiltro])
+
+  // Con la fila ya en su página: a la vista, y su panel abierto. El foco
+  // vuelve a su botón de Cronología al cerrar.
+  useEffect(() => {
+    if (!filaEnlace) return
+    const fila = [...(listaRef.current?.querySelectorAll<HTMLElement>('[data-alerta-id]') ?? [])].find(
+      (candidata) => candidata.dataset.alertaId === filaEnlace.id,
+    )
+    if (!fila) return
+    fila.scrollIntoView?.({ block: 'center' })
+    disparador.current = fila.querySelector<HTMLElement>('[data-accion-cronologia]') ?? fila
+    setPanel({ alerta: filaEnlace, pestana: 'cronologia' })
+    setFilaEnlace(null)
+  }, [filaEnlace, visibles])
+
+  const cerrarPanel = useCallback(() => {
+    setPanel(null)
+    if (idEnlace) {
+      setParametros(
+        (previos) => {
+          const siguientes = new URLSearchParams(previos)
+          siguientes.delete('id')
+          return siguientes
+        },
+        { replace: true },
+      )
+    }
+  }, [idEnlace, setParametros])
 
   // La alerta del panel se lee de la lista (para ver su estado al día) y, si
   // sale del filtro, se conserva la última instantánea.

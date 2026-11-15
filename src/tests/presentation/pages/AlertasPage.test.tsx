@@ -1,11 +1,12 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { estadoNotificacion, type AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { useAuthStore } from '@/application/stores/authStore'
 import { resumirAlertas, useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
+import type { IncidenteOperativo } from '@/domain/entities/Dispositivo'
 import type { Rol } from '@/domain/value-objects/Rol'
 
 const useAlertas = vi.hoisted(() => vi.fn())
@@ -87,13 +88,13 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     montar([alerta()])
 
     const grupo = screen.getByRole('group', { name: 'Filtrar alertas por estado de seguimiento' })
-    for (const nombre of ['Pendientes', 'Revisadas', 'Atendidas', 'Todas']) {
+    for (const nombre of ['Pendientes', 'Reconocidas', 'Atendidas', 'Todas']) {
       expect(within(grupo).getByRole('button', { name: nombre, exact: true } as never)).toBeInTheDocument()
     }
     expect(within(grupo).getByRole('button', { name: 'Pendientes' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('muestra el conteo de Pendientes y Revisadas sin cambiar su nombre accesible', () => {
+  it('muestra el conteo de Pendientes y Reconocidas sin cambiar su nombre accesible', () => {
     useEstadoVivoStore.setState({
       carga: 'listo',
       alertas: resumirAlertas([[alerta(), alerta({ id: 'al-2' })], [alerta({ id: 'al-3', estado: 'reconocida' })]]),
@@ -102,13 +103,14 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
 
     const pendientes = screen.getByRole('button', { name: 'Pendientes' })
     expect(pendientes).toHaveAccessibleDescription('2 alertas')
-    expect(screen.getByRole('button', { name: 'Revisadas' })).toHaveAccessibleDescription('1 alerta')
+    expect(screen.getByRole('button', { name: 'Reconocidas' })).toHaveAccessibleDescription('1 alerta')
   })
 
-  it('farmacéutico ve Revisar, Registrar acción y Cronología en una pendiente', () => {
+  it('farmacéutico ve Reconocer, Registrar acción y Cronología en una pendiente', () => {
     montar([alerta()])
 
-    expect(within(fila()).getByRole('button', { name: /revisar alerta de FARM-01-CDL/i })).toBeInTheDocument()
+    // HU-23 (P2): el backlog dice «reconocer», no «revisar».
+    expect(within(fila()).getByRole('button', { name: /reconocer alerta de FARM-01-CDL/i })).toHaveTextContent('Reconocer')
     expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
     expect(within(fila()).getByRole('button', { name: /cronología de atención: FARM-01-CDL/i })).toBeInTheDocument()
     // El menú «Opciones» desaparece: las acciones están a la vista (H4).
@@ -119,65 +121,74 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     sesionCon('administrador')
     montar([alerta()])
 
-    expect(within(fila()).getByRole('button', { name: /revisar alerta/i })).toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /reconocer alerta/i })).toBeInTheDocument()
     expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
   })
 
-  it('técnico ve Registrar acción pero no Revisar (HU-23/41)', () => {
+  it('técnico no ve Reconocer ni Registrar acción, solo Cronología (H16: el backend le responde 403)', () => {
     sesionCon('tecnico')
     montar([alerta()])
 
-    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
-    expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
+    expect(within(fila()).queryByRole('button', { name: /reconocer alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).queryByRole('button', { name: /registrar acción/i })).not.toBeInTheDocument()
+    expect(within(fila()).getByRole('button', { name: /cronología de atención/i })).toBeInTheDocument()
   })
 
   it('auditor solo ve Cronología (HU-41)', () => {
     sesionCon('auditor')
     montar([alerta()])
 
-    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).queryByRole('button', { name: /reconocer alerta/i })).not.toBeInTheDocument()
     expect(within(fila()).queryByRole('button', { name: /registrar acción/i })).not.toBeInTheDocument()
     expect(within(fila()).getByRole('button', { name: /cronología de atención/i })).toBeInTheDocument()
   })
 
-  it('alerta revisada ofrece Registrar acción y no Revisar', () => {
+  it('alerta reconocida ofrece Registrar acción y no Reconocer', () => {
     montar([alerta({ estado: 'reconocida' })], { filtro: 'reconocida' })
 
-    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).queryByRole('button', { name: /reconocer alerta/i })).not.toBeInTheDocument()
     expect(within(fila()).getByRole('button', { name: /registrar acción correctiva/i })).toBeInTheDocument()
   })
 
   it('alerta atendida solo ofrece la cronología', () => {
     montar([alerta({ estado: 'atendida' })], { filtro: 'atendida' })
 
-    expect(within(fila()).queryByRole('button', { name: /revisar alerta/i })).not.toBeInTheDocument()
+    expect(within(fila()).queryByRole('button', { name: /reconocer alerta/i })).not.toBeInTheDocument()
     expect(within(fila()).queryByRole('button', { name: /registrar acción/i })).not.toBeInTheDocument()
     expect(within(fila()).getByRole('button', { name: /cronología de atención/i })).toBeInTheDocument()
   })
 
-  it('Revisar llama a reconocerAlerta y anuncia el resultado', async () => {
+  it('Reconocer llama a reconocerAlerta y anuncia el resultado', async () => {
     const { reconocerAlerta } = montar([alerta()])
 
-    await userEvent.setup().click(within(fila()).getByRole('button', { name: /revisar alerta/i }))
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /reconocer alerta/i }))
 
     expect(reconocerAlerta).toHaveBeenCalledWith('al-1')
-    expect(await screen.findByText('Alerta de FARM-01-CDL marcada como revisada.')).toBeInTheDocument()
+    expect(await screen.findByText('Alerta de FARM-01-CDL marcada como reconocida.')).toBeInTheDocument()
   })
 
   it('avisa cuando otro usuario ya reconoció la alerta (HU-27 Escenario 2)', async () => {
     montar([alerta()], { reconocerAlerta: vi.fn().mockResolvedValue('conflicto') })
 
-    await userEvent.setup().click(within(fila()).getByRole('button', { name: /revisar alerta/i }))
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /reconocer alerta/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/actualizada por otra persona/i)
   })
 
-  it('informa error de red al revisar', async () => {
+  it('informa error de red al reconocer', async () => {
     montar([alerta()], { reconocerAlerta: vi.fn().mockResolvedValue('error') })
 
-    await userEvent.setup().click(within(fila()).getByRole('button', { name: /revisar alerta/i }))
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /reconocer alerta/i }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo marcar la alerta de FARM-01-CDL/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo marcar la alerta de FARM-01-CDL como reconocida/i)
+  })
+
+  it('informa el 403 al reconocer en vez de un error genérico', async () => {
+    montar([alerta()], { reconocerAlerta: vi.fn().mockResolvedValue('prohibido') })
+
+    await userEvent.setup().click(within(fila()).getByRole('button', { name: /reconocer alerta/i }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Solo el personal farmacéutico puede reconocer una alerta.')
   })
 
   it('ordena pendientes por gravedad y antigüedad', () => {
@@ -208,7 +219,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
   })
 
   it.each([
-    ['reconocida', /no hay alertas marcadas como revisadas/i, 'Ver pendientes'],
+    ['reconocida', /no hay alertas marcadas como reconocidas/i, 'Ver pendientes'],
     ['atendida', /no hay alertas con acción registrada/i, 'Ver todas'],
     ['todas', /todavía no hay alertas registradas/i, 'Ir a Monitoreo'],
   ])('vacío por filtro %s: texto y acción', (filtro, texto, accion) => {
@@ -354,5 +365,160 @@ describe('AlertasPage: foco y contexto con pocas filas (DIRECTION §6 y §13)', 
 
     expect(screen.getByRole('region', { name: 'Atendidas recientemente' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Cómo se atiende una alerta' })).not.toBeInTheDocument()
+  })
+})
+
+/** Muestra la URL actual para afirmar sobre `?id` (HU-52). */
+function Ubicacion() {
+  const { pathname, search } = useLocation()
+  return <output data-testid="ubicacion">{`${pathname}${search}`}</output>
+}
+
+function montarEn(ruta: string, alertas: AlertaTermica[], over: Record<string, unknown> = {}) {
+  const valor = {
+    alertas,
+    cargando: false,
+    errorCarga: false,
+    filtro: 'pendiente',
+    setFiltro: vi.fn(),
+    reintentar: vi.fn(),
+    reconocerAlerta: vi.fn().mockResolvedValue('ok'),
+    registrarAccionCorrectiva: vi.fn().mockResolvedValue('ok'),
+    obtenerCicloAtencion: vi.fn().mockResolvedValue([]),
+    rectificarAccion: vi.fn().mockResolvedValue('ok'),
+    ...over,
+  }
+  useAlertas.mockReturnValue(valor)
+  const vista = render(
+    <MemoryRouter initialEntries={[ruta]}>
+      <Routes>
+        <Route
+          path="/alertas"
+          element={
+            <>
+              <AlertasPage />
+              <Ubicacion />
+            </>
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  )
+  return { valor, vista }
+}
+
+describe('HU-52: el enlace del correo abre la alerta (?id)', () => {
+  const desplazar = vi.fn()
+
+  beforeEach(() => {
+    useAlertas.mockReset()
+    useIncidentesOperativos.mockReturnValue({ incidentes: [], cargando: false, errorCarga: false, consultar: vi.fn() })
+    useAtendidasRecientes.mockReturnValue({ alertas: [], estado: 'listo', limite: 50, recargar: vi.fn() })
+    useEstadoVivoStore.getState().reiniciar()
+    sesionCon('farmaceutico')
+    desplazar.mockReset()
+    Element.prototype.scrollIntoView = desplazar
+  })
+
+  afterEach(() => {
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+  })
+
+  it('abre el panel de la alerta del enlace, la selecciona y la desplaza a la vista', async () => {
+    montarEn('/alertas?id=al-2', [
+      alerta({ id: 'al-1', device_id: 'FARM-01-CDL', created_at: '2026-07-25T10:00:00Z' }),
+      alerta({ id: 'al-2', device_id: 'FARM-02-CDL', created_at: '2026-07-25T11:00:00Z' }),
+    ])
+
+    const dialogo = await screen.findByRole('dialog')
+    expect(dialogo).toHaveTextContent('FARM-02-CDL')
+    const fila = document.querySelector('[data-alerta-id="al-2"]')!
+    expect(fila).toHaveAttribute('data-seleccionada')
+    expect(desplazar).toHaveBeenCalled()
+    expect(desplazar.mock.contexts[0]).toBe(fila)
+  })
+
+  it('va a la página de la alerta cuando no está en la primera', async () => {
+    const muchas = Array.from({ length: 30 }, (_, i) =>
+      alerta({ id: `al-${i}`, device_id: `FARM-${String(i).padStart(2, '0')}-CDL`, created_at: new Date(Date.UTC(2026, 6, 25, 0, i)).toISOString() }),
+    )
+    montarEn('/alertas?id=al-29', muchas)
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('FARM-29-CDL')
+    expect(document.querySelector('[data-alerta-id="al-29"]')).toHaveAttribute('data-seleccionada')
+  })
+
+  it('si no está entre las pendientes la busca en «Todas» (ya reconocida o atendida)', () => {
+    const { valor } = montarEn('/alertas?id=al-9', [alerta({ id: 'al-1' })])
+
+    expect(valor.setFiltro).toHaveBeenCalledWith('todas')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('una atendida del enlace se abre desde «Todas» con su cronología', async () => {
+    montarEn('/alertas?id=al-9', [alerta({ id: 'al-9', estado: 'atendida', atendida_en: '2026-07-25T12:30:00Z' })], { filtro: 'todas' })
+
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByRole('heading', { name: 'Cronología de atención' })).toBeInTheDocument()
+  })
+
+  it('si tampoco está en «Todas» lo dice, sin abrir nada', async () => {
+    const { valor } = montarEn('/alertas?id=no-existe', [alerta({ id: 'al-1' })], { filtro: 'todas' })
+
+    expect(await screen.findByText(/no encontramos la alerta del enlace/i)).toBeInTheDocument()
+    expect(valor.setFiltro).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('espera a que termine la carga antes de buscar', () => {
+    const { valor } = montarEn('/alertas?id=al-1', [], { cargando: true })
+
+    expect(valor.setFiltro).not.toHaveBeenCalled()
+    expect(screen.queryByText(/no encontramos la alerta del enlace/i)).not.toBeInTheDocument()
+  })
+
+  it('al cerrar el panel el id sale de la URL y el foco vuelve a la fila', async () => {
+    const usuario = userEvent.setup()
+    montarEn('/alertas?id=al-1', [alerta({ id: 'al-1' })])
+
+    const dialogo = await screen.findByRole('dialog')
+    await usuario.click(within(dialogo).getAllByRole('button', { name: 'Cerrar' })[0])
+
+    await waitFor(() => expect(screen.getByTestId('ubicacion')).toHaveTextContent(/^\/alertas$/))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(document.querySelector('[data-alerta-id="al-1"] [data-accion-cronologia]')),
+    )
+  })
+})
+
+describe('HU-54: el enlace del correo SIN_DATOS lleva al rail de incidentes', () => {
+  beforeEach(() => {
+    useAlertas.mockReset()
+    useAtendidasRecientes.mockReturnValue({ alertas: [], estado: 'listo', limite: 50, recargar: vi.fn() })
+    useEstadoVivoStore.getState().reiniciar()
+  })
+
+  const sinDatos: IncidenteOperativo = {
+    id: 'i-1',
+    device_id: 'FARM-02-CDL',
+    tipo: 'sin_datos',
+    estado: 'activo',
+    detectado_en: '2026-07-25T11:00:00Z',
+    ultimo_reporte_en: '2026-07-25T10:58:30Z',
+    umbral_silencio_segundos: 90,
+    recuperado_en: null,
+  }
+
+  it.each<Rol>(['farmaceutico', 'tecnico', 'auditor', 'administrador'])('/alertas muestra el incidente activo a %s', (rol) => {
+    sesionCon(rol)
+    useIncidentesOperativos.mockReturnValue({ incidentes: [sinDatos], cargando: false, errorCarga: false, consultar: vi.fn() })
+    montarEn('/alertas', [])
+
+    const rail = screen.getByRole('complementary', { name: 'Contexto operativo' })
+    const tarjeta = within(rail).getByRole('region', { name: 'Incidentes operativos' })
+    const [item] = within(tarjeta).getAllByRole('listitem')
+    expect(item).toHaveTextContent('FARM-02-CDL')
+    expect(item).toHaveTextContent('Sin datos')
+    expect(within(tarjeta).getByText('1 activo')).toBeInTheDocument()
   })
 })

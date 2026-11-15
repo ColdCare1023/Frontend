@@ -44,7 +44,7 @@ function lectura(indice: number, over: Partial<LecturaTermica> = {}): LecturaTer
 describe('useMonitoreoTermico con flujo SSE sostenido', () => {
   let adaptador: ReturnType<typeof instalarAdaptadorFalso>
   let emitir: (lectura: LecturaTermica) => void
-  let cambiarEstado: (conectado: boolean) => void
+  let cambiarEstado: (conectado: boolean, motivo?: 'demasiados_flujos') => void
   let cerrar: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
@@ -220,6 +220,20 @@ describe('useMonitoreoTermico con flujo SSE sostenido', () => {
     expect(result.current.sseConectado).toBe(false)
   })
 
+  it('HU-32 esc. 3: expone el motivo «demasiados_flujos» y lo limpia al reconectar', async () => {
+    const { result } = renderHook(() => useMonitoreoTermico())
+
+    await act(async () => cambiarEstado(false, 'demasiados_flujos'))
+    expect(result.current.sseConectado).toBe(false)
+    expect(result.current.motivoDesconexion).toBe('demasiados_flujos')
+
+    await act(async () => cambiarEstado(true))
+    expect(result.current.motivoDesconexion).toBeNull()
+
+    await act(async () => cambiarEstado(false))
+    expect(result.current.motivoDesconexion).toBeNull()
+  })
+
   it('cierra la suscripción al desmontar, sin dejar el stream abierto', async () => {
     const { unmount } = renderHook(() => useMonitoreoTermico())
 
@@ -367,5 +381,42 @@ describe('useMonitoreoTermico: al reintentar o ampliar la ventana', () => {
     expect(result.current.serie).toHaveLength(1)
     expect(result.current.serie[0].sin_hora).toBe(false)
     expect(result.current.ultima?.origen_hora).toBe('reconstruida')
+  })
+})
+
+/** HU-35 esc. 1: el evento SSE `puerta` llega al dashboard sin esperar la próxima lectura. */
+describe('useMonitoreoTermico: cambio de puerta en vivo (HU-35)', () => {
+  let adaptador: ReturnType<typeof instalarAdaptadorFalso>
+  let avisar: (aviso: { tipo: string; device_id: string; timestamp: string; detalle: Record<string, unknown> | null }) => void
+
+  beforeEach(() => {
+    adaptador = instalarAdaptadorFalso(() => ({ data: [] }))
+    suscribirseLecturas.mockReset()
+    suscribirseLecturas.mockImplementation((_onLectura, _onEstado, onAviso) => {
+      avisar = onAviso
+      return vi.fn()
+    })
+  })
+
+  afterEach(() => adaptador.restaurar())
+
+  it('guarda el último cambio de puerta del equipo e ignora uno más antiguo o de otro equipo', async () => {
+    const { result } = renderHook(() => useMonitoreoTermico(24, 'FARM-01-CDL'))
+    await act(async () => {})
+    expect(result.current.puertaEnVivo).toBeNull()
+
+    await act(async () => avisar({ tipo: 'puerta', device_id: 'FARM-01-CDL', timestamp: '2026-11-14T12:00:10Z', detalle: { door_open: true } }))
+    expect(result.current.puertaEnVivo).toEqual({ device_id: 'FARM-01-CDL', abierta: true, desde: '2026-11-14T12:00:10Z' })
+
+    // Repetido tras una reconexión (más antiguo): no pisa el cambio más nuevo.
+    await act(async () => avisar({ tipo: 'puerta', device_id: 'FARM-01-CDL', timestamp: '2026-11-14T11:59:00Z', detalle: { door_open: false } }))
+    // De otro equipo o sin `door_open`: no aplica.
+    await act(async () => avisar({ tipo: 'puerta', device_id: 'FARM-02', timestamp: '2026-11-14T12:01:00Z', detalle: { door_open: false } }))
+    await act(async () => avisar({ tipo: 'puerta', device_id: 'FARM-01-CDL', timestamp: '2026-11-14T12:02:00Z', detalle: null }))
+    await act(async () => avisar({ tipo: 'buffer_80', device_id: 'FARM-01-CDL', timestamp: '2026-11-14T12:03:00Z', detalle: { door_open: false } }))
+    expect(result.current.puertaEnVivo?.abierta).toBe(true)
+
+    await act(async () => avisar({ tipo: 'puerta', device_id: 'FARM-01-CDL', timestamp: '2026-11-14T12:04:00Z', detalle: { door_open: false } }))
+    expect(result.current.puertaEnVivo).toEqual({ device_id: 'FARM-01-CDL', abierta: false, desde: '2026-11-14T12:04:00Z' })
   })
 })

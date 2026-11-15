@@ -356,7 +356,9 @@
     "seccionConexion": "Conexión",
     "seccionIncidentes": "Incidentes recientes",
     "seccionFicha": "Ficha técnica",
-    "gestionarEnDispositivos": "Gestionar en Dispositivos"
+    "gestionarEnDispositivos": "Gestionar en Dispositivos",
+    "demasiadasPestanas": "Demasiadas pestañas en tiempo real",
+    "demasiadasPestanasGuia": "Cierra otra pestaña o equipo con ColdCare abierto; esta se conectará sola."
   },
   "demo": {
     "accesoRapido": "Acceso de demostración",
@@ -427,6 +429,7 @@
     "modeloExperimental": "Modelo experimental (no aprobado).",
     "modeloExperimentalAyuda": "Su clasificación es informativa: no abre alertas preventivas ni reemplaza la regla de 2⁠–⁠8 °C.",
     "probabilidadesModelo": "Probabilidades del modelo",
+    "probabilidadesSinCalibrar": "Salida predict_proba del modelo, sin calibrar: indica cuánto se inclina el modelo por cada clase, no una frecuencia observada.",
     "variablesEntradaModelo": "Datos de entrada del modelo",
     "versionAprobadaAlClasificar": "Versión activa y aprobada al clasificar",
     "versionAprobadaSinDato": "Sin dato: el modelo no clasificó esta lectura",
@@ -574,17 +577,17 @@
     "descripcion": "Revisa avisos sobre condiciones que pueden requerir atención.",
     "filtro": {
       "pendiente": "Pendientes",
-      "reconocida": "Revisadas",
+      "reconocida": "Reconocidas",
       "atendida": "Atendidas",
       "todas": "Todas"
     },
     "estadoAlerta": {
       "pendiente": "Pendiente",
-      "reconocida": "Revisada",
+      "reconocida": "Reconocida",
       "atendida": "Atendida"
     },
     "reconocer": "Reconocer",
-    "marcarRevisada": "Marcar como revisada",
+    "marcarRevisada": "Marcar como reconocida",
     "accionCorrectiva": "Acción correctiva",
     "registrarAccion": "Registrar acción correctiva",
     "descripcionAccion": "Describe la acción tomada…",
@@ -594,14 +597,14 @@
     "conflictoEstado": "Esta alerta ya fue actualizada por otra persona. La lista se refrescó con su estado actual.",
     "sinAlertas": "Todavía no hay alertas registradas.",
     "sinPendientes": "No hay alertas pendientes.",
-    "sinRevisadas": "No hay alertas marcadas como revisadas.",
+    "sinRevisadas": "No hay alertas marcadas como reconocidas.",
     "sinAtendidas": "No hay alertas con acción registrada.",
     "errorCargar": "No pudimos cargar las alertas. Intenta de nuevo.",
     "errorTabla": "No se muestran alertas porque no pudimos cargar la información.",
     "verDetalle": "Ver cronología de atención",
     "cicloAtencion": "Cronología de atención",
     "eventoCreada": "Alerta generada",
-    "eventoReconocida": "Alerta revisada",
+    "eventoReconocida": "Alerta reconocida",
     "eventoAtendida": "Acción correctiva registrada",
     "eventoRectificada": "Justificación rectificada",
     "responsable": "Responsable",
@@ -624,7 +627,7 @@
     "mensaje": "Mensaje",
     "estado": "Estado",
     "acciones": "Acciones",
-    "soloFarmaceutico": "Solo el personal farmacéutico puede marcar una alerta como revisada.",
+    "soloFarmaceutico": "Solo el personal farmacéutico puede reconocer una alerta.",
     "filtroEstado": "Filtrar alertas por estado de seguimiento",
     "descripcionAccionPlaceholder": "Ej.: se reubicaron los viales y se ajustó el termostato a 5 °C",
     "descripcionAccionAyuda": "Describe qué se hizo para responder a la alerta. Quedará en el historial.",
@@ -687,8 +690,8 @@
       "pendientes_other": "{{count}} alertas pendientes; la más antigua desde {{fecha}}",
       "incidentes_one": "Sin alertas pendientes · 1 equipo con incidente operativo activo",
       "incidentes_other": "Sin alertas pendientes · {{count}} equipos con incidente operativo activo",
-      "revisadas_one": "Sin pendientes · 1 alerta revisada espera su acción correctiva",
-      "revisadas_other": "Sin pendientes · {{count}} alertas revisadas esperan su acción correctiva",
+      "revisadas_one": "Sin pendientes · 1 alerta reconocida espera su acción correctiva",
+      "revisadas_other": "Sin pendientes · {{count}} alertas reconocidas esperan su acción correctiva",
       "enOrden": "Todo en orden · última alerta atendida {{hace}}",
       "enOrdenSinHistorial": "Todo en orden · sin alertas abiertas",
       "error": "No pudimos calcular el resumen; la lista sigue disponible."
@@ -699,20 +702,20 @@
     "ordenReciente": "Más recientes primero",
     "columnaAlerta": "Alerta",
     "columnaExcursion": "Excursión",
-    "revisar": "Revisar",
-    "revisarA": "Revisar alerta de {{equipo}} del {{fecha}}",
-    "revisando": "Revisando…",
-    "revisadaOk": "Revisada",
+    "revisar": "Reconocer",
+    "revisarA": "Reconocer alerta de {{equipo}} del {{fecha}}",
+    "revisando": "Reconociendo…",
+    "revisadaOk": "Reconocida",
     "registrarAccionCorta": "Registrar acción",
     "registrarAccionA": "Registrar acción correctiva para la alerta de {{equipo}} del {{fecha}}",
     "cronologiaA": "Ver cronología de atención: {{equipo}}, {{fecha}}",
     "sinPico": "Sin pico registrado",
-    "errorRevisar": "No se pudo marcar la alerta de {{equipo}} como revisada. Inténtalo de nuevo.",
+    "errorRevisar": "No se pudo marcar la alerta de {{equipo}} como reconocida. Inténtalo de nuevo.",
     "refrescoError": "No se pudo actualizar la lista. Se muestran los datos de las {{hora}}.",
     "limiteResultados": "Se muestran las {{limite}} alertas más recientes de este filtro. Para periodos anteriores usa Reportes.",
     "cerrarAviso": "Cerrar aviso",
     "anuncio": {
-      "revisada": "Alerta de {{equipo}} marcada como revisada.",
+      "revisada": "Alerta de {{equipo}} marcada como reconocida.",
       "nueva_one": "Nueva alerta: {{riesgo}} en {{equipo}}.",
       "nueva_other": "{{count}} alertas nuevas."
     },
@@ -737,15 +740,16 @@
       "inicio": "Inicio",
       "sinCambios": "Cambia la decisión, la acción o la justificación: una rectificación sin cambios no se registra.",
       "decisionVacia": "La decisión corregida no puede quedar vacía.",
-      "justificacionVacia": "La justificación corregida no puede quedar vacía."
+      "justificacionVacia": "La justificación corregida no puede quedar vacía.",
+      "errorProhibido": "Tu rol no puede registrar acciones correctivas: las registra el personal farmacéutico. Tu texto se conserva."
     },
     "vacio": {
       "enOrdenTitulo": "Todo en orden",
-      "enOrdenDetalle": "No hay alertas pendientes de revisión.",
+      "enOrdenDetalle": "No hay alertas pendientes de reconocimiento.",
       "ultimaAtendida": "Última atendida: {{equipo}} · {{fecha}}",
       "verAtendidas": "Ver atendidas",
-      "verRevisadas_one": "Ver 1 revisada sin acción",
-      "verRevisadas_other": "Ver {{count}} revisadas sin acción",
+      "verRevisadas_one": "Ver 1 reconocida sin acción",
+      "verRevisadas_other": "Ver {{count}} reconocidas sin acción",
       "verPendientes": "Ver pendientes",
       "verTodas": "Ver todas",
       "irMonitoreo": "Ir a Monitoreo",
@@ -773,7 +777,8 @@
       "verMenos": "Ver menos",
       "queSon": "¿Qué son?",
       "atendidasRecientes": "Atendidas recientemente",
-      "atendidaHace": "Atendida {{hace}}"
+      "atendidaHace": "Atendida {{hace}}",
+      "resumenCintaSinPreventiva": "{{equipo}}: {{criticas}} tramos críticos y {{sinDatos}} sin datos en 24 h"
     },
     "incidenteActivoDesde": "Activo desde {{hace}}",
     "ahora": {
@@ -783,10 +788,10 @@
     },
     "guiaAtencion": {
       "titulo": "Cómo se atiende una alerta",
-      "revisar": "Revisar",
-      "revisarDetalle": "El químico farmacéutico confirma que la vio; pasa a Revisadas.",
+      "revisar": "Reconocer",
+      "revisarDetalle": "El químico farmacéutico confirma que la vio; pasa a Reconocidas.",
       "registrar": "Registrar la acción correctiva",
-      "registrarDetalle": "Decisión adoptada, acción ejecutada y justificación (BPA).",
+      "registrarDetalle": "Decisión adoptada, acción ejecutada y justificación (BPA). Si la alerta seguía pendiente, también queda reconocida.",
       "verificar": "Verificar el retorno",
       "verificarDetalle": "Comprueba que el equipo volvió a 2⁠–⁠8 °C.",
       "irHistorial": "Ver Historial"
@@ -800,7 +805,9 @@
       "error": "No se pudo simular la alerta."
     },
     "nuevaDecision": "Decisión corregida",
-    "nuevaJustificacion": "Justificación corregida"
+    "nuevaJustificacion": "Justificación corregida",
+    "reconocidaConAccion": "Reconocida al registrar la acción correctiva",
+    "enlaceNoEncontrado": "No encontramos la alerta del enlace entre las 200 más recientes. Puedes consultarla en Reportes."
   },
   "trazabilidad": {
     "titulo": "Integridad del historial",
@@ -847,8 +854,8 @@
     "confirmarAislar": "Se marcará este registro como aislado y quedará excluido de la cadena verificable. La acción queda auditada y no se puede deshacer.",
     "verificarSegmento": "Verificar por dispositivo y periodo",
     "verificarSegmentoBoton": "Verificar segmento",
-    "desdeAyuda": "Obligatorio. Se incluye el día completo.",
-    "hastaOpcional": "Opcional. Si lo dejas vacío, se revisa hasta ahora.",
+    "desdeAyuda": "Obligatorio. Sin hora, cuenta desde las 00:00 del día.",
+    "hastaOpcional": "Opcional. Sin hora, hasta el final del día; vacío, hasta ahora.",
     "rangoInvalido": "El rango seleccionado no es válido: \"desde\" no puede ser posterior a \"hasta\".",
     "segmentoIntegro": "No se detectaron cambios en el periodo",
     "segmentoRoto": "Se detectó un cambio en el periodo",
@@ -878,6 +885,11 @@
       "REVOCACION_CREDENCIAL_DISPOSITIVO": "Credencial revocada",
       "BROKER_CONSOLA_CONFIRMADA": "Operación del broker confirmada",
       "BROKER_OPERACION_PENDIENTE": "Operación del broker pendiente",
+      "BROKER_OPERACION_SINCRONIZADA": "Operación del broker sincronizada",
+      "BROKER_OPERACION_FALLIDA": "Operación del broker fallida",
+      "PUERTA": "Cambio de puerta",
+      "WIFI_RECONEXION_PROLONGADA": "Reconexión prolongada del equipo",
+      "DESCONEXION_ORDENADA": "Desconexión ordenada del equipo",
       "FIRMWARE_ACTUALIZADO": "Firmware actualizado",
       "FIRMWARE_OTA_ENVIADA": "Actualización de firmware enviada",
       "FIRMWARE_OTA_NO_APLICADA": "Actualización de firmware no aplicada",
@@ -887,6 +899,7 @@
       "RESPONSABLE_DISPOSITIVO_ACTUALIZADO": "Responsable actualizado",
       "MODELO_IA_VERSION_REGISTRADA": "Versión del modelo registrada",
       "MODELO_IA_VERSION_ACTIVADA": "Versión del modelo activada",
+      "MODELO_IA_VERSION_DESACTIVADA": "Versión del modelo desactivada",
       "REGISTRO_AISLADO_CORRUPCION": "Registro aislado por corrupción",
       "CORRUPCION_CADENA_DETECTADA": "Corrupción de la cadena detectada",
       "VERIFICACION_INTEGRIDAD": "Verificación de integridad",
@@ -1000,7 +1013,9 @@
       "sinRegistros": "La cadena «{{cadena}}» no tiene registros que verificar.",
       "sistemaCorto": "Sistema"
     },
-    "aislarNoConcluida": "No se puede aislar: la verificación de esa cadena no concluyó (falta la clave de sellado)."
+    "aislarNoConcluida": "No se puede aislar: la verificación de esa cadena no concluyó (falta la clave de sellado).",
+    "horaDesde": "Hora de inicio (opcional)",
+    "horaHasta": "Hora de fin (opcional)"
   },
   "reportes": {
     "titulo": "Reportes de monitoreo",
@@ -1100,7 +1115,7 @@
     "ip": "IP de origen",
     "sinRegistros": "Todavía no hay acciones registradas.",
     "eventos": {
-      "ALERTA_REVISADA": "Alerta revisada",
+      "ALERTA_REVISADA": "Alerta reconocida",
       "REPORTE_BPA_GENERADO": "Reporte generado",
       "LOGIN_FALLIDO": "Inicio de sesión fallido",
       "LOGIN_EXITOSO": "Inicio de sesión correcto",
@@ -1120,7 +1135,7 @@
       "REACTIVAR_USUARIO": "Usuario reactivado",
       "CAMBIAR_ROL_USUARIO": "Rol de usuario cambiado",
       "BIENVENIDA_NOTIFICADA": "Bienvenida enviada",
-      "REVISAR_ALERTA": "Alerta revisada",
+      "REVISAR_ALERTA": "Alerta reconocida",
       "REGISTRAR_ACCION_CORRECTIVA": "Acción correctiva registrada",
       "RECTIFICAR_ACCION_CORRECTIVA": "Acción correctiva rectificada",
       "EXPORTAR_REPORTE_BPA": "Reporte BPA exportado",
@@ -1137,6 +1152,20 @@
       "DESAFIO_POSESION_REENVIADO": "Desafío de posesión reenviado",
       "BROKER_CONSOLA_CONFIRMADA": "Operación del broker confirmada",
       "BROKER_OPERACION_PENDIENTE": "Operación del broker pendiente",
+      "BROKER_OPERACION_SINCRONIZADA": "Operación del broker sincronizada",
+      "BROKER_OPERACION_FALLIDA": "Operación del broker fallida",
+      "PUERTA": "Cambio de puerta",
+      "WIFI_RECONEXION_PROLONGADA": "Reconexión prolongada del equipo",
+      "DESCONEXION_ORDENADA": "Desconexión ordenada del equipo",
+      "NOTIFICACION_ENVIADA": "Aviso por correo enviado",
+      "NOTIFICACION_FALLIDA": "Aviso por correo no enviado",
+      "NOTIFICACION_SIN_DESTINATARIO": "Aviso sin destinatario",
+      "RESPALDO_COMPLETADO": "Respaldo completado",
+      "RESPALDO_FALLIDO": "Respaldo fallido",
+      "LOGIN_CODIGO_EMITIDO": "Código de acceso enviado",
+      "LOGIN_CODIGO_FALLIDO": "Código de acceso incorrecto",
+      "LOGIN_CODIGO_REENVIADO": "Código de acceso reenviado",
+      "RESTABLECER_CODIGO_FALLIDO": "Código de restablecimiento incorrecto",
       "INTERVALO_REPORTE_ACTUALIZADO": "Intervalo de reporte actualizado",
       "DISPOSITIVO_ONLINE": "Equipo en línea",
       "SIN_DATOS_DETECTADO": "Equipo sin datos",
@@ -1157,6 +1186,8 @@
       "REGISTRAR_VERSION_MODELO_IA": "Versión del modelo registrada",
       "ACTIVAR_VERSION_MODELO_IA": "Versión del modelo activada",
       "ACTIVAR_VERSION_MODELO_IA_RECHAZADO": "Activación del modelo rechazada",
+      "DESACTIVAR_VERSION_MODELO_IA": "Versión del modelo desactivada",
+      "DESACTIVAR_VERSION_MODELO_IA_RECHAZADO": "Desactivación del modelo rechazada",
       "MODELO_RECHAZADO": "Modelo rechazado",
       "INTENTO_MODIFICAR_INFERENCIA": "Intento de modificar una inferencia",
       "CADENA_CORRUPCION_AISLADA": "Registro corrupto aislado",
@@ -1907,7 +1938,6 @@
     "noDisponible": "No disponible",
     "notaReproducibilidad": "Estos datos ayudan a identificar la evaluación. Una semilla o una huella, por sí solas, no garantizan que el entrenamiento pueda repetirse exactamente.",
     "notaUsoProfesional": "Estas métricas evalúan un clasificador. Para atender una alerta, sigue el procedimiento de tu farmacia; este resultado no sustituye la revisión profesional.",
-    "noEntrenado": "Aún no hay una evaluación disponible para este modelo. Contacta al administrador para revisar su configuración.",
     "errorCarga": "No pudimos cargar los resultados del modelo. Inténtalo nuevamente.",
     "reintentar": "Volver a intentar",
     "variables": {
@@ -1937,7 +1967,7 @@
     "versiones": {
       "titulo": "Versiones del modelo",
       "descripcion": "Versiones aprobadas del Random Forest con su huella SHA-256 y sus metadatos de reproducibilidad. Solo la versión activa clasifica en producción.",
-      "soloLectura": "Solo lectura. Registrar y activar versiones corresponde al administrador.",
+      "soloLectura": "Solo lectura. Registrar, activar y desactivar versiones corresponde al administrador.",
       "registrar": "Registrar versión",
       "lista": "Versiones registradas del modelo",
       "vacio": "No hay versiones registradas. Ninguna versión aprobada clasifica en producción.",
@@ -1970,12 +2000,32 @@
       "confirmarTraza": "El cambio queda en la bitácora y en la cadena de trazabilidad.",
       "confirmarBloqueo": "El sistema rechazará la activación mientras no se resuelva:",
       "activada": "Versión {{version}} activada. Desde ahora es la única que clasifica en producción.",
+      "desactivar": "Desactivar",
+      "desactivarEtiqueta": "Desactivar la versión {{version}}",
+      "desactivando": "Desactivando…",
+      "desactivarConfirmar": "Desactivar versión",
+      "desactivarTitulo": "¿Desactivar la versión {{version}}?",
+      "desactivarEfecto": "No quedará ninguna versión activa: el modelo preventivo no se carga y el riesgo vuelve a decidirse como antes de activar cualquier versión. Las alertas por temperatura fuera de 2–8 °C no cambian.",
+      "desactivarTraza": "Queda en la bitácora y en la cadena de trazabilidad con tu usuario, la fecha y el motivo.",
+      "desactivarMotivo": "Motivo de la desactivación",
+      "desactivarMotivoAyuda": "Entre {{min}} y {{max}} caracteres. Queda registrado en la cadena de trazabilidad.",
+      "desactivarMotivoCorto": "Escribe un motivo de al menos {{min}} caracteres.",
+      "desactivarMotivoLargo": "El motivo no puede superar los {{max}} caracteres.",
+      "contador": "{{actual}} de {{max}} caracteres",
+      "desactivada": "Versión {{version}} desactivada. No hay versión activa: el modelo preventivo no clasifica y el riesgo se decide como antes de activar.",
+      "desactivarNoActiva": "No se desactivó la versión {{version}}: ya no es la versión activa (otra persona pudo desactivarla o activar otra). La lista se actualizó.",
+      "desactivarYaNoActiva": "La versión {{version}} ya no está activa. No llegó la respuesta del sistema, pero la lista actualizada lo confirma; la bitácora registra quién la desactivó y con qué motivo.",
+      "desactivarNoRegistrada": "No se desactivó la versión {{version}}: no está registrada. La lista se actualizó.",
+      "desactivarConflicto": "No se desactivó la versión {{version}}: el sistema rechazó el cambio. La lista se actualizó.",
+      "desactivarInvalida": "El sistema rechazó el motivo: debe tener entre {{min}} y {{max}} caracteres.",
+      "errorDesactivar": "No pudimos desactivar la versión. Inténtalo nuevamente; el motivo se conserva.",
       "rechazadaCriterios": "No se activó la versión {{version}}: no cumple los requisitos de activación. La versión activa se mantiene.",
       "rechazadaNoRegistrada": "No se activó la versión {{version}}: no está registrada ni aprobada. La versión activa se mantiene.",
       "motivoServidor": "Motivo informado por el sistema: {{detalle}}",
       "errorActivar": "No pudimos activar la versión. Inténtalo nuevamente.",
       "sinPermiso": "Tu rol no puede gestionar las versiones del modelo.",
       "registrada": "Versión {{version}} registrada. Aún no está activa: actívala cuando cumpla los requisitos.",
+      "registradaYActivada": "Versión {{version}} registrada y activada. Desde ahora es la única que clasifica en producción.",
       "form": {
         "titulo": "Registrar versión aprobada",
         "descripcion": "Registra los metadatos de reproducibilidad de una versión entrenada y aprobada.",
@@ -1996,11 +2046,106 @@
         "particionesInvalidas": "Particiones: cada valor debe ser texto, número o lista de textos.",
         "jsonInvalido": "{{campo}}: escribe un objeto JSON válido.",
         "noActiva": "Registrar no activa la versión. Al activarla, el sistema comprueba los criterios y que el artefacto desplegado coincida con la huella.",
+        "activarAlRegistrar": "Marcarla como versión activa de producción al registrarla",
+        "activarAlRegistrarAyuda": "Se comprueban los mismos requisitos que al activar (criterios y que el artefacto desplegado coincida con la huella). Si no se cumplen, la versión no queda ni registrada ni activa y el rechazo queda en la bitácora.",
+        "rechazadaAlActivar": "No se registró ni se activó la versión.",
+        "rechazadaAlActivarCriterios": "No se registró ni se activó la versión {{version}}: no cumple los requisitos de activación. La versión activa se mantiene.",
+        "rechazadaAlActivarArtefacto_preventivo": "No se registró ni se activó la versión {{version}}: el artefacto del modelo preventivo desplegado no corresponde a esta versión. La versión activa se mantiene.",
+        "rechazadaAlActivarArtefacto_legado": "No se registró ni se activó la versión {{version}}: el artefacto del modelo legado desplegado no corresponde a esta versión. La versión activa se mantiene.",
+        "rechazadaAlActivarArtefacto_desconocido": "No se registró ni se activó la versión {{version}}: el artefacto desplegado no corresponde a esta versión. La versión activa se mantiene.",
         "duplicada": "No se registró la versión.",
         "invalida": "El sistema rechazó los datos de la versión.",
         "error": "No pudimos registrar la versión. Inténtalo nuevamente.",
         "enviando": "Registrando…",
         "guardar": "Registrar versión"
+      },
+      "artefactoPreventivo": "Al activar, el sistema comprueba el artefacto del modelo preventivo desplegado.",
+      "artefactoPreventivoVersion": "Al activar, el sistema comprueba el artefacto del modelo preventivo desplegado (versión {{version}}).",
+      "artefactoLegado": "Al activar, el sistema comprueba el artefacto del modelo legado desplegado.",
+      "rechazadaArtefacto_preventivo": "No se activó la versión {{version}}: el artefacto del modelo preventivo desplegado no corresponde a esta versión. La versión activa se mantiene.",
+      "rechazadaArtefacto_legado": "No se activó la versión {{version}}: el artefacto del modelo legado desplegado no corresponde a esta versión. La versión activa se mantiene.",
+      "rechazadaArtefacto_desconocido": "No se activó la versión {{version}}: el artefacto desplegado no corresponde a esta versión. La versión activa se mantiene.",
+      "rechazadaInvalida": "No se activó la versión {{version}}: la solicitud no es válida. La versión activa se mantiene.",
+      "grupos": {
+        "criterios": "Requisitos de la versión:",
+        "artefacto_preventivo": "Artefacto del modelo preventivo:",
+        "artefacto_legado": "Artefacto del modelo legado:",
+        "artefacto_desconocido": "Artefacto desplegado:",
+        "otros": "Otros motivos:"
+      },
+      "motivos": {
+        "sinHorizonte": "falta el horizonte H de la etiqueta",
+        "sinEsquema": "falta la versión del esquema de características",
+        "faltanParticiones": "faltan las particiones ({{campos}})",
+        "separacionMenor": "la separación entre particiones es menor que H",
+        "faltanMetricas": "faltan métricas del criterio principal ({{criterio}})",
+        "noCumpleCriterio": "no cumple el criterio principal ({{criterio}})",
+        "criterioDesconocido": "criterio principal desconocido: {{criterio}}",
+        "versionNoConfigurada": "no hay una versión preventiva desplegada (IA_PREVENTIVO_VERSION)",
+        "versionNoDesplegada": "la versión no es la desplegada ({{desplegada}})",
+        "sha256NoConfigurado": "falta la huella esperada del artefacto (IA_PREVENTIVO_SHA256)",
+        "sha256Distinto": "la huella configurada (IA_PREVENTIVO_SHA256) no coincide con la registrada",
+        "manifiestoIlegible": "no se pudo leer el manifiesto del modelo preventivo",
+        "manifiestoNoAprobado": "el manifiesto está en estado {{estado}}; activar exige {{exigido}}",
+        "artefactoDistinto": "el artefacto desplegado no coincide con la huella registrada",
+        "horizonteNoCoincide": "el horizonte H registrado ({{registrado}} min) no es el del manifiesto del artefacto desplegado ({{manifiesto}} min)",
+        "esquemaNoCoincide": "el esquema de características registrado ({{registrado}}) no es el del manifiesto del artefacto desplegado ({{manifiesto}})",
+        "sklearnNoCoincide": "la versión de scikit-learn registrada ({{registrada}}) no es la del manifiesto del artefacto desplegado ({{manifiesto}})",
+        "sklearnIncompatible": "el modelo se entrenó con scikit-learn {{entrenado}} y la instalada es {{instalado}}: no se podría cargar",
+        "manifiestoNoCoincide": "el manifiesto desplegado se modificó fuera de la herramienta de registro: su huella SHA-256 no es la anotada en el historial"
+      }
+    },
+    "modelo": {
+      "continuaMonitoreo": "La ingesta de lecturas, la regla de 2⁠–⁠8 °C, las alertas críticas y el historial siguen operando.",
+      "disponible": {
+        "titulo": "Modelo disponible.",
+        "detalle": "El artefacto se cargó y superó la verificación de integridad.",
+        "detalleVersion": "La versión {{version}} se cargó y superó la verificación de integridad."
+      },
+      "no_entrenado": {
+        "titulo": "Modelo no entrenado.",
+        "motivos": {
+          "no_entrenado": "Este entorno no tiene un modelo Random Forest entrenado.",
+          "sin_metricas": "El modelo no tiene métricas de entrenamiento registradas, así que no hay una evaluación que mostrar.",
+          "generico": "Aún no hay una evaluación disponible para este modelo. Contacta al administrador para revisar su configuración."
+        }
+      },
+      "rechazado": {
+        "titulo": "Modelo rechazado por verificación.",
+        "sinInferencia": "No se ejecuta ninguna clasificación con ese archivo.",
+        "motivos": {
+          "checksum_invalido": "La huella del artefacto no coincide con la de su metadata: el archivo pudo alterarse.",
+          "hash_distinto_de_la_version_activa": "El artefacto desplegado no es el de la versión activa y aprobada del registro.",
+          "sin_verificacion_de_integridad": "El artefacto no tiene metadata de integridad ni una versión activa registrada contra la cual verificarlo.",
+          "incompatible": "El artefacto no es compatible con esta instalación (versión de scikit-learn, clases o variables).",
+          "error_de_lectura": "No se pudo leer el artefacto del modelo.",
+          "generico": "El artefacto no superó la verificación de integridad o compatibilidad al cargarse."
+        }
+      }
+    },
+    "preventivo": {
+      "titulo": "Clasificación preventiva",
+      "enOperacion": "En operación",
+      "enSombra": "Modo sombra",
+      "fueraDeOperacion": "Fuera de operación",
+      "demostracion": "Demostración",
+      "detalleOperativa": "Modelo preventivo {{version}}: es la versión activa y aprobada del registro. El riesgo efectivo puede mostrarse como Riesgo preventivo y abrir alertas preventivas.",
+      "detalleSombra": "Registra predicciones como evidencia, pero no decide el riesgo ni abre alertas preventivas.",
+      "reglaDecide": "El riesgo efectivo lo decide la regla de 2⁠–⁠8 °C: no se muestran estados ni alertas preventivas del modelo.",
+      "versionRegistro": "Versión activa del registro: {{version}}",
+      "ninguna": "ninguna",
+      "motivos": {
+        "modo_desactivado": "La clasificación preventiva está desactivada en este entorno.",
+        "version_no_configurada": "No hay una versión del modelo preventivo desplegada (IA_PREVENTIVO_VERSION).",
+        "sha256_no_configurado": "Falta la huella esperada del artefacto preventivo (IA_PREVENTIVO_SHA256).",
+        "sin_version_activa_registrada": "No hay una versión activa en el registro de versiones: sin ella no se carga ningún modelo preventivo.",
+        "version_distinta_de_la_activa": "La versión desplegada no es la versión activa del registro.",
+        "hash_distinto_del_registrado": "La huella configurada no coincide con la de la versión activa del registro.",
+        "artefacto_no_verificado": "El artefacto preventivo no superó la verificación de integridad.",
+        "estado_no_admitido": "El manifiesto del modelo preventivo no está aprobado para este modo.",
+        "incompatible": "El artefacto preventivo no es compatible con esta instalación.",
+        "error_de_carga": "No se pudo cargar el artefacto preventivo.",
+        "generico": "El modelo preventivo no está disponible."
       }
     }
   },
@@ -2046,7 +2191,10 @@
       },
       "preventivo": {
         "titulo": "Riesgo preventivo",
-        "descripcion": "La lectura se acerca a uno de los límites; revisa antes de que salga del rango."
+        "descripcion": "La lectura se acerca a uno de los límites; revisa antes de que salga del rango.",
+        "fueraDeOperacion": "Fuera de operación en este sistema: no hay un modelo preventivo aprobado y activo. El estado se decide con la regla de 2⁠–⁠8 °C y no se generan alertas preventivas.",
+        "condicional": "Solo aparece cuando el sistema tiene activo un modelo preventivo aprobado; si no, el estado se decide con la regla de 2⁠–⁠8 °C.",
+        "insignia": "Fuera de operación"
       },
       "critico": {
         "titulo": "Excursión crítica",
@@ -2072,10 +2220,10 @@
       },
       "registrar": {
         "titulo": "Registra la respuesta",
-        "descripcion": "Si tu rol lo permite, marca la alerta como revisada y anota la acción realizada."
+        "descripcion": "Si tu rol lo permite, marca la alerta como reconocida y anota la acción realizada."
       }
     },
-    "alertaPermisos": "El personal técnico puede registrar una acción correctiva; el personal farmacéutico también puede marcar una alerta como revisada. Auditoría es de solo lectura.",
+    "alertaPermisos": "El personal farmacéutico reconoce la alerta y registra la acción correctiva; el personal técnico consulta la alerta y su cronología. Auditoría es de solo lectura.",
     "ejemploTitulo": "Ejemplo ilustrativo · rango de 2⁠–⁠8 °C",
     "ejemplo": "4,3 °C está dentro del rango. Una lectura de 8,4 °C está fuera: revisa la alerta, aplica el procedimiento de tu farmacia y registra la respuesta.",
     "pantallasTitulo": "Encuentra una pantalla",
@@ -2266,7 +2414,7 @@
     "buffer_80": "El buffer local de {{device}} supera el 80 %.",
     "buffer_saturado": "El buffer local de {{device}} se saturó: puede haber lecturas perdidas.",
     "registros_en_cuarentena": "{{device}} apartó registros en cuarentena (contenido en conflicto).",
-    "wifi_reconexion_prolongada": "{{device}} lleva tiempo intentando reconectarse a la red.",
+    "wifi_reconexion_prolongada": "{{device}} se reconectó a la red tras un periodo prolongado sin conexión.",
     "conmutacion_respaldo": "{{device}} funciona con la alimentación de respaldo.",
     "suministro_restablecido": "{{device}} recuperó el suministro eléctrico.",
     "respaldo_autonomia_critica": "La batería de respaldo de {{device}} está en nivel crítico.",
@@ -2289,7 +2437,11 @@
       "critico": "Alerta crítica",
       "aviso": "Aviso",
       "ok": "Confirmado"
-    }
+    },
+    "wifiReconectado_one": "{{device}} se reconectó tras {{count}} intento ({{duracion}}).",
+    "wifiReconectado_other": "{{device}} se reconectó tras {{count}} intentos ({{duracion}}).",
+    "wifiReconectadoIntentos_one": "{{device}} se reconectó tras {{count}} intento.",
+    "wifiReconectadoIntentos_other": "{{device}} se reconectó tras {{count}} intentos."
   },
   "tema": {
     "titulo": "Tema",
@@ -2341,7 +2493,8 @@
     "conexion": {
       "conectado": "Conectado en vivo",
       "reconectando": "Reconectando…",
-      "sinConexion": "Sin conexión en vivo"
+      "sinConexion": "Sin conexión en vivo",
+      "demasiadasPestanas": "Demasiadas pestañas en tiempo real"
     },
     "ultimaLectura": "{{id}} · {{tiempo}}",
     "alertas_one": "{{count}} alerta sin atender",

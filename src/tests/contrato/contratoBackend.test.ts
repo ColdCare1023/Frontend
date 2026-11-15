@@ -6,7 +6,7 @@ vi.mock('@/infrastructure/sse/sseClient', () => ({ suscribirseTiempoReal: () => 
 import { useDispositivos } from '@/application/hooks/useDispositivos'
 import { obtenerEvidenciaInferencia } from '@/application/hooks/useEvidenciaInferencia'
 import { cuerpoCalibracion } from '@/application/hooks/useCalibracion'
-import { cuerpoRegistroVersion } from '@/application/hooks/useVersionesModelo'
+import { cuerpoDesactivacion, cuerpoRegistroVersion } from '@/application/hooks/useVersionesModelo'
 import { TIME_QUALITY_LECTURA } from '@/domain/entities/LecturaTermica'
 import openapi from './openapi-backend.json'
 import { instalarAdaptadorFalso } from '../ayudas'
@@ -118,6 +118,19 @@ describe('contrato con el backend — Dispositivos', () => {
     })
     expect(Object.keys(minima)).not.toContain('metricas')
     expect(errores(minima, esquemaPeticion('post', '/api/ia/modelo/versiones'))).toEqual([])
+  })
+
+  it('P-12: la desactivación usa la ruta y el cuerpo del contrato ({motivo} de 10 a 500 caracteres)', () => {
+    const ruta = '/api/ia/modelo/versiones/4.0.0/desactivar'
+    expect(existeRuta('post', ruta)).toBe(true)
+    const esquema = esquemaPeticion('post', ruta)
+    expect(errores(cuerpoDesactivacion('  Vuelta atrás por falsas alarmas  '), esquema)).toEqual([])
+    expect(cuerpoDesactivacion('  Vuelta atrás  ')).toEqual({ motivo: 'Vuelta atrás' })
+    expect(errores({ motivo: 'corto' }, esquema)).toContain('$.motivo: menor que minLength')
+    expect(errores({ motivo: 'x'.repeat(501) }, esquema)).toContain('$.motivo: excede maxLength')
+    expect(errores({ motivo: 'Vuelta atrás por falsas alarmas', version: '4.0.0' }, esquema)).toContain(
+      '$.version: campo no admitido (el backend responde 422)',
+    )
   })
 
   it('B-15: time_quality de las lecturas usa los valores que publica la API', () => {

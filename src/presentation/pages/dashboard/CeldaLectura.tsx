@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Hourglass, ShieldQuestion, TriangleAlert } from 'lucide-react'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import type { MotivoDesconexionSse } from '@/infrastructure/sse/sseClient'
 import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
 import { clsx } from 'clsx'
@@ -41,6 +42,7 @@ export const CeldaLectura = memo(function CeldaLectura({
   onElegirEquipo,
   desactualizado,
   sseConectado,
+  motivoDesconexion = null,
   extremos,
   ventana,
 }: {
@@ -52,6 +54,8 @@ export const CeldaLectura = memo(function CeldaLectura({
   onElegirEquipo: (id: string) => void
   desactualizado: boolean
   sseConectado: boolean
+  /** HU-32 esc. 3: causa conocida del corte del flujo (null: red o servidor). */
+  motivoDesconexion?: MotivoDesconexionSse | null
   extremos: ExtremosVentana | null
   /** Frase de la ventana elegida («las últimas 24 h»). */
   ventana: string
@@ -276,6 +280,16 @@ export const CeldaLectura = memo(function CeldaLectura({
                 <span>{t('dashboard.haceSegundos', { s: segundosDesdeUltima ?? 0 })}</span>
               </>
             )}
+          </>
+        ) : motivoDesconexion === 'demasiados_flujos' ? (
+          // HU-32 esc. 3: la cuenta ya tiene abiertos los flujos que admite el
+          // backend. No es una caída: se dice la causa y qué hacer.
+          <>
+            <span aria-hidden className="size-1.5 rounded-full bg-warning-600" />
+            <span role="status" className="font-medium text-warning-700">
+              {t('dashboard.demasiadasPestanas')}
+              <span className="font-normal text-muted"> · {t('dashboard.demasiadasPestanasGuia')}</span>
+            </span>
           </>
         ) : (
           <>

@@ -288,6 +288,30 @@ describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
     useMonitoreoTermico.mockReset()
   })
 
+  // HU-35 esc. 1: el evento `puerta` llega por SSE antes que la próxima lectura.
+  it('un evento de puerta abierta se muestra sin esperar una lectura nueva', () => {
+    const ultima = lectura({ timestamp: new Date(Date.now() - 5_000).toISOString(), apertura_continua_segundos: 0 })
+    useMonitoreoTermico.mockReturnValue({
+      ultima, serie: [ultima], sseConectado: true,
+      puertaEnVivo: { device_id: ultima.device_id, abierta: true, desde: new Date(Date.now() - 2_000).toISOString() },
+    })
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+
+    expect(screen.getByTestId('puerta-advertencia')).toHaveTextContent(/^Abierta· desde hace 0:0\d/)
+  })
+
+  it('un evento de puerta más antiguo que la última lectura no cambia el estado', () => {
+    const ultima = lectura({ timestamp: new Date(Date.now() - 5_000).toISOString(), apertura_continua_segundos: 0 })
+    useMonitoreoTermico.mockReturnValue({
+      ultima, serie: [ultima], sseConectado: true,
+      puertaEnVivo: { device_id: ultima.device_id, abierta: true, desde: new Date(Date.now() - 60_000).toISOString() },
+    })
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+
+    expect(screen.queryByTestId('puerta-advertencia')).not.toBeInTheDocument()
+    expect(screen.getByText('Cerrada')).toBeInTheDocument()
+  })
+
   it('muestra la puerta abierta con su duración', () => {
     renderizar(lectura({ apertura_refrigerador: true, duracion_apertura_segundos: 45 }))
 
@@ -478,6 +502,13 @@ describe('DashboardPage — HU-33: falla por sensor en las tarjetas KPI', () => 
     expect(condiciones().queryByText('140')).not.toBeInTheDocument()
     // La temperatura ambiente del mismo SHT31 sigue mostrándose.
     expect(condiciones().getByText('5.2')).toBeInTheDocument()
+  })
+
+  it('esc. 1: la humedad se muestra con un decimal (exacta en % HR), no redondeada a entero', () => {
+    renderizar(lectura({ humedad_ambiental: 58.37 }))
+
+    expect(condiciones().getByText('58.4')).toBeInTheDocument()
+    expect(condiciones().queryByText('58')).not.toBeInTheDocument()
   })
 
   it('sin estado_sensores (backend anterior), una humedad imposible también es falla', () => {

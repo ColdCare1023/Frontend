@@ -10,6 +10,11 @@ export interface EvidenciaInferencia {
   inference_status: 'completada' | 'omitida' | 'fallida' | 'modelo_no_disponible' | null
   model_class: string | null
   probabilities: Record<string, number> | null
+  /**
+   * HU-18 esc. 1 / HU-47 esc. 1: false = salida de predict_proba que el modelo
+   * no declara calibrada; null = no consta (modelo legado o backend anterior).
+   */
+  probabilities_calibrated?: boolean | null
   feature_vector: Record<string, number | boolean | null>
   horizon_min?: number | null
   feature_schema_version?: string | null
@@ -47,6 +52,8 @@ export interface InferenciaLecturaApi {
   origen_clasificacion: string | null
   version_era_activa_y_aprobada_en_ese_momento: boolean | null
   version_activa_en_ese_momento?: string | null
+  /** HU-18/HU-47: ausente en backends anteriores. */
+  probabilidades_calibradas?: boolean | null
   estado_inferencia: EvidenciaInferencia['inference_status']
   excursion_confirmada: boolean
   riesgo_efectivo: string | null
@@ -66,6 +73,7 @@ export function aEvidencia(api: InferenciaLecturaApi): EvidenciaInferencia {
     inference_status: api.estado_inferencia ?? null,
     model_class: api.clasificacion_final,
     probabilities: api.probabilidades_por_clase,
+    probabilities_calibrated: typeof api.probabilidades_calibradas === 'boolean' ? api.probabilidades_calibradas : null,
     feature_vector: api.vector_features ?? {},
     excursion_confirmada: api.excursion_confirmada,
     effective_risk: api.riesgo_efectivo,

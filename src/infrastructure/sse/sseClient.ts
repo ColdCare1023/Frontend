@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { apiClient, API_BASE_URL, getAccessToken } from '../api/apiClient'
 import { normalizarFechasUtc } from '../api/fechasUtc'
@@ -10,6 +12,17 @@ const SSE_URL = import.meta.env.VITE_SSE_URL ?? `${API_BASE_URL}/api/sse/lectura
 export const REINTENTO_BASE_MS = 1000
 export const REINTENTO_MAX_MS = 30_000
 const INTERVALO_DEMO_MS = 8000
+
+/**
+ * HU-32 esc. 3: por qué el flujo no está abierto, cuando el backend lo dice.
+ * `demasiados_flujos`: la cuenta ya tiene abiertos los flujos SSE que admite
+ * (SSE_MAX_STREAMS_POR_USUARIO, 10 por defecto) y `POST /api/auth/sse-ticket`
+ * respondió 429. No es una caída de red: «Reconectando…» sería engañoso.
+ */
+export type MotivoDesconexionSse = 'demasiados_flujos'
+export const DETALLE_DEMASIADOS_FLUJOS = 'demasiados_flujos'
+/** Espera ante un 429 sin `Retry-After` (el backend envía 15 s). */
+export const REINTENTO_FLUJOS_MS = 15_000
 
 /** HU-13: cambio de conectividad normalizado (ver `normalizarConectividad`). */
 export interface CambioConectividad {
@@ -114,7 +127,8 @@ export interface OyentesTiempoReal {
   onEstadoNodo?: (estado: EstadoNodo) => void
   onIncidenteOperativo?: (evento: EventoIncidenteOperativo) => void
   onPruebaPosesion?: (resultado: ResultadoPruebaPosesion) => void
-  onEstado?: (conectado: boolean) => void
+  /** `motivo` solo llega con `conectado = false` y una causa conocida (HU-32 esc. 3). */
+  onEstado?: (conectado: boolean, motivo?: MotivoDesconexionSse) => void
 }
 
 /** Eventos de dispositivo del backend: `{device_id, timestamp, boot_id?}`. */
@@ -144,10 +158,29 @@ function datosDe(event: MessageEvent): Record<string, unknown> | null {
 const oyentes = new Set<OyentesTiempoReal>()
 let cerrarConexion: (() => void) | null = null
 let ultimoEstado: boolean | null = null
+let ultimoMotivo: MotivoDesconexionSse | undefined
 
-function avisarEstado(conectado: boolean) {
+function avisarEstado(conectado: boolean, motivo?: MotivoDesconexionSse) {
   ultimoEstado = conectado
-  oyentes.forEach((o) => o.onEstado?.(conectado))
+  ultimoMotivo = conectado ? undefined : motivo
+  oyentes.forEach((o) => o.onEstado?.(conectado, ultimoMotivo))
+}
+
+/**
+ * HU-32 esc. 3: el 429 `demasiados_flujos` del ticket. Devuelve la espera
+ * pedida por el backend (`Retry-After`, en segundos) o null si el error es otro.
+ */
+export function esperaPorDemasiadosFlujos(error: unknown): number | null {
+  if (!axios.isAxiosError(error) || error.response?.status !== 429) return null
+  const detalle = (error.response.data as { detail?: unknown } | undefined)?.detail
+  if (detalle !== DETALLE_DEMASIADOS_FLUJOS) return null
+  const cabeceras = error.response.headers as Record<string, unknown> | { get?: (n: string) => unknown } | undefined
+  const crudo =
+    cabeceras && typeof (cabeceras as { get?: unknown }).get === 'function'
+      ? (cabeceras as { get: (n: string) => unknown }).get('retry-after')
+      : (cabeceras as Record<string, unknown> | undefined)?.['retry-after']
+  const segundos = Number(crudo)
+  return Number.isFinite(segundos) && segundos > 0 ? Math.min(segundos * 1000, REINTENTO_MAX_MS * 4) : REINTENTO_FLUJOS_MS
 }
 
 /**
@@ -200,9 +233,9 @@ function abrirConexion(): () => void {
   let cancelado = false
   let espera = REINTENTO_BASE_MS
 
-  const reintentar = () => {
+  const reintentar = (minimo = 0) => {
     if (cancelado) return
-    temporizador = setTimeout(conectar, espera)
+    temporizador = setTimeout(conectar, Math.max(espera, minimo))
     espera = Math.min(espera * 2, REINTENTO_MAX_MS)
   }
 
@@ -299,9 +332,13 @@ function abrirConexion(): () => void {
           if (!cancelado) conectar()
         })
       })
-      .catch(() => {
-        avisarEstado(false)
-        reintentar()
+      .catch((error: unknown) => {
+        // HU-32 esc. 3: con la cuenta en su tope de flujos, el backend dice
+        // cuánto esperar. Se sigue intentando (al cerrar otra pestaña, esta
+        // entra sola), pero la pantalla nombra la causa en vez de «Reconectando…».
+        const esperaFlujos = esperaPorDemasiadosFlujos(error)
+        avisarEstado(false, esperaFlujos === null ? undefined : 'demasiados_flujos')
+        reintentar(esperaFlujos ?? 0)
       })
   }
 
@@ -325,7 +362,7 @@ export function suscribirseTiempoReal(nuevos: OyentesTiempoReal): () => void {
   if (cerrarConexion === null) {
     cerrarConexion = MODO_DEMO ? simularStream() : abrirConexion()
   } else if (ultimoEstado !== null) {
-    propio.onEstado?.(ultimoEstado)
+    propio.onEstado?.(ultimoEstado, ultimoMotivo)
   }
   return () => {
     oyentes.delete(propio)
@@ -333,14 +370,19 @@ export function suscribirseTiempoReal(nuevos: OyentesTiempoReal): () => void {
       cerrarConexion()
       cerrarConexion = null
       ultimoEstado = null
+      ultimoMotivo = undefined
     }
   }
 }
 
-/** Flujo de lecturas térmicas en tiempo real (RF-11). */
+/**
+ * Flujo de lecturas térmicas en tiempo real (RF-11). `onAvisoDispositivo`
+ * (HU-35 esc. 1) recibe además los avisos del nodo, como el cambio de puerta.
+ */
 export function suscribirseLecturas(
   onLectura: (lectura: LecturaTermica) => void,
-  onEstado?: (conectado: boolean) => void,
+  onEstado?: (conectado: boolean, motivo?: MotivoDesconexionSse) => void,
+  onAvisoDispositivo?: (aviso: AvisoDispositivo) => void,
 ): () => void {
-  return suscribirseTiempoReal({ onLectura, onEstado })
+  return suscribirseTiempoReal({ onLectura, onEstado, onAvisoDispositivo })
 }

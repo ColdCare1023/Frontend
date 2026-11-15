@@ -31,19 +31,54 @@ export interface EstadoPuerta {
 }
 
 /**
+ * HU-35 esc. 1: cambio de puerta recibido como evento SSE (`puerta`), con los
+ * segundos transcurridos desde que ocurrió.
+ */
+export interface CambioPuertaEnVivo {
+  abierta: boolean
+  desde: string
+  segundosDesde: number | null
+}
+
+/**
  * HU-35: `apertura_refrigerador` dice si HUBO apertura en la ventana de
  * muestreo y `duracion_apertura_segundos` cuánto duró dentro de ella (nunca
  * más que el intervalo). Lo que lleva abierta la puerta sin cerrarse viene en
  * `apertura_continua_segundos`; con backends anteriores se conserva el
  * criterio previo.
+ *
+ * HU-35 esc. 1: un cambio de puerta en vivo posterior a la última lectura
+ * manda sobre ella (la puerta se ve abierta o cerrada en cuanto llega el
+ * evento). Uno anterior o igual a la lectura se ignora.
  */
 export function estadoPuerta(
   ultima: LecturaTermica,
   segundosDesdeUltima: number | null,
   desactualizado: boolean,
   umbralEquipo?: number | null,
+  enVivo?: CambioPuertaEnVivo | null,
 ): EstadoPuerta {
   const umbral = umbralPuerta(ultima, umbralEquipo)
+  if (enVivo && Date.parse(enVivo.desde) > Date.parse(ultima.timestamp)) {
+    const segunLectura = estadoPuerta(ultima, segundosDesdeUltima, desactualizado, umbralEquipo)
+    // Si la lectura ya decía «abierta», la apertura empezó antes: se conserva su cuenta.
+    const aperturaEnCurso = !enVivo.abierta
+      ? null
+      : segunLectura.abiertaAhora && segunLectura.aperturaEnCurso != null
+        ? segunLectura.aperturaEnCurso
+        : desactualizado
+          ? null
+          : (enVivo.segundosDesde ?? 0)
+    return {
+      sinSensor: false,
+      abiertaAhora: enVivo.abierta,
+      conAperturaContinua: true,
+      aperturaEnCurso,
+      huboAperturaCerrada: !enVivo.abierta && (segunLectura.abiertaAhora || ultima.apertura_refrigerador === true),
+      aperturaProlongada: aperturaEnCurso != null && aperturaEnCurso >= umbral,
+      umbral,
+    }
+  }
   const conAperturaContinua = ultima.apertura_continua_segundos !== undefined
   const abiertaAhora = conAperturaContinua
     ? (ultima.apertura_continua_segundos ?? 0) > 0

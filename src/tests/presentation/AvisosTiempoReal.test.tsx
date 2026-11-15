@@ -1,7 +1,7 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, renderHook, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { OyentesTiempoReal } from '@/infrastructure/sse/sseClient'
+import type { EventoAlerta, OyentesTiempoReal } from '@/infrastructure/sse/sseClient'
 
 const suscriptores = vi.hoisted(() => [] as OyentesTiempoReal[])
 vi.mock('@/infrastructure/sse/sseClient', () => ({
@@ -10,10 +10,25 @@ vi.mock('@/infrastructure/sse/sseClient', () => ({
     return () => {}
   },
 }))
+// Lo visible es el notch: se registra con qué nivel se publicó cada aviso.
+const notch = vi.hoisted(() => vi.fn())
+vi.mock('@/presentation/components/notificaciones/notificarNotch', async (original) => {
+  const real = await original<typeof import('@/presentation/components/notificaciones/notificarNotch')>()
+  return {
+    ...real,
+    notificarNotch: (...args: Parameters<typeof real.notificarNotch>) => {
+      notch(...args)
+      return real.notificarNotch(...args)
+    },
+  }
+})
 
+import { useFuenteEstadoVivo } from '@/application/hooks/useEstadoVivo'
 import { useAuthStore } from '@/application/stores/authStore'
+import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import i18n from '@/infrastructure/i18n'
 import { AvisosTiempoReal } from '@/presentation/components/AvisosTiempoReal'
+import { instalarAdaptadorFalso } from '../ayudas'
 
 function sesion(rol: 'administrador' | 'farmaceutico') {
   useAuthStore.setState({ usuario: { id: 'u1', email: 'u@x.pe', rol, expiraEn: Date.now() + 3_600_000 }, autenticado: true })
@@ -23,6 +38,7 @@ function sesion(rol: 'administrador' | 'farmaceutico') {
 describe('AvisosTiempoReal', () => {
   beforeEach(async () => {
     suscriptores.length = 0
+    notch.mockClear()
     await i18n.changeLanguage('es')
   })
 
@@ -140,5 +156,124 @@ describe('AvisosTiempoReal', () => {
       suscriptores[0].onPruebaPosesion?.({ device_id: 'FARM-02', verificada: true, motivo: 'verificada' })
     })
     expect(screen.getByRole('status')).toHaveTextContent('FARM-02 probó la credencial nueva')
+  })
+
+  describe('HU-08 esc. 3: reconexión Wi-Fi prolongada', () => {
+    const avisar = (detalle: Record<string, unknown> | null, tipo: 'wifi_reconexion_prolongada' | 'reconexion_prolongada' = 'wifi_reconexion_prolongada') =>
+      act(() => {
+        suscriptores[0].onAvisoDispositivo?.({ tipo, device_id: 'FARM-01', timestamp: 'x', detalle })
+      })
+
+    it('dice que se reconectó tras N intentos y cuánto duró, con el detalle del nodo', () => {
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 7, duracion_s: 45, umbral_intentos: 5 })
+
+      expect(screen.getByRole('status')).toHaveTextContent('FARM-01 se reconectó tras 7 intentos (45 s).')
+      expect(screen.queryByText(/lleva tiempo intentando/i)).not.toBeInTheDocument()
+    })
+
+    it('episodios largos con duración legible, y el nombre heredado del evento igual', () => {
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 12, duracion_s: 185 }, 'reconexion_prolongada')
+
+      expect(screen.getByRole('status')).toHaveTextContent('FARM-01 se reconectó tras 12 intentos (3 min 5 s).')
+    })
+
+    it('sin duración dice los intentos; sin detalle, que se reconectó tras un periodo prolongado', () => {
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 1 })
+      avisar(null)
+
+      const textos = screen.getAllByRole('status').map((n) => n.textContent)
+      expect(textos).toEqual([
+        'FARM-01 se reconectó tras 1 intento.',
+        'FARM-01 se reconectó a la red tras un periodo prolongado sin conexión.',
+      ])
+    })
+
+    it('en inglés usa el mismo dato', async () => {
+      await i18n.changeLanguage('en')
+      render(<AvisosTiempoReal />)
+      avisar({ intentos_fallidos: 7, duracion_s: 45 })
+
+      expect(screen.getByRole('status')).toHaveTextContent('FARM-01 reconnected after 7 attempts (45 s).')
+    })
+  })
+
+  /**
+   * Ronda 2b (backend `tipo_sse_episodio`): `alerta` es todo episodio abierto
+   * distinto del anterior, también la alerta PENDIENTE nueva tras cerrar una
+   * ATENDIDA (IA-D18) y el escalamiento preventiva → crítica (IA-D07). Antes
+   * llegaban como `episodio_actualizado` y el tablero no avisaba.
+   */
+  describe('episodios de alerta por SSE', () => {
+    // Lo que el backend envía: la lectura más los campos del episodio.
+    const evento = (tipo: EventoAlerta['tipo'], episodio: string): EventoAlerta =>
+      ({ tipo, device_id: 'FARM-01', temperatura_interna: 9.4, timestamp: '2026-11-14T10:00:00Z', episodio_alerta: episodio }) as EventoAlerta
+
+    function avisosCriticos() {
+      return notch.mock.calls.filter(([nivel]) => nivel === 'critico').map(([, opciones]) => (opciones as { detalle: string }).detalle)
+    }
+
+    it('una alerta nueva tras una ATENDIDA y un escalamiento interrumpen con el aviso crítico', () => {
+      render(<AvisosTiempoReal />)
+      act(() => {
+        // La ATENDIDA e1 se cerró por la ventana de normalización (recuperación)…
+        suscriptores[0].onAlerta?.(evento('recuperacion', 'e1'))
+        // …y la excursión siguiente abre otro episodio: alerta nueva, no actualización.
+        suscriptores[0].onAlerta?.(evento('alerta', 'e2'))
+        // La preventiva e3 escala a crítica: es otro episodio.
+        suscriptores[0].onAlerta?.(evento('alerta', 'e3'))
+      })
+      expect(screen.getAllByRole('alert').map((n) => n.textContent)).toEqual([
+        'Nueva alerta térmica en FARM-01.',
+        'Nueva alerta térmica en FARM-01.',
+      ])
+      expect(avisosCriticos()).toEqual(['Nueva alerta térmica en FARM-01.', 'Nueva alerta térmica en FARM-01.'])
+      expect(screen.getByRole('status')).toHaveTextContent('FARM-01')
+    })
+
+    it('«episodio_actualizado» no interrumpe: ni aviso ni notch', () => {
+      render(<AvisosTiempoReal />)
+      act(() => {
+        suscriptores[0].onAlerta?.(evento('episodio_actualizado', 'e2'))
+        suscriptores[0].onAlerta?.(evento('episodio_actualizado', 'e2'))
+      })
+      expect(screen.queryByRole('alert')).toBeNull()
+      expect(screen.queryByRole('status')).toBeNull()
+      expect(notch).not.toHaveBeenCalled()
+    })
+
+    it('el estado en vivo relee las alertas tanto con «alerta» como con «episodio_actualizado»', async () => {
+      vi.useFakeTimers()
+      const adaptador = instalarAdaptadorFalso((config) => {
+        if (config.url === '/api/alertas') return { data: [] }
+        return { data: [] }
+      })
+      try {
+        const lecturasAlertas = () => adaptador.peticiones.filter((p) => p.url === '/api/alertas').length
+        const { unmount } = renderHook(() => useFuenteEstadoVivo())
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(0)
+        })
+        const oyentes = suscriptores.at(-1)!
+        const tras = async (tipo: EventoAlerta['tipo']) => {
+          const antes = lecturasAlertas()
+          await act(async () => {
+            oyentes.onAlerta?.(evento(tipo, 'e2'))
+            await vi.advanceTimersByTimeAsync(500)
+          })
+          return lecturasAlertas() - antes
+        }
+        // Pendientes y reconocidas: dos páginas por refresco.
+        expect(await tras('episodio_actualizado')).toBe(2)
+        expect(await tras('alerta')).toBe(2)
+        expect(useEstadoVivoStore.getState().alertas).toMatchObject({ total: 0 })
+        unmount()
+      } finally {
+        adaptador.restaurar()
+        vi.useRealTimers()
+      }
+    })
   })
 })

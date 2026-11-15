@@ -41,23 +41,29 @@ function evaluarCriterios(metricas: Record<string, unknown> | null | undefined) 
   }
 }
 
-function motivosBloqueo(version: Pick<VersionModeloIA, 'horizonte_min' | 'feature_schema_version' | 'particiones' | 'metricas'>): string[] {
-  const motivos: string[] = []
-  if (!version.horizonte_min || version.horizonte_min <= 0) motivos.push('falta el horizonte H de la etiqueta')
-  if (!version.feature_schema_version) motivos.push('falta la versión del esquema de features')
+/** Motivo de bloqueo con su código estable (IA-B05: el 409 de /activar trae `codigos`). */
+type MotivoBloqueo = { codigo: string; texto: string }
+
+function motivosBloqueo(version: Pick<VersionModeloIA, 'horizonte_min' | 'feature_schema_version' | 'particiones' | 'metricas'>): MotivoBloqueo[] {
+  const motivos: MotivoBloqueo[] = []
+  if (!version.horizonte_min || version.horizonte_min <= 0) motivos.push({ codigo: 'falta_horizonte', texto: 'falta el horizonte H de la etiqueta' })
+  if (!version.feature_schema_version) motivos.push({ codigo: 'falta_esquema_features', texto: 'falta la versión del esquema de features' })
   const particiones = version.particiones ?? {}
   const faltan = CAMPOS_PARTICIONES.filter((campo) => {
     const valor = particiones[campo]
     return valor == null || valor === '' || (Array.isArray(valor) && valor.length === 0)
   })
   const separacion = numero(particiones.separacion_min)
-  if (faltan.length > 0) motivos.push(`faltan las particiones (${faltan.join(', ')})`)
+  if (faltan.length > 0) motivos.push({ codigo: 'faltan_particiones', texto: `faltan las particiones (${faltan.join(', ')})` })
   else if (separacion !== null && version.horizonte_min && separacion < version.horizonte_min) {
-    motivos.push('la separación entre particiones es menor que H')
+    motivos.push({ codigo: 'separacion_menor_que_horizonte', texto: 'la separación entre particiones es menor que H' })
   }
   const principal = evaluarCriterios(version.metricas)[CRITERIO_PRINCIPAL]
-  if (principal.cumple === null) motivos.push(`faltan métricas del criterio principal (${CRITERIO_PRINCIPAL})`)
-  else if (!principal.cumple) motivos.push(`no cumple el criterio principal (${CRITERIO_PRINCIPAL})`)
+  if (principal.cumple === null) {
+    motivos.push({ codigo: 'faltan_metricas_criterio_principal', texto: `faltan métricas del criterio principal (${CRITERIO_PRINCIPAL})` })
+  } else if (!principal.cumple) {
+    motivos.push({ codigo: 'no_cumple_criterio_principal', texto: `no cumple el criterio principal (${CRITERIO_PRINCIPAL})` })
+  }
   return motivos
 }
 
@@ -72,7 +78,7 @@ function aRespuesta(registro: Registro): VersionModeloIA {
     evaluacion_criterios: evaluarCriterios(registro.metricas),
     criterio_principal: CRITERIO_PRINCIPAL,
     activable: motivos.length === 0,
-    motivos_bloqueo: motivos,
+    motivos_bloqueo: motivos.map((motivo) => motivo.texto),
   }
 }
 
@@ -102,16 +108,88 @@ function semilla(): Registro[] {
 
 let registros: Registro[] = semilla()
 
+/*
+ * HU-16 en la demostración: el modelo legado está disponible, pero la demo
+ * puede reproducir los dos 503 del backend (`GET /api/ia/modelo`) con su
+ * `motivo` y `rechazado_por_verificacion`.
+ */
+export type EstadoModeloDemo =
+  | { estado: 'disponible' }
+  | { estado: 'no_entrenado'; motivo: 'no_entrenado' | 'sin_metricas' }
+  | {
+      estado: 'rechazado'
+      motivo: 'checksum_invalido' | 'hash_distinto_de_la_version_activa' | 'sin_verificacion_de_integridad' | 'incompatible' | 'error_de_lectura'
+    }
+
+let modeloDemo: EstadoModeloDemo = { estado: 'disponible' }
+
+export function simularModeloIADemo(estado: EstadoModeloDemo): void {
+  modeloDemo = estado
+}
+
+/** Cuerpo del 503 (mismo `detail` que el backend), o null si el modelo está disponible. */
+export function modeloNoDisponibleDemo(): { detail: string; motivo: string; rechazado_por_verificacion: boolean } | null {
+  if (modeloDemo.estado === 'disponible') return null
+  const rechazado = modeloDemo.estado === 'rechazado'
+  return {
+    detail: rechazado
+      ? 'El modelo Random Forest no está disponible: el artefacto no superó la verificación de integridad o compatibilidad al cargarse.'
+      : 'El modelo Random Forest no está entrenado en este entorno.',
+    motivo: modeloDemo.motivo,
+    rechazado_por_verificacion: rechazado,
+  }
+}
+
 /** Solo para pruebas: vuelve a la semilla. */
 export function reiniciarVersionesDemo(): void {
   registros = semilla()
+  modeloDemo = { estado: 'disponible' }
+}
+
+/**
+ * HU-20 / HU-46 en la demostración: `GET /api/ia/preventivo` con la regla del
+ * backend en modo activo. El modelo preventivo solo opera si hay una versión
+ * activa en el registro; activar una versión completa lo pone en operación.
+ */
+export function estadoPreventivoDemo() {
+  const activa = registros.find((r) => r.activa) ?? null
+  const comun = { modo: 'activo', datos_simulados: true, versiones_registradas: [] as string[] }
+  if (!activa) {
+    return {
+      ...comun,
+      disponible: false,
+      version: null,
+      motivo: 'No hay una versión activa en el registro de modelos de la base; el modo activo no carga ningún modelo preventivo',
+      motivo_codigo: 'sin_version_activa_registrada',
+      version_activa_registrada: null,
+      es_version_activa_registrada: false,
+    }
+  }
+  return {
+    ...comun,
+    disponible: true,
+    version: activa.version,
+    motivo_codigo: null,
+    version_activa_registrada: activa.version,
+    es_version_activa_registrada: true,
+    estado_modelo: 'APPROVED_FOR_DEPLOYMENT',
+    sha256: activa.model_hash,
+    horizonte_min: activa.horizonte_min,
+  }
+}
+
+/** Versión registrada vigente en `momento`, con sus metadatos (HU-18 esc. 4 / HU-47). */
+export function registroActivoEnDemo(momento: string): Pick<VersionModeloIA, 'version' | 'horizonte_min' | 'feature_schema_version'> | null {
+  const version = versionActivaEnDemo(momento)
+  const registro = version ? registros.find((r) => r.version === version) : undefined
+  return registro ? { version: registro.version, horizonte_min: registro.horizonte_min ?? null, feature_schema_version: registro.feature_schema_version } : null
 }
 
 export function listarVersionesDemo(): VersionModeloIA[] {
   return registros.map(aRespuesta)
 }
 
-type Resultado = { status: number; data?: VersionModeloIA; detalle?: string; motivos?: string[] }
+type Resultado = { status: number; data?: VersionModeloIA; detalle?: string; motivos?: string[]; codigos?: string[] }
 
 const CAMPOS_TEXTO: Array<[keyof Registro, number, number]> = [
   ['version', 1, 50],
@@ -121,12 +199,13 @@ const CAMPOS_TEXTO: Array<[keyof Registro, number, number]> = [
   ['scikit_learn_version', 1, 20],
   ['python_version', 1, 20],
 ]
-const PERMITIDOS = new Set<string>([...CAMPOS_TEXTO.map(([campo]) => campo), 'trained_at', 'horizonte_min', 'metricas', 'particiones'])
+const PERMITIDOS = new Set<string>([...CAMPOS_TEXTO.map(([campo]) => campo), 'trained_at', 'horizonte_min', 'metricas', 'particiones', 'activar'])
 
 /** POST /api/ia/modelo/versiones (RegistrarVersionModeloRequest, additionalProperties: false). */
 export function registrarVersionDemo(cuerpo: Record<string, unknown>, adminId: string | null): Resultado {
   const extra = Object.keys(cuerpo).find((campo) => !PERMITIDOS.has(campo))
   if (extra) return { status: 422, detalle: `Campo no admitido: ${extra}` }
+  if (cuerpo.activar !== undefined && typeof cuerpo.activar !== 'boolean') return { status: 422, detalle: 'Valor no válido en activar' }
   for (const [campo, minimo, maximo] of CAMPOS_TEXTO) {
     const valor = cuerpo[campo]
     if (typeof valor !== 'string' || valor.length < minimo || valor.length > maximo) return { status: 422, detalle: `Valor no válido en ${campo}` }
@@ -157,7 +236,26 @@ export function registrarVersionDemo(cuerpo: Record<string, unknown>, adminId: s
     metricas: (cuerpo.metricas as Record<string, unknown> | null | undefined) ?? null,
     particiones: (cuerpo.particiones as Record<string, unknown> | null | undefined) ?? null,
   }
+  // HU-46 esc. 1: registrar y activar es una sola operación: si la activación
+  // se rechazaría, la versión tampoco queda registrada (como el backend).
+  // Mismo cuerpo del 409 que /activar: `detail` con el prefijo y `codigos` estables.
+  if (cuerpo.activar === true) {
+    const bloqueos = motivosBloqueo(registro)
+    if (bloqueos.length > 0) {
+      const motivos = bloqueos.map((motivo) => motivo.texto)
+      return {
+        status: 409,
+        detalle: `La versión no se registró ni se activó: La versión ${version} no puede activarse: ${motivos.join('; ')}`,
+        motivos,
+        codigos: bloqueos.map((motivo) => motivo.codigo),
+      }
+    }
+  }
   registros.push(registro)
+  if (cuerpo.activar === true) {
+    const activada = activarVersionDemo(version)
+    return { ...activada, status: 201 }
+  }
   return { status: 201, data: aRespuesta(registro) }
 }
 
@@ -165,8 +263,11 @@ export function registrarVersionDemo(cuerpo: Record<string, unknown>, adminId: s
 export function activarVersionDemo(version: string): Resultado {
   const objetivo = registros.find((r) => r.version === version)
   if (!objetivo) return { status: 404, detalle: `La versión ${version} no está registrada/aprobada; no puede activarse` }
-  const motivos = motivosBloqueo(objetivo)
-  if (motivos.length > 0) return { status: 409, detalle: `La versión ${version} no puede activarse: ${motivos.join('; ')}`, motivos }
+  const bloqueos = motivosBloqueo(objetivo)
+  if (bloqueos.length > 0) {
+    const motivos = bloqueos.map((motivo) => motivo.texto)
+    return { status: 409, detalle: `La versión ${version} no puede activarse: ${motivos.join('; ')}`, motivos, codigos: bloqueos.map((motivo) => motivo.codigo) }
+  }
   const ahora = new Date().toISOString()
   for (const registro of registros) {
     if (registro.activa && registro.version !== version) {
@@ -177,6 +278,27 @@ export function activarVersionDemo(version: string): Resultado {
   objetivo.activa = true
   objetivo.activada_en = ahora
   objetivo.desactivada_en = null
+  return { status: 200, data: aRespuesta(objetivo) }
+}
+
+/**
+ * P-12: POST /api/ia/modelo/versiones/{version}/desactivar. Cuerpo
+ * `{motivo}` de 10 a 500 caracteres sin contar los espacios de los extremos
+ * (additionalProperties: false); 404 si no está registrada y 409
+ * `version_no_activa` si no es la activa. Sin versión activa, el estado
+ * preventivo vuelve a `sin_version_activa_registrada`.
+ */
+export function desactivarVersionDemo(version: string, cuerpo: Record<string, unknown>): Resultado {
+  const extra = Object.keys(cuerpo).find((campo) => campo !== 'motivo')
+  if (extra) return { status: 422, detalle: `Campo no admitido: ${extra}` }
+  // Como Pydantic (strip_whitespace, min/max_length): sin espacios de borde y por carácter.
+  const largo = typeof cuerpo.motivo === 'string' ? [...cuerpo.motivo.trim()].length : -1
+  if (largo < 10 || largo > 500) return { status: 422, detalle: 'Valor no válido en motivo' }
+  const objetivo = registros.find((r) => r.version === version)
+  if (!objetivo) return { status: 404, detalle: `La versión ${version} no está registrada` }
+  if (!objetivo.activa) return { status: 409, detalle: 'version_no_activa' }
+  objetivo.activa = false
+  objetivo.desactivada_en = new Date().toISOString()
   return { status: 200, data: aRespuesta(objetivo) }
 }
 

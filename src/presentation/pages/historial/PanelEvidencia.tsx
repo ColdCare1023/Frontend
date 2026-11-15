@@ -124,6 +124,13 @@ export function PanelEvidencia({
                     <h3 className="mb-2 text-body font-semibold text-foreground">
                       {t(evidencia.datos_simulados ? 'historial.probabilidadesEjemplo' : 'historial.probabilidadesModelo')}
                     </h3>
+                    {/* HU-18 esc. 1 / HU-47 esc. 1: se muestran las dos clases y,
+                        si el modelo no las declara calibradas, se dice. */}
+                    {evidencia.probabilities_calibrated === false && (
+                      <p data-testid="probabilidades-sin-calibrar" className="mb-2 text-meta text-muted">
+                        {t('historial.probabilidadesSinCalibrar')}
+                      </p>
+                    )}
                     <div className="space-y-2.5">
                       {Object.entries(evidencia.probabilities).map(([clase, probabilidad]) => (
                         <div key={clase} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-meta">

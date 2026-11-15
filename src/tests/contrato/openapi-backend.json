@@ -180,7 +180,7 @@
           "auth"
         ],
         "summary": "Emitir Ticket Sse",
-        "description": "Ticket efímero para abrir el stream SSE (EventSource no envía headers).\n\nEl ticket queda atado al access token que lo pidió: al cerrar sesión, el\nstream que se abrió con él deja de emitir.",
+        "description": "Ticket efímero para abrir el stream SSE (EventSource no envía headers).\n\nEl ticket queda atado al access token que lo pidió: al cerrar sesión, el\nstream que se abrió con él deja de emitir.\n\nHU-32 esc. 3: con la cuenta en su tope de flujos simultáneos\n(SSE_MAX_STREAMS_POR_USUARIO) responde 429 `demasiados_flujos` aquí, donde\nel frontend puede leerlo, en vez de emitir un ticket que el stream rechazaría.",
         "operationId": "emitir_ticket_sse_api_auth_sse_ticket_post",
         "responses": {
           "200": {
@@ -192,6 +192,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "La cuenta ya tiene abiertos los flujos SSE permitidos (`demasiados_flujos`)."
           }
         },
         "security": [
@@ -1266,6 +1269,7 @@
           "alertas"
         ],
         "summary": "Registrar Accion Correctiva",
+        "description": "HU-27 + HU-23: acción correctiva sobre una alerta PENDIENTE o\nRECONOCIDA. Si estaba PENDIENTE, primero queda RECONOCIDA por quien\nregistra la acción (REVISAR_ALERTA con origen `accion_correctiva`) y\ndespués ATENDIDA. 409 si ya estaba ATENDIDA (otra acción ganó).",
         "operationId": "registrar_accion_correctiva_api_alertas__alerta_id__acciones_correctivas_post",
         "security": [
           {
@@ -2161,6 +2165,9 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Modelo no disponible: `motivo` distingue no entrenado de rechazado."
           }
         },
         "security": [
@@ -2353,7 +2360,7 @@
           "ia"
         ],
         "summary": "Registrar Version Modelo",
-        "description": "HU-46 Escenario 1: registra una versión aprobada del modelo. No la\nactiva — ver POST /modelo/versiones/{version}/activar.",
+        "description": "HU-46 Escenario 1: registra una versión aprobada del modelo. Con\n`activar=true` además la marca como versión activa de producción, con las\nmismas validaciones y auditoría que POST /modelo/versiones/{version}/activar;\nsi la activación se rechaza (409), no queda ni registrada ni activa y el\nrechazo queda en la bitácora. Sin `activar` solo la registra.",
         "operationId": "registrar_version_modelo_api_ia_modelo_versiones_post",
         "requestBody": {
           "content": {
@@ -2375,6 +2382,9 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "La versión ya está registrada o, con `activar=true`, no puede activarse (nada queda registrado). En el segundo caso, `codigos` trae un código estable por motivo, igual que POST /modelo/versiones/{version}/activar."
           },
           "422": {
             "description": "Validation Error",
@@ -2428,6 +2438,76 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Versión no registrada."
+          },
+          "409": {
+            "description": "La versión no puede activarse. `detail` trae los motivos en texto y `codigos`, un código estable por motivo y en el mismo orden."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ia/modelo/versiones/{version}/desactivar": {
+      "post": {
+        "tags": [
+          "ia"
+        ],
+        "summary": "Desactivar Version Modelo",
+        "description": "P-12: desactiva la versión activa sin activar otra. No queda ninguna\nversión activa: el modelo preventivo en modo activo deja de cargarse\n(`modelo_ia.preventivo.motivo_codigo=sin_version_activa_registrada` en\n/health/detalle) y el riesgo efectivo vuelve a la línea base, la misma de\nantes de cualquier activación. Queda el evento encadenado\nMODELO_IA_VERSION_DESACTIVADA y la fila DESACTIVAR_VERSION_MODELO_IA.",
+        "operationId": "desactivar_version_modelo_api_ia_modelo_versiones__version__desactivar_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Version"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DesactivarVersionModeloRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionModeloResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Versión no registrada."
+          },
+          "409": {
+            "description": "`detail` = `version_no_activa`: la versión no es la activa (o ya se desactivó)."
           },
           "422": {
             "description": "Validation Error",
@@ -3253,7 +3333,7 @@
           "dispositivos"
         ],
         "summary": "Actualizar Responsable",
-        "description": "HU-53/HU-54: destinatario de las notificaciones de excursión crítica\nde este dispositivo por correo y SMS, en vez del destinatario único\nglobal. Un cambio queda como evento histórico (HU-49).",
+        "description": "HU-52: destinatario del correo de excursión crítica de este\ndispositivo, en vez del destinatario único global. Un cambio queda como\nevento histórico (HU-49). HU-53 (v3.3): sin SMS; `telefono` se conserva\nsolo por compatibilidad.",
         "operationId": "actualizar_responsable_api_dispositivos__device_id__responsable_patch",
         "security": [
           {
@@ -3312,7 +3392,7 @@
           "dispositivos"
         ],
         "summary": "Historial Configuracion",
-        "description": "HU-49: historial auditable de cambios de configuración/instalación/\ncalibración/reemplazo de un dispositivo, de solo lectura. Esc. 2: cada\ncambio dice desde cuándo y hasta cuándo estuvo vigente, quién lo hizo\n(`actor_nombre`) y se filtra por categoría, campo o periodo.",
+        "description": "HU-49: historial auditable de cambios de configuración/instalación/\ncalibración/reemplazo de un dispositivo, de solo lectura. Esc. 2: cada\ncambio dice desde cuándo y hasta cuándo estuvo vigente, quién lo hizo\n(`actor_nombre`) y se filtra por categoría, campo o periodo. 404 si el\ndispositivo no existe.",
         "operationId": "historial_configuracion_api_dispositivos__device_id__historial_configuracion_get",
         "security": [
           {
@@ -5286,6 +5366,23 @@
         ],
         "title": "DesactivarUsuarioRequest"
       },
+      "DesactivarVersionModeloRequest": {
+        "properties": {
+          "motivo": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Motivo"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "motivo"
+        ],
+        "title": "DesactivarVersionModeloRequest",
+        "description": "P-12: por qué se desactiva la versión activa (queda en el evento\nencadenado y en la bitácora). De 10 a 500 caracteres sin contar los\nespacios de los extremos."
+      },
       "DetalleInconsistenciaResponse": {
         "properties": {
           "id": {
@@ -7052,6 +7149,17 @@
             ],
             "title": "Version Era Activa Y Aprobada En Ese Momento"
           },
+          "probabilidades_calibradas": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probabilidades Calibradas"
+          },
           "version_activa_en_ese_momento": {
             "anyOf": [
               {
@@ -7845,6 +7953,11 @@
               }
             ],
             "title": "Particiones"
+          },
+          "activar": {
+            "type": "boolean",
+            "title": "Activar",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -7984,13 +8097,15 @@
                 "type": "null"
               }
             ],
-            "title": "Telefono"
+            "title": "Telefono",
+            "description": "Obsoleto (HU-53 retirada): se acepta por compatibilidad; no se envía ningún SMS.",
+            "deprecated": true
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "ResponsableDispositivoRequest",
-        "description": "HU-53/HU-54: destinatario de las notificaciones de excursión crítica\nde este dispositivo por correo y SMS."
+        "description": "HU-52: destinatario del correo de excursión crítica de este\ndispositivo. HU-53 (v3.3): el SMS se retiró; `telefono` se acepta por\ncompatibilidad, pero no se usa para enviar nada."
       },
       "RestablecerPasswordRequest": {
         "properties": {
@@ -8509,7 +8624,9 @@
                 "type": "null"
               }
             ],
-            "title": "Telefono"
+            "title": "Telefono",
+            "description": "Obsoleto (HU-53 retirada): se acepta por compatibilidad; no se envía ningún SMS.",
+            "deprecated": true
           }
         },
         "additionalProperties": false,

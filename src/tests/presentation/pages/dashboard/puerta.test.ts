@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
-import { fallaSensor, umbralPuerta, UMBRAL_PUERTA_ABIERTA_POR_DEFECTO } from '@/presentation/pages/dashboard/puerta'
+import { estadoPuerta, fallaSensor, umbralPuerta, UMBRAL_PUERTA_ABIERTA_POR_DEFECTO } from '@/presentation/pages/dashboard/puerta'
 
 const base = { temperatura_interna: 5, temperatura_ambiental: 22, humedad_ambiental: 60 } as LecturaTermica
 
@@ -27,5 +27,41 @@ describe('HU-33: falla de sensor por campo', () => {
     expect(fallaSensor({ ...base, temperatura_ambiental: Number.NaN }, 'temperatura_ambiental')).toBe(true)
     expect(fallaSensor({ ...base, humedad_ambiental: null }, 'humedad_ambiental')).toBe(false)
     expect(fallaSensor(base, 'humedad_ambiental')).toBe(false)
+  })
+})
+
+describe('HU-35 esc. 1: cambio de puerta en vivo (evento SSE `puerta`)', () => {
+  const cerrada = {
+    ...base, timestamp: '2026-11-14T12:00:00Z', apertura_refrigerador: false,
+    duracion_apertura_segundos: 0, apertura_continua_segundos: 0,
+  } as LecturaTermica
+
+  it('un evento posterior a la última lectura manda: abierta y contando desde el cambio', () => {
+    const estado = estadoPuerta(cerrada, 20, false, 60, { abierta: true, desde: '2026-11-14T12:00:05Z', segundosDesde: 15 })
+    expect(estado.abiertaAhora).toBe(true)
+    expect(estado.aperturaEnCurso).toBe(15)
+    expect(estado.aperturaProlongada).toBe(false)
+    expect(estadoPuerta(cerrada, 80, false, 60, { abierta: true, desde: '2026-11-14T12:00:05Z', segundosDesde: 75 }).aperturaProlongada).toBe(true)
+  })
+
+  it('un evento anterior o igual a la última lectura no cambia el estado', () => {
+    const estado = estadoPuerta(cerrada, 20, false, 60, { abierta: true, desde: '2026-11-14T11:59:50Z', segundosDesde: 30 })
+    expect(estado.abiertaAhora).toBe(false)
+    expect(estado.aperturaEnCurso).toBeNull()
+  })
+
+  it('el cierre en vivo quita la advertencia de una apertura en curso', () => {
+    const abierta = { ...cerrada, apertura_refrigerador: true, apertura_continua_segundos: 120 } as LecturaTermica
+    expect(estadoPuerta(abierta, 5, false, 60).aperturaProlongada).toBe(true)
+    const estado = estadoPuerta(abierta, 5, false, 60, { abierta: false, desde: '2026-11-14T12:00:03Z', segundosDesde: 2 })
+    expect(estado.abiertaAhora).toBe(false)
+    expect(estado.aperturaProlongada).toBe(false)
+    expect(estado.huboAperturaCerrada).toBe(true)
+  })
+
+  it('con el dato desactualizado se muestra abierta pero sin inventar cuánto lleva', () => {
+    const estado = estadoPuerta(cerrada, 400, true, 60, { abierta: true, desde: '2026-11-14T12:00:05Z', segundosDesde: 395 })
+    expect(estado.abiertaAhora).toBe(true)
+    expect(estado.aperturaEnCurso).toBeNull()
   })
 })
