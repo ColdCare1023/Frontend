@@ -60,3 +60,14 @@ export function codigoDesdeFragmento(fragmento: string): string | null {
   const coincidencia = /^#(\d+)$/.exec(fragmento)
   return coincidencia && codigoCompleto(coincidencia[1]) ? coincidencia[1] : null
 }
+
+/**
+ * Código que traen los botones «Escribir el código» y «Activar mi cuenta» de
+ * los correos (`/recuperar-contrasena?modo=…&email=…#codigo=123456`): la
+ * pantalla lo rellena sola. Mismo criterio que `codigoDesdeFragmento`: solo el
+ * código exacto, o nada.
+ */
+export function codigoDesdeEnlace(fragmento: string): string | null {
+  const coincidencia = /^#codigo=(\d+)$/.exec(fragmento)
+  return coincidencia && codigoCompleto(coincidencia[1]) ? coincidencia[1] : null
+}

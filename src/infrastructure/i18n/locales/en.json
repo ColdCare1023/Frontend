@@ -2199,6 +2199,7 @@
       "exitoMensaje": "Your account is ready. Sign in with your email and the password you just created."
     },
     "reenviado": "If the email matches an active account, a new code is on its way. The previous one no longer works.",
+    "codigoDelEnlace": "We filled in the code from your email link. Just choose your new password.",
     "progreso": "Progress",
     "pasos": {
       "correo": "Email",

@@ -2199,6 +2199,7 @@
       "exitoMensaje": "Tu cuenta está lista. Ingresa con tu correo y la contraseña que acabas de crear."
     },
     "reenviado": "Si el correo corresponde a una cuenta activa, te llegará un código nuevo. El anterior ya no sirve.",
+    "codigoDelEnlace": "Completamos el código con el enlace de tu correo. Solo falta tu contraseña nueva.",
     "progreso": "Progreso",
     "pasos": {
       "correo": "Correo",
