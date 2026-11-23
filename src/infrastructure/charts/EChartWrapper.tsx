@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts/core'
-import { LineChart } from 'echarts/charts'
+import { LineChart, ScatterChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
@@ -22,11 +22,17 @@ import type { EChartsCoreOption } from 'echarts/core'
  * viajaban íntegros en el trozo `echarts`, que es lo que se descarga justo
  * después de iniciar sesión (RNF-10).
  *
- * Antes de añadir un tipo de gráfica nuevo hay que registrarlo aquí; si falta,
- * ECharts no dibuja la serie y no avisa.
+ * Antes de añadir un tipo de gráfica nuevo hay que registrarlo aquí. Si falta,
+ * ECharts no crea esa serie y, si además hay marcadores (markLine/markArea/
+ * markPoint), `setOption` lanza «Cannot read properties of undefined (reading
+ * 'get')» y la sección entera cae al límite de error. Así se rompía Historial:
+ * la curva añade la serie `scatter` `extremos-fuera` en cuanto un intervalo sale
+ * de 2–8 °C. `registroEcharts.test.ts` dibuja las opciones reales con este
+ * registro.
  */
 echarts.use([
   LineChart,
+  ScatterChart,
   GridComponent,
   TooltipComponent,
   MarkLineComponent,
