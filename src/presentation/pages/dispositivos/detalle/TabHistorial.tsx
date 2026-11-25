@@ -6,7 +6,8 @@ import { ArrowUpRight } from 'lucide-react'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import { estadoRiesgoDe } from '@/domain/entities/LecturaTermica'
-import { rangoPagina } from '@/lib/paginacion'
+import { rangoPagina, totalPaginas } from '@/lib/paginacion'
+import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoError } from '../../../components/EstadoPagina'
 import { HoraLectura } from '../../../components/HoraLectura'
 import { Paginacion } from '../../../components/Paginacion'
@@ -17,15 +18,15 @@ import { DECIMALES_HUMEDAD, formatearTemperatura } from '../../../components/ui/
 import { Dato } from '../compartido'
 import { useLecturasEquipo } from './datosEquipo'
 
-const POR_PAGINA = 15
-
 /** Últimas 200 lecturas del equipo con su resumen (mismo endpoint que Historial). */
 export function TabHistorial({ dispositivo }: { dispositivo: Dispositivo }) {
   const { t } = useTranslation()
   const { lecturas, cargando, error, consultar } = useLecturasEquipo(dispositivo.id)
-  const [pagina, setPagina] = useState(1)
+  const [inicioPagina, setInicioPagina] = useState(0)
+  const tamano = useResponsivePageSize()
+  const pagina = Math.min(Math.floor(inicioPagina / tamano) + 1, totalPaginas(lecturas.length, tamano))
   const [ambiente, setAmbiente] = useState(false)
-  const visibles = useMemo(() => lecturas.slice(...rangoPagina(pagina, POR_PAGINA)), [lecturas, pagina])
+  const visibles = useMemo(() => lecturas.slice(...rangoPagina(pagina, tamano)), [lecturas, pagina, tamano])
   const resumen = useMemo(() => {
     const valores = lecturas.map((l) => l.temperatura_interna).filter((v): v is number => typeof v === 'number')
     if (valores.length === 0) return null
@@ -84,7 +85,7 @@ export function TabHistorial({ dispositivo }: { dispositivo: Dispositivo }) {
               </table>
             </div>
             <div className="border-t border-border px-4 py-2">
-              <Paginacion total={lecturas.length} pagina={pagina} onCambiar={setPagina} tamano={POR_PAGINA} />
+              <Paginacion total={lecturas.length} pagina={pagina} onCambiar={(p) => setInicioPagina((p - 1) * tamano)} tamano={tamano} />
             </div>
           </>
         )}

@@ -1549,7 +1549,7 @@
     "revocarCredencial": "Revoke credential",
     "revocarCredencialA": "Revoke MQTT credential for device {{id}}",
     "credencialRevocada": "Credential revoked: the system no longer accepts readings from this node. With EMQX Serverless, also remove its user in the console.",
-    "probarIoT": "Simulate a reading",
+    "probarIoT": "Test device",
     "probarIoTA": "Open IoT test scenarios for {{id}}",
     "simulacionSoloDemo": "{{id}} · Local sample scenarios. No ESP32, MQTT, or EMQX connection is made.",
     "escenarioSinDatos": "Simulate missing data",

@@ -1549,7 +1549,7 @@
     "revocarCredencial": "Revocar credencial",
     "revocarCredencialA": "Revocar credencial MQTT del equipo {{id}}",
     "credencialRevocada": "Credencial revocada: el sistema ya no acepta las lecturas del nodo. Si el broker es EMQX Serverless, retire también su usuario en la consola.",
-    "probarIoT": "Simular una lectura",
+    "probarIoT": "Probar el equipo",
     "probarIoTA": "Abrir escenarios de prueba IoT para {{id}}",
     "simulacionSoloDemo": "{{id}} · Escenarios locales de ejemplo. No contactan ESP32, MQTT ni EMQX.",
     "escenarioSinDatos": "Simular falta de datos",
