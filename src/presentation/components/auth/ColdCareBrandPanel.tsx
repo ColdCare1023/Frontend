@@ -17,8 +17,8 @@ export function ColdCareBrandPanel({ className = '' }: ColdCareBrandPanelProps) 
       aria-label={t('login.marcaSubtitulo')}
       className={`relative isolate flex h-full flex-col justify-between overflow-hidden bg-marca-noche px-5 pt-5 pb-7 text-white sm:px-9 lg:min-h-dvh lg:px-12 lg:py-10 xl:px-16 ${className}`}
     >
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-cover bg-center opacity-50" style={{ backgroundImage: `url('${import.meta.env.BASE_URL}assets/coldcare-auth-editorial.webp')` }} />
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-marca-noche via-marca-noche/80 to-marca-noche/40" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-cover bg-center opacity-75" style={{ backgroundImage: `url('${import.meta.env.BASE_URL}assets/coldcare-auth-editorial.webp')` }} />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-marca-noche via-marca-noche/40 to-marca-noche/25" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(760px_420px_at_0%_0%,rgb(0_209_255/0.12),transparent_62%),radial-gradient(640px_380px_at_100%_100%,rgb(11_92_255/0.12),transparent_60%)]" />
 
       <div className="relative animate-fade">
@@ -26,7 +26,7 @@ export function ColdCareBrandPanel({ className = '' }: ColdCareBrandPanelProps) 
       </div>
 
       <div className="relative mt-7 max-w-[620px] lg:mt-auto">
-        <p className="animate-rise text-[28px] leading-[1.05] font-semibold tracking-[-0.035em] sm:text-[34px] lg:text-[50px] xl:text-[58px]">
+        <p className="animate-rise text-[28px] leading-[1.05] font-semibold tracking-[-0.035em] sm:text-[34px] lg:text-[42px] xl:text-[48px]">
           {t('login.esloganLinea1')}
           <br />
           <span className="text-secondary">{t('login.esloganLinea2')}</span>

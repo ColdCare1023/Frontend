@@ -22,7 +22,7 @@ export function PageHeader({
     <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 sm:mb-5">
       <div className="flex min-w-0 flex-1 basis-56 flex-wrap items-center gap-x-3 gap-y-0.5">
         <div className="flex min-w-0 items-center gap-1">
-          <h1 className="font-display text-[21px] leading-7 font-semibold tracking-[-0.025em] text-foreground sm:text-page">{titulo}</h1>
+          <h1 className="font-display text-[24px] leading-tight font-semibold tracking-[-0.035em] text-foreground sm:text-[30px]">{titulo}</h1>
           {descripcion && (
             <Popover.Root>
               <Popover.Trigger asChild>
@@ -38,7 +38,7 @@ export function PageHeader({
             </Popover.Root>
           )}
         </div>
-        {meta && <p className="nums text-meta text-faint">{meta}</p>}
+        {meta && <p className="nums text-meta text-muted">{meta}</p>}
       </div>
       {children && <div className="flex max-w-full flex-wrap items-center gap-2">{children}</div>}
     </div>

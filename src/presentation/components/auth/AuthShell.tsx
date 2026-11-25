@@ -24,10 +24,9 @@ export function AuthShell({ brandPanel, children, className }: AuthShellProps) {
   const { t } = useTranslation()
   return (
     <main className="min-h-dvh w-full bg-background">
-      <div className={cn('grid min-h-dvh w-full grid-cols-1 content-start lg:content-normal', brandPanel && 'lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)]', className)}>
+      <div className={cn('grid min-h-dvh w-full grid-cols-1 content-start lg:content-normal', brandPanel && 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]', className)}>
         {brandPanel && <div className="hidden min-w-0 lg:sticky lg:top-0 lg:block lg:h-dvh lg:self-start">{brandPanel}</div>}
         <section className="relative isolate flex min-h-dvh min-w-0 flex-col">
-          <div aria-hidden className="rejilla-puntos pointer-events-none absolute inset-0 -z-10" />
           <div className="flex items-center justify-end gap-1 px-3 pt-3 sm:px-6 lg:absolute lg:inset-x-0 lg:top-0 lg:px-8 lg:pt-5">
             {brandPanel ? (
               <Popover.Root>
@@ -48,9 +47,9 @@ export function AuthShell({ brandPanel, children, className }: AuthShellProps) {
             <LanguageSwitcher />
             <ThemeSwitcher />
           </div>
-          <div className="flex flex-1 items-center px-5 pb-10 pt-3 sm:px-9 lg:px-12 lg:py-16 xl:px-16">
+          <div className="flex flex-1 items-center px-6 pt-3 pb-10 sm:px-9 lg:px-12 lg:py-16">
             {/* El formulario va directo sobre la página, sin tarjeta. */}
-            <div className="mx-auto w-full max-w-[424px] animate-(--animate-rise-lg) [animation-delay:90ms]">{children}</div>
+            <div className="mx-auto w-full max-w-[400px]">{children}</div>
           </div>
         </section>
       </div>
