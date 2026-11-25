@@ -245,6 +245,7 @@ test('trazabilidad explica cadena, oculta sellos y muestra verificación', async
   await expect(page.getByRole('heading', { name: 'Sin alertas de integridad' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Evento' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toHaveCount(0)
+  await page.locator('summary').filter({ hasText: 'Herramientas de revisión' }).click()
   await page.getByRole('button', { name: 'Mostrar detalles técnicos de los sellos' }).click()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toBeVisible()
   await page.getByRole('button', { name: 'Revisar integridad' }).click()
