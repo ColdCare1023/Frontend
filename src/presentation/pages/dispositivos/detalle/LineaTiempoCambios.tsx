@@ -7,6 +7,16 @@ import { cn } from '@/lib/utils'
 import { EsqueletoTexto } from '../../../components/ui/esqueleto'
 import { campoBase } from '../estadoEquipo'
 
+function valorConUnidad(campo: string, valor: string | null, idioma: string) {
+  if (valor == null) return '—'
+  if (!/^\d+$/.test(valor)) return valor
+  if (campo.endsWith('_segundos')) return `${valor} s`
+  if (campo.endsWith('_dias')) {
+    return new Intl.NumberFormat(idioma, { style: 'unit', unit: 'day', unitDisplay: 'long' }).format(Number(valor))
+  }
+  return valor
+}
+
 /**
  * HU-49: cada cambio con su etiqueta legible y el campo técnico (lo exige la
  * auditoría), valor anterior tachado → valor nuevo, la fecha, QUIÉN lo hizo
@@ -28,7 +38,7 @@ export function LineaTiempoCambios({
   resumir?: boolean
   className?: string
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   if (cargando) return <EsqueletoTexto lineas={4} />
   const visibles = campos ? cambios.filter((c) => campos.includes(campoBase(c))) : cambios
   if (visibles.length === 0) {
@@ -62,9 +72,9 @@ export function LineaTiempoCambios({
                   {resumir && <ChevronDown aria-hidden className="size-4 shrink-0 group-open/cambio:rotate-180" />}
                 </span>
                 <span className="col-span-full break-words text-meta">
-                  <span className="text-muted line-through">{c.valor_anterior ?? '—'}</span>
+                  <span className="text-muted line-through">{valorConUnidad(campo, c.valor_anterior, i18n.language)}</span>
                   {' → '}
-                  <span className="font-medium text-foreground">{c.valor_nuevo ?? '—'}</span>
+                  <span className="font-medium text-foreground">{valorConUnidad(campo, c.valor_nuevo, i18n.language)}</span>
                 </span>
               </Encabezado>
               <div className={cn('text-meta text-muted', resumir && 'mt-1 space-y-1 border-l border-border pl-3')}>
