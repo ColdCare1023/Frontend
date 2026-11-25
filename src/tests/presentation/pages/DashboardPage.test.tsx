@@ -393,14 +393,14 @@ describe('DashboardPage — bento P5c', () => {
     equiposOperativos.lista = []
   })
 
-  it('cifra: data-valor en ASCII y texto para lector de pantalla', () => {
-    renderizar(lectura({ temperatura_interna: 4.5 }))
+  it.each([[4.5, '4.5'], [-1.2, '−1.2'], [0, '0.0']] as const)('muestra la lectura %s en un solo texto visible con unidad y decimal', (temperatura, cifra) => {
+    renderizar(lectura({ temperatura_interna: temperatura }))
     const valor = screen.getByTestId('valor-actual')
-    expect(valor).toHaveAttribute('data-valor', '4.5')
-    expect(valor).toHaveTextContent('4.5')
-    expect(valor).toHaveTextContent('°C')
+    expect(valor).toHaveAttribute('data-valor', temperatura.toFixed(1))
+    expect(valor.firstChild?.nodeValue).toBe(cifra)
+    expect(valor).toHaveTextContent(`${cifra} °C`)
+    expect(valor).toBeVisible()
   })
-
   it('Las pestañas dan acceso a las lecturas recientes y al estado de equipos', () => {
     equiposOperativos.lista = [
       { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', ultimo_reporte_en: '2026-07-25T12:34:56Z' },

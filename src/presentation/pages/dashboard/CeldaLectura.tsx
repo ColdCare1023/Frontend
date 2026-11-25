@@ -11,7 +11,6 @@ import { HoraLectura } from '../../components/HoraLectura'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { CifraAnimada } from '../../components/ui/cifra-animada'
 import { Esqueleto } from '../../components/ui/esqueleto'
 import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
 import { formatearCifra } from '../../components/ui/formato-cifra'
@@ -210,21 +209,18 @@ export const CeldaLectura = memo(function CeldaLectura({
             </p>
           )
         ) : (
-          <>
-            <p
-              data-testid="valor-actual"
-              data-valor={lectura.toFixed(1)}
-              {...{ elementtiming: 'valor-actual' }}
-              className={clsx(
-                'nums text-hero max-sm:text-[56px] max-sm:leading-[56px]',
-                critica ? 'text-danger-700' : desactualizado ? 'text-muted' : 'text-foreground',
-              )}
-            >
-              <CifraAnimada valor={lectura} clave={deviceId ?? ''} />
-              <span className="sr-only"> °C</span>
-            </p>
-            <span aria-hidden className="text-metric font-medium text-muted">°C</span>
-          </>
+          <p
+            data-testid="valor-actual"
+            data-valor={lectura.toFixed(1)}
+            {...{ elementtiming: 'valor-actual' }}
+            className={clsx(
+              'nums inline-flex items-baseline gap-1 whitespace-nowrap text-hero max-sm:text-[56px] max-sm:leading-[56px]',
+              critica ? 'text-danger-700' : desactualizado ? 'text-muted' : 'text-foreground',
+            )}
+          >
+            {fmt(lectura)}
+            <span className="text-metric font-medium text-muted"> °C</span>
+          </p>
         )}
       </div>
 
