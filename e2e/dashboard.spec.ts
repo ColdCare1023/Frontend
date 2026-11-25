@@ -79,6 +79,15 @@ test('cambiar de equipo desde Estado de equipos actualiza la lectura', async ({ 
   await expect(estado.locator('li[aria-current="true"]')).toContainText(nombre)
 })
 
+test('la cabecera abre el equipo elegido sin abandonar el tablero', async ({ page }) => {
+  await entrar(page)
+  await page.getByRole('button', { name: /^Estado en vivo/ }).click()
+  await page.getByRole('link', { name: /Cámara fría de vacunas/ }).click()
+  await expect(page.getByRole('combobox', { name: 'Equipo' })).toHaveValue('FARM-02-CDL')
+  await expect(page.getByRole('heading', { name: 'Última temperatura recibida' })).toBeVisible()
+  await expect(page).toHaveURL(/\/dashboard$/)
+})
+
 test('panel de detalle de equipo: buffer, incidentes y ficha; Escape devuelve el foco', async ({ page }) => {
   await entrar(page)
   await page.getByText('Diagnóstico de equipos', { exact: true }).click()

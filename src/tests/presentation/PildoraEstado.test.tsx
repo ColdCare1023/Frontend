@@ -34,7 +34,8 @@ function estadoDemo(alertas: ResumenAlertas | null = { total: 2, criticas: 1, tr
 }
 
 function Ubicacion() {
-  return <p data-testid="ruta">{useLocation().pathname}</p>
+  const ubicacion = useLocation()
+  return <p data-testid="ruta">{ubicacion.pathname}{ubicacion.hash}</p>
 }
 
 function montar() {
@@ -99,7 +100,7 @@ describe('PildoraEstado', () => {
     await waitFor(() => expect(pildora).toHaveFocus())
   })
 
-  it('«Ver alertas» lleva a /alertas y cierra el panel', async () => {
+  it('«Ver alertas» lleva al área de atención del farmacéutico y cierra el panel', async () => {
     const usuario = userEvent.setup()
     estadoDemo({
       total: 1,
@@ -110,7 +111,7 @@ describe('PildoraEstado', () => {
     montar()
     await usuario.click(screen.getByRole('button', { name: /^Estado en vivo/ }))
     await usuario.click(await screen.findByRole('link', { name: /Ver alertas/ }))
-    expect(screen.getByTestId('ruta')).toHaveTextContent('/alertas')
+    expect(screen.getByTestId('ruta')).toHaveTextContent('/dashboard#alertas-monitoreo')
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
