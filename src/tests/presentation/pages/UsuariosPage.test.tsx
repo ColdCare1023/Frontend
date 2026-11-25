@@ -76,6 +76,19 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
     expect(within(tabla).getByText(/renuncia/i)).toBeVisible()
   })
 
+  it('muestra el correo a petición y permite encontrar las cuentas que necesitan atención', async () => {
+    montar([usuario(), usuario({ id: 'otra', nombre: 'Cuenta pendiente', email: 'alta@farmacia.test', debe_cambiar_password: true })])
+    const tabla = within(screen.getByRole('table'))
+    const correo = tabla.getByText('brenda@upc.pe')
+    const detalle = correo.closest('details')!
+    expect(detalle).not.toHaveAttribute('open')
+    await userEvent.click(detalle.querySelector('summary')!)
+    expect(correo).toBeVisible()
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Estado' }), 'pendiente')
+    expect(tabla.queryByText('Usuaria Prueba')).not.toBeInTheDocument()
+    expect(tabla.getByText('Cuenta pendiente')).toBeVisible()
+  })
+
   it('busca también las cuentas que están fuera de la primera página', async () => {
     const cuentas = Array.from({ length: 45 }, (_, n) => usuario({ id: String(n), nombre: `Persona ${n}`, email: `u${n}@farmacia.test` }))
     montar(cuentas)

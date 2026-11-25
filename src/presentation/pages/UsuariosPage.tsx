@@ -1,7 +1,7 @@
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { KeyRound, Search, RotateCcw, ShieldCheck, UserPlus, UserX } from 'lucide-react'
+import { ChevronRight, KeyRound, Search, RotateCcw, ShieldCheck, UserPlus, UserX } from 'lucide-react'
 
 import { useUsuarios } from '@/application/hooks/useUsuarios'
 import { useAuthStore } from '@/application/stores/authStore'
@@ -14,13 +14,13 @@ import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
+import { Input, NativeSelect } from '../components/ui/input'
 import { EsqueletoTabla } from '../components/ui/esqueleto'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { TiraEstado } from '../components/ui/tira-estado'
 import { DialogoCambioRol, DialogoDesactivar, DialogoTemporal, type AccionTemporal } from './usuarios/DialogosUsuario'
 import { PanelNuevoUsuario } from './usuarios/PanelNuevoUsuario'
-import { Avatar, RielUsuarios } from './usuarios/RielUsuarios'
+import { RielUsuarios } from './usuarios/RielUsuarios'
 import { useMotivoFecha } from './usuarios/utilidadesUsuarios'
 
 /**
@@ -42,11 +42,25 @@ export function UsuariosPage() {
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
   const [consulta, setConsulta] = useState('')
+  const [estadoCuenta, setEstadoCuenta] = useState('')
   const busqueda = consulta.trim().toLocaleLowerCase()
-  const coincidentes = useMemo(() => busqueda
-    ? usuarios.filter((u) => [u.nombre, u.email].some((v) => v.toLocaleLowerCase().includes(busqueda)))
-    : usuarios, [usuarios, busqueda])
-  const visibles = useMemo(() => coincidentes.slice(...rangoPagina(pagina, tamanoPagina)), [coincidentes, pagina, tamanoPagina])
+  const coincidentes = useMemo(() => usuarios.filter((u) => {
+    if (estadoCuenta === 'pendiente' && (!u.is_active || !u.debe_cambiar_password)) return false
+    if (estadoCuenta === 'inactiva' && u.is_active) return false
+    return !busqueda || [u.nombre, u.email].some((v) => v.toLocaleLowerCase().includes(busqueda))
+  }), [usuarios, busqueda, estadoCuenta])
+  const paginaActual = Math.min(pagina, Math.max(1, Math.ceil(coincidentes.length / tamanoPagina)))
+  const visibles = useMemo(() => coincidentes.slice(...rangoPagina(paginaActual, tamanoPagina)), [coincidentes, paginaActual, tamanoPagina])
+  const nombresRepetidos = useMemo(() => {
+    const vistos = new Set<string>()
+    const duplicados = new Set<string>()
+    for (const u of usuarios) {
+      const nombre = u.nombre.trim().toLocaleLowerCase()
+      if (vistos.has(nombre)) duplicados.add(nombre)
+      vistos.add(nombre)
+    }
+    return duplicados
+  }, [usuarios])
 
   const [panelAbierto, setPanelAbierto] = useState(false)
   const [creadoEmail, setCreadoEmail] = useState<string | null>(null)
@@ -68,6 +82,7 @@ export function UsuariosPage() {
     const indice = usuarios.findIndex((u) => u.email.toLowerCase() === creadoEmail.toLowerCase())
     if (indice >= 0) {
       setConsulta('')
+      setEstadoCuenta('')
       setPagina(Math.floor(indice / tamanoPagina) + 1)
       setResaltado(usuarios[indice].id)
     }
@@ -111,28 +126,33 @@ export function UsuariosPage() {
             {/* El recuento y la paginación van dentro de la tarjeta, como en
                 Alertas y Dispositivos (antes quedaban sueltos debajo). */}
             <div className="superficie min-w-0 overflow-hidden xl:col-span-12">
-              {(usuarios.length > tamanoPagina || consulta) && (
-                <div className="border-b border-border px-4 py-3">
-                  <label className="relative block max-w-sm">
-                    <span className="sr-only">{t('lectura.buscarCuenta')}</span>
-                    <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
-                    <Input className="pl-9" type="search" value={consulta} placeholder={t('lectura.buscarCuenta')}
-                      onChange={(e) => { setConsulta(e.target.value); setPagina(1) }} />
-                  </label>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
+                <label className="relative block min-w-40 max-w-sm flex-1">
+                  <span className="sr-only">{t('lectura.buscarCuenta')}</span>
+                  <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+                  <Input className="pl-9" type="search" value={consulta} placeholder={t('lectura.buscarCuenta')}
+                    onChange={(e) => { setConsulta(e.target.value); setPagina(1) }} />
+                </label>
+                {(pendientes > 0 || activos.length !== usuarios.length || estadoCuenta) && (
+                  <NativeSelect aria-label={t('usuarios.estado')} className="w-auto max-w-full"
+                    value={estadoCuenta} onChange={(e) => { setEstadoCuenta(e.target.value); setPagina(1) }}>
+                    <option value="">{t('usuarios.todosEstados')}</option>
+                    <option value="pendiente">{t('usuarios.pendientePassword')}</option>
+                    <option value="inactiva">{t('usuarios.sinAcceso')}</option>
+                  </NativeSelect>
+                )}
+              </div>
               <Table variante="embebida" mobileLayout="stack" titulo={t('usuarios.titulo')}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[48%]">{t('usuarios.nombre')}</TableHead>
-                    <TableHead className="w-[22%] max-2xl:hidden">{t('usuarios.rol')}</TableHead>
+                    <TableHead>{t('usuarios.nombre')}</TableHead>
                     <TableHead className="w-[18%]">{t('usuarios.estado')}</TableHead>
                     <TableHead className="w-[12%] text-right">{t('comunes.acciones')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {coincidentes.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="mobile-full py-4 text-subtle">{t('lectura.cuentaSinResultados')}</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={3} className="mobile-full py-4 text-subtle">{t('lectura.cuentaSinResultados')}</TableCell></TableRow>
                   )}
                   {visibles.map((usuario) => {
                     // HU-41: con un solo administrador activo no se le quita el rol ni se le desactiva.
@@ -141,21 +161,17 @@ export function UsuariosPage() {
                     return (
                       <TableRow key={usuario.id} className={resaltado === usuario.id ? 'fila-resaltada' : undefined}>
                         <TableCell className="mobile-full">
-                          <span className="flex min-w-0 items-center gap-3">
-                            <Avatar nombre={usuario.nombre} activo={usuario.is_active} />
-                            <span className="min-w-0">
-                              <span className="block truncate text-body font-semibold">{usuario.nombre}</span>
-                              <span className="block truncate text-meta text-muted max-sm:break-all max-sm:whitespace-normal" title={usuario.email}>
-                                {usuario.email}
+                          <details className="group/usuario" open={nombresRepetidos.has(usuario.nombre.trim().toLocaleLowerCase()) || (busqueda && usuario.email.toLocaleLowerCase().includes(busqueda)) || undefined}>
+                            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-sm text-left focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                              <ChevronRight aria-hidden className="size-3.5 shrink-0 text-muted group-open/usuario:rotate-90" />
+                              <span className="min-w-0">
+                                <span className="block break-words text-body font-semibold">{usuario.nombre}</span>
+                                <span className="sr-only">{t('usuarios.email')}</span>
+                                <span className="block text-meta text-muted">{t(`roles.${usuario.rol}`)}</span>
                               </span>
-                              {/* Bajo 2xl el rol baja aquí: con su columna la tabla no cabía y se
-                                  desplazaba, y en móvil la ficha ocupaba una fila más. */}
-                              <span className="block truncate text-meta text-subtle 2xl:hidden">{t(`roles.${usuario.rol}`)}</span>
-                            </span>
-                          </span>
-                        </TableCell>
-                        <TableCell data-label={t('usuarios.rol')} className="text-body text-subtle sm:whitespace-nowrap max-2xl:hidden max-sm:hidden!">
-                          {t(`roles.${usuario.rol}`)}
+                            </summary>
+                            <p className="break-all pt-0.5 pb-1 pl-5 text-meta text-subtle">{usuario.email}</p>
+                          </details>
                         </TableCell>
                         <TableCell data-label={t('usuarios.estado')}>
                           {!usuario.is_active ? (
@@ -228,7 +244,7 @@ export function UsuariosPage() {
                 </TableBody>
               </Table>
               <div className="border-t border-border px-4 py-2 empty:hidden [&>*]:mt-0">
-                <Paginacion total={coincidentes.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+                <Paginacion total={coincidentes.length} pagina={paginaActual} onCambiar={setPagina} tamano={tamanoPagina} />
               </div>
             </div>
             <SeccionDetalle titulo={t('lectura.cuentas')} className="xl:col-span-12">

@@ -128,7 +128,7 @@ function Resumen({ e }: { e: EstadoServicio }) {
           <h2 className="text-title font-semibold text-foreground">
             {e.status !== 'ok' ? t('estadoServicio.general.degradado') : advertencia ? t('lectura.servicioRevisar') : t('estadoServicio.general.ok')}
           </h2>
-          {guia && <p className="mt-1 text-body text-muted">{guia}</p>}
+          {guia && (e.status !== 'ok' || !advertencia) && <p className="mt-1 text-body text-muted">{guia}</p>}
         </div>
       </div>
       {pendientes.length > 0 && (
@@ -198,7 +198,7 @@ export function EstadoServicioPage() {
         )}
         <Resumen e={datos} />
         <SeccionDetalle titulo={t('lectura.diagnostico')}>
-          <div className="grid gap-3 lg:grid-cols-2 xl:gap-4">
+          <div className="superficie overflow-hidden">
             <BloqueBaseDatos e={datos} />
             <BloqueMqtt e={datos} />
             <BloqueArranque e={datos} />

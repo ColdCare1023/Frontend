@@ -109,6 +109,19 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it('abre los valores técnicos de un componente a petición y mantiene el estado de los demás disponible', async () => {
+    montar({ data: estado() })
+    await userEvent.click(await screen.findByText('Diagnóstico por componente'))
+    const mqtt = region('MQTT')
+    const datos = region('Base de datos')
+    expect(mqtt.querySelector('details')).not.toHaveAttribute('open')
+    expect(datos.querySelector('details')).not.toHaveAttribute('open')
+    await userEvent.click(mqtt.querySelector('summary')!)
+    expect(mqtt.querySelector('details')).toHaveAttribute('open')
+    expect(datos.querySelector('details')).not.toHaveAttribute('open')
+    expect(within(mqtt).getByText('Responde')).toBeVisible()
+  })
+
   it('los pares de ancho completo ocupan las dos columnas del bloque (el contenedor, no el valor)', async () => {
     montar({ data: estado() })
     await screen.findByText('Operativo')
