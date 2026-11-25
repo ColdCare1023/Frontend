@@ -33,9 +33,7 @@ function montar(props: Partial<Parameters<typeof CeldaLectura>[0]> = {}) {
       ultima={lectura()}
       estadoHistorial="completo"
       reintentar={() => {}}
-      equipos={[]}
       deviceId="FARM-01-CDL"
-      onElegirEquipo={() => {}}
       desactualizado={false}
       sseConectado
       extremos={null}
@@ -47,6 +45,16 @@ function montar(props: Partial<Parameters<typeof CeldaLectura>[0]> = {}) {
 
 /** HU-32 esc. 2 y 3: el estado del flujo en vivo junto a la lectura. */
 describe('CeldaLectura: estado del flujo SSE (HU-32)', () => {
+  it('conserva una lectura antigua con fecha y unidad como histórica, incluso con el flujo conectado', () => {
+    const timestamp = '2026-11-18T13:54:00Z'
+    montar({ ultima: lectura({ temperatura_interna: 1.2, timestamp }), desactualizado: true })
+    expect(screen.queryByTestId('valor-actual')).not.toBeInTheDocument()
+    expect(screen.getByTestId('valor-historico')).toHaveTextContent(/1\.2\s*°C/)
+    expect(screen.getByTestId('celda-lectura').querySelector('time')).toHaveAttribute('datetime', timestamp)
+    expect(screen.getByText('Sin datos recientes')).toBeVisible()
+    expect(screen.queryByText('En vivo')).not.toBeInTheDocument()
+  })
+
   it('con el flujo abierto rotula «En vivo»', () => {
     montar()
     expect(screen.getByText('En vivo')).toBeInTheDocument()

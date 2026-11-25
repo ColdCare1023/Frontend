@@ -308,7 +308,7 @@
     "encabezadoMeta_other": "{{count}} equipos monitoreados",
     "lineaEstado": {
       "todoEnOrden": "Todo en orden: sin alertas pendientes y {{reportando}} de {{total}} equipos reportando.",
-      "equipoSinDatos": "{{equipo}} sin datos desde las {{hora}}",
+      "equipoSinDatos": "{{equipo}} sin datos desde {{hora}}.",
       "equiposSinDatos_one": "{{count}} de {{total}} equipos sin datos",
       "equiposSinDatos_other": "{{count}} de {{total}} equipos sin datos",
       "equipoFalla": "{{equipo}}: falla de sensor",

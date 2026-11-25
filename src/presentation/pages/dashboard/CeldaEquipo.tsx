@@ -109,8 +109,8 @@ function CalibracionCelda({ equipo }: { equipo: Dispositivo | undefined }) {
     const fecha = fechaDia(equipo.fecha_proxima_calibracion)
     return (
       <>
-        <dd className="mt-1 text-body text-foreground lg:truncate">{t('dashboard.calibracionVigente')}</dd>
-        <dd className="nums mt-1 text-faint lg:truncate">{t('dashboard.calibracionHasta', { fecha })}</dd>
+        <dd className="mt-1 text-body text-foreground [overflow-wrap:anywhere]">{t('dashboard.calibracionVigente')}</dd>
+        <dd className="nums mt-1 text-faint [overflow-wrap:anywhere]">{t('dashboard.calibracionHasta', { fecha })}</dd>
       </>
     )
   }
@@ -154,11 +154,11 @@ export const CeldaEquipo = memo(function CeldaEquipo({
     // equipos, Alertas, Recientes, Equipo). Solo cambia el orden visual en
     // móvil; el DOM sigue el orden del bento de escritorio.
     <section aria-labelledby="equipo-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 max-sm:order-last lg:col-span-5 xl:p-5">
-      <div className="flex h-6 min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <h2 id="equipo-titulo" className="eyebrow">
           {t('dashboard.equipo')}
         </h2>
-        {id && <span className="codigo truncate text-meta text-faint">{id}</span>}
+        {id && <span className="codigo min-w-0 [overflow-wrap:anywhere] text-meta text-muted">{id}</span>}
         {id && (
           <Button variant="ghost" size="sm" className="-my-2 -mr-2 ml-auto shrink-0" onClick={() => onVerDetalles(id)}>
             {t('dashboard.detalles')}
@@ -170,11 +170,11 @@ export const CeldaEquipo = memo(function CeldaEquipo({
         <summary className="flex min-h-11 cursor-pointer items-center text-body font-medium text-muted hover:text-foreground">
           {t('lectura.nodo')}
         </summary>
-        <dl className="mt-2 grid grid-cols-3 gap-x-3 text-meta text-muted">
+        <dl className="mt-2 grid gap-3 sm:grid-cols-3 text-meta text-muted">
           <div className="min-w-0">
             <dt className="flex items-center gap-1.5 font-medium">
               {conectividad === 'online' ? <Wifi aria-hidden className="size-3.5 shrink-0" /> : <WifiOff aria-hidden className="size-3.5 shrink-0" />}
-              <span className="min-w-0 lg:truncate">{t('dispositivos.conectividad')}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t('dispositivos.conectividad')}</span>
             </dt>
             <dd className="mt-1">
               {/* HU-13: estado del NODO (LWT/online/telemetría), no el de la
@@ -183,7 +183,7 @@ export const CeldaEquipo = memo(function CeldaEquipo({
               <BadgeConectividad estado={conectividad} desde={equipo?.conectividad_cambiada_en} testId="conectividad-dispositivo" />
             </dd>
             {ultimoReporte && (
-              <dd className="nums mt-1 text-faint lg:truncate" title={t('dashboard.ultimoReporteCorto', { hora: hora(ultimoReporte) })}>
+              <dd className="nums mt-1 text-faint [overflow-wrap:anywhere]" title={t('dashboard.ultimoReporteCorto', { hora: hora(ultimoReporte) })}>
                 <span className="sr-only">{t('dashboard.ultimoReporteCorto', { hora: '' })}</span>
                 <time dateTime={ultimoReporte}>{horaCorta(ultimoReporte)}</time>
               </dd>
@@ -192,7 +192,7 @@ export const CeldaEquipo = memo(function CeldaEquipo({
           <div className="min-w-0">
             <dt className="flex items-center gap-1.5 font-medium">
               <HardDrive aria-hidden className="size-3.5 shrink-0" />
-              <span className="min-w-0 lg:truncate">{t('dashboard.bufferTitulo')}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t('dashboard.bufferTitulo')}</span>
             </dt>
             {buffer ? (
               <>
@@ -204,12 +204,12 @@ export const CeldaEquipo = memo(function CeldaEquipo({
                     tamano={18}
                     etiqueta={t('dashboard.bufferAnillo', { n: pendientes.toLocaleString(), max: limite.toLocaleString() })}
                   />
-                  <span className="nums text-body text-foreground lg:truncate">
+                  <span className="nums text-body text-foreground [overflow-wrap:anywhere]">
                     {pendientes.toLocaleString()}
                     <span className="text-meta text-faint"> / {limite.toLocaleString()}</span>
                   </span>
                 </dd>
-                <dd className="mt-1 text-faint lg:truncate">
+                <dd className="mt-1 text-faint [overflow-wrap:anywhere]">
                   <MetaBuffer equipo={equipo} />
                 </dd>
               </>
@@ -220,7 +220,7 @@ export const CeldaEquipo = memo(function CeldaEquipo({
           <div className="min-w-0">
             <dt className="flex items-center gap-1.5 font-medium">
               <CalendarClock aria-hidden className="size-3.5 shrink-0" />
-              <span className="min-w-0 lg:truncate">{t('dashboard.calibracionTitulo')}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t('dashboard.calibracionTitulo')}</span>
             </dt>
             <CalibracionCelda equipo={equipo} />
           </div>

@@ -33,7 +33,7 @@ function lectura(overrides: Partial<LecturaTermica> = {}): LecturaTermica {
   return {
     id: 'l-1',
     device_id: 'FARM-01-CDL',
-    timestamp: '2026-07-25T12:34:56Z',
+    timestamp: new Date().toISOString(),
     temperatura_ambiental: 5.2,
     humedad_ambiental: 62,
     temperatura_interna: 4.5,
@@ -52,12 +52,11 @@ function lectura(overrides: Partial<LecturaTermica> = {}): LecturaTermica {
   }
 }
 
-function abrirVista(vista: 'Ahora' | 'Tendencia' | 'Equipos') {
-  fireEvent.click(screen.getByRole('tab', { name: new RegExp(`^${vista}$`, 'i') }))
+function abrirDiagnostico() {
+  fireEvent.click(screen.getByText('Diagnóstico de equipos', { exact: true }))
 }
 
 function abrirRecientes() {
-  abrirVista('Tendencia')
   fireEvent.click(screen.getByText('Consultar lecturas recientes', { exact: true }))
 }
 
@@ -70,13 +69,13 @@ function renderizar(ultima: LecturaTermica, sseConectado = true) {
   )
 }
 
-describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-    equiposOperativos.lista = []
-    serieAgregada.valor = null
-  })
+beforeEach(() => {
+  useMonitoreoTermico.mockReset()
+  equiposOperativos.lista = []
+  serieAgregada.valor = null
+})
 
+describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
   it('HU-13: muestra el estado del NODO y desde cuándo, no el de la última lectura', () => {
     // La lectura se envió conectada (siempre lo está al enviarse); el LWT
     // posterior dejó al nodo offline en el backend.
@@ -90,7 +89,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
       },
     ]
     renderizar(lectura({ estado_conectividad: 'online' }))
-    abrirVista('Equipos')
+    abrirDiagnostico()
 
     expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent(/Sin conexión desde las/)
   })
@@ -128,7 +127,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
   it('muestra el dispositivo en línea junto a su identificador', () => {
     renderizar(lectura({ estado_conectividad: 'online' }))
 
-    abrirVista('Equipos')
+    abrirDiagnostico()
     expect(screen.getByText('FARM-01-CDL')).toBeInTheDocument()
     expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent('En línea')
   })
@@ -136,7 +135,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
   it('muestra el dispositivo sin conexión cuando el nodo dejó de reportar', () => {
     renderizar(lectura({ estado_conectividad: 'offline' }))
 
-    abrirVista('Equipos')
+    abrirDiagnostico()
     expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent('Sin conexión')
   })
 
@@ -144,26 +143,23 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
     // RF-18 se refiere al dispositivo registrado, no al EventSource del
     // navegador: un dashboard con SSE sano puede estar mirando un nodo caído,
     // y ese es justo el caso que la farmacia necesita ver.
-    renderizar(lectura({ estado_conectividad: 'offline' }), true)
+    const timestamp = new Date(Date.now() - 600_000).toISOString()
+    equiposOperativos.lista = [{ id: 'FARM-01-CDL', estado_operativo: 'SIN_DATOS', estado_conectividad: 'offline', ultimo_reporte_en: timestamp }]
+    renderizar(lectura({ timestamp, estado_conectividad: 'online' }), true)
 
-    abrirVista('Equipos')
+    abrirDiagnostico()
     const insignia = screen.getByTestId('conectividad-dispositivo')
     expect(insignia).toHaveTextContent('Sin conexión')
 
     // El indicador SSE sigue en línea, y no es la insignia del dispositivo:
     // ambos comparten vocabulario pero no estado.
-    abrirVista('Ahora')
-    const enLinea = screen.getAllByText('En vivo')
+    const enLinea = screen.getAllByText('Flujo de actualizaciones conectado')
     expect(enLinea.length).toBeGreaterThan(0)
     expect(enLinea.some((el) => insignia.contains(el))).toBe(false)
   })
 })
 
 describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-  })
-
   // HU-34 esc. 4: antes se rotulaba «Sin clasificación IA» JUNTO a «Normal».
   // El criterio prohíbe presentarla como Normal: la insignia es neutra y única.
   it('HU-34 esc. 4: sin clasificación del modelo la insignia es neutra, no «Normal»', () => {
@@ -209,7 +205,7 @@ describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
   })
 
   it('HU-54: sin datos recientes no presenta el equipo como Normal', () => {
-    renderizar(lectura({ riesgo_efectivo: 'normal' }))
+    renderizar(lectura({ riesgo_efectivo: 'normal', timestamp: new Date(Date.now() - 600_000).toISOString() }))
 
     const celda = within(screen.getByTestId('celda-lectura'))
     expect(celda.getByText('Sin datos recientes')).toBeInTheDocument()
@@ -230,10 +226,6 @@ describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
 })
 
 describe('DashboardPage — HU-34: riesgo efectivo vs. clasificación IA', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-  })
-
   it('muestra el riesgo efectivo como estado principal, no la clase cruda de la IA', () => {
     renderizar(
       lectura({ nivel_riesgo: 'riesgo_preventivo', riesgo_efectivo: 'excursion_critica', excursion_confirmada: true }),
@@ -262,10 +254,6 @@ describe('DashboardPage — HU-34: riesgo efectivo vs. clasificación IA', () =>
 })
 
 describe('DashboardPage — HU-33 criterio 3: falla de sensor distinguible de "sin dato"', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-  })
-
   it('muestra "falla de sensor" en vez de un valor null sin explicación', () => {
     renderizar(
       lectura({
@@ -297,10 +285,6 @@ describe('DashboardPage — HU-33 criterio 3: falla de sensor distinguible de "s
 })
 
 describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-  })
-
   // HU-35 esc. 1: el evento `puerta` llega por SSE antes que la próxima lectura.
   it('un evento de puerta abierta se muestra sin esperar una lectura nueva', () => {
     const ultima = lectura({ timestamp: new Date(Date.now() - 5_000).toISOString(), apertura_continua_segundos: 0 })
@@ -359,6 +343,18 @@ describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
     expect(screen.getByTestId('puerta-advertencia')).not.toHaveAttribute('role', 'alert')
   })
 
+  it('mantiene la duración y el umbral de una apertura antigua sin anunciar una alarma actual', () => {
+    renderizar(lectura({
+      timestamp: new Date(Date.now() - 600_000).toISOString(),
+      apertura_refrigerador: true, apertura_continua_segundos: 95, umbral_puerta_abierta_segundos: 60,
+    }))
+    const puerta = screen.getByTestId('puerta-advertencia')
+    expect(puerta).not.toHaveAttribute('role', 'alert')
+    expect(puerta).toHaveTextContent('durante 1:35')
+    expect(puerta).toHaveTextContent('Superó el umbral de 60 s.')
+    expect(puerta).not.toHaveTextContent('Revisa el cierre')
+  })
+
   it('avisa la apertura prolongada aunque la ventana de muestreo sea corta', () => {
     renderizar(lectura({
       apertura_refrigerador: true, duracion_apertura_segundos: 10,
@@ -388,11 +384,6 @@ describe('DashboardPage — HU-35: puerta MC-38 opcional', () => {
 })
 
 describe('DashboardPage — bento P5c', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-    equiposOperativos.lista = []
-  })
-
   it.each([[4.5, '4.5'], [-1.2, '−1.2'], [0, '0.0']] as const)('muestra la lectura %s en un solo texto visible con unidad y decimal', (temperatura, cifra) => {
     renderizar(lectura({ temperatura_interna: temperatura }))
     const valor = screen.getByTestId('valor-actual')
@@ -401,14 +392,17 @@ describe('DashboardPage — bento P5c', () => {
     expect(valor).toHaveTextContent(`${cifra} °C`)
     expect(valor).toBeVisible()
   })
-  it('Las pestañas dan acceso a las lecturas recientes y al estado de equipos', () => {
+  it('Lectura, curva y alertas comparten pantalla con acceso a las lecturas y al diagnóstico', () => {
     equiposOperativos.lista = [
       { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', ultimo_reporte_en: '2026-07-25T12:34:56Z' },
     ]
     renderizar(lectura())
+    expect(screen.queryByRole('tablist', { name: 'Monitoreo' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cómo cambió la temperatura' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: /Alertas pendientes/ })).toBeVisible()
     abrirRecientes()
     expect(screen.getByRole('heading', { name: 'Lecturas recientes' })).toBeInTheDocument()
-    abrirVista('Equipos')
+    abrirDiagnostico()
     expect(screen.getByRole('heading', { name: 'Estado operativo de equipos' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Mostrar Vacunas en el monitoreo' })).toBeInTheDocument()
     // La cinta de 24 h resume la disponibilidad en un nombre accesible.
@@ -422,7 +416,7 @@ describe('DashboardPage — bento P5c', () => {
     ]
     renderizar(lectura({ device_id: 'FARM-A' }))
     expect(useMonitoreoTermico.mock.lastCall?.[1]).toBe('FARM-A')
-    abrirVista('Equipos')
+    abrirDiagnostico()
     // Problemas primero: B (sin datos) va arriba aunque no esté seleccionado.
     const filas = screen.getAllByRole('button', { name: /^Mostrar .* en el monitoreo$/ })
     expect(filas[0]).toHaveAccessibleName('Mostrar B en el monitoreo')
@@ -435,7 +429,7 @@ describe('DashboardPage — bento P5c', () => {
       { id: 'FARM-01-CDL', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', fecha_proxima_calibracion: '2020-01-01' },
     ]
     renderizar(lectura())
-    abrirVista('Equipos')
+    abrirDiagnostico()
     expect(screen.getByText(/^Vencida el/)).toBeInTheDocument()
   })
 
@@ -457,7 +451,7 @@ describe('DashboardPage — bento P5c', () => {
       },
     ]
     renderizar(lectura())
-    abrirVista('Equipos')
+    abrirDiagnostico()
     expect(screen.getByRole('img', { name: /Buffer local: 120 de 30,000|Buffer local: 120 de 30.000|Buffer local: 120 de 30000/ })).toBeInTheDocument()
     expect(screen.getByText(/Se perdieron 3 lecturas/)).toBeInTheDocument()
   })
@@ -472,7 +466,6 @@ describe('DashboardPage — bento P5c', () => {
         <DashboardPage />
       </MemoryRouter>,
     )
-    abrirVista('Tendencia')
     fireEvent.click(within(screen.getByRole('group', { name: 'Vista de la curva' })).getByRole('button', { name: 'Lista' }))
     const tabla = screen.getByRole('table')
     // Cabecera + 5 filas; la más reciente primero.
@@ -485,7 +478,7 @@ describe('DashboardPage — bento P5c', () => {
       { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', firmware_version: '2.1.0' },
     ]
     renderizar(lectura())
-    abrirVista('Equipos')
+    abrirDiagnostico()
     fireEvent.click(screen.getByRole('button', { name: 'Detalles de Vacunas' }))
     const panel = await screen.findByRole('dialog')
     expect(within(panel).getByText('Ficha técnica')).toBeInTheDocument()
@@ -500,11 +493,6 @@ describe('DashboardPage — bento P5c', () => {
 })
 
 describe('DashboardPage — HU-33: falla por sensor en las tarjetas KPI', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-    equiposOperativos.lista = []
-  })
-
   const condiciones = () => within(screen.getByRole('region', { name: 'Condiciones' }))
 
   it('humedad inválida: «Falla de sensor» de la humedad, no «No hay lectura de temperatura» ni el valor', () => {
@@ -560,7 +548,7 @@ describe('DashboardPage — HU-33: falla por sensor en las tarjetas KPI', () => 
   it('esc. 2: la lectura vencida dice cuánto hace que no llega una nueva', () => {
     renderizar(lectura({ timestamp: new Date(Date.now() - 10 * 60_000).toISOString() }))
 
-    expect(within(screen.getByTestId('celda-lectura')).getByText(/^Sin lectura nueva hace \d+ s$/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('celda-lectura')).getByText(/hace 10 min/i)).toBeInTheDocument()
   })
 
   it('esc. 1: lectura fresca sin aviso de antigüedad', () => {
@@ -572,11 +560,6 @@ describe('DashboardPage — HU-33: falla por sensor en las tarjetas KPI', () => 
 })
 
 describe('DashboardPage — HU-35: umbral de puerta del backend', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-    equiposOperativos.lista = []
-  })
-
   const abierta = (segundos: number) =>
     lectura({
       timestamp: new Date().toISOString(),
@@ -622,11 +605,6 @@ describe('DashboardPage — HU-35: umbral de puerta del backend', () => {
 })
 
 describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-    equiposOperativos.lista = []
-  })
-
   const equipoConBuffer = (buffer: Record<string, unknown>) => [
     { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'offline', estado_operativo: 'OPERATIVO', buffer_littlefs: buffer },
   ]
@@ -643,7 +621,7 @@ describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () =>
     })
     renderizar(lectura())
 
-    abrirVista('Equipos')
+    abrirDiagnostico()
     const rango = screen.getByTestId('buffer-rango')
     expect(rango).toHaveTextContent(/^Periodo en cola: .+ – .+ \(estimado\) · Perdidas: 2$/)
   })
@@ -674,7 +652,7 @@ describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () =>
     })
     renderizar(lectura())
 
-    abrirVista('Equipos')
+    abrirDiagnostico()
     const fila = screen.getByText(/Se perdieron 40 lecturas/)
     expect(fila).toHaveTextContent('buffer local lleno · en curso')
     expect(fila).toHaveTextContent('arranque 7, muestras 1200–1240')
@@ -696,7 +674,7 @@ describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () =>
       ],
     })
     renderizar(lectura())
-    abrirVista('Equipos')
+    abrirDiagnostico()
     fireEvent.click(screen.getByRole('button', { name: 'Detalles de Vacunas' }))
     const panel = within(await screen.findByRole('dialog'))
 
@@ -708,11 +686,6 @@ describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () =>
 })
 
 describe('DashboardPage — HU-07: lecturas sin hora', () => {
-  beforeEach(() => {
-    useMonitoreoTermico.mockReset()
-    equiposOperativos.lista = []
-  })
-
   it('una lectura de un arranque sin hora se rotula «Sin hora», no con la hora de llegada', () => {
     const sinHora = lectura({ timestamp: new Date().toISOString(), time_quality: 'unsynced', sin_hora: true, origen_hora: 'recepcion' })
     renderizar(sinHora)
@@ -744,9 +717,7 @@ describe('DashboardPage — HU-31: periodo completo y aviso de recorte', () => {
       </MemoryRouter>,
     )
 
-    abrirVista('Tendencia')
     expect(screen.getByTestId('aviso-curva-recorte')).toHaveTextContent(/solo las 5[.,]?000 lecturas más recientes de 8[.,]?640/)
-    abrirVista('Ahora')
     // El conteo de aperturas es un mínimo, no el total de la ventana.
     expect(within(screen.getByRole('region', { name: 'Condiciones' })).getByText(/^≥0 aperturas/)).toBeInTheDocument()
   })
@@ -790,7 +761,6 @@ describe('DashboardPage — HU-31: periodo completo y aviso de recorte', () => {
       </MemoryRouter>,
     )
 
-    abrirVista('Tendencia')
     const curva = within(screen.getByRole('region', { name: 'Cómo cambió la temperatura' }))
     expect(curva.getByText(/8[.,]?640 lecturas · promedio cada 1 min/)).toBeInTheDocument()
     expect(curva.getByText('9.1 °C')).toBeInTheDocument()
@@ -816,7 +786,6 @@ describe('DashboardPage — HU-30: calibración para el Químico Farmacéutico',
 
   it('la curva avisa de la calibración vencida del equipo en pantalla', () => {
     renderizar(lectura())
-    abrirVista('Tendencia')
     expect(screen.getByRole('note')).toHaveTextContent(/La calibración del sensor venció el 1\/1\/2020/)
   })
 
@@ -828,7 +797,7 @@ describe('DashboardPage — HU-30: calibración para el Químico Farmacéutico',
   ] as const)('%s: «Registrar calibración» en la ficha del equipo = %s', (rol, visible) => {
     sesion(rol)
     renderizar(lectura())
-    abrirVista('Equipos')
+    abrirDiagnostico()
     fireEvent.click(screen.getAllByRole('button', { name: /^Detalles/ })[0])
     const panel = screen.getByRole('dialog')
     expect(within(panel).queryAllByRole('button', { name: 'Registrar calibración' })).toHaveLength(visible ? 1 : 0)

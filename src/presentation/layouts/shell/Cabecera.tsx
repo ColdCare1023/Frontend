@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { Menu as MenuIcono } from 'lucide-react'
@@ -9,11 +10,12 @@ import { PildoraEstado } from '../../components/estado-vivo/PildoraEstado'
 import { AvisoDatosSimulados } from './AvisoDatosSimulados'
 import { MenuUsuario } from './MenuUsuario'
 
-export function Cabecera({ conRiel, preferenciasEnMenu }: { conRiel: boolean; preferenciasEnMenu: boolean }) {
+export function Cabecera({ conRiel, preferenciasEnMenu, farmacia = false }: { farmacia?: boolean; conRiel: boolean; preferenciasEnMenu: boolean }) {
   const { t } = useTranslation()
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:px-6 lg:px-6 xl:px-8">
+      {farmacia ? <nav aria-label={t('nav.principal')}><Link to="/dashboard" aria-label={t('nav.dashboard')} className="inline-flex min-h-11 items-center rounded-md focus-visible:outline-ring"><ColdCareBrand className="[&_svg]:size-8 max-sm:[&>div]:hidden" /></Link></nav> : <>
       <DialogPrimitive.Trigger
         aria-label={t('nav.abrirMenu')}
         className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-(--radius-field) text-muted transition-colors duration-(--duration-micro) hover:bg-surface-hover hover:text-foreground lg:hidden"
@@ -21,6 +23,7 @@ export function Cabecera({ conRiel, preferenciasEnMenu }: { conRiel: boolean; pr
         <MenuIcono className="size-5" aria-hidden />
       </DialogPrimitive.Trigger>
       <ColdCareBrand className="shrink-0 max-sm:hidden lg:hidden [&_svg]:size-8 [&>div]:hidden sm:[&>div]:block" />
+      </>}
 
       <div className="flex min-w-0 flex-1 items-center justify-start gap-2 sm:justify-end lg:justify-start">
         <PildoraEstado />

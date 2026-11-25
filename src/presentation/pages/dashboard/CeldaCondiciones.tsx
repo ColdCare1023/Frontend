@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowUpRight, ChevronDown, DoorClosed, DoorOpen, Drople
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionBreve } from '@/lib/formato'
 import { clsx } from 'clsx'
+import { HoraLectura } from '../../components/HoraLectura'
 import { Esqueleto } from '../../components/ui/esqueleto'
 import { DECIMALES_HUMEDAD } from '../../components/ui/formato-cifra'
 import { useSegundosDesde } from '../../hooks/useReloj'
@@ -13,7 +14,7 @@ import { submuestrear } from './utilidades'
 
 /** Sparkline SVG en línea (PERF B3: sin ECharts). Decorativa: el valor ya se dice. */
 function Sparkline({ valores, className }: { valores: readonly number[]; className?: string }) {
-  if (valores.length < 2) return <div aria-hidden className={clsx('h-6', className)} />
+  if (valores.length < 2) return null
   const min = Math.min(...valores)
   const max = Math.max(...valores)
   const rango = max - min || 1
@@ -24,16 +25,6 @@ function Sparkline({ valores, className }: { valores: readonly number[]; classNa
     <svg aria-hidden viewBox="0 0 100 24" preserveAspectRatio="none" className={clsx('h-6 w-full', className)}>
       <polyline points={puntos} fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
     </svg>
-  )
-}
-
-function Antiguedad({ segundos }: { segundos: number | null }) {
-  const { t } = useTranslation()
-  return (
-    <span className="nums ml-auto inline-flex items-center gap-1 text-micro text-faint">
-      <Hourglass aria-hidden className="size-3 text-nodata-700" />
-      {t('dashboard.haceSegundos', { s: segundos ?? 0 })}
-    </span>
   )
 }
 
@@ -48,7 +39,6 @@ function Metrica({
   anterior,
   serie,
   desactualizado,
-  segundos,
   textoDelta,
   mostrarTendencia,
 }: {
@@ -62,7 +52,6 @@ function Metrica({
   anterior: LecturaTermica | null
   serie: readonly LecturaTermica[]
   desactualizado: boolean
-  segundos: number | null
   textoDelta: string
   mostrarTendencia: boolean
 }) {
@@ -74,11 +63,10 @@ function Metrica({
     [serie, campo],
   )
   return (
-    <div className="flex min-w-0 flex-col px-3 first:pl-0 last:pr-0">
+    <div className="flex min-w-0 flex-col sm:px-3 sm:first:pl-0 sm:last:pr-0">
       <dt className="flex items-center gap-1.5 text-meta font-medium text-muted">
         <Icono aria-hidden className="size-3.5 shrink-0" />
-        <span className="truncate">{etiqueta}</span>
-        {mostrarTendencia && desactualizado && !fallo && valor != null && <Antiguedad segundos={segundos} />}
+        <span className="break-words">{etiqueta}</span>
       </dt>
       {fallo || valor == null ? (
         <dd className="mt-1 text-meta font-medium text-warning-700">
@@ -104,7 +92,7 @@ function Metrica({
         </dd>
       )}
       {/* Dentro de un <dd>: un <dl> solo admite dt/dd (axe definition-list). */}
-      {mostrarTendencia && <dd aria-hidden className="mt-auto pt-2 text-subtle">
+      {mostrarTendencia && puntos.length >= 2 && <dd aria-hidden className="mt-auto pt-2 text-subtle">
         <Sparkline valores={puntos} />
       </dd>}
     </div>
@@ -127,6 +115,7 @@ function ventanaCorta(horas: number, t: (clave: string) => string): string {
 /** Marcas verticales de cada apertura de la ventana (HU-35 esc. 3). */
 function TiraAperturas({ serie, umbral, desde, hasta }: { serie: readonly LecturaTermica[]; umbral: number; desde: number; hasta: number }) {
   const marcas = useMemo(() => aperturasEnSerie(serie, umbral), [serie, umbral])
+  if (marcas.length === 0) return null
   const rango = Math.max(1, hasta - desde)
   return (
     <div aria-hidden className="relative h-6 w-full border-b border-border">
@@ -192,7 +181,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
         ))}
       </div>
     ) : (
-      <dl className="grid grid-cols-3 divide-x divide-border">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:divide-x sm:divide-border">
         {[
           [ThermometerSun, t('dashboard.ambienteCorto')],
           [Droplets, t('dashboard.humedadCorta')],
@@ -200,7 +189,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
         ].map(([Icono, etiqueta]) => {
           const I = Icono as React.ComponentType<{ className?: string }>
           return (
-            <div key={etiqueta as string} className="flex min-w-0 flex-col px-3 first:pl-0 last:pr-0">
+            <div key={etiqueta as string} className="flex min-w-0 flex-col sm:px-3 sm:first:pl-0 sm:last:pr-0">
               <dt className="flex items-center gap-1.5 text-meta font-medium text-muted">
                 <I aria-hidden className="size-3.5" />
                 {etiqueta as string}
@@ -221,7 +210,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
     const hasta = Date.parse(ultima.timestamp) || 0
     const aperturas = puerta.sinSensor ? 0 : aperturasEnSerie(serie, puerta.umbral).length
     contenido = (
-      <dl className="grid h-full grid-cols-3 divide-x divide-border">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:divide-x sm:divide-border">
         <Metrica
           icono={ThermometerSun}
           etiqueta={t('dashboard.ambienteCorto')}
@@ -233,7 +222,6 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           anterior={anterior}
           serie={serie}
           desactualizado={desactualizado}
-          segundos={segundosDesdeUltima}
           mostrarTendencia={mostrarTendencia}
           textoDelta={t('dashboard.variacionVsAnterior')}
         />
@@ -248,11 +236,10 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           anterior={anterior}
           serie={serie}
           desactualizado={desactualizado}
-          segundos={segundosDesdeUltima}
           mostrarTendencia={mostrarTendencia}
           textoDelta={t('dashboard.variacionVsAnterior')}
         />
-        <div className="flex min-w-0 flex-col px-3 first:pl-0 last:pr-0">
+        <div className="col-span-2 flex min-w-0 flex-col sm:col-span-1 sm:px-3 sm:first:pl-0 sm:last:pr-0">
           <dt className="flex items-center gap-1.5 text-meta font-medium text-muted">
             {puerta.abiertaAhora ? (
               <DoorOpen className="size-3.5 shrink-0 text-warning-600" aria-hidden />
@@ -264,7 +251,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           <dd className={clsx('mt-1 text-title', puerta.abiertaAhora ? 'text-warning-700' : 'text-foreground')}>
             {/* Rol y testid en un span interno: un <dd> con role rompe el <dl> (axe definition-list). */}
             <span
-              role={puerta.aperturaProlongada ? 'alert' : undefined}
+              role={!desactualizado && puerta.aperturaProlongada ? 'alert' : undefined}
               data-testid={puerta.abiertaAhora ? 'puerta-advertencia' : undefined}
             >
             {puerta.sinSensor
@@ -274,8 +261,8 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
                 : t('dashboard.puertaCerrada')}
             {puerta.aperturaEnCurso != null && (
               <span className={clsx('nums ml-1 text-meta font-normal', puerta.aperturaProlongada ? 'text-danger-700' : 'text-muted')}>
-                · {t('dashboard.puertaDesdeHace', { duracion: duracionBreve(puerta.aperturaEnCurso) })}
-                {puerta.aperturaProlongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}
+                · {t(desactualizado ? 'medicion.duracionRegistrada' : 'dashboard.puertaDesdeHace', { duracion: duracionBreve(puerta.aperturaEnCurso) })}
+                {!desactualizado && puerta.aperturaProlongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}
               </span>
             )}
             {!puerta.conAperturaContinua && ultima.apertura_refrigerador && ultima.duracion_apertura_segundos != null && (() => {
@@ -284,7 +271,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
               return (
                 <span className={clsx('nums ml-1 text-meta font-normal', prolongada ? 'text-danger-700' : 'text-muted')}>
                   · {duracionBreve(duracion)}
-                  {prolongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}
+                  {!desactualizado && prolongada && <span className="sr-only"> — {t('dashboard.puertaProlongada')}</span>}
                 </span>
               )
             })()}
@@ -295,7 +282,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
             )}
             {puerta.aperturaProlongada && (
               <span className="mt-0.5 block text-meta font-medium text-danger-700">
-                {t('dashboard.puertaSuperaUmbral', { segundos: puerta.umbral })}
+                {t(desactualizado ? 'medicion.umbralSuperado' : 'dashboard.puertaSuperaUmbral', { segundos: puerta.umbral })}
               </span>
             )}
             </span>
@@ -308,7 +295,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
               {/* «5 aperturas · 24 h» cabe en la columna; la frase larga queda en el title. Con el
                   historial recortado el conteo es un mínimo («≥5»), no el total de la ventana. */}
               <dd
-                className="nums mt-1 text-micro text-faint lg:truncate"
+                className="nums mt-1 text-micro text-muted"
                 title={
                   recorte
                     ? t('dashboard.aperturasVentanaParcial', { count: aperturas, ventana, mostradas: recorte.mostradas.toLocaleString() })
@@ -330,11 +317,16 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   return (
     <section
       aria-labelledby="condiciones-titulo"
-      className="superficie col-span-4 flex min-w-0 flex-col p-4 lg:col-span-5 xl:p-5"
+      className="flex min-w-0 flex-col"
     >
-      <h2 id="condiciones-titulo" className="mb-4 text-title text-foreground">
+      <h2 id="condiciones-titulo" className="mb-3 text-title text-foreground">
         {t('dashboard.condicionesTitulo')}
       </h2>
+      {desactualizado && ultima && (
+        <p className="mb-3 flex flex-wrap items-baseline gap-x-2 text-meta text-muted">
+          {t('dashboard.ultimaLecturaHora')} <HoraLectura lectura={ultima} formato="fechaHora" />
+        </p>
+      )}
       <div id={idDatos}>{contenido}</div>
       {ultima && (
         <button

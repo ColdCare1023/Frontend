@@ -266,7 +266,7 @@ export const CeldaCurva = memo(function CeldaCurva({
     )
   } else if (!hayDatos && estadoHistorial !== 'cargando') {
     cuerpo = (
-      <div role="status" className="trama-sin-datos flex h-full items-center justify-center rounded-(--radius-field) text-body text-muted">
+      <div role="status" className="flex h-full items-center justify-center rounded-(--radius-field) bg-surface-sunken text-center text-body text-muted">
         <span className="rounded-(--radius-small) bg-surface px-2 py-1">{t('dashboard.curvaSinLecturas', { ventana })}</span>
       </div>
     )
@@ -281,7 +281,7 @@ export const CeldaCurva = memo(function CeldaCurva({
   }
 
   return (
-    <section aria-labelledby="curva-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 sm:col-span-8 lg:col-span-8 lg:h-[360px] xl:p-5">
+    <section aria-labelledby="curva-titulo" className="flex min-w-0 flex-col">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-0 flex-1 basis-48">
           <h2 id="curva-titulo" className="text-title text-foreground">
@@ -325,26 +325,6 @@ export const CeldaCurva = memo(function CeldaCurva({
           {t('dashboard.curvaCalibracionVencida', { fecha: fechaDia(vencimientoCalibracion) })}
         </p>
       )}
-      {resumen && (
-        <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-meta text-muted">
-          {(
-            [
-              ['dashboard.resumenMinima', `${resumen.minima.toFixed(1)} °C`, false],
-              ['dashboard.resumenMaxima', `${resumen.maxima.toFixed(1)} °C`, false],
-              ['dashboard.resumenPromedio', `${resumen.promedio.toFixed(1)} °C`, false],
-              ['dashboard.resumenFueraRango', String(resumen.fueraDeRango), resumen.fueraDeRango > 0],
-            ] as const
-          ).map(([clave, valor, alerta]) => (
-            <div key={clave} className="flex items-baseline gap-1.5">
-              <dt>{t(clave)}</dt>
-              <dd className={clsx('nums flex items-center gap-1 text-body font-semibold', alerta ? 'text-danger-700' : 'text-foreground')}>
-                {alerta && <OctagonAlert aria-hidden className="size-3.5" />}
-                {valor}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
       {avisos.map((aviso) => (
         <p
           key={aviso.clave}
@@ -372,7 +352,30 @@ export const CeldaCurva = memo(function CeldaCurva({
             })
           : t('dashboard.curvaSinLecturas', { ventana })}
       </p>
-      <div className="mt-3 h-[220px] min-h-0 sm:h-[260px] lg:h-auto lg:flex-1">{cuerpo}</div>
+      <div className={clsx("mt-3 min-h-0", hayDatos ? "h-[165px] sm:h-[185px]" : "min-h-16 [&>div]:min-h-16")}>{cuerpo}</div>
+      {resumen && (
+        <details className="mt-1 text-meta text-muted">
+          <summary className="w-fit cursor-pointer rounded-sm py-2 font-medium focus-visible:outline-ring">{t('dashboard.estadisticasCurva')}</summary>
+          <dl className="mb-2 flex flex-wrap gap-x-5 gap-y-1 text-meta text-muted">
+          {(
+            [
+              ['dashboard.resumenMinima', `${resumen.minima.toFixed(1)} °C`, false],
+              ['dashboard.resumenMaxima', `${resumen.maxima.toFixed(1)} °C`, false],
+              ['dashboard.resumenPromedio', `${resumen.promedio.toFixed(1)} °C`, false],
+              ['dashboard.resumenFueraRango', String(resumen.fueraDeRango), resumen.fueraDeRango > 0],
+            ] as const
+          ).map(([clave, valor, alerta]) => (
+            <div key={clave} className="flex items-baseline gap-1.5">
+              <dt>{t(clave)}</dt>
+              <dd className={clsx('nums flex items-center gap-1 text-body font-semibold', alerta ? 'text-danger-700' : 'text-foreground')}>
+                {alerta && <OctagonAlert aria-hidden className="size-3.5" />}
+                {valor}
+              </dd>
+            </div>
+          ))}
+          </dl>
+        </details>
+      )}
     </section>
   )
 })

@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FlaskConical } from 'lucide-react'
+import { FlaskConical, Refrigerator, SlidersHorizontal } from 'lucide-react'
 
-import { useAlertasPendientes, useUltimaAlertaAtendida } from '@/application/hooks/useAlertasPendientes'
+import { useAlertasPendientes } from '@/application/hooks/useAlertasPendientes'
 import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { useSerieTermica } from '@/application/hooks/useSerieTermica'
@@ -14,15 +14,14 @@ import { resumenCombinado } from '@/domain/entities/SerieTermica'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
-import { PanelPestana, Pestanas } from '../components/ui/pestanas'
-import { idPestana } from '../components/ui/pestanas-ids'
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useVencido } from '../hooks/useReloj'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
 import { TooltipProvider } from '../components/ui/tooltip'
-import { CeldaAlertasPendientes } from './dashboard/CeldaAlertasPendientes'
+import { BandejaAlertasOperativa } from './dashboard/BandejaAlertasOperativa'
+import { ConsultasFarmacia } from './dashboard/ConsultasFarmacia'
 import { CeldaCondiciones } from './dashboard/CeldaCondiciones'
 import { CeldaCurva } from './dashboard/CeldaCurva'
 import { CeldaEquipo } from './dashboard/CeldaEquipo'
@@ -36,11 +35,8 @@ import { condicionesLineaEstado } from './dashboard/condicionesLinea'
 import { useEquipoSeleccionado } from './dashboard/useEquipoSeleccionado'
 import { ROLES_SIMULADOR, resumenVentana } from './dashboard/utilidades'
 
-type VistaMonitoreo = 'actual' | 'tendencia' | 'equipos' | 'alertas'
-
 export function DashboardPage() {
   const { t } = useTranslation()
-  const [vista, setVista] = useState<VistaMonitoreo>('actual')
   const rol = useAuthStore((s) => s.usuario?.rol)
   const [horasVentana, setHorasVentana] = useState<number>(24)
   // HU-31/HU-33: el dashboard muestra UN refrigerador a la vez. Por defecto,
@@ -53,9 +49,6 @@ export function DashboardPage() {
   // HU-31: la curva y el resumen de 24 h y 7 d cubren el periodo completo.
   const { serie: agregada, recargar: recargarSerie } = useSerieTermica(deviceId, horasVentana)
   const alertas = useAlertasPendientes()
-  // Contexto de «Alertas pendientes»: sin pendientes es el estado vacío y con
-  // menos de 3 completa la lista (misma consulta de lectura que Alertas).
-  const ultimaAtendida = useUltimaAlertaAtendida(alertas.estado === 'listo' && alertas.total < 3)
   const ultimasVivo = useEstadoVivoStore((s) => s.ultimas)
 
   const flota = equipos
@@ -69,7 +62,11 @@ export function DashboardPage() {
   // HU-33 criterio 2 / B-17: desactualizado al superar el umbral SIN_DATOS del propio nodo.
   const umbralFrescura = umbralSilencioSegundos(estadoIoTPrincipal)
   const vencido = useVencido(ultima?.timestamp, umbralFrescura)
-  const datoDesactualizado = estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' || (ultima !== null && vencido)
+  const datoDesactualizado =
+    estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' ||
+    estadoIoTPrincipal?.estado_operativo === 'MONITOREO_SUSPENDIDO' ||
+    estadoIoTPrincipal?.estado_conectividad === 'offline' ||
+    (ultima !== null && vencido)
 
   const ventana = t(`dashboard.ventanaFrase.${horasVentana}`)
   const resumen = useMemo(() => (agregada ? resumenCombinado(agregada, serie) : resumenVentana(serie)), [agregada, serie])
@@ -83,8 +80,8 @@ export function DashboardPage() {
 
   const temperaturas = useMemo(() => {
     const mapa: Record<string, TemperaturaEquipo> = {}
-    for (const [id, lectura] of Object.entries(ultimasVivo)) mapa[id] = { valor: lectura.temperatura, riesgo: lectura.riesgo }
-    if (ultima && deviceId) mapa[deviceId] = { valor: ultima.temperatura_interna ?? null, riesgo: estadoRiesgo }
+    for (const [id, lectura] of Object.entries(ultimasVivo)) mapa[id] = { valor: lectura.temperatura, riesgo: lectura.riesgo, timestamp: lectura.timestamp }
+    if (ultima && deviceId) mapa[deviceId] = { valor: ultima.temperatura_interna ?? null, riesgo: estadoRiesgo, timestamp: ultima.timestamp }
     return mapa
   }, [ultimasVivo, ultima, deviceId, estadoRiesgo])
 
@@ -127,10 +124,9 @@ export function DashboardPage() {
   const cerrarDetalle = useCallback(() => setDetalleId(null), [])
   const mostrarLectura = useCallback((id: string) => {
     setEquipoElegido(id)
-    setVista('actual')
-    const pestana = document.getElementById(idPestana('monitor', 'actual'))
-    pestana?.focus({ preventScroll: true })
-    return pestana
+    const destino = document.getElementById('equipo-monitoreado')
+    destino?.focus()
+    return destino
   }, [setEquipoElegido])
   const mostrarDesdePanel = useCallback(
     (id: string) => {
@@ -162,17 +158,6 @@ export function DashboardPage() {
       vencimientoCalibracion={vencimientoCalibracion}
     />
   )
-  const bandeja = (
-    <CeldaAlertasPendientes
-      total={alertas.total}
-      criticas={alertas.criticas}
-      alertas={alertas.alertas}
-      estado={alertas.estado}
-      reintentar={alertas.reintentar}
-      nombres={nombres}
-      ultimaAtendida={ultimaAtendida}
-    />
-  )
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -189,6 +174,7 @@ export function DashboardPage() {
         titulo={t('dashboard.titulo')}
         meta={flota.length > 0 ? t('dashboard.encabezadoMeta', { count: flota.length }) : undefined}
       >
+        <ConsultasFarmacia equipoId={deviceId} />
         {puedeSimular && (
           <Button
             variant="secondary"
@@ -213,28 +199,29 @@ export function DashboardPage() {
         onReintentar={alertas.reintentar}
       />
 
-      <Pestanas<VistaMonitoreo>
-        idBase="monitor"
-        valor={vista}
-        onCambiar={setVista}
-        etiqueta={t('nav.dashboard')}
-        pestanas={[
-          { valor: 'actual', etiqueta: t('dashboard.pestanaAhora') },
-          { valor: 'tendencia', etiqueta: t('dashboard.pestanaTendencia') },
-          { valor: 'equipos', etiqueta: t('dashboard.estadoEquiposCorto', 'Equipos') },
-          { valor: 'alertas', etiqueta: t('nav.alertas') },
-        ]}
-      />
-      <PanelPestana idBase="monitor" valor={vista} className="mt-4 min-w-0">
-        {vista === 'actual' && (
-          <div className="superficie grid overflow-hidden lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] [&>section]:col-span-1 [&>section]:row-span-1 [&>section]:rounded-none [&>section]:border-0 [&>section]:shadow-none lg:[&>section+section]:border-l lg:[&>section+section]:border-border">
+      <div className="hoja-monitoreo">
+        <div id="equipo-monitoreado" tabIndex={-1} className="flex min-w-0 scroll-mt-20 flex-wrap items-center gap-2 border-b border-border px-4 py-2 focus:outline-none sm:px-6">
+          <Refrigerator aria-hidden className="size-4 shrink-0 text-muted" />
+          {equipos.length > 1 ? (
+            <select aria-label={t('dashboard.equipo')} value={deviceId ?? ''} onChange={(event) => elegir(event.target.value)}
+              className="min-h-10 min-w-0 max-w-full flex-1 cursor-pointer truncate bg-transparent pr-3 text-body font-semibold focus-visible:outline-ring sm:flex-none">
+              {equipos.map((equipo) => {
+                const repetido = equipo.nombre && equipos.some((otro) => otro.id !== equipo.id && otro.nombre === equipo.nombre)
+                return <option key={equipo.id} value={equipo.id}>{repetido ? `${equipo.nombre} (${equipo.id})` : equipo.nombre || equipo.id}</option>
+              })}
+            </select>
+          ) : <span className="min-w-0 flex-1 break-all text-body font-semibold">{estadoIoTPrincipal?.nombre || deviceId || t('dashboard.equipo')}</span>}
+          {estadoIoTPrincipal && <Button variant="ghost" size="sm" className="ml-auto" onClick={() => verDetalles(estadoIoTPrincipal.id)}>
+            <SlidersHorizontal aria-hidden className="size-4" /> {t('dashboard.ficha')}
+          </Button>}
+        </div>
+        <div className="grid min-w-0 lg:grid-cols-[minmax(17rem,0.78fr)_minmax(0,1.5fr)]">
+          <div className="min-w-0 space-y-5 border-b border-border px-4 py-5 sm:px-6 lg:border-r lg:border-b-0">
             <CeldaLectura
               ultima={ultima}
               estadoHistorial={estadoHistorial}
               reintentar={reintentar}
-              equipos={equipos}
               deviceId={deviceId}
-              onElegirEquipo={elegir}
               desactualizado={datoDesactualizado}
               sseConectado={sseConectado}
               motivoDesconexion={motivoDesconexion}
@@ -253,30 +240,21 @@ export function DashboardPage() {
               puertaEnVivo={puertaEnVivo && (!ultima || puertaEnVivo.device_id === ultima.device_id) ? puertaEnVivo : null}
             />
           </div>
-        )}
-        {vista === 'tendencia' && (
-          <div className="space-y-3">
-            {deviceId && <p className="text-body font-medium text-subtle">{nombres.get(deviceId) || deviceId}</p>}
-            {curva}
-            <SeccionDetalle titulo={t('lectura.recientes')} className="col-span-full">
-              <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
-            </SeccionDetalle>
-          </div>
-        )}
-        {vista === 'equipos' && (
-          <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] [&>section]:col-span-1">
-            <CeldaEstadoEquipos
-              equipos={flota}
-              deviceId={deviceId}
-              temperaturas={temperaturas}
-              onElegir={mostrarLectura}
-              onVerDetalles={verDetalles}
-            />
+          <div className="min-w-0 px-4 py-5 sm:px-6">{curva}</div>
+        </div>
+        <div id="alertas-monitoreo" tabIndex={-1} className="min-w-0 scroll-mt-20 border-t border-border px-4 py-4 focus:outline-none sm:px-6">
+          <BandejaAlertasOperativa bandeja={alertas} nombres={nombres} />
+        </div>
+        <div className="border-t border-border px-3 py-1 sm:px-5">
+          <SeccionDetalle titulo={t('lectura.recientes')}>
+            <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
+          </SeccionDetalle>
+          <SeccionDetalle titulo={t('dashboard.diagnostico')} className="border-0">
+            <CeldaEstadoEquipos equipos={flota} deviceId={deviceId} temperaturas={temperaturas} onElegir={mostrarLectura} onVerDetalles={verDetalles} />
             <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
-          </div>
-        )}
-        {vista === 'alertas' && bandeja}
-      </PanelPestana>
+          </SeccionDetalle>
+        </div>
+      </div>
 
       <PanelDetalleEquipo
         equipo={equipoDetalle}

@@ -109,14 +109,13 @@ test('pantallas de administración no desbordan viewport en anchos móviles y de
   }
 })
 
-test('gráficas ECharts cargan al abrir Tendencia, no durante login', async ({ page }) => {
+test('gráficas ECharts cargan al entrar al monitoreo, no durante login', async ({ page }) => {
   await page.goto('/login')
   const recursosLogin = await page.evaluate(() => performance.getEntriesByType('resource').map(({ name }) => name))
   expect(recursosLogin.some((url) => /echarts/i.test(url))).toBe(false)
 
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await expect(page.locator('canvas').first()).toBeVisible()
   await expect.poll(async () => {
     const recursos = await page.evaluate(() => performance.getEntriesByType('resource').map(({ name }) => name))

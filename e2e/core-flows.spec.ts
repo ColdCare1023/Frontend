@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { accionAlerta, irA, cerrarSesion } from './helpers'
+import { irA, cerrarSesion } from './helpers'
 
 test('sesión demo, navegación y reapertura', async ({ page }) => {
   // El recorrido guiado se retiró (4e27dbe): tras entrar se llega al monitoreo.
@@ -12,8 +12,8 @@ test('sesión demo, navegación y reapertura', async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/)
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
-  await expect(page.getByRole('heading', { name: 'Alertas' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link')).toHaveCount(1)
+  await expect(page.getByRole('heading', { name: /Alertas pendientes/ })).toBeVisible()
 })
 
 test('cambiar periodo de la curva conserva monitoreo visible sin destellos', async ({ page }) => {
@@ -26,7 +26,6 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
   const curva = page.locator('[role="img"][aria-label^="Gráfica de líneas"]')
   const lecturaActual = await temperatura.getByTestId('valor-actual').getAttribute('data-valor')
   expect(lecturaActual).toMatch(/^\d+\.\d+$/)
-  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await expect(curva).toBeVisible()
 
   const rangos = page.getByRole('group', { name: 'Rango de la curva térmica' })
@@ -34,11 +33,10 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
     const opcion = rangos.getByRole('button', { name: nombre, exact: true })
     await opcion.click()
     await expect(opcion).toHaveAttribute('aria-pressed', 'true')
-    await expect(page.getByRole('tab', { name: 'Tendencia' })).toHaveAttribute('aria-selected', 'true')
+    await expect(temperatura).toBeVisible()
     await expect(curva).toBeVisible()
     await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0)
   }
-  await page.getByRole('tab', { name: /^ahora$/i }).click()
   await expect(temperatura.getByTestId('valor-actual')).toBeVisible()
 })
 
@@ -125,14 +123,10 @@ test('alertas permiten abrir detalle contextual', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
-  await page.getByRole('button', { name: 'Todas', exact: true }).click()
-  // El riesgo de cada fila va con forma propia y texto (lector de pantalla).
-  await expect(page.getByRole('row').filter({ hasText: /excursión crítica/i }).first()).toBeVisible()
-  await expect(page.getByRole('row').filter({ hasText: /riesgo preventivo/i }).first()).toBeVisible()
-  await accionAlerta(page, /ver cronología de atención/i)
-  await expect(page.getByRole('dialog')).toContainText(/temperatura/i)
+  const bandeja = page.getByRole('region', { name: /Alertas pendientes/ })
+  await bandeja.getByRole('button', { name: /^Atender/ }).first().click()
   await expect(page.getByRole('dialog')).toContainText(/Excursión crítica|Riesgo preventivo/)
+  await expect(page).toHaveURL(/\/dashboard$/)
 })
 
 test('logout elimina acceso a ruta protegida', async ({ page }) => {
@@ -148,7 +142,7 @@ test('logout elimina acceso a ruta protegida', async ({ page }) => {
 test('navegación móvil abre menú y permite llegar a alertas', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/login')
-  await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
+  await page.getByRole('button', { name: 'Técnico de Farmacia' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await page.getByRole('button', { name: 'Abrir menú' }).click()
   await page.getByRole('dialog').getByRole('link', { name: 'Alertas' }).click()

@@ -63,6 +63,7 @@ export function AppLayout() {
 
   if (!usuario) return null
 
+  const farmacia = usuario.rol === 'farmaceutico'
   const alternarColapso = () => {
     setColapsado((previo) => {
       guardarColapsado(!previo)
@@ -87,7 +88,7 @@ export function AppLayout() {
           </a>
 
           {/* ── Riel (≥ 1024): mismo fondo que el lienzo, separado por un borde ── */}
-          <aside
+          {!farmacia && <aside
             id="riel-navegacion"
             data-state={colapsado ? 'colapsado' : 'expandido'}
             className="sticky top-0 hidden h-dvh w-(--ancho-riel) shrink-0 flex-col overflow-hidden border-r border-border bg-riel lg:flex"
@@ -115,7 +116,7 @@ export function AppLayout() {
                 </button>
               </Tooltip>
             </div>
-          </aside>
+          </aside>}
 
           <DialogPrimitive.Root open={drawerAbierto} onOpenChange={setDrawerAbierto}>
             {/* ── Cajón (< 1024) ── */}
@@ -149,7 +150,7 @@ export function AppLayout() {
               {/* Una sola pila fija arriba: el aviso de sesión no se monta sobre la cabecera. */}
               <div data-barra-superior className="sticky top-0 z-30">
                 <AvisoExpiracionSesion />
-                <Cabecera conRiel={conRiel} preferenciasEnMenu={!esSm} />
+                <Cabecera farmacia={farmacia} conRiel={conRiel && !farmacia} preferenciasEnMenu={!esSm} />
               </div>
 
               <main

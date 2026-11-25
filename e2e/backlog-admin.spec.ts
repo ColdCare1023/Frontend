@@ -18,7 +18,7 @@ test('HU-30: el Químico Farmacéutico registra la calibración y ve la vencida 
   await entrarComo(page, 'Químico Farmacéutico')
 
   // Ficha del equipo en Monitoreo: el QF no entra a Dispositivos (solo admin).
-  await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
+  await page.getByText('Diagnóstico de equipos', { exact: true }).click()
   await page.getByRole('button', { name: 'Detalles', exact: true }).click()
   const panel = page.getByRole('dialog')
   await panel.getByRole('button', { name: 'Registrar calibración' }).click()
@@ -34,7 +34,6 @@ test('HU-30: el Químico Farmacéutico registra la calibración y ve la vencida 
   await panel.getByRole('button', { name: 'Cerrar' }).first().click()
 
   // La curva del equipo en pantalla avisa de la condición documental.
-  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await expect(page.getByRole('note').filter({ hasText: 'La calibración del sensor venció' })).toBeVisible()
 
   await irA(page, '/historial?device_id=FARM-01-CDL')

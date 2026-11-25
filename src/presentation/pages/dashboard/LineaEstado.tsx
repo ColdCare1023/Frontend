@@ -1,9 +1,8 @@
 import { memo } from 'react'
-import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, CalendarClock, CircleCheck, Hourglass, OctagonAlert, TriangleAlert } from 'lucide-react'
 
-import { fechaDia, hora } from '@/lib/formato'
+import { fechaDia, fechaHora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import type { CondicionLinea } from './condicionesLinea'
 
@@ -26,7 +25,7 @@ function useFrase() {
         const [equipo] = c.equipos
         return t('dashboard.lineaEstado.equipoSinDatos', {
           equipo: equipo.nombre || equipo.id,
-          hora: equipo.ultimo_reporte_en ? hora(equipo.ultimo_reporte_en) : '—',
+          hora: equipo.ultimo_reporte_en ? fechaHora(equipo.ultimo_reporte_en) : '—',
         })
       }
       case 'falla':
@@ -62,21 +61,18 @@ export const LineaEstado = memo(function LineaEstado({
   const { t } = useTranslation()
   const frase = useFrase()
   if (cargando) return <div aria-hidden className="esqueleto mb-3 h-11 rounded-(--radius-card) xl:mb-4" />
-  const [principal, secundaria] = condiciones
+  const [principal] = condiciones
   if (!principal) return null
 
-  const extra = secundaria && (
-    <span className="truncate text-faint max-lg:hidden">· {frase(secundaria)}</span>
-  )
   const texto = <span className="min-w-0 max-sm:line-clamp-2 sm:truncate">{frase(principal)}</span>
 
   if (principal.tipo === 'criticas' || principal.tipo === 'pendientes') {
     const critica = principal.tipo === 'criticas'
     const Icono = critica ? OctagonAlert : TriangleAlert
     return (
-      <Link
+      <a
         key={principal.tipo}
-        to="/alertas"
+        href="#alertas-monitoreo"
         className={clsx(
           BASE,
           ENFOQUE,
@@ -89,11 +85,10 @@ export const LineaEstado = memo(function LineaEstado({
         <Icono aria-hidden className="size-4 shrink-0" />
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
           {texto}
-          {extra}
         </span>
         <span className="shrink-0 font-medium max-sm:sr-only">{t('dashboard.lineaEstado.revisarAlertas')}</span>
         <ArrowRight aria-hidden className="size-4 shrink-0" />
-      </Link>
+      </a>
     )
   }
 
@@ -137,7 +132,6 @@ export const LineaEstado = memo(function LineaEstado({
       <Icono aria-hidden className={clsx('size-4 shrink-0', sinDatos && 'text-nodata-700')} />
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
         {texto}
-        {extra}
       </span>
       <span className="shrink-0 font-medium max-sm:sr-only">{t('dashboard.lineaEstado.verEquipo')}</span>
       <ArrowRight aria-hidden className="size-4 shrink-0" />

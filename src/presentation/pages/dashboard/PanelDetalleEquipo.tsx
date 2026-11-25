@@ -33,7 +33,7 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   return (
     <section className="border-b border-border py-4 first:pt-0 last:border-b-0">
       <h3 className="eyebrow mb-2">{titulo}</h3>
-      <div className="space-y-1.5 text-body text-muted">{children}</div>
+      <div className="space-y-1.5 [overflow-wrap:anywhere] text-body text-muted">{children}</div>
     </section>
   )
 }
@@ -63,6 +63,7 @@ export function PanelDetalleEquipo({
 }) {
   const { t } = useTranslation()
   const ahora = useMinuto()
+  const nombre = equipo?.nombre?.trim() || equipo?.id
   const tramos = useMemo(() => (equipo ? tramosDisponibilidad(equipo, ahora) : []), [equipo, ahora])
 
   return (
@@ -70,8 +71,8 @@ export function PanelDetalleEquipo({
       {equipo && (
         <SidePanelContent onCloseAutoFocus={onCloseAutoFocus}>
           <SidePanelHeader>
-            <SidePanelTitle>
-              {equipo.nombre || equipo.id} {equipo.nombre && <span className="codigo text-meta font-normal text-faint">{equipo.id}</span>}
+            <SidePanelTitle className="[overflow-wrap:anywhere]">
+              {nombre} {nombre !== equipo.id && <span className="codigo block text-meta font-normal text-muted">{equipo.id}</span>}
             </SidePanelTitle>
             <SidePanelDescription>{t('dashboard.detalleEquipoDescripcion')}</SidePanelDescription>
           </SidePanelHeader>
@@ -95,7 +96,7 @@ export function PanelDetalleEquipo({
                 <ArrowRight aria-hidden className="size-4" />
               </Link>
             )}
-            <Button variant="primary" size="sm" onClick={() => onMostrar(equipo.id)}>
+            <Button variant="primary" size="sm" className="h-auto min-h-10 whitespace-normal [overflow-wrap:anywhere]" onClick={() => onMostrar(equipo.id)}>
               {t('dashboard.mostrarEnMonitoreo', { equipo: equipo.nombre || equipo.id })}
             </Button>
           </SidePanelFooter>
@@ -149,9 +150,7 @@ function DetalleEquipo({
             {t('dashboard.alertaSilencio', { fecha: fechaHora(silencio.detectado_en), segundos: silencio.umbral_silencio_segundos })}
           </p>
         )}
-        {equipo.estado_operativo === 'SIN_DATOS' && (
-          <p>{equipo.ultimo_reporte_en ? t('dashboard.ultimoDatoOperativo', { fecha: fechaHora(equipo.ultimo_reporte_en) }) : t('dashboard.nuncaReporto')}</p>
-        )}
+        {equipo.estado_operativo === 'SIN_DATOS' && !equipo.ultimo_reporte_en && <p>{t('dashboard.nuncaReporto')}</p>}
         {equipo.estado_operativo === 'MONITOREO_SUSPENDIDO' && <p>{t('dispositivos.telemetriaRetenidaAyuda')}</p>}
       </Seccion>
 
