@@ -164,7 +164,7 @@ export function PildoraEstado({ className }: { className?: string }) {
                   <span key={clave} className={cn('absolute inset-0 rounded-full animate-(--animate-anillo)', FONDO_ESTADO[tono])} />
                 )}
               </span>
-              <span aria-hidden className="truncate text-meta font-semibold">
+              <span aria-hidden className="min-w-0 text-left text-meta leading-tight font-semibold [overflow-wrap:anywhere] sm:whitespace-nowrap">
                 {etiqueta}
               </span>
               <ChevronDown aria-hidden className="size-3.5 shrink-0 text-faint" />

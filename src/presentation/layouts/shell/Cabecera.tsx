@@ -20,9 +20,9 @@ export function Cabecera({ conRiel, preferenciasEnMenu }: { conRiel: boolean; pr
       >
         <MenuIcono className="size-5" aria-hidden />
       </DialogPrimitive.Trigger>
-      <ColdCareBrand className="shrink-0 max-[359px]:hidden lg:hidden [&_svg]:size-8 [&>div]:hidden sm:[&>div]:block" />
+      <ColdCareBrand className="shrink-0 max-sm:hidden lg:hidden [&_svg]:size-8 [&>div]:hidden sm:[&>div]:block" />
 
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:justify-end lg:justify-start">
+      <div className="flex min-w-0 flex-1 items-center justify-start gap-2 sm:justify-end lg:justify-start">
         <PildoraEstado />
       </div>
 

@@ -164,6 +164,9 @@ test('navegación móvil abre menú y permite llegar a alertas', async ({ page }
     await expect(botones).toHaveCount(4)
     for (const opcion of opciones) await expect(filtros.getByRole('button', { name: opcion, exact: true })).toBeVisible()
 
+    const aviso = page.locator('[data-pildora-estado]').getByText('Requiere atención', { exact: true })
+    await expect(aviso).toBeVisible()
+    expect(await aviso.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight + 1), `estado legible a ${width} px`).toBe(true)
     const medidas = await filtros.evaluate((grupo) => {
       const caja = grupo.getBoundingClientRect()
       const botones = [...grupo.querySelectorAll('button')].map((boton) => {
