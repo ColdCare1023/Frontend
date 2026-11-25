@@ -352,9 +352,10 @@ function montarReportes(over: Record<string, unknown> = {}) {
 describe('Reportes BPA — RF-13 y manejo del error de descarga', () => {
   beforeEach(() => useReportesBPA.mockReset())
 
-  it('ofrece los tres formatos que exige RF-13 una vez generado', () => {
+  it('ofrece los tres formatos que exige RF-13 una vez generado', async () => {
     montarReportes({ reporte: REPORTE })
 
+    await userEvent.click(screen.getByRole('button', { name: 'Otros formatos' }))
     expect(screen.getByRole('button', { name: /pdf/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /csv/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /json/i })).toBeInTheDocument()
@@ -364,6 +365,7 @@ describe('Reportes BPA — RF-13 y manejo del error de descarga', () => {
     const usuario = userEvent.setup()
     const acciones = montarReportes({ reporte: REPORTE })
 
+    await usuario.click(screen.getByRole('button', { name: 'Otros formatos' }))
     await usuario.click(screen.getByRole('button', { name: /csv/i }))
     expect(acciones.descargarCsv).toHaveBeenCalledTimes(1)
 

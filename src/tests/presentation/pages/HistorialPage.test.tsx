@@ -206,12 +206,14 @@ describe('HistorialPage — HU-34/HU-35: riesgo efectivo y puerta MC-38 opcional
     expect(screen.getByRole('cell', { name: /excursión crítica/i })).toBeInTheDocument()
   })
 
-  it('marca la puerta con un icono distinto cuando no hay MC-38 instalado, no como cerrada', () => {
+  it('distingue un sensor ausente de una puerta cerrada al consultar el detalle', async () => {
     montar([lectura({ apertura_refrigerador: null })])
-
-    expect(screen.getByRole('img', { name: /no disponible/i })).toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: /^cerrada$/i })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /ver detalle de la lectura/i }))
+    const detalle = document.querySelector('tr[data-detalle]')!
+    expect(detalle).toHaveTextContent(/puerta.*no disponible/i)
+    expect(detalle).not.toHaveTextContent(/cerrada/i)
   })
+
 })
 
 describe('HistorialPage — rediseño P6 (registros)', () => {

@@ -41,29 +41,28 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     render(<AuditoriaPage />)
 
     expect(screen.getByText(/alerta reconocida|alert acknowledged/i)).toBeInTheDocument()
-    expect(screen.getByText('alertas/9f1')).toBeInTheDocument()
+    expect(screen.queryByText('alertas/9f1')).not.toBeInTheDocument()
   })
 
-  it('muestra la IP de origen: sin ella la entrada no sirve como evidencia', () => {
+  it('conserva la IP y el recurso como evidencia en el detalle del evento', async () => {
     useAuditoria.mockReturnValue({ registros: [registro()], cargando: false })
     render(<AuditoriaPage />)
-
-    expect(within(screen.getByRole('region', { name: /bitácora de auditoría/i })).getByText('190.12.4.7')).toBeInTheDocument()
+    const tabla = within(screen.getByRole('region', { name: /bitácora de auditoría/i }))
+    expect(tabla.queryByText('190.12.4.7')).not.toBeInTheDocument()
+    await userEvent.click(tabla.getByRole('button', { name: /ver detalle de/i }))
+    expect(tabla.getByText('190.12.4.7')).toBeInTheDocument()
+    expect(tabla.getByText('alertas/9f1')).toBeInTheDocument()
   })
 
-  it('el usuario corto se muestra entero y un UUID se abrevia a 8 caracteres', () => {
-    useAuditoria.mockReturnValue({
-      registros: [
-        registro({ id: 'a-1', usuario_id: 'u-02' }),
-        registro({ id: 'a-2', usuario_id: '3f2b9c1e-7d4a-4f6b-9a0e-1c2d3e4f5a6b' }),
-      ],
-      cargando: false,
-    })
+  it('conserva el identificador completo en el detalle cuando no se conoce el nombre', async () => {
+    const id = '3f2b9c1e-7d4a-4f6b-9a0e-1c2d3e4f5a6b'
+    useAuditoria.mockReturnValue({ registros: [registro({ usuario_id: id })], cargando: false })
     render(<AuditoriaPage />)
     const tabla = within(screen.getByRole('region', { name: /bitácora de auditoría/i }))
-    expect(tabla.getByText('u-02')).toBeInTheDocument()
-    expect(tabla.queryByText('u-02…')).not.toBeInTheDocument()
-    expect(tabla.getByText('3f2b9c1e…')).toBeInTheDocument()
+    expect(tabla.getByText('Usuario registrado')).toBeInTheDocument()
+    expect(tabla.queryByText(id)).not.toBeInTheDocument()
+    await userEvent.click(tabla.getByRole('button', { name: /ver detalle de/i }))
+    expect(tabla.getByText(id)).toBeInTheDocument()
   })
 
   it('declara explícitamente que no hay registros en vez de mostrar una tabla vacía', () => {

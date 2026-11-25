@@ -1,3 +1,4 @@
+import { useEtiquetasEquipo } from '../components/registros/useEtiquetasEquipo'
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +38,7 @@ const claveRegistro = (r: RegistroTrazabilidad) => r.id
 const humanizar = (clave: string) => clave.replaceAll('_', ' ').replace(/^\p{L}/u, (l) => l.toLocaleUpperCase())
 
 export function TrazabilidadPage() {
+  const nombresEquipo = useEtiquetasEquipo()
   const { t } = useTranslation()
   const {
     registros, cargando, errorCarga, consultar,
@@ -216,7 +218,7 @@ export function TrazabilidadPage() {
           <div className="relative">
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
             <Input id="f-equipo-traza" list={idEquipos} className="h-9 pl-9 pointer-coarse:h-11" value={equipo} onChange={(e) => setEquipo(e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} />
-            <datalist id={idEquipos}>{equiposVistos.map((d) => <option key={d} value={d} />)}</datalist>
+            <datalist id={idEquipos}>{equiposVistos.map((d) => <option key={d} value={d} label={nombresEquipo.get(d)} />)}</datalist>
           </div>
         </div>
         <div className="w-full sm:w-48">
@@ -227,25 +229,30 @@ export function TrazabilidadPage() {
           </NativeSelect>
         </div>
         <div className="flex flex-1 flex-wrap items-center gap-1">
-          <Button type="button" variant="ghost" size="sm" className="h-9 pointer-coarse:h-11" aria-expanded={mostrarSellos} onClick={() => setMostrarSellos((actual) => !actual)}>
-            <Fingerprint aria-hidden />
-            {mostrarSellos ? t('trazabilidad.ocultarSellos') : t('trazabilidad.mostrarSellos')}
-          </Button>
-          {MODO_DEMO && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9 pointer-coarse:h-11"
-              onClick={async () => {
-                await apiClient.post('/api/demo/trazabilidad/simular-inconsistencia')
-                await verificarIntegridad(cadenaElegida || undefined)
-              }}
-            >
-              <FlaskConical aria-hidden />
-              {t('trazabilidad.simularDemo')}
-            </Button>
-          )}
+          <details className="w-full sm:w-auto">
+            <summary className="w-fit cursor-pointer py-2 text-meta font-medium text-muted hover:text-foreground">{t('registros.herramientas')}</summary>
+            <div className="flex flex-wrap gap-1">
+              <Button type="button" variant="ghost" size="sm" className="h-9 pointer-coarse:h-11" aria-expanded={mostrarSellos} onClick={() => setMostrarSellos((actual) => !actual)}>
+                <Fingerprint aria-hidden />
+                {mostrarSellos ? t('trazabilidad.ocultarSellos') : t('trazabilidad.mostrarSellos')}
+              </Button>
+              {MODO_DEMO && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 pointer-coarse:h-11"
+                  onClick={async () => {
+                    await apiClient.post('/api/demo/trazabilidad/simular-inconsistencia')
+                    await verificarIntegridad(cadenaElegida || undefined)
+                  }}
+                >
+                  <FlaskConical aria-hidden />
+                  {t('trazabilidad.simularDemo')}
+                </Button>
+              )}
+            </div>
+          </details>
           <span aria-live="polite" className="nums ml-auto text-meta text-faint">
             {cargando ? t('comunes.consultando') : t('trazabilidad.filtro.resultados', { count: registros.length })}
           </span>
@@ -298,7 +305,7 @@ export function TrazabilidadPage() {
               <EncabezadoRegistro className="w-12 px-0 first:pl-0"><span className="sr-only">{t('trazabilidad.columnas.cadena')}</span></EncabezadoRegistro>
               <EncabezadoRegistro className="w-[124px] whitespace-nowrap">{t('trazabilidad.columnas.hora')}</EncabezadoRegistro>
               <EncabezadoRegistro>{t('trazabilidad.evento')}</EncabezadoRegistro>
-              <EncabezadoRegistro className="w-[136px]">{t('historial.dispositivo')}</EncabezadoRegistro>
+              <EncabezadoRegistro className="w-[25%]">{t('historial.dispositivo')}</EncabezadoRegistro>
               {mostrarSellos && <EncabezadoRegistro className="w-[220px]">{t('trazabilidad.sellos')}</EncabezadoRegistro>}
             </>
           }
@@ -328,10 +335,10 @@ export function TrazabilidadPage() {
                   </div>
                 </CeldaRegistro>
                 {/* Bajo 640 px hora, equipo y resumen comparten esta línea: hasta 2 líneas en vez de cortarse. */}
-                <CeldaRegistro area="b" className="codigo truncate text-body text-subtle max-sm:text-meta max-sm:text-muted">
+                <CeldaRegistro area="b" className="truncate text-body text-subtle max-sm:text-meta max-sm:text-muted">
                   <span className="max-sm:line-clamp-2 max-sm:whitespace-normal max-sm:[overflow-wrap:anywhere]">
                     <span className="nums sm:hidden">{hora(r.timestamp)} · </span>
-                    {r.device_id ?? '—'}
+                    {r.device_id ? nombresEquipo.get(r.device_id) ?? r.device_id : '—'}
                     {resumen && <span className="sm:hidden"> · {resumen}</span>}
                   </span>
                 </CeldaRegistro>
@@ -410,7 +417,7 @@ export function TrazabilidadPage() {
             <div>
               <Label htmlFor="seg-device">{t('historial.dispositivo')}</Label>
               <Input id="seg-device" list={`${idEquipos}-seg`} value={segmentoDeviceId} onChange={(e) => setSegmentoDeviceId(e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} required />
-              <datalist id={`${idEquipos}-seg`}>{equiposVistos.map((d) => <option key={d} value={d} />)}</datalist>
+              <datalist id={`${idEquipos}-seg`}>{equiposVistos.map((d) => <option key={d} value={d} label={nombresEquipo.get(d)} />)}</datalist>
             </div>
             <div>
               <Label htmlFor="seg-desde">{t('historial.desde')}</Label>

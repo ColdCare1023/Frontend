@@ -62,7 +62,6 @@ const VARIANTE_RESULTADO: Record<string, 'ok' | 'criticalTint' | 'warn'> = {
 
 const fechaDe = (r: RegistroAuditoria) => r.created_at
 /** Un UUID se abrevia a 8 caracteres; un id corto se muestra entero, sin «…». */
-const abreviarId = (id: string) => (id.length > 10 ? `${id.slice(0, 8)}…` : id)
 const claveRegistro = (r: RegistroAuditoria) => r.id
 const humanizar = (clave: string) => clave.replaceAll('_', ' ').replace(/^\p{L}/u, (l) => l.toLocaleUpperCase())
 
@@ -359,13 +358,7 @@ export function AuditoriaPage() {
                     <Icono aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
                     <div className="min-w-0">
                       <p className="truncate text-body text-foreground">{nombreAccion(r.accion, t)}</p>
-                      {/* Recurso e IP siguen visibles: sin ellos la entrada no sirve como evidencia. */}
-                      {/* Bajo 640 px la hora se suma a esta línea y la insignia le quita
-                          ancho: hasta 3 líneas para que el recurso y la IP no se corten. */}
-                      <p className="codigo text-meta text-faint [overflow-wrap:anywhere] max-sm:line-clamp-3 sm:truncate">
-                        <span className="nums sm:hidden">{hora(r.created_at)} · </span>
-                        <span>{r.recurso}</span> · <span>{r.ip_origen ?? '—'}</span>
-                      </p>
+                      <p className="nums text-meta text-muted sm:hidden">{hora(r.created_at)}</p>
                     </div>
                   </div>
                 </CeldaRegistro>
@@ -376,7 +369,7 @@ export function AuditoriaPage() {
                 </CeldaRegistro>
                 <CeldaRegistro area="oculta" className="truncate text-meta text-muted">
                   {r.usuario_id ? (
-                    nombreUsuario(r.usuario_id) ? <span title={r.usuario_id}>{nombreUsuario(r.usuario_id)}</span> : <span className="codigo">{abreviarId(r.usuario_id)}</span>
+                    nombreUsuario(r.usuario_id) ?? t('registros.usuarioRegistrado')
                   ) : (
                     <span className="text-faint">{t('auditoria.sinUsuario')}</span>
                   )}

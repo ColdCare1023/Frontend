@@ -157,15 +157,17 @@ function ContenidoResumen({
             {descargandoPdf ? t('reportes.generandoPdf') : t('reportes.descargarPdf')}
           </span>
         </Button>
-        <Button variant="secondary" size="sm" className="w-full max-sm:h-11 sm:w-auto" onClick={onCsv}>
-          <Download />
-          {t('reportes.descargarCsv')}
-        </Button>
-        <Button variant="secondary" size="sm" className="w-full max-sm:h-11 sm:w-auto" onClick={onJson}>
-          <Download />
-          {t('reportes.descargarJson')}
-        </Button>
-        <Detalles className="col-span-2 basis-full" titulo={t('reportes.formatosDisponibles')}>
+        <Detalles className="col-span-2 min-w-0" titulo={t('registros.otrosFormatos')}>
+          <div className="mb-2 flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" className="max-sm:h-11" onClick={onCsv}>
+              <Download />
+              {t('reportes.descargarCsv')}
+            </Button>
+            <Button variant="secondary" size="sm" className="max-sm:h-11" onClick={onJson}>
+              <Download />
+              {t('reportes.descargarJson')}
+            </Button>
+          </div>
           <p className="max-w-[72ch] text-meta text-muted">{t('reportes.notaFormatos')}</p>
           <p className="mt-2 max-w-[72ch] text-meta text-muted lg:hidden">{t('reportes.notaPdf')}</p>
         </Detalles>

@@ -71,10 +71,11 @@ describe('ReportesPage (RF-13, HU-38)', () => {
     expect(screen.queryByText(/reporte incompleto/i)).not.toBeInTheDocument()
   })
 
-  it('ofrece los tres formatos que exige RF-13 una vez generado', () => {
+  it('ofrece los tres formatos que exige RF-13 una vez generado', async () => {
     // Mantener disponibles los tres formatos de descarga del reporte.
     montar({ reporte: REPORTE })
 
+    await userEvent.click(screen.getByRole('button', { name: 'Otros formatos' }))
     expect(screen.getByRole('button', { name: /csv/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /json/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /pdf/i })).toBeInTheDocument()

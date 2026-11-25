@@ -53,22 +53,24 @@ export function EstadoClasificacionPreventiva({
         )}
         {clasificacion.datosSimulados && <Badge variant="outline">{t('metricasIA.preventivo.demostracion')}</Badge>}
       </div>
-      <p className="mt-2 max-w-prose text-body text-muted">
-        {situacion === 'operativa'
-          ? t('metricasIA.preventivo.detalleOperativa', { version: version ?? '—' })
-          : situacion === 'sombra'
-            ? t('metricasIA.preventivo.detalleSombra')
-            : t(`metricasIA.preventivo.motivos.${clasificacion.motivo ?? 'generico'}`)}
+      <p className="mt-2 max-w-prose text-body text-subtle">
+        {situacion === 'operativa' ? t('registros.alertasPreventivasActivas') : t('metricasIA.preventivo.reglaDecide')}
       </p>
-      {situacion !== 'operativa' && <p className="mt-1 max-w-prose text-meta text-muted">{t('metricasIA.preventivo.reglaDecide')}</p>}
-      {/* Un backend anterior no informa el registro de versiones: no se afirma «ninguna». */}
-      {clasificacion.esVersionActivaRegistrada !== null && (
-        <p className="nums mt-2 text-meta text-faint">
-          {t('metricasIA.preventivo.versionRegistro', {
-            version: clasificacion.versionActivaRegistrada ?? t('metricasIA.preventivo.ninguna'),
-          })}
+      <details className="mt-2 text-meta text-muted">
+        <summary className="w-fit cursor-pointer py-1 font-medium">{t('registros.detalleClasificacion')}</summary>
+        <p className="mt-1 max-w-prose">
+          {situacion === 'operativa'
+            ? t('metricasIA.preventivo.detalleOperativa', { version: version ?? '—' })
+            : situacion === 'sombra'
+              ? t('metricasIA.preventivo.detalleSombra')
+              : t(`metricasIA.preventivo.motivos.${clasificacion.motivo ?? 'generico'}`)}
         </p>
-      )}
+        {clasificacion.esVersionActivaRegistrada !== null && (
+          <p className="nums mt-1">
+            {t('metricasIA.preventivo.versionRegistro', { version: clasificacion.versionActivaRegistrada ?? t('metricasIA.preventivo.ninguna') })}
+          </p>
+        )}
+      </details>
     </section>
   )
 }

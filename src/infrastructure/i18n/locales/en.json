@@ -2825,5 +2825,13 @@
       "mqttDeshabilitado": "Off",
       "mqttDesconectado": "Offline"
     }
+  },
+  "registros": {
+    "herramientas": "Review tools",
+    "datosCadena": "Chain details",
+    "usuarioRegistrado": "Registered user",
+    "otrosFormatos": "Other formats",
+    "alertasPreventivasActivas": "The model can detect risk and open preventive alerts.",
+    "detalleClasificacion": "Model details"
   }
 }

@@ -58,6 +58,7 @@ test('HU-37: una lectura alterada en el periodo se rotula «Corrupta» con su ID
   await entrar(page, 'Químico Farmacéutico')
   await irA(page, '/trazabilidad')
   // La demo altera el registro más antiguo de la cadena: una lectura de FARM-01-CDL de hace ~7 días.
+  await page.locator('summary').filter({ hasText: 'Herramientas de revisión' }).click()
   await page.getByRole('button', { name: 'Simular inconsistencia (demo)' }).click()
   await expect(page.getByText('Alteración detectada')).toBeVisible()
   const dia = (f: Date) => `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`
@@ -81,7 +82,8 @@ test('HU-49: el auditor consulta el historial de configuración con actor y vige
   await irA(page, '/configuracion-equipos')
   await expect(page.getByRole('heading', { level: 1, name: 'Historial de configuración' })).toBeVisible()
   const lista = page.getByRole('list').filter({ hasText: 'Intervalo de reporte' })
-  await expect(lista).toContainText('Por Administrador Demo')
+  await lista.locator('summary').filter({ hasText: 'Intervalo de reporte' }).first().click()
+  await expect(lista.getByText('Por Administrador Demo', { exact: false }).filter({ visible: true }).first()).toBeVisible()
   await expect(lista).toContainText(/Vigente desde el .* \(actual\)/)
   await page.getByLabel('Categoría', { exact: true }).selectOption('calibracion')
   await expect(page.getByText('Categoría: Calibración')).toBeVisible()

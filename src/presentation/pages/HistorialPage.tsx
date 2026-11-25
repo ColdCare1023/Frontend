@@ -1,3 +1,4 @@
+import { useEtiquetasEquipo } from '../components/registros/useEtiquetasEquipo'
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -66,6 +67,7 @@ const fechaDe = (l: LecturaTermica) => l.timestamp
 const claveLectura = (l: LecturaTermica) => l.id ?? `${l.device_id}-${l.timestamp}`
 
 export function HistorialPage() {
+  const nombresEquipo = useEtiquetasEquipo()
   const { t } = useTranslation()
   const [inicio] = useState(filtrosDeUrl)
   // HU-47 / HU-18: la evidencia de la inferencia es solo de QF y auditor
@@ -259,7 +261,7 @@ export function HistorialPage() {
             <div className="relative min-w-0 flex-1">
               <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
               <Input id="f-device" list="historial-equipos" className="h-9 pl-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.device_id ?? ''} onChange={(e) => actualizarFiltro('device_id', e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} />
-              <datalist id="historial-equipos">{equiposVistos.map((equipo) => <option key={equipo} value={equipo} />)}</datalist>
+              <datalist id="historial-equipos">{equiposVistos.map((equipo) => <option key={equipo} value={equipo} label={nombresEquipo.get(equipo)} />)}</datalist>
             </div>
             <BotonMasFiltros
               abierto={masFiltros}
@@ -345,7 +347,7 @@ export function HistorialPage() {
     <div id="historial-datos-tabla">
       <TablaRegistros
         titulo={t('historial.titulo')}
-        columnas={4 + (variosEquipos ? 1 : 0)}
+        columnas={3 + (variosEquipos ? 1 : 0)}
         filas={lecturas}
         clave={claveLectura}
         fechaDe={fechaDe}
@@ -376,7 +378,6 @@ export function HistorialPage() {
             {variosEquipos && <EncabezadoRegistro className="w-[136px]">{t('historial.dispositivo')}</EncabezadoRegistro>}
             <EncabezadoRegistro className="w-[144px] text-right">{t('historial.tempInterna')}</EncabezadoRegistro>
             <EncabezadoRegistro className="w-[144px]">{t('historial.riesgo')}</EncabezadoRegistro>
-            <EncabezadoRegistro>{t('historial.puerta')}</EncabezadoRegistro>
           </>
         }
         renderCeldas={(lectura) => (
@@ -384,10 +385,10 @@ export function HistorialPage() {
             <CeldaRegistro area="a" className="nums text-body text-subtle sm:whitespace-nowrap">
               {/* HU-07: un arranque sin hora sincronizada se rotula «Sin hora». */}
               <HoraLectura lectura={lectura} formato="hora" />
-              {variosEquipos && <span className="codigo ml-2 whitespace-nowrap text-meta text-muted sm:hidden">{lectura.device_id}</span>}
+              {variosEquipos && <span className="ml-2 text-meta text-muted sm:hidden">{nombresEquipo.get(lectura.device_id) ?? lectura.device_id}</span>}
             </CeldaRegistro>
             {variosEquipos && (
-              <CeldaRegistro area="oculta" className="codigo whitespace-nowrap text-body text-subtle">{lectura.device_id}</CeldaRegistro>
+              <CeldaRegistro area="oculta" className="break-words text-body text-subtle">{nombresEquipo.get(lectura.device_id) ?? lectura.device_id}</CeldaRegistro>
             )}
             <CeldaRegistro area="c" className="text-right">
               <span className="whitespace-nowrap">
@@ -404,22 +405,9 @@ export function HistorialPage() {
                 </span>
               )}
               {lectura.apertura_refrigerador && (
-                <span className="ml-2 text-meta text-warning-700 sm:hidden">{t('dashboard.puertaAbierta')}</span>
-              )}
-            </CeldaRegistro>
-            <CeldaRegistro area="oculta" className="text-body">
-              {/* HU-35 criterio 4: sin sensor de puerta, null no es «cerrada». */}
-              {lectura.apertura_refrigerador === null ? (
-                <span role="img" className="text-faint" title={t('dashboard.puertaSinSensor')} aria-label={t('dashboard.puertaSinSensor')}>—</span>
-              ) : lectura.apertura_refrigerador ? (
-                <span className="inline-flex items-center gap-1.5 font-medium text-warning-700">
-                  <DoorOpen aria-hidden className="size-4 shrink-0" />
+                <span className="mt-1 flex items-center gap-1 text-meta text-warning-700">
+                  <DoorOpen aria-hidden className="size-3.5 shrink-0" />
                   {lectura.duracion_apertura_segundos ? t('historial.detalle.puertaAbiertaDuracion', { duracion: duracionBreve(lectura.duracion_apertura_segundos) }) : t('dashboard.puertaAbierta')}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 text-muted">
-                  <DoorClosed aria-hidden className="size-4 shrink-0" />
-                  {t('dashboard.puertaCerrada')}
                 </span>
               )}
             </CeldaRegistro>
@@ -541,6 +529,7 @@ function DetalleLectura({
   return (
     <>
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 xl:grid-cols-4">
+        <Dato etiqueta={t('historial.dispositivo')} className="codigo">{lectura.device_id}</Dato>
         <Dato etiqueta={t('historial.tempAmbiental')} icono={ThermometerSun} className="nums">{cifra(lectura.temperatura_ambiental)} °C</Dato>
         <Dato etiqueta={t('historial.humedad')} icono={Droplets} className="nums">{cifra(lectura.humedad_ambiental, DECIMALES_HUMEDAD)} %</Dato>
         <Dato etiqueta={t('historial.puerta')} icono={lectura.apertura_refrigerador ? DoorOpen : DoorClosed}>

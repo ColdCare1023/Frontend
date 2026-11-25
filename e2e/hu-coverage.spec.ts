@@ -23,6 +23,7 @@ test('HU-50 registra bloqueos, resultado y exporta la bitácora filtrada', async
 test('HU-26 presenta inconsistencia simulada con detalle verificable', async ({ page }) => {
   await entrarComoAdmin(page)
   await irA(page, '/trazabilidad')
+  await page.locator('summary').filter({ hasText: 'Herramientas de revisión' }).click()
   await page.getByRole('button', { name: 'Simular inconsistencia (demo)' }).click()
   await expect(page.getByText('Alteración detectada')).toBeVisible()
   await expect(page.getByTestId('detalle-inconsistencia')).toContainText('Sello recalculado')

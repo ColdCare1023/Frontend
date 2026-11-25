@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import type { HistorialConfiguracion } from '@/domain/entities/Dispositivo'
@@ -34,7 +35,7 @@ export function LineaTiempoCambios({
     return <p className="text-meta text-muted">{vacio ?? t('dispositivos.sinHistorial')}</p>
   }
   return (
-    <ol className={cn('space-y-3 border-l border-border pl-4', className)}>
+    <ol className={cn(resumir ? 'divide-y divide-border' : 'space-y-3 border-l border-border pl-4', className)}>
       {visibles.map((c) => {
         const campo = campoBase(c)
         const actor = c.actor_nombre ?? c.actor_id
@@ -46,31 +47,35 @@ export function LineaTiempoCambios({
               : t('dispositivos.cambio.vigenteDesde', { desde: fechaHora(vigenteDesde) })}
           </p>
         )
+        const Contenedor = resumir ? 'details' : 'div'
+        const Encabezado = resumir ? 'summary' : 'div'
         return (
           <li key={c.id} className="min-w-0" data-campo={campo}>
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-              <p className="text-body font-medium text-foreground">
-                {t(`dispositivos.campos.${campo}`, { defaultValue: campo })}{' '}
-                {!resumir && <span className="codigo text-micro font-normal text-faint">{c.campo}</span>}
-              </p>
-              <span className="nums text-meta text-faint">{fechaHora(c.created_at)}</span>
-            </div>
-            <p className="mt-0.5 break-words text-meta">
-              <span className="text-faint line-through">{c.valor_anterior ?? '—'}</span>
-              {' → '}
-              <span className="font-medium text-foreground">{c.valor_nuevo ?? '—'}</span>
-            </p>
-            <p className="mt-0.5 text-meta text-muted">
-              {actor ? t('dispositivos.cambio.actor', { actor }) : t('dispositivos.cambio.sinActor')}
-              {!resumir && c.origen && <> · {t('dispositivos.cambio.origen', { origen: c.origen })}</>}
-            </p>
-            {resumir ? (
-              <details className="mt-1 text-meta text-muted">
-                <summary className="w-fit cursor-pointer py-1 font-medium">{t('lectura.vigenciaOrigen')}</summary>
-                <p className="break-words"><span className="codigo">{c.campo}</span>{c.origen && <> · {t('dispositivos.cambio.origen', { origen: c.origen })}</>}</p>
+            <Contenedor className="group/cambio">
+              <Encabezado className={cn('grid grid-cols-[1fr_auto] items-baseline gap-x-3', resumir && 'min-h-11 cursor-pointer list-none rounded-sm py-1 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden')}>
+                <span className="min-w-0 text-body font-medium text-foreground">
+                  {t(`dispositivos.campos.${campo}`, { defaultValue: campo })}
+                  {!resumir && <span className="codigo ml-1 text-micro font-normal text-faint">{c.campo}</span>}
+                </span>
+                <span className="nums inline-flex items-center gap-2 text-meta text-muted">
+                  {fechaHora(c.created_at)}
+                  {resumir && <ChevronDown aria-hidden className="size-4 shrink-0 group-open/cambio:rotate-180" />}
+                </span>
+                <span className="col-span-full break-words text-meta">
+                  <span className="text-muted line-through">{c.valor_anterior ?? '—'}</span>
+                  {' → '}
+                  <span className="font-medium text-foreground">{c.valor_nuevo ?? '—'}</span>
+                </span>
+              </Encabezado>
+              <div className={cn('text-meta text-muted', resumir && 'mt-1 space-y-1 border-l border-border pl-3')}>
+                <p>
+                  {actor ? t('dispositivos.cambio.actor', { actor }) : t('dispositivos.cambio.sinActor')}
+                  {c.origen && <> · {t('dispositivos.cambio.origen', { origen: c.origen })}</>}
+                </p>
+                {resumir && <p className="codigo break-words">{c.campo}</p>}
                 {vigencia}
-              </details>
-            ) : vigencia}
+              </div>
+            </Contenedor>
           </li>
         )
       })}

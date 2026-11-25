@@ -55,6 +55,7 @@ test('registros a 375 y 768 px: filas compactas sin desborde horizontal', async 
 test('registros respetan roles: el técnico no ve Aislar ni entra a Auditoría', async ({ page }) => {
   await entrar(page, 'Técnico de Farmacia')
   await irA(page, '/trazabilidad')
+  await page.locator('summary').filter({ hasText: 'Herramientas de revisión' }).click()
   await page.getByRole('button', { name: 'Simular inconsistencia (demo)' }).click()
   await expect(page.getByText('Alteración detectada')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Aislar registro corrupto' })).toHaveCount(0)

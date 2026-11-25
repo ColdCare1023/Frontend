@@ -1,3 +1,4 @@
+import { useEtiquetasEquipo } from '../components/registros/useEtiquetasEquipo'
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -31,6 +32,7 @@ function equipoDeUrl(): string {
  * la vigencia de cada cambio. Esc. 3 y 4 se declaran en el rail.
  */
 export function ConfiguracionEquiposPage() {
+  const nombresEquipo = useEtiquetasEquipo()
   const { t } = useTranslation()
   const { equipos, cambios, cargando, error, consultar } = useHistorialConfiguracion()
   const [equipo, setEquipo] = useState(equipoDeUrl)
@@ -100,7 +102,7 @@ export function ConfiguracionEquiposPage() {
           <Label htmlFor="cfg-equipo" className="text-meta text-muted">{t('configuracionEquipos.filtro.equipo')}</Label>
           <NativeSelect id="cfg-equipo" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={equipo} onChange={(e) => consultarCon(e.target.value, filtros)}>
             {!equipo && <option value="">{t('configuracionEquipos.filtro.elegirEquipo')}</option>}
-            {opcionesEquipo.map((id) => <option key={id} value={id}>{id}</option>)}
+            {opcionesEquipo.map((id) => <option key={id} value={id}>{nombresEquipo.get(id) ?? id}</option>)}
           </NativeSelect>
         </div>
         <div className="min-w-0">

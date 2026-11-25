@@ -79,6 +79,7 @@ describe('TrazabilidadPage (RF-14, RF-15, HU-26, HU-47)', () => {
 
   it('oculta sellos en vista básica y permite expandir detalles técnicos', async () => {
     montar()
+    await userEvent.click(screen.getByText('Herramientas de revisión'))
     const boton = screen.getByRole('button', { name: /mostrar detalles técnicos/i })
     expect(boton).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('columnheader', { name: /sellos/i })).not.toBeInTheDocument()
