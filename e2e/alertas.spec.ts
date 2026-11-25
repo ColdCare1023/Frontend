@@ -146,7 +146,11 @@ test('teclado: Tab recorre Reconocer, Registrar acción y Cronología; Esc cierr
   await page.keyboard.press('Tab')
   await expect(fila(page).getByRole('button', { name: /ver cronología de atención/i })).toBeFocused()
 
+  const ayudaCronologia = page.getByRole('tooltip', { includeHidden: true }).filter({ hasText: 'Ver cronología de atención' })
+  await expect(ayudaCronologia).toBeAttached()
   await registrar.focus()
+  // Una ayuda en retirada aún instalada puede consumir Escape en captura.
+  expect(await ayudaCronologia.count()).toBe(0)
   await page.keyboard.press('Enter')
   const panel = page.getByRole('dialog')
   await expect(panel.getByRole('textbox', { name: 'Decisión adoptada' })).toBeFocused()
