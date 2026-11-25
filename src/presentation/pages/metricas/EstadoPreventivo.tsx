@@ -37,9 +37,9 @@ export function EstadoClasificacionPreventiva({
       aria-labelledby="estado-preventivo-titulo"
       data-testid="estado-preventivo"
       data-situacion={situacion}
-      className={cn('superficie p-4 xl:p-5', className)}
+      className={cn('py-4 sm:py-5', className)}
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-l-2 border-border-strong pl-3">
         <h2 id="estado-preventivo-titulo" className="flex items-center gap-2 text-title text-foreground">
           <Icono aria-hidden className={cn('size-4', situacion === 'operativa' ? 'text-success-700' : 'text-muted')} />
           {t('metricasIA.preventivo.titulo')}

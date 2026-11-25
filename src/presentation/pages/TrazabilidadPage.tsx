@@ -37,7 +37,7 @@ const fechaDe = (r: RegistroTrazabilidad) => r.timestamp
 const claveRegistro = (r: RegistroTrazabilidad) => r.id
 const humanizar = (clave: string) => clave.replaceAll('_', ' ').replace(/^\p{L}/u, (l) => l.toLocaleUpperCase())
 
-export function TrazabilidadPage() {
+export function TrazabilidadPage({ integrada = false }: { integrada?: boolean } = {}) {
   const nombresEquipo = useEtiquetasEquipo()
   const { t } = useTranslation()
   const {
@@ -58,7 +58,7 @@ export function TrazabilidadPage() {
     setCadenaElegida(cadenaPedida)
   }
   const [pagina, setPagina] = useState(1)
-  const tamanoPagina = useResponsivePageSize()
+  const tamanoPagina = useResponsivePageSize(8)
   // HU-37: verificación acotada a un dispositivo y periodo.
   const [segmentoDeviceId, setSegmentoDeviceId] = useState('')
   const [segmentoDesde, setSegmentoDesde] = useState('')
@@ -387,8 +387,9 @@ export function TrazabilidadPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader titulo={t('trazabilidad.titulo')} descripcion={t('trazabilidad.descripcion')} meta={meta} />
+      {!integrada && <PageHeader titulo={t('trazabilidad.titulo')} descripcion={t('trazabilidad.descripcion')} meta={meta} />}
 
+      <div className="superficie overflow-clip">
       <VeredictoCadena
         verificacion={verificacion}
         estadoCadena={estadoCadena}
@@ -410,7 +411,7 @@ export function TrazabilidadPage() {
           )}
         </p>
       )}
-      <aside aria-label={t('trazabilidad.rail')} className="grid items-start gap-2 lg:grid-cols-2">
+      <aside aria-label={t('trazabilidad.rail')} className="grid items-start gap-x-4 border-t border-border px-3 sm:px-4 lg:grid-cols-2">
         {/* ── HU-37: verificación acotada a un dispositivo y periodo ── */}
         <SeccionDetalle titulo={t('trazabilidad.verificarSegmento')}>
           <form aria-label={t('trazabilidad.verificarSegmento')} className="grid gap-3" onSubmit={(e) => { e.preventDefault(); verificarSegmento() }}>
@@ -505,6 +506,7 @@ export function TrazabilidadPage() {
           </SeccionDetalle>
         )}
       </aside>
+      </div>
       <div className="superficie overflow-clip">
         {barra}
         {tabla}

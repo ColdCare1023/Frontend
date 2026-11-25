@@ -66,17 +66,17 @@ const cifra = (valor: number | null | undefined, decimales = 1) => (valor == nul
 const fechaDe = (l: LecturaTermica) => l.timestamp
 const claveLectura = (l: LecturaTermica) => l.id ?? `${l.device_id}-${l.timestamp}`
 
-export function HistorialPage() {
+export function HistorialPage({ integrada = false, equipoId }: { integrada?: boolean; equipoId?: string | null } = {}) {
   const nombresEquipo = useEtiquetasEquipo()
   const { t } = useTranslation()
-  const [inicio] = useState(filtrosDeUrl)
+  const [inicio] = useState<FiltrosHistorial>(() => integrada ? (equipoId ? { device_id: equipoId } : {}) : filtrosDeUrl())
   // HU-47 / HU-18: la evidencia de la inferencia es solo de QF y auditor
   // (require_roles(FARMACEUTICO, AUDITOR)); al técnico no se le ofrece un 403.
   const rol = useAuthStore((s) => s.usuario?.rol)
   const puedeVerEvidencia = rol !== undefined && tienePermiso(rol, ['farmaceutico', 'auditor'])
   // HU-30 esc. 3: equipos con la calibración vencida y desde cuándo.
   const { equipos: equiposCalibracion } = useCalibracionEquipos()
-  const tamanoPagina = useResponsivePageSize()
+  const tamanoPagina = useResponsivePageSize(8)
   const {
     lecturas, total, pagina, irAPagina, cargando, errorCarga, consultar,
     series, cargandoSerie, errorSerie, periodo, equiposConocidos,
@@ -430,11 +430,11 @@ export function HistorialPage() {
   const conDatos = resumen.n > 0
 
   return (
-    <div className="space-y-4">
-      <PageHeader titulo={t('historial.titulo')} descripcion={t('historial.descripcion')} meta={meta} />
+    <div className="min-w-0 space-y-3">
+      {!integrada && <PageHeader titulo={t('historial.titulo')} descripcion={t('historial.descripcion')} meta={meta} />}
 
       {conDatos && (
-        <section aria-label={t('historial.resumen.etiqueta')} className="text-body text-subtle">{guia}</section>
+        <section aria-label={t('historial.resumen.etiqueta')} className="border-l-2 border-border-strong pl-3 text-body font-medium text-subtle">{guia}</section>
       )}
       {conDatos && calibracionVencida.size > 0 && (
         <div role="note" aria-label={t('historial.calibracionVencidaTitulo')} className="flex items-start gap-2 rounded-(--radius-field) bg-warning-100 px-3 py-2 text-meta text-warning-700">
@@ -459,8 +459,11 @@ export function HistorialPage() {
         </p>
       )}
 
+      <div className="superficie overflow-clip">
+        {barra}
+        {tabla}
       {conDatos ? (
-        <div className="grid gap-2 sm:grid-cols-2 sm:[&>details[open]]:col-span-2">
+        <div className="grid gap-x-4 px-3 sm:grid-cols-2 sm:px-4 sm:[&>details[open]]:col-span-2">
           <SeccionDetalle titulo={t('historial.curva.titulo')}>
             <p className="nums text-meta text-faint">
               {`${intervaloSerie ? t('historial.curva.agregada', { intervalo: duracionLegible(intervaloSerie) }) + ' · ' : ''}${t('dashboard.rangoConservacion')}`}
@@ -494,9 +497,6 @@ export function HistorialPage() {
         </p>
       ) : null}
 
-      <div className="superficie overflow-clip">
-        {barra}
-        {tabla}
       </div>
 
       <PanelEvidencia

@@ -38,14 +38,15 @@ function PreguntasFrecuentes() {
  * La guía expone un paso a la vez. El paso vive en `?paso=` para poder
  * compartirlo; los anclajes antiguos (`#guia-alerta-titulo`) se traducen.
  */
-export function GuiaPage() {
+export function GuiaPage({ integrada = false }: { integrada?: boolean } = {}) {
   const { t } = useTranslation()
   const selectorMovil = useCoincideMedia('(max-width: 639px)')
   const rol = useAuthStore((s) => s.usuario?.rol)
   const [params, setParams] = useSearchParams()
   const { hash } = useLocation()
-  const ancla = hash.replace(/^#/, '')
-  const paso: PasoId = esPaso(params.get('paso')) ? (params.get('paso') as PasoId) : (ANCLAS_ANTIGUAS[ancla] ?? 'inicio')
+  const ancla = integrada ? '' : hash.replace(/^#/, '')
+  const [pasoLocal, setPasoLocal] = useState<PasoId>('inicio')
+  const paso: PasoId = integrada ? pasoLocal : esPaso(params.get('paso')) ? (params.get('paso') as PasoId) : (ANCLAS_ANTIGUAS[ancla] ?? 'inicio')
   const [animar, setAnimar] = useState<{ dir: 1 | -1 } | null>(null)
   const enfocarTitulo = useRef(false)
 
@@ -54,7 +55,8 @@ export function GuiaPage() {
     const dir = PASOS.indexOf(id) > PASOS.indexOf(paso) ? 1 : -1
     setAnimar(origen === 'teclado' ? null : { dir })
     enfocarTitulo.current = origen === 'boton'
-    setParams({ paso: id }, { replace: true })
+    if (integrada) setPasoLocal(id)
+    else setParams({ paso: id }, { replace: true })
   }
 
   // «Anterior/Siguiente» llevan el foco al título del paso nuevo.
@@ -78,13 +80,13 @@ export function GuiaPage() {
 
   return (
     <div>
-      <PageHeader
+      {!integrada && <PageHeader
         titulo={t('guia.titulo')}
         meta={rol ? t('guia.metaRol', { rol: t(`roles.${rol}`) }) : undefined}
-      />
-      <div className="mx-auto max-w-4xl space-y-3 xl:space-y-4">
+      />}
+      <div className="superficie mx-auto max-w-4xl divide-y divide-border">
         <div className="min-w-0">
-          <nav aria-label={t('guia.navegacion')} className="superficie p-3 sm:px-5">
+          <nav aria-label={t('guia.navegacion')} className="p-3 sm:px-5">
             <label className="block sm:hidden">
               <span className="mb-1 block text-meta text-muted">{t('guia.navegacion')}</span>
               <NativeSelect aria-controls={`guia-panel-${paso}`} value={paso} onChange={(e) => cambiar(e.target.value, 'puntero')}>
@@ -113,7 +115,7 @@ export function GuiaPage() {
                 id={`guia-panel-${id}`}
                 aria-labelledby={selectorMovil ? `guia-titulo-${id}` : `guia-tab-${id}`}
                 hidden={!activo}
-                className={cn('superficie p-4 sm:p-5 xl:p-6', activo && animar && 'panel-eje-x')}
+                className={cn('p-4 sm:p-5 xl:p-6', activo && animar && 'panel-eje-x')}
                 style={activo && animar ? ({ '--dir': animar.dir } as React.CSSProperties) : undefined}
               >
                 <h2 id={`guia-titulo-${id}`} tabIndex={-1} className="mt-1 text-title text-foreground outline-none scroll-mt-24">
@@ -157,10 +159,10 @@ export function GuiaPage() {
             )
           })}
         </div>
-        <SeccionDetalle titulo={t('guia.preguntasTitulo')} open={ancla === 'guia-preguntas-titulo' || undefined}>
+        <SeccionDetalle className="mx-3 sm:mx-5" titulo={t('guia.preguntasTitulo')} open={ancla === 'guia-preguntas-titulo' || undefined}>
           <PreguntasFrecuentes />
         </SeccionDetalle>
-        <SeccionDetalle titulo={t('lectura.alcance')}>
+        <SeccionDetalle className="mx-3 sm:mx-5" titulo={t('lectura.alcance')}>
           <p className="flex items-start gap-2 text-meta text-muted">
             <ShieldCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />
             {t('guia.nota')}

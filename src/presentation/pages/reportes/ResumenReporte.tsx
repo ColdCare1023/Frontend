@@ -21,7 +21,7 @@ const MAX_EQUIPOS = 5
 function EsqueletoResumen({ className }: { className?: string }) {
   const { t } = useTranslation()
   return (
-    <section aria-busy className={cn('superficie esqueleto-diferido flex flex-col', className)}>
+    <section aria-busy className={cn('esqueleto-diferido flex flex-col', className)}>
       <span className="sr-only" role="status">{t('app.cargando')}</span>
       <div aria-hidden className="border-b border-border px-4 py-3 xl:px-5"><Esqueleto className="h-5 w-44" /></div>
       <div aria-hidden className="space-y-4 p-4 xl:p-5">
@@ -104,7 +104,7 @@ function ContenidoResumen({
     <section
       id="reportes-resumen"
       aria-labelledby="reportes-resumen-titulo"
-      className={cn('superficie flex min-w-0 flex-col animate-(--animate-swap)', className)}
+      className={cn('flex min-w-0 flex-col animate-(--animate-swap)', className)}
     >
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border px-4 py-3 xl:px-5">
         <h2 id="reportes-resumen-titulo" className="text-title text-foreground">{t('reportes.resumen')}</h2>
@@ -137,10 +137,10 @@ function ContenidoResumen({
         </div>
       )}
 
-      <div className="space-y-4 p-4 xl:space-y-5 xl:p-5">
-        <dl className="grid grid-cols-3 divide-x divide-border rounded-(--radius-field) border border-border">
+      <div className="space-y-3 px-3 py-3 sm:px-4">
+        <dl className="grid grid-cols-3 divide-x divide-border">
           {cifras.map(([clave, cantidad]) => (
-            <div key={clave} className="flex min-w-0 flex-col justify-between gap-1 px-3 py-2.5 sm:px-4">
+            <div key={clave} className="flex min-w-0 flex-col justify-between gap-1 px-3 first:pl-0 sm:px-4">
               <dt className="text-meta text-muted">{t(clave)}</dt>
               <dd className="nums text-title text-foreground">
                 <ContadorAnimado valor={cantidad} clave={generacion} formato={(n) => Math.round(n).toLocaleString('es-PE')} />

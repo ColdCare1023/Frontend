@@ -43,7 +43,7 @@ export function FormularioPeriodo(
   const esMovil = useCoincideMedia('(max-width: 39.99rem)')
 
   return (
-    <section aria-labelledby="reportes-rango-titulo" className={cn('superficie p-4 xl:p-5', className)}>
+    <section aria-labelledby="reportes-rango-titulo" className={cn('px-3 py-3 sm:px-4', className)}>
       <div className="flex items-center justify-between gap-3">
         <h2 id="reportes-rango-titulo" className="text-title text-foreground">{t('reportes.rango')}</h2>
         {plegable && (
@@ -70,7 +70,7 @@ export function FormularioPeriodo(
           <form
             id="reportes-form"
             aria-labelledby="reportes-rango-titulo"
-            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-[1fr_1fr_1.2fr_auto] md:items-end lg:grid-cols-2"
+            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto] md:items-end"
             onSubmit={(e) => {
               e.preventDefault()
               if (rangoInvalido) return
@@ -86,7 +86,7 @@ export function FormularioPeriodo(
                 onDesde(p.desde)
                 onHasta(p.hasta)
               }}
-              className="col-span-2 flex w-full md:col-span-4 lg:col-span-2"
+              className="col-span-2 flex w-full md:col-span-4 md:w-fit"
               botonClassName="flex-1"
             />
             <div className="min-w-0">
@@ -97,7 +97,7 @@ export function FormularioPeriodo(
               <Label htmlFor="r-hasta">{t('reportes.hasta')}</Label>
               <SelectorFecha id="r-hasta" valor={hasta} onCambiar={onHasta} invalido={!hasta || errorPeriodo} aria-describedby="reportes-periodo" />
             </div>
-            <div className="col-span-2 min-w-0 md:col-span-1 lg:col-span-2">
+            <div className="col-span-2 min-w-0 md:col-span-1">
               <Label htmlFor="r-device">{t('reportes.dispositivo')}</Label>
               <Input
                 id="r-device"
@@ -110,7 +110,7 @@ export function FormularioPeriodo(
             </div>
             <Button
               type="submit"
-              className="col-span-2 w-full max-sm:h-11 md:col-span-1 md:w-auto lg:col-span-2 lg:w-full"
+              className="col-span-2 w-full max-sm:h-11 md:col-span-1 md:w-auto"
               disabled={generando || rangoInvalido}
             >
               <FileText />

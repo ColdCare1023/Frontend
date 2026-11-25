@@ -2,7 +2,7 @@ import { useEtiquetasEquipo } from '../components/registros/useEtiquetasEquipo'
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { History, Info, Lock, ShieldCheck } from 'lucide-react'
+import { Info, Lock, ShieldCheck } from 'lucide-react'
 
 import { useHistorialConfiguracion, type FiltrosHistorialConfiguracion } from '@/application/hooks/useHistorialConfiguracion'
 import { CATEGORIAS_HISTORIAL, type CategoriaHistorial } from '@/domain/entities/Dispositivo'
@@ -170,20 +170,13 @@ export function ConfiguracionEquiposPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader titulo={t('configuracionEquipos.titulo')} descripcion={t('configuracionEquipos.descripcion')} />
-
-      <section aria-labelledby="cfg-historial-titulo" className="superficie overflow-clip">
-        <h2 id="cfg-historial-titulo" className="flex items-center gap-2 px-3 pt-3 text-title text-foreground sm:px-4">
-          <History aria-hidden className="size-4 text-muted" />
-          {t('configuracionEquipos.cambiosRegistrados')}
-          <span aria-live="polite" className="nums ml-auto text-meta text-faint">
-            {cargando ? t('comunes.consultando') : aplicados ? t('configuracionEquipos.resultados', { count: cambios.length }) : ''}
-          </span>
-        </h2>
+      <PageHeader titulo={t('configuracionEquipos.titulo')} descripcion={t('configuracionEquipos.descripcion')}
+        meta={<span aria-live="polite">{cargando ? t('comunes.consultando') : aplicados ? t('configuracionEquipos.resultados', { count: cambios.length }) : ''}</span>}
+      />
+      <section aria-label={t('configuracionEquipos.cambiosRegistrados')} className="superficie overflow-clip">
         {barra}
         {contenido}
-      </section>
-      <aside aria-label={t('configuracionEquipos.rail.etiqueta')}>
+      <aside className="border-t border-border px-3 sm:px-4" aria-label={t('configuracionEquipos.rail.etiqueta')}>
         <SeccionDetalle titulo={t('lectura.registro')}>
           {aplicados && !error && cambios.length > 0 && (
             <TiraEstado
@@ -215,6 +208,7 @@ export function ConfiguracionEquiposPage() {
           </TarjetaRail>
         </SeccionDetalle>
       </aside>
+      </section>
     </div>
   )
 }

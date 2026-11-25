@@ -72,7 +72,7 @@ export function AuditoriaPage() {
   const nombres = useNombresUsuarios(rol === 'administrador')
   const [resultadoExportacion, setResultadoExportacion] = useState<ResultadoExportacion | null>(null)
   const [pagina, setPagina] = useState(1)
-  const tamanoPagina = useResponsivePageSize()
+  const tamanoPagina = useResponsivePageSize(8)
   const [filtros, setFiltros] = useState<FiltrosAuditoria>(FILTROS_INICIALES)
   const [aplicados, setAplicados] = useState<FiltrosAuditoria>(FILTROS_INICIALES)
   const [diaHistograma, setDiaHistograma] = useState<string | null>(null)
@@ -456,10 +456,13 @@ export function AuditoriaPage() {
         </p>
       )}
 
-      {registros.length > 0 && <p className="text-body text-subtle">{guia}</p>}
+      {registros.length > 0 && <p className="border-l-2 border-border-strong pl-3 text-body font-medium text-subtle">{guia}</p>}
 
+      <div className="superficie overflow-clip">
+        {barra}
+        {tabla}
       {(registros.length > 0 || baseHistograma.length > 0) && (
-        <SeccionDetalle titulo={t('lectura.analizarActividad')}>
+        <SeccionDetalle titulo={t('lectura.analizarActividad')} className="mx-3 sm:mx-4">
           {registros.length > 0 && <TiraEstado
             etiqueta={t('auditoria.resumen')}
             segmentos={[
@@ -534,11 +537,7 @@ export function AuditoriaPage() {
           )}
         </SeccionDetalle>
       )}
-      <div className="superficie overflow-clip">
-        {barra}
-        {tabla}
-
-        <div className="border-t border-border px-3 py-2.5 sm:px-4">{alcance}</div>
+        <div className="border-t border-border px-3 py-2 sm:px-4">{alcance}</div>
       </div>
     </div>
   )

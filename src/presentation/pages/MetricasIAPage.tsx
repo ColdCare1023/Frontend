@@ -41,7 +41,7 @@ function EsqueletoClasificador() {
   )
 }
 
-export function MetricasIAPage() {
+export function MetricasIAPage({ integrada = false }: { integrada?: boolean } = {}) {
   const { t, i18n } = useTranslation()
   const { datos, estado, motivo, consultar, recargar } = useModeloIA()
   const m = datos?.metricas
@@ -67,12 +67,12 @@ export function MetricasIAPage() {
   const estadoPreventivo = preventiva.clasificacion ? (
     <EstadoClasificacionPreventiva clasificacion={preventiva.clasificacion} />
   ) : (
-    <p role="status" className="superficie p-4 text-body text-subtle">
+    <p role="status" className="py-4 text-body text-subtle">
       {t(preventiva.cargando ? 'app.cargando' : 'lectura.estadoPreventivoDesconocido')}
     </p>
   )
 
-  const encabezado = <PageHeader titulo={t('metricasIA.titulo')} descripcion={t('metricasIA.descripcion')} />
+  const encabezado = !integrada && <PageHeader titulo={t('metricasIA.titulo')} descripcion={t('metricasIA.descripcion')} />
 
   if (estado === 'cargando') {
     return (
@@ -135,7 +135,7 @@ export function MetricasIAPage() {
   return (
     <div>
       {encabezado}
-      <div className="space-y-3 xl:space-y-4">
+      <div className="superficie mx-auto max-w-5xl overflow-clip px-3 sm:px-5">
         {cuerpo}
         {/* Misma posición con y sin modelo cargado: activar o desactivar una
             versión puede cambiar el estado del modelo y la sección no se vuelve

@@ -132,12 +132,12 @@ export function VeredictoCadena({
     <section
       aria-labelledby="veredicto-titulo"
       aria-busy={verificando || undefined}
-      className={cn('superficie border-l-[3px] p-4 xl:p-5', borde)}
+      className={cn('min-w-0 border-l-[3px] p-4 xl:p-5', borde)}
     >
       <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
         <Icono key={`icono-${estado}`} aria-hidden className={cn('cambio-texto mt-0.5 size-6 shrink-0', estado === 'sin_verificar' ? 'text-subtle' : color)} />
         <div className="min-w-0 flex-1 basis-64" role={alerta ? 'alert' : 'status'}>
-          <h2 id="veredicto-titulo" key={verificando ? 'verificando' : estado} className={cn('cambio-texto text-page', verificando ? 'text-foreground' : color)}>
+          <h2 id="veredicto-titulo" key={verificando ? 'verificando' : estado} className={cn('cambio-texto text-title', verificando ? 'text-foreground' : color)}>
             {titulo}
           </h2>
           <p className="mt-1 text-body text-muted text-pretty">{texto}</p>

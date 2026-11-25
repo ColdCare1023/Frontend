@@ -19,7 +19,7 @@ import { atajoDe, periodoDeAtajo } from './reportes/formatoReporte'
  * la auditoría y en la cadena de hashes y consume la cuota de 10/min, así que
  * generar sigue siendo una acción explícita del usuario.
  */
-export function ReportesPage() {
+export function ReportesPage({ integrada = false, equipoId }: { integrada?: boolean; equipoId?: string | null } = {}) {
   const { t } = useTranslation()
   const {
     reporte,
@@ -39,7 +39,7 @@ export function ReportesPage() {
   const inicial = periodoDeAtajo('dias7')
   const [desde, setDesde] = useState(inicial.desde)
   const [hasta, setHasta] = useState(inicial.hasta)
-  const [deviceId, setDeviceId] = useState('')
+  const [deviceId, setDeviceId] = useState(equipoId ?? '')
   const [autoPendiente, setAutoPendiente] = useState(MODO_DEMO)
   const autoLanzada = useRef(false)
 
@@ -49,7 +49,7 @@ export function ReportesPage() {
   useEffect(() => {
     if (!MODO_DEMO || autoLanzada.current) return
     autoLanzada.current = true
-    void Promise.resolve(generar(inicial.desde, inicial.hasta, undefined, { origen: 'auto' })).finally(() =>
+    void Promise.resolve(generar(inicial.desde, inicial.hasta, equipoId || undefined, { origen: 'auto' })).finally(() =>
       setAutoPendiente(false),
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,9 +94,8 @@ export function ReportesPage() {
 
   return (
     <div>
-      <PageHeader titulo={t('reportes.titulo')} descripcion={t('reportes.descripcion')} />
-      <div className="grid items-start gap-3 lg:grid-cols-12 xl:gap-4">
-        <div className={`min-w-0 space-y-3 xl:space-y-4 ${reporte || generando || autoPendiente || mensajeError ? 'lg:col-span-5' : 'lg:col-span-8'}`}>
+      {!integrada && <PageHeader titulo={t('reportes.titulo')} descripcion={t('reportes.descripcion')} />}
+      <div className="superficie min-w-0 overflow-clip">
           <FormularioPeriodo
             desde={desde}
             hasta={hasta}
@@ -111,12 +110,8 @@ export function ReportesPage() {
             plegable={reporte !== null}
             onGenerar={enviar}
           />
-          <SeccionDetalle titulo={t('reportes.queIncluye')}>
-            <QueIncluye />
-          </SeccionDetalle>
-        </div>
         <ResumenReporte
-          className="min-w-0 lg:col-span-7"
+          className="min-w-0 border-t border-border"
           reporte={reporte}
           cargando={generando || (autoPendiente && reporte === null && error === null)}
           mensajeError={mensajeError}
@@ -130,6 +125,9 @@ export function ReportesPage() {
           onReintentar={() => (reintentar ? reintentar() : enviar())}
           onUsar30={atajoDe(desde, hasta) === 'dias30' ? undefined : usar30}
         />
+          <SeccionDetalle className="mx-3 sm:mx-4" titulo={t('reportes.queIncluye')}>
+            <QueIncluye />
+          </SeccionDetalle>
       </div>
       {reporte && (
         <p role="status" className="sr-only">
