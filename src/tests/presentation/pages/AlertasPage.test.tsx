@@ -91,7 +91,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     const { setFiltro } = montar([alerta({ estado: 'atendida' })], { filtro: 'atendida' }, true)
     expect(useAlertas).toHaveBeenCalledWith('atendida')
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Todas', exact: true }))
+    await user.click(screen.getByRole('button', { name: 'Todas' }))
     expect(setFiltro).toHaveBeenCalledWith('todas')
     await user.click(within(fila()).getByRole('button', { name: /ver cronología de atención/i }))
     const dialogo = within(await screen.findByRole('dialog'))
