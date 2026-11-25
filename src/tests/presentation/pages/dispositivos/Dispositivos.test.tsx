@@ -217,10 +217,15 @@ describe('Detalle de dispositivo (pestañas)', () => {
     expect(screen.getByRole('link', { name: 'Volver a equipos' })).toHaveAttribute('href', '/dispositivos')
   })
 
-  it('muestra el device_id y su versión de firmware en Configuración', () => {
+  it('prioriza el nombre y conserva el código y el firmware en los detalles de Configuración', async () => {
     montar([dispositivo()], {}, '/dispositivos/FARM-01-CDL?tab=configuracion')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('FARM-01-CDL')
-    expect(screen.getByText('1.0.0')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Refrigerador principal')
+    const ficha = screen.getByText('1.0.0').closest('details')!
+    expect(ficha).toHaveTextContent('FARM-01-CDL')
+    expect(ficha.open).toBe(false)
+    await userEvent.click(ficha.querySelector('summary')!)
+    expect(ficha.open).toBe(true)
+    expect(screen.getByText('1.0.0')).toBeVisible()
   })
 
   it('HU-30: la fecha de calibración usa el selector, es obligatoria y viaja como yyyy-MM-dd', async () => {

@@ -21,7 +21,16 @@
     "nodo": "Conexión, sensores y calibración",
     "recientes": "Consultar lecturas recientes",
     "alcance": "Alcance de la guía",
-    "acerca": "Acerca de ColdCare"
+    "acerca": "Acerca de ColdCare",
+    "certificadoTecnico": "Datos del certificado",
+    "diagnosticoEquipo": "Sensores y datos técnicos",
+    "ambienteEquipo": "Temperatura ambiente y humedad",
+    "ultimaTemperatura": "Última temperatura registrada",
+    "condicionesEquipo": "Ambiente, conexión y sensores",
+    "buscarCuenta": "Buscar por nombre o correo",
+    "cuentaSinResultados": "Ninguna cuenta coincide con la búsqueda.",
+    "aperturaRegistrada": "Apertura de puerta registrada el {{fecha}}",
+    "aperturaEnMedicion": "Apertura durante la medición"
   },
   "app": {
     "nombre": "ColdCare",
@@ -1540,7 +1549,7 @@
     "revocarCredencial": "Revocar credencial",
     "revocarCredencialA": "Revocar credencial MQTT del equipo {{id}}",
     "credencialRevocada": "Credencial revocada: el sistema ya no acepta las lecturas del nodo. Si el broker es EMQX Serverless, retire también su usuario en la consola.",
-    "probarIoT": "Probar IoT",
+    "probarIoT": "Simular una lectura",
     "probarIoTA": "Abrir escenarios de prueba IoT para {{id}}",
     "simulacionSoloDemo": "{{id}} · Escenarios locales de ejemplo. No contactan ESP32, MQTT ni EMQX.",
     "escenarioSinDatos": "Simular falta de datos",
@@ -2668,7 +2677,7 @@
       "etiqueta": "Estado general",
       "ok": "Operativo",
       "degradado": "Degradado",
-      "guiaOk": "La base de datos y la API del broker responden.",
+      "guiaOk": "El almacenamiento de datos y el servicio de conexión de los equipos responden.",
       "guiaDegradado": "Degradado por: {{motivos}}.",
       "guiaDegradadoSinMotivo": "El servidor informa un estado degradado.",
       "motivos": {

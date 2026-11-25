@@ -62,8 +62,16 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
   const temperaturas = ultimas24h.map((l) => l.temperatura_interna).filter((v): v is number => typeof v === 'number')
   const minimo = temperaturas.length ? Math.min(...temperaturas) : null
   const maximo = temperaturas.length ? Math.max(...temperaturas) : null
-  const actual = ultima?.temperatura ?? dia.ultima?.temperatura_interna ?? null
+  const actual = ultima ? ultima.temperatura : dia.ultima?.temperatura_interna ?? null
   const momento = ultima?.timestamp ?? dia.ultima?.timestamp ?? null
+  // El sensor informa si hubo alguna apertura durante el muestreo. Un evento
+  // posterior del mismo equipo permite distinguir una apertura de un cierre.
+  const eventoPuerta = dia.puertaEnVivo
+  const ultimoEventoPuerta = eventoPuerta?.device_id === dispositivo.id &&
+    (!dia.ultima || Date.parse(eventoPuerta.desde) > Date.parse(dia.ultima.timestamp))
+  const aperturaEn = ultimoEventoPuerta
+    ? (eventoPuerta.abierta ? eventoPuerta.desde : null)
+    : (dia.ultima?.apertura_refrigerador ? dia.ultima.timestamp : null)
   const buffer = dispositivo.buffer_littlefs
   const numero = (n: number) => n.toLocaleString(localeActual())
   const eventos = useMemo(
@@ -80,7 +88,9 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
     <div className="grid grid-cols-12 gap-3 xl:gap-4">
       <section aria-labelledby="monitoreo-foco" className="superficie col-span-12 flex flex-col p-4 xl:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="monitoreo-foco" className="eyebrow">{t('dispositivos.monitoreo.temperaturaInterna')}</h2>
+          <h2 id="monitoreo-foco" className="text-title text-foreground">
+            {t(['sin_datos', 'sin_conexion', 'falla_sensor', 'retenida', 'baja'].includes(estado) ? 'lectura.ultimaTemperatura' : 'dispositivos.monitoreo.temperaturaInterna')}
+          </h2>
           <span className={cn('text-meta font-medium', TEXTO_EQUIPO[estado])}>{t(`dispositivos.estadoEquipo.${estado}`)}</span>
         </div>
         {!dispositivo.activo && <p className="mt-2 text-meta text-muted">{t('dispositivos.detalle.fueraDeServicio')}</p>}
@@ -95,7 +105,11 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
             <Regla tamano="xl" valor={actual} tono={tonoDeEstado(estado)} minimo={minimo} maximo={maximo} cotas className="mt-4" />
           </>
         )}
-        <Condiciones lectura={dia.ultima} />
+        {aperturaEn && (
+          <p className="mt-3 inline-flex items-center gap-2 text-body font-medium text-warning-700">
+            <DoorOpen aria-hidden className="size-4" />{t('lectura.aperturaRegistrada', { fecha: fechaHora(aperturaEn) })}
+          </p>
+        )}
         <p className="mt-auto pt-4 nums text-meta text-faint">
           {momento ? t('dispositivos.lista.lecturaDe', { hora: fechaHora(momento) }) : '—'}
           {minimo !== null && maximo !== null &&
@@ -103,7 +117,8 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
         </p>
       </section>
 
-      <SeccionDetalle titulo={t('lectura.nodo')} className="col-span-12">
+      <SeccionDetalle titulo={t('lectura.condicionesEquipo')} className="col-span-12">
+        <Condiciones lectura={dia.ultima} />
         <Tarjeta id="monitoreo-equipo" titulo={t('dispositivos.monitoreo.equipo')} icono={Cpu} className="col-span-12 lg:col-span-5">
           <dl className="grid grid-cols-2 gap-x-4">
             <Dato etiqueta={t('dispositivos.monitoreo.conexion')}>
@@ -298,9 +313,9 @@ function Condiciones({ lectura }: { lectura: LecturaTermica | null }) {
     {
       clave: 'puerta',
       icono: Puerta,
-      etiqueta: t('dispositivos.monitoreo.puerta'),
+      etiqueta: t('lectura.aperturaEnMedicion'),
       valor:
-        puerta == null ? t('dispositivos.monitoreo.puertaSinSensor') : puerta ? t('dispositivos.monitoreo.puertaAbierta') : t('dispositivos.monitoreo.puertaCerrada'),
+        puerta == null ? t('dispositivos.monitoreo.puertaSinSensor') : t(puerta ? 'comunes.si' : 'comunes.no'),
       clase: puerta ? 'text-warning-700' : puerta == null ? 'text-muted' : 'text-foreground',
     },
   ]

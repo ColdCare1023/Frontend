@@ -59,7 +59,7 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
                 </span>
               )}
             </Dato>
-            <Dato etiqueta={t('dispositivos.observaciones')} className="sm:col-span-2">{dispositivo.observaciones_instalacion || '—'}</Dato>
+            {dispositivo.observaciones_instalacion && <Dato etiqueta={t('dispositivos.observaciones')} className="sm:col-span-2">{dispositivo.observaciones_instalacion}</Dato>}
           </dl>
         }
         campos={(f, set) => (

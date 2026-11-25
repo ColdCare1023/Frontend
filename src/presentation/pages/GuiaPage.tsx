@@ -8,8 +8,10 @@ import { useAuthStore } from '@/application/stores/authStore'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
+import { NativeSelect } from '../components/ui/input'
 import { Detalles } from '../components/ui/detalles'
 import { StepperInteractivo } from '../components/ui/stepper'
+import { useCoincideMedia } from '../hooks/useCoincideMedia'
 import { prefiereMovimientoReducido } from '../motion/tokens'
 import { ContenidoPaso } from './guia/ContenidoPaso'
 import { ANCLAS_ANTIGUAS, ETIQUETA_PASO, PASOS, TITULO_PASO, esPaso, type PasoId } from './guia/contenidoGuia'
@@ -38,6 +40,7 @@ function PreguntasFrecuentes() {
  */
 export function GuiaPage() {
   const { t } = useTranslation()
+  const selectorMovil = useCoincideMedia('(max-width: 639px)')
   const rol = useAuthStore((s) => s.usuario?.rol)
   const [params, setParams] = useSearchParams()
   const { hash } = useLocation()
@@ -82,7 +85,14 @@ export function GuiaPage() {
       <div className="mx-auto max-w-4xl space-y-3 xl:space-y-4">
         <div className="min-w-0">
           <nav aria-label={t('guia.navegacion')} className="superficie p-3 sm:px-5">
+            <label className="block sm:hidden">
+              <span className="mb-1 block text-meta text-muted">{t('guia.navegacion')}</span>
+              <NativeSelect aria-controls={`guia-panel-${paso}`} value={paso} onChange={(e) => cambiar(e.target.value, 'puntero')}>
+                {PASOS.map((id, n) => <option key={id} value={id}>{n + 1}. {t(ETIQUETA_PASO[id])}</option>)}
+              </NativeSelect>
+            </label>
             <StepperInteractivo
+              className="max-sm:hidden"
               idBase="guia"
               etiqueta={t('guia.navegacion')}
               orientacion="horizontal"
@@ -90,9 +100,6 @@ export function GuiaPage() {
               valor={paso}
               onCambiar={cambiar}
             />
-            <p className="nums mt-1 text-center text-meta text-muted sm:hidden">
-              {t('guia.pasoDe', { actual: indice + 1, total: PASOS.length })} · {t(ETIQUETA_PASO[paso])}
-            </p>
           </nav>
         </div>
 
@@ -102,9 +109,9 @@ export function GuiaPage() {
             return (
               <section
                 key={id}
-                role="tabpanel"
+                role={selectorMovil ? 'region' : 'tabpanel'}
                 id={`guia-panel-${id}`}
-                aria-labelledby={`guia-titulo-${id}`}
+                aria-labelledby={selectorMovil ? `guia-titulo-${id}` : `guia-tab-${id}`}
                 hidden={!activo}
                 className={cn('superficie p-4 sm:p-5 xl:p-6', activo && animar && 'panel-eje-x')}
                 style={activo && animar ? ({ '--dir': animar.dir } as React.CSSProperties) : undefined}

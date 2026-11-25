@@ -73,7 +73,7 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     expect(screen.getByText(`Consulta: ${fecha('2026-11-15T15:30:00+00:00')}`)).toBeInTheDocument()
 
     const resumen = region('Resumen del servicio')
-    expect(resumen).toHaveTextContent('La base de datos y la API del broker responden.')
+    expect(resumen).toHaveTextContent(i18n.t('estadoServicio.general.guiaOk'))
     expect(resumen.querySelector('dl')).toBeNull()
     const diagnostico = screen.getByText('Diagnóstico por componente').closest('details')!
     expect(diagnostico.open).toBe(false)

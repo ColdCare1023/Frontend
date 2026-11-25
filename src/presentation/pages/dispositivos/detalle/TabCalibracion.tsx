@@ -1,6 +1,7 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, History } from 'lucide-react'
+import { CalendarClock } from 'lucide-react'
 
 import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { fechaDia } from '@/lib/formato'
@@ -34,7 +35,7 @@ export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Di
         id="calibracion-certificado"
         titulo={t('dispositivos.calibracionTab.certificado')}
         icono={CalendarClock}
-        className="col-span-12 lg:col-span-7"
+        className="col-span-12"
         accion={
           <div className="flex items-center gap-2">
             <Badge variant={VARIANTE[estado]}>{t(`dispositivos.calibracionEstado.${estado}`)}</Badge>
@@ -72,7 +73,6 @@ export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Di
           />
         ) : (
           <>
-            <ReglaVigencia dispositivo={dispositivo} />
             <p className="mt-4 flex items-baseline gap-2">
               {dias === null ? (
                 <span className="text-body text-muted">{t('dispositivos.calibracionEstado.sin_registrar')}</span>
@@ -85,34 +85,34 @@ export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Di
                 </>
               )}
             </p>
-            <dl className="mt-3 grid grid-cols-1 gap-x-6 border-t border-border pt-2 sm:grid-cols-2">
-              <Dato etiqueta={t('dispositivos.numeroCertificado')}>
-                <span className="codigo">{dispositivo.numero_certificado_calibracion ?? '—'}</span>
-              </Dato>
-              <Dato etiqueta={t('dispositivos.fechaCalibracion')}>
-                <span className="nums">{dispositivo.fecha_ultima_calibracion ? fechaDia(dispositivo.fecha_ultima_calibracion) : '—'}</span>
-              </Dato>
+            <dl className="mt-2">
               <Dato etiqueta={t('dispositivos.validaHasta')}>
                 <span className="nums">{dispositivo.fecha_proxima_calibracion ? fechaDia(dispositivo.fecha_proxima_calibracion) : '—'}</span>
               </Dato>
-              <Dato etiqueta={t('dispositivos.margenAviso')}>
-                <span className="nums">{dispositivo.margen_aviso_calibracion_dias ?? 30}</span>
-              </Dato>
-              <Dato etiqueta={t('dispositivos.observaciones')} className="sm:col-span-2">
-                {dispositivo.observaciones_calibracion || '—'}
-              </Dato>
             </dl>
+            <SeccionDetalle titulo={t('lectura.certificadoTecnico')} className="mt-3">
+              <ReglaVigencia dispositivo={dispositivo} />
+              <dl className="mt-3 grid grid-cols-1 gap-x-6 border-t border-border pt-2 sm:grid-cols-2">
+                <Dato etiqueta={t('dispositivos.numeroCertificado')}>
+                  <span className="codigo">{dispositivo.numero_certificado_calibracion ?? '—'}</span>
+                </Dato>
+                <Dato etiqueta={t('dispositivos.fechaCalibracion')}>
+                  <span className="nums">{dispositivo.fecha_ultima_calibracion ? fechaDia(dispositivo.fecha_ultima_calibracion) : '—'}</span>
+                </Dato>
+                <Dato etiqueta={t('dispositivos.margenAviso')}>
+                  <span className="nums">{dispositivo.margen_aviso_calibracion_dias ?? 30}</span>
+                </Dato>
+                <Dato etiqueta={t('dispositivos.observaciones')} className="sm:col-span-2">
+                  {dispositivo.observaciones_calibracion || '—'}
+                </Dato>
+              </dl>
+            </SeccionDetalle>
           </>
         )}
         {aviso && !editando && <MensajeFormulario className="mt-3" mensaje={{ tipo: 'ok', texto: aviso }} />}
       </Tarjeta>
 
-      <Tarjeta
-        id="calibracion-anteriores"
-        titulo={t('dispositivos.calibracionTab.anteriores')}
-        icono={History}
-        className="col-span-12 lg:col-span-5"
-      >
+      <SeccionDetalle titulo={t('dispositivos.calibracionTab.anteriores')} className="col-span-12">
         <LineaTiempoCambios
           cambios={cambios}
           cargando={cargando}
@@ -120,7 +120,7 @@ export function TabCalibracion({ dispositivo, abrirRegistro }: { dispositivo: Di
           vacio={`${t('dispositivos.calibracionTab.sinAnteriores')}. ${t('dispositivos.calibracionTab.queRegistrar')}`}
           className="max-h-80 overflow-y-auto"
         />
-      </Tarjeta>
+      </SeccionDetalle>
     </div>
   )
 }

@@ -76,6 +76,18 @@ describe('UsuariosPage (HU-41, HU-45, RF-17)', () => {
     expect(within(tabla).getByText(/renuncia/i)).toBeVisible()
   })
 
+  it('busca también las cuentas que están fuera de la primera página', async () => {
+    const cuentas = Array.from({ length: 45 }, (_, n) => usuario({ id: String(n), nombre: `Persona ${n}`, email: `u${n}@farmacia.test` }))
+    montar(cuentas)
+    const buscar = screen.getByRole('searchbox')
+    await userEvent.type(buscar, 'U44@')
+    const tabla = screen.getByRole('table')
+    expect(within(tabla).getByText('Persona 44')).toBeVisible()
+    expect(within(tabla).queryByText('Persona 0')).toBeNull()
+    await userEvent.clear(buscar)
+    expect(within(tabla).getByText('Persona 0')).toBeVisible()
+  })
+
   it('ofrece dar de alta un usuario nuevo', () => {
     montar([usuario()])
     expect(screen.getAllByText(/nuevo usuario|crear usuario/i).length).toBeGreaterThan(0)

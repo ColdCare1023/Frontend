@@ -1,7 +1,7 @@
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { KeyRound, RotateCcw, ShieldCheck, UserPlus, UserX } from 'lucide-react'
+import { KeyRound, Search, RotateCcw, ShieldCheck, UserPlus, UserX } from 'lucide-react'
 
 import { useUsuarios } from '@/application/hooks/useUsuarios'
 import { useAuthStore } from '@/application/stores/authStore'
@@ -14,6 +14,7 @@ import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 import { EsqueletoTabla } from '../components/ui/esqueleto'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { TiraEstado } from '../components/ui/tira-estado'
@@ -40,7 +41,12 @@ export function UsuariosPage() {
   )
   const [pagina, setPagina] = useState(1)
   const tamanoPagina = useResponsivePageSize()
-  const visibles = useMemo(() => usuarios.slice(...rangoPagina(pagina, tamanoPagina)), [usuarios, pagina, tamanoPagina])
+  const [consulta, setConsulta] = useState('')
+  const busqueda = consulta.trim().toLocaleLowerCase()
+  const coincidentes = useMemo(() => busqueda
+    ? usuarios.filter((u) => [u.nombre, u.email].some((v) => v.toLocaleLowerCase().includes(busqueda)))
+    : usuarios, [usuarios, busqueda])
+  const visibles = useMemo(() => coincidentes.slice(...rangoPagina(pagina, tamanoPagina)), [coincidentes, pagina, tamanoPagina])
 
   const [panelAbierto, setPanelAbierto] = useState(false)
   const [creadoEmail, setCreadoEmail] = useState<string | null>(null)
@@ -61,6 +67,7 @@ export function UsuariosPage() {
     if (abierto || !creadoEmail) return
     const indice = usuarios.findIndex((u) => u.email.toLowerCase() === creadoEmail.toLowerCase())
     if (indice >= 0) {
+      setConsulta('')
       setPagina(Math.floor(indice / tamanoPagina) + 1)
       setResaltado(usuarios[indice].id)
     }
@@ -104,6 +111,16 @@ export function UsuariosPage() {
             {/* El recuento y la paginación van dentro de la tarjeta, como en
                 Alertas y Dispositivos (antes quedaban sueltos debajo). */}
             <div className="superficie min-w-0 overflow-hidden xl:col-span-12">
+              {(usuarios.length > tamanoPagina || consulta) && (
+                <div className="border-b border-border px-4 py-3">
+                  <label className="relative block max-w-sm">
+                    <span className="sr-only">{t('lectura.buscarCuenta')}</span>
+                    <Search aria-hidden className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+                    <Input className="pl-9" type="search" value={consulta} placeholder={t('lectura.buscarCuenta')}
+                      onChange={(e) => { setConsulta(e.target.value); setPagina(1) }} />
+                  </label>
+                </div>
+              )}
               <Table variante="embebida" mobileLayout="stack" titulo={t('usuarios.titulo')}>
                 <TableHeader>
                   <TableRow>
@@ -114,6 +131,9 @@ export function UsuariosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {coincidentes.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="mobile-full py-4 text-subtle">{t('lectura.cuentaSinResultados')}</TableCell></TableRow>
+                  )}
                   {visibles.map((usuario) => {
                     // HU-41: con un solo administrador activo no se le quita el rol ni se le desactiva.
                     const ultimoAdmin = usuario.rol === 'administrador' && administradoresActivos <= 1
@@ -208,7 +228,7 @@ export function UsuariosPage() {
                 </TableBody>
               </Table>
               <div className="border-t border-border px-4 py-2 empty:hidden [&>*]:mt-0">
-                <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
+                <Paginacion total={coincidentes.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
               </div>
             </div>
             <SeccionDetalle titulo={t('lectura.cuentas')} className="xl:col-span-12">

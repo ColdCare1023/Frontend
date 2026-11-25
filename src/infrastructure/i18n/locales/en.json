@@ -21,7 +21,16 @@
     "nodo": "Connection, sensors and calibration",
     "recientes": "View recent readings",
     "alcance": "Scope of this guide",
-    "acerca": "About ColdCare"
+    "acerca": "About ColdCare",
+    "certificadoTecnico": "Certificate details",
+    "diagnosticoEquipo": "Sensors and device details",
+    "ambienteEquipo": "Room temperature and humidity",
+    "ultimaTemperatura": "Last recorded temperature",
+    "condicionesEquipo": "Room conditions, connection and sensors",
+    "buscarCuenta": "Search by name or email",
+    "cuentaSinResultados": "No accounts match your search.",
+    "aperturaRegistrada": "Door opening recorded on {{fecha}}",
+    "aperturaEnMedicion": "Door opened during sampling"
   },
   "app": {
     "nombre": "ColdCare",
@@ -1540,7 +1549,7 @@
     "revocarCredencial": "Revoke credential",
     "revocarCredencialA": "Revoke MQTT credential for device {{id}}",
     "credencialRevocada": "Credential revoked: the system no longer accepts readings from this node. With EMQX Serverless, also remove its user in the console.",
-    "probarIoT": "Test IoT",
+    "probarIoT": "Simulate a reading",
     "probarIoTA": "Open IoT test scenarios for {{id}}",
     "simulacionSoloDemo": "{{id}} · Local sample scenarios. No ESP32, MQTT, or EMQX connection is made.",
     "escenarioSinDatos": "Simulate missing data",
@@ -2668,7 +2677,7 @@
       "etiqueta": "Overall status",
       "ok": "Operational",
       "degradado": "Degraded",
-      "guiaOk": "The database and the broker API respond.",
+      "guiaOk": "Data storage and the device connection service are responding.",
       "guiaDegradado": "Degraded by: {{motivos}}.",
       "guiaDegradadoSinMotivo": "The server reports a degraded status.",
       "motivos": {
