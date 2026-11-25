@@ -18,10 +18,7 @@ async function sinViolacionesAxe(page: Page, contexto: string) {
   expect(failures, contexto).toEqual([])
 }
 
-/**
- * Carga completa: desde la misma ruta, cambiar solo el fragmento sería una
- * navegación dentro del documento y la página no volvería a leerlo.
- */
+/** Se recarga el documento para que el tema persistido se aplique desde el arranque. */
 async function abrir(page: Page, fragmento: string) {
   await page.goto('about:blank')
   await page.goto(`/copiar-codigo${fragmento}`)
@@ -67,4 +64,49 @@ test('enlace «Copiar código» del correo: muestra el código, lo copia y no lo
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('')
   await page.getByRole('link', { name: 'Volver a ColdCare' }).click()
   await expect(page).toHaveURL(/\/login$/)
+})
+
+test('dos enlaces en la misma pestaña reemplazan el código y un fragmento roto lo retira', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/copiar-codigo#048213')
+  const digitos = page.locator('#copiar-codigo-digitos')
+  await expect(digitos).toHaveText('048213')
+  await page.evaluate(() => { document.documentElement.dataset.pruebaDocumento = 'original' })
+
+  // Se siguen enlaces con un clic real sin abandonar el documento abierto.
+  async function seguir(fragmento: string) {
+    await page.evaluate((fragmento) => {
+      const enlace = document.createElement('a')
+      enlace.id = 'enlace-correo-prueba'
+      enlace.href = '#' + fragmento
+      enlace.textContent = 'Abrir enlace recibido'
+      document.body.prepend(enlace)
+    }, fragmento)
+    await page.getByRole('link', { name: 'Abrir enlace recibido' }).click()
+    await page.locator('#enlace-correo-prueba').evaluate((nodo) => nodo.remove())
+  }
+
+  await seguir('731905')
+  await expect(digitos).toHaveText('731905')
+  await expect(page.getByText('Código: 7 3 1 9 0 5')).toBeVisible()
+  await expect(page).toHaveURL(/\/copiar-codigo$/)
+  await page.getByRole('button', { name: /^(Copiar código|Código copiado)$/ }).click()
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('731905')
+
+  await seguir('invalido')
+  await expect(page.getByRole('heading', { name: 'Este enlace no trae un código válido' })).toBeVisible()
+  await expect(digitos).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Copiar código|Código copiado/ })).toHaveCount(0)
+  await expect(page).toHaveURL(/\/copiar-codigo$/)
+
+  await seguir('002019')
+  await expect(digitos).toHaveText('002019')
+  await expect(page.locator('html')).toHaveAttribute('data-prueba-documento', 'original')
+  await expect(page).toHaveURL(/\/copiar-codigo$/)
+
+  expect(await page.evaluate(() => JSON.stringify(history.state))).not.toContain('002019')
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Este enlace no trae un código válido' })).toBeVisible()
+  await expect(digitos).toHaveCount(0)
+  await expect(page).toHaveURL(/\/copiar-codigo$/)
 })
