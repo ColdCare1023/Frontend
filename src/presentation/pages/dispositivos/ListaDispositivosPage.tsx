@@ -10,7 +10,7 @@ import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { construirCinta24h } from '@/lib/cinta24h'
 import { hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
-import { useMinuto } from '@/presentation/hooks/useReloj'
+import { useReloj } from '@/presentation/hooks/useReloj'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../../components/EstadoPagina'
 import { PageHeader } from '../../components/PageHeader'
@@ -47,7 +47,7 @@ export function ListaDispositivosPage() {
   const { dispositivos, cargando, errorCarga, consultar } = useFlota()
   const actividad = useActividad()
   const ultimas = useEstadoVivoStore((s) => s.ultimas)
-  const ahora = useMinuto()
+  const ahora = useReloj(10_000)
   const [parametros, setParametros] = useSearchParams()
   const filtro: Filtro = parametros.get('filtro') === 'atencion' ? 'atencion' : parametros.get('filtro') === 'baja' ? 'baja' : 'todos'
   const consulta = parametros.get('q') ?? ''
@@ -80,11 +80,11 @@ export function ListaDispositivosPage() {
   const filas = useMemo(() => {
     const conEstado = dispositivos.map((d) => {
       const ultima = ultimas[d.id]
-      const estado = estadoVisualEquipo(d, ultima)
+      const estado = estadoVisualEquipo(d, ultima, ahora)
       return { d, ultima, estado, rango: rangoAtencion(d, estado) }
     })
     return conEstado.sort((a, b) => a.rango - b.rango)
-  }, [dispositivos, ultimas])
+  }, [dispositivos, ultimas, ahora])
 
   const conteos = useMemo(
     () => ({

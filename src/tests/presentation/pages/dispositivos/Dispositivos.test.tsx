@@ -82,6 +82,14 @@ function montar(dispositivos: Dispositivo[], extra: Record<string, unknown> = {}
 }
 
 describe('estado de equipo (SPEC P5b §5.4)', () => {
+  it('el nodo en línea conserva el valor antiguo como histórico al vencer su intervalo', () => {
+    const d = dispositivo({ estado_operativo: 'OPERATIVO', estado_conectividad: 'online', umbral_sin_datos_segundos: 30 })
+    const timestamp = '2026-11-18T10:00:00Z'
+    const lectura = { temperatura: 1.2, riesgo: 'excursion_critica' as const, timestamp }
+    expect(estadoVisualEquipo(d, lectura, Date.parse(timestamp) + 29_000)).toBe('critico')
+    expect(estadoVisualEquipo(d, lectura, Date.parse(timestamp) + 30_000)).toBe('sin_datos')
+  })
+
   it('prioriza la telemetría retenida sobre cualquier otro estado', () => {
     expect(estadoVisualEquipo(dispositivo({ rotacion_por_compromiso: true, estado_operativo: 'SIN_DATOS' }))).toBe('retenida')
   })

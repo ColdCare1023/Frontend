@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import { CalendarClock, FlaskConical, MapPin, Minus, Settings2, ShieldCheck, TrendingDown, TrendingUp } from 'lucide-react'
 
-import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import type { CintaEquipo } from '@/lib/cinta24h'
 import { duracionLegible, fechaCorta, fechaDia, fechaHora, hora, localeActual } from '@/lib/formato'
 import { cn } from '@/lib/utils'
+import { useVencido } from '../../../hooks/useReloj'
 import { ActionMenu, ActionMenuLabel } from '../../../components/ActionMenu'
 import { BadgeConectividad } from '../../../components/BadgeConectividad'
 import { Badge } from '../../../components/ui/badge'
@@ -63,13 +64,18 @@ export const FilaDispositivo = memo(function FilaDispositivo({
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const nombre = dispositivo.nombre?.trim() || dispositivo.id
+  const vencida = useVencido(ultima?.timestamp, umbralSilencioSegundos(dispositivo))
+  const historica = vencida || ['sin_datos', 'sin_conexion', 'falla_sensor', 'retenida', 'baja'].includes(estado)
   const calibracion = estadoCalibracion(dispositivo)
   const accion = accionFila(dispositivo, calibracion)
   const ruta = `/dispositivos/${encodeURIComponent(dispositivo.id)}`
   const irA = (tab: string) => navigate(`${ruta}?tab=${tab}`, { state: { desde } })
   const idEstado = `eq-${dispositivo.id}-estado`
   const textoEstado =
-    estado === 'sin_datos' && dispositivo.ultimo_reporte_en
+    vencida && ['normal', 'preventivo', 'critico'].includes(estado)
+      ? t('dashboard.sinDatosRecientes')
+    : estado === 'sin_datos' && dispositivo.ultimo_reporte_en
       ? t('dispositivos.estadoEquipo.sin_datos_desde', { hora: fechaHora(dispositivo.ultimo_reporte_en) })
       : t(`dispositivos.estadoEquipo.${estado}`)
 
@@ -91,16 +97,16 @@ export const FilaDispositivo = memo(function FilaDispositivo({
             state={{ desde }}
             data-fila
             aria-describedby={idEstado}
-            className="min-w-0 break-words text-title text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:rounded-(--radius-card) focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
+            className="min-w-0 [overflow-wrap:anywhere] text-title text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:rounded-(--radius-card) focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
           >
-            {dispositivo.nombre || dispositivo.id}
-            {dispositivo.nombre && <span className="sr-only"> · {dispositivo.id}</span>}
+            {nombre}
+            {nombre !== dispositivo.id && <span className="sr-only"> · {dispositivo.id}</span>}
           </Link>
         </h3>
         {/* Hasta dos líneas: a 1440 «Sala de dispensación» se cortaba con sitio de sobra debajo. */}
         <p className="mt-0.5 line-clamp-2 text-meta text-muted">
-          {dispositivo.nombre && <span>{dispositivo.id}</span>}
-          {dispositivo.nombre && dispositivo.ubicacion && ' · '}
+          {nombre !== dispositivo.id && <span>{dispositivo.id}</span>}
+          {nombre !== dispositivo.id && dispositivo.ubicacion && ' · '}
           {dispositivo.ubicacion}
         </p>
         <div id={idEstado} className="relative z-10 mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-meta">
@@ -152,11 +158,12 @@ export const FilaDispositivo = memo(function FilaDispositivo({
         {!dispositivo.activo ? (
           <p className="text-meta text-faint">{t('dispositivos.lista.fueraDeServicio')}</p>
         ) : ultima && ultima.temperatura !== null ? (
-          ampliada ? <LecturaFila ultima={ultima} temperatura={ultima.temperatura} estado={estado} tendencia={tendencia} /> : (
+          ampliada && !historica ? <LecturaFila ultima={ultima} temperatura={ultima.temperatura} estado={estado} tendencia={tendencia} /> : (
             <>
-              <p className="nums text-title text-foreground">{formatearCifra(ultima.temperatura)}<span className="text-meta text-muted">{ESPACIO_FINO}°C</span></p>
+              {historica && <p className="text-meta font-medium text-muted">{t('dashboard.ultimaLecturaHora')}</p>}
+              <p className={cn('nums', historica ? 'text-body text-muted' : 'text-title text-foreground')}>{formatearCifra(ultima.temperatura)}<span className="text-meta text-muted">{ESPACIO_FINO}°C</span></p>
               <time dateTime={ultima.timestamp} className="text-meta text-muted" title={fechaHora(ultima.timestamp)}>
-                {t('dashboard.ultimaLecturaHora')} · {estado === 'normal' || estado === 'preventivo' || estado === 'critico' ? horaMinuto(ultima.timestamp) : fechaHora(ultima.timestamp)}
+                {historica ? fechaHora(ultima.timestamp) : `${t('dashboard.ultimaLecturaHora')} · ${horaMinuto(ultima.timestamp)}`}
               </time>
             </>
           )

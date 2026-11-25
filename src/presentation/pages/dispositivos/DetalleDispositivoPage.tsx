@@ -1,3 +1,4 @@
+import { useReloj } from '@/presentation/hooks/useReloj'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
@@ -36,6 +37,7 @@ export function DetalleDispositivoPage() {
   const { dispositivos, cargando, errorCarga, consultar } = useFlota()
   const ultima = useEstadoVivoStore((s) => s.ultimas[deviceId])
   const dispositivo = dispositivos.find((d) => d.id === deviceId)
+  const ahora = useReloj(10_000)
   const tabParam = parametros.get('tab')
   const tab: PestanaEquipo = esPestanaEquipo(tabParam) ? tabParam : 'monitoreo'
   const previa = useRef(tab)
@@ -98,7 +100,7 @@ export function DetalleDispositivoPage() {
     )
   }
 
-  const estado = estadoVisualEquipo(dispositivo, ultima)
+  const estado = estadoVisualEquipo(dispositivo, ultima, ahora)
   const calibracion = estadoCalibracion(dispositivo)
   const accion = accionFila(dispositivo, calibracion)
   const seguridadPendiente = Boolean(dispositivo.broker_pendiente || dispositivo.posesion_pendiente || dispositivo.rotacion_por_compromiso)
@@ -111,18 +113,19 @@ export function DetalleDispositivoPage() {
         : ''),
   }))
 
+  const nombre = dispositivo.nombre?.trim() || dispositivo.id
   return (
-    <div className="vista-entra-x">
+    <div>
       <header className="mb-3 flex flex-col gap-3 sm:mb-4">
         {volver}
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">
             <h1 ref={titulo} tabIndex={-1} className="flex items-center gap-2 text-page text-foreground focus:outline-none">
               <IconoEquipo estado={estado} className="size-5" />
-              <span className="min-w-0 break-words">{dispositivo.nombre || dispositivo.id}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{nombre}</span>
             </h1>
             <p className="mt-1 text-meta text-muted">
-              {[dispositivo.ubicacion, dispositivo.nombre && dispositivo.id].filter(Boolean).join(' · ')}
+              {[dispositivo.ubicacion, nombre !== dispositivo.id && dispositivo.id].filter(Boolean).join(' · ')}
             </p>
             {estado !== 'normal' && (
               <p className="mt-2 max-w-[68ch] text-body text-subtle">{guia(dispositivo, estado, t)}</p>

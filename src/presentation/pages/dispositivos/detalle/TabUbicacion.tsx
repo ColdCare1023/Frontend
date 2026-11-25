@@ -209,7 +209,7 @@ function EditableEnLinea<F extends Record<string, string>>({
       }
     >
       {editando ? (
-        <form ref={contenedor} onSubmit={(e) => void enviar(e)} className="space-y-3 animate-(--animate-pop-in)">
+        <form ref={contenedor} onSubmit={(e) => void enviar(e)} className="space-y-3">
           {campos(form, setForm)}
           <MensajeFormulario mensaje={mensaje} />
           <PieFormulario>

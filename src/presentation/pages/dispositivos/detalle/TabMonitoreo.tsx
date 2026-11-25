@@ -5,7 +5,7 @@ import { Cpu, DoorClosed, DoorOpen, Droplets, ThermometerSun } from 'lucide-reac
 
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { useSerieTermica } from '@/application/hooks/useSerieTermica'
-import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, perdidasDeBrecha, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, umbralSilencioSegundos, perdidasDeBrecha, type Dispositivo } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionLegible, fechaHora, hora, localeActual } from '@/lib/formato'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,7 @@ import { DECIMALES_HUMEDAD, ESPACIO_FINO, formatearCifra, formatearTemperatura }
 import { Regla } from '../../../components/ui/regla'
 import { segmentarLecturas } from '../../../components/ui/segmentar-lecturas'
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
-import { useMinuto } from '../../../hooks/useReloj'
+import { useMinuto, useVencido } from '../../../hooks/useReloj'
 import { CeldaCurva } from '../../dashboard/CeldaCurva'
 import { claveBrecha, textosBrecha } from '../../dashboard/bufferNodo'
 import { ActividadReciente } from '../ActividadReciente'
@@ -64,6 +64,8 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
   const maximo = temperaturas.length ? Math.max(...temperaturas) : null
   const actual = ultima ? ultima.temperatura : dia.ultima?.temperatura_interna ?? null
   const momento = ultima?.timestamp ?? dia.ultima?.timestamp ?? null
+  const vencida = useVencido(momento, umbralSilencioSegundos(dispositivo))
+  const historica = vencida || ['sin_datos', 'sin_conexion', 'falla_sensor', 'retenida', 'baja'].includes(estado)
   // El sensor informa si hubo alguna apertura durante el muestreo. Un evento
   // posterior del mismo equipo permite distinguir una apertura de un cierre.
   const eventoPuerta = dia.puertaEnVivo
@@ -89,20 +91,22 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
       <section aria-labelledby="monitoreo-foco" className="superficie col-span-12 flex flex-col p-4 xl:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="monitoreo-foco" className="text-title text-foreground">
-            {t(['sin_datos', 'sin_conexion', 'falla_sensor', 'retenida', 'baja'].includes(estado) ? 'lectura.ultimaTemperatura' : 'dispositivos.monitoreo.temperaturaInterna')}
+            {t(historica ? 'lectura.ultimaTemperatura' : 'dispositivos.monitoreo.temperaturaInterna')}
           </h2>
-          <span className={cn('text-meta font-medium', TEXTO_EQUIPO[estado])}>{t(`dispositivos.estadoEquipo.${estado}`)}</span>
+          {vencida && estado === 'normal'
+            ? <span className="text-meta font-medium text-muted">{t('dashboard.sinDatosRecientes')}</span>
+            : <span className={cn('text-meta font-medium', TEXTO_EQUIPO[estado])}>{t(`dispositivos.estadoEquipo.${estado}`)}</span>}
         </div>
         {!dispositivo.activo && <p className="mt-2 text-meta text-muted">{t('dispositivos.detalle.fueraDeServicio')}</p>}
         {actual === null ? (
           <p className="mt-3 text-body text-muted">{t('dispositivos.estadoEquipo.esperando')}</p>
         ) : (
           <>
-            <p className="mt-2 nums text-display text-foreground">
+            <p className={cn('mt-2 nums', historica ? 'text-metric text-subtle' : 'text-display text-foreground')}>
               {formatearCifra(actual)}
               <span className="text-title font-medium text-muted">{ESPACIO_FINO}°C</span>
             </p>
-            <Regla tamano="xl" valor={actual} tono={tonoDeEstado(estado)} minimo={minimo} maximo={maximo} cotas className="mt-4" />
+            {!historica && <Regla tamano="xl" valor={actual} tono={tonoDeEstado(estado)} minimo={minimo} maximo={maximo} cotas className="mt-4" />}
           </>
         )}
         {aperturaEn && (
@@ -320,14 +324,14 @@ function Condiciones({ lectura }: { lectura: LecturaTermica | null }) {
     },
   ]
   return (
-    <dl className="mt-4 grid grid-cols-3 divide-x divide-border rounded-(--radius-field) border border-border">
+    <dl className="mt-4 grid gap-2 sm:grid-cols-3 sm:divide-x sm:divide-border rounded-(--radius-field) border border-border">
       {celdas.map(({ clave, icono: Icono, etiqueta, valor, clase }) => (
         <div key={clave} className="min-w-0 px-3 py-2">
           <dt className="flex items-center gap-1.5 text-meta text-muted">
             <Icono aria-hidden className="size-3.5 shrink-0" />
-            <span className="truncate">{etiqueta}</span>
+            <span className="break-words">{etiqueta}</span>
           </dt>
-          <dd className={cn('mt-0.5 truncate nums text-body font-semibold', clase)} title={`${etiqueta}: ${valor} · ${hora(lectura.timestamp)}`}>
+          <dd className={cn('mt-0.5 [overflow-wrap:anywhere] nums text-body font-semibold', clase)} title={`${etiqueta}: ${valor} · ${hora(lectura.timestamp)}`}>
             {valor}
           </dd>
         </div>

@@ -141,7 +141,7 @@ function RotarCredencial({ dispositivo }: { dispositivo: Dispositivo }) {
   }
 
   return (
-    <form onSubmit={(e) => void enviar(e)} className="mt-4 space-y-3 border-t border-border pt-4 animate-(--animate-pop-in)">
+    <form onSubmit={(e) => void enviar(e)} className="mt-4 space-y-3 border-t border-border pt-4">
       <p className="text-meta text-muted">{t('dispositivos.rotarCredencialDescripcion', { id: dispositivo.id })}</p>
       <div>
         <Label htmlFor="credencial-motivo">{t('dispositivos.motivoCredencial')}</Label>
