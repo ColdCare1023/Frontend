@@ -232,14 +232,22 @@ describe('Tira de estado y estados vacíos', () => {
     expect(container.querySelector('svg[data-ilustracion="al-dia"]')).toHaveAttribute('aria-hidden', 'true')
   })
 
-  it('el encabezado compacto lleva el H1, el dato inline y las acciones', () => {
+  it('el encabezado conserva título y acciones y permite consultar la ayuda con el teclado', async () => {
+    const usuario = userEvent.setup()
     render(
-      <PageHeader titulo="Alertas" meta="Actualizado 09:38">
+      <PageHeader titulo="Alertas" meta="Actualizado 09:38" descripcion="Ayuda contextual">
         <button type="button">Exportar</button>
       </PageHeader>,
     )
     expect(screen.getByRole('heading', { level: 1, name: 'Alertas' })).toBeInTheDocument()
     expect(screen.getByText('Actualizado 09:38')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeVisible()
+    const ayuda = screen.getByRole('button', { name: 'Acerca de Alertas' })
+    ayuda.focus()
+    await usuario.keyboard('{Enter}')
+    expect(screen.getByRole('dialog', { name: 'Acerca de Alertas' })).toHaveTextContent('Ayuda contextual')
+    await usuario.keyboard('{Escape}')
+    expect(ayuda).toHaveFocus()
   })
 
   it('el indicador de estado combina forma y texto', () => {

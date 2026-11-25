@@ -1854,6 +1854,7 @@
     }
   },
   "comunes": {
+    "ayudaPantalla": "About {{pagina}}",
     "errorCargar": "We couldn't load the data. Try again.",
     "error": "Something went wrong. Please try again.",
     "errorPantallaTitulo": "This screen could not be displayed",

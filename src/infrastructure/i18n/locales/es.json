@@ -1854,6 +1854,7 @@
     }
   },
   "comunes": {
+    "ayudaPantalla": "Acerca de {{pagina}}",
     "errorCargar": "No pudimos cargar los datos. Intenta de nuevo.",
     "error": "Ocurrió un error. Intenta de nuevo.",
     "errorPantallaTitulo": "No se pudo mostrar esta pantalla",
