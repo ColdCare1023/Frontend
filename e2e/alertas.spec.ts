@@ -64,7 +64,7 @@ test('técnico consulta la cronología sin Reconocer ni Registrar acción (H16)'
 test('HU-52: el enlace del correo (/alertas?id=…) pasa por el login y abre esa alerta', async ({ page }) => {
   await entrarComo(page, 'Químico Farmacéutico')
   const id = await fila(page).getAttribute('data-alerta-id')
-  const equipo = (await fila(page).locator('.codigo').first().textContent())!.trim()
+  const equipo = (await fila(page).getAttribute('data-equipo-id'))!
   expect(id).toBeTruthy()
 
   // Sin sesión (el JWT vive solo en memoria), el enlace lleva al login…
@@ -108,7 +108,7 @@ test('auditor solo consulta la cronología', async ({ page }) => {
 
 test('HU-28: «Verificar cadena del equipo» abre Trazabilidad con la cadena de ese equipo elegida', async ({ page }) => {
   await entrarComo(page, 'Auditor Consulta de registros')
-  const equipo = (await fila(page).locator('.codigo').first().textContent())!.trim()
+  const equipo = (await fila(page).getAttribute('data-equipo-id'))!
   await accionAlerta(page, /ver cronología de atención/i)
   const panel = page.getByRole('dialog')
   const enlace = panel.getByRole('link', { name: 'Verificar cadena del equipo' })
@@ -160,6 +160,13 @@ test('escritorio 1440: incidentes visibles y estadísticas accesibles con el tec
   await entrarComo(page, 'Químico Farmacéutico')
   const rail = page.getByRole('complementary', { name: 'Contexto operativo' })
   await expect(rail.getByRole('heading', { name: 'Incidentes operativos' })).toBeVisible()
+  const incidente = rail.getByRole('listitem').first()
+  const detalleIncidente = incidente.locator('details')
+  await expect(detalleIncidente).not.toHaveAttribute('open')
+  await expect(incidente.locator('summary')).toContainText('Sin datos')
+  await incidente.locator('summary').focus()
+  await page.keyboard.press('Enter')
+  await expect(incidente.getByText(/umbral .* s/)).toBeVisible()
   const historial = page.locator('summary').filter({ hasText: 'Actividad reciente y estadísticas' })
   const cinta = page.getByRole('heading', { name: 'Últimas 24 h' })
   await expect(cinta).toBeHidden()
@@ -202,7 +209,7 @@ test('demo: simular excursión crítica hace llegar una fila nueva sin recargar'
   // La alerta llega por el stream en vivo, como por SSE: una fila más, con su evidencia.
   await expect(page.getByRole('row')).toHaveCount(filas + 1)
   // La fila simulada (id `al-sim-…`): la serie demo puede traer otra de 8.6 °C.
-  const nueva = page.locator('tr[data-alerta-id^="al-sim-"]').filter({ hasText: 'Temperatura interna 8.6 °C fuera del rango' })
+  const nueva = page.locator('tr[data-alerta-id^="al-sim-"]').filter({ hasText: 'Excursión crítica' })
   await expect(nueva).toBeVisible()
   // Evidencia: el pico con su Regla S (el lector oye «Pico 8.6 °C»).
   await expect(nueva).toContainText(/Pico 8\.6\s°C/)

@@ -2842,5 +2842,8 @@
     "otrosFormatos": "Other formats",
     "alertasPreventivasActivas": "The model can detect risk and open preventive alerts.",
     "detalleClasificacion": "Model details"
+  },
+  "operacionFarmacia": {
+    "variaciones": "Changes over the period"
   }
 }

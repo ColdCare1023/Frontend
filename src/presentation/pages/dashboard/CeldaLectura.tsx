@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Hourglass, ShieldQuestion, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Hourglass, ShieldQuestion, TriangleAlert } from 'lucide-react'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
 import type { MotivoDesconexionSse } from '@/infrastructure/sse/sseClient'
@@ -66,7 +66,12 @@ export const CeldaLectura = memo(function CeldaLectura({
   // «normal» para una lectura en rango que el modelo no clasificó.
   const riesgo = estadoRiesgoDe(ultima)
 
-  const selector = equipos.length > 1 && (
+  const equipoUnico = equipos.length === 1 ? equipos[0] : null
+  const selector = equipoUnico ? (
+    <span className="min-w-0 break-words text-meta font-medium text-muted max-sm:basis-full sm:ml-auto">
+      {equipoUnico.nombre || equipoUnico.id}
+    </span>
+  ) : equipos.length > 1 && (
     <label className="flex min-w-0 items-center gap-2 max-sm:basis-full sm:ml-auto">
       <span className="text-meta text-muted max-xl:sr-only">{t('dashboard.equipo')}</span>
       <select
@@ -74,11 +79,14 @@ export const CeldaLectura = memo(function CeldaLectura({
         onChange={(evento) => onElegirEquipo(evento.target.value)}
         className="h-9 min-w-0 max-w-60 flex-1 truncate rounded-(--radius-field) border border-border-field bg-surface-sunken px-3 text-body font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-sm:h-11 max-sm:max-w-none pointer-coarse:h-11"
       >
-        {equipos.map((equipo) => (
-          <option key={equipo.id} value={equipo.id}>
-            {equipo.nombre ? `${equipo.nombre} (${equipo.id})` : equipo.id}
-          </option>
-        ))}
+        {equipos.map((equipo) => {
+          const nombreRepetido = equipo.nombre && equipos.some((otro) => otro.id !== equipo.id && otro.nombre === equipo.nombre)
+          return (
+            <option key={equipo.id} value={equipo.id}>
+              {nombreRepetido ? `${equipo.nombre} (${equipo.id})` : equipo.nombre || equipo.id}
+            </option>
+          )
+        })}
       </select>
     </label>
   )
@@ -220,22 +228,29 @@ export const CeldaLectura = memo(function CeldaLectura({
         )}
       </div>
 
-      <Regla
-        key={deviceId ?? ''}
-        tamano="xl"
-        valor={lecturaFinita ? lectura : null}
-        tono={tonoRegla}
-        minimo={extremos?.minima ?? null}
-        maximo={extremos?.maxima ?? null}
-        cotas
-        etiqueta={etiquetaRegla}
-        className="mt-4"
-      />
-      {extremos && (
-        <p className="nums mt-1 text-micro text-faint">
-          {t('dashboard.extremosVentana', { min: `${fmt(extremos.minima)}°`, max: `${fmt(extremos.maxima)}°`, ventana })}
-        </p>
-      )}
+      <details className="group mt-2">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-sm text-meta font-medium text-subtle hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+          {t('dashboard.rangoConservacion')}
+          <ChevronDown aria-hidden className="size-3.5 group-open:rotate-180" />
+        </summary>
+        <Regla
+          key={deviceId ?? ''}
+          tamano="xl"
+          valor={lecturaFinita ? lectura : null}
+          tono={tonoRegla}
+          minimo={extremos?.minima ?? null}
+          maximo={extremos?.maxima ?? null}
+          cotas
+          etiqueta={etiquetaRegla}
+          className="mt-4"
+        />
+        {extremos && (
+          <p className="nums mt-1 text-micro text-faint">
+            {t('dashboard.extremosVentana', { min: `${fmt(extremos.minima)}°`, max: `${fmt(extremos.maxima)}°`, ventana })}
+          </p>
+        )}
+        {!desactualizado && riesgo === 'normal' && <p className="mt-2 text-meta text-muted">{t('riesgo.detalle.normal')}</p>}
+      </details>
       {fueraDeEscala && lectura != null && (
         <p role="note" className="mt-2 text-meta font-medium text-danger-700">
           {lectura > EJE_REGLA.maximo
@@ -244,13 +259,13 @@ export const CeldaLectura = memo(function CeldaLectura({
         </p>
       )}
 
-      <p className="mt-3 text-pretty text-body text-muted">
+      {(desactualizado || riesgo !== 'normal') && <p className="mt-3 text-pretty text-body text-muted">
         {riesgo
           ? desactualizado
             ? t(riesgo === 'normal' || riesgo === 'sin_clasificacion_ia' ? 'dashboard.sinDatosRecientesDetalle' : 'dashboard.riesgoUltimaLectura')
             : t(`riesgo.detalle.${riesgo}`)
           : t('dashboard.sinClasificacion')}
-      </p>
+      </p>}
       {ultima.excursion_confirmada && (
         <p className="mt-1 text-meta font-semibold text-danger-700">{t('dashboard.excursionConfirmada')}</p>
       )}

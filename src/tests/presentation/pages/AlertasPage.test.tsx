@@ -76,12 +76,14 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     sesionCon('farmaceutico')
   })
 
-  it('muestra la alerta con su dispositivo y su mensaje', () => {
+  it('muestra equipo y riesgo en la bandeja, con el mensaje completo en el detalle', async () => {
     montar([alerta()])
 
     expect(screen.getByText('FARM-01-CDL')).toBeInTheDocument()
-    expect(screen.getAllByText(/fuera del rango/i).length).toBeGreaterThan(0)
-    expect(screen.getByRole('cell', { name: /fuera del rango 2-8/i })).toBeInTheDocument()
+    const fila = screen.getByRole('row', { name: /FARM-01-CDL/ })
+    expect(fila).toHaveTextContent('Excursión crítica')
+    await userEvent.setup().click(within(fila).getByRole('button', { name: /ver cronología/i }))
+    expect(within(await screen.findByRole('dialog')).getByRole('heading', { name: /fuera del rango 2-8/i })).toBeVisible()
   })
 
   it('ofrece los cuatro filtros de la máquina de estados con aria-pressed', () => {
@@ -198,10 +200,8 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
       alerta({ id: 'c-vieja', mensaje: 'Crítica vieja', created_at: '2026-07-24T12:00:00Z' }),
     ])
 
-    const filas = screen.getAllByRole('row').slice(1).map((f) => within(f).getAllByRole('cell')[0].textContent)
-    expect(filas[0]).toContain('Crítica vieja')
-    expect(filas[1]).toContain('Crítica nueva')
-    expect(filas[2]).toContain('Preventiva')
+    const ids = screen.getAllByRole('row').slice(1).map((fila) => fila.getAttribute('data-alerta-id'))
+    expect(ids).toEqual(['c-vieja', 'c-nueva', 'p-nueva'])
   })
 
   it('Todo en orden: vacío de pendientes con la última atendida y una acción', () => {
@@ -232,7 +232,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
   it('no muestra esqueleto durante un refresco en segundo plano', () => {
     montar([alerta()], { cargando: false, refrescando: true })
 
-    expect(screen.getByText('Temperatura fuera del rango 2-8 °C')).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /FARM-01-CDL/ })).toHaveTextContent('Excursión crítica')
     expect(screen.getByRole('region', { name: 'Alertas' })).not.toHaveAttribute('aria-busy')
     expect(screen.queryByText('Cargando…')).not.toBeInTheDocument()
   })
@@ -305,11 +305,13 @@ describe('Evidencia de la excursión y estado del correo (outcomes 2 y 6)', () =
     [{ notificada_en: null, notificacion_intentos: 1 }, 'reintentando', 'Reintentando correo'],
     [{ notificada_en: null, notificacion_intentos: 3 }, 'no_entregada', 'Correo no entregado'],
     [{ notificada_en: null, notificacion_intentos: 0 }, 'pendiente', 'Correo pendiente'],
-  ])('estado del correo %#', (campos, estado, texto) => {
+  ])('estado del correo %#', async (campos, estado, texto) => {
     expect(estadoNotificacion(alerta(campos))).toBe(estado)
     montar([alerta(campos)])
-    // Icono + texto para lector en la fila; texto con su ayuda visible en móvil.
-    expect(screen.getAllByText(texto).length).toBeGreaterThan(0)
+    const fila = screen.getByRole('row', { name: /FARM-01-CDL/ })
+    if (estado === 'reintentando' || estado === 'no_entregada') expect(fila).toHaveTextContent(texto)
+    await userEvent.setup().click(within(fila).getByRole('button', { name: /ver cronología/i }))
+    expect(await screen.findByRole('dialog')).toHaveTextContent(texto)
   })
 
   it('una alerta preventiva no muestra estado de correo', () => {

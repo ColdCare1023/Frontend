@@ -128,8 +128,8 @@ test('alertas permiten abrir detalle contextual', async ({ page }) => {
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
   await page.getByRole('button', { name: 'Todas', exact: true }).click()
   // El riesgo de cada fila va con forma propia y texto (lector de pantalla).
-  await expect(page.getByRole('row').filter({ hasText: /fuera del rango/i }).first()).toBeVisible()
-  await expect(page.getByRole('row').filter({ hasText: /se acerca al límite/i }).first()).toBeVisible()
+  await expect(page.getByRole('row').filter({ hasText: /excursión crítica/i }).first()).toBeVisible()
+  await expect(page.getByRole('row').filter({ hasText: /riesgo preventivo/i }).first()).toBeVisible()
   await accionAlerta(page, /ver cronología de atención/i)
   await expect(page.getByRole('dialog')).toContainText(/temperatura/i)
   await expect(page.getByRole('dialog')).toContainText(/Excursión crítica|Riesgo preventivo/)

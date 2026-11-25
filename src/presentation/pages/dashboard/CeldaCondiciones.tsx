@@ -1,6 +1,6 @@
-import { memo, useMemo } from 'react'
+import { memo, useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowDownRight, ArrowUpRight, DoorClosed, DoorOpen, Droplets, Hourglass, ThermometerSun } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronDown, DoorClosed, DoorOpen, Droplets, Hourglass, ThermometerSun } from 'lucide-react'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionBreve } from '@/lib/formato'
@@ -50,6 +50,7 @@ function Metrica({
   desactualizado,
   segundos,
   textoDelta,
+  mostrarTendencia,
 }: {
   icono: React.ComponentType<{ className?: string }>
   etiqueta: string
@@ -63,6 +64,7 @@ function Metrica({
   desactualizado: boolean
   segundos: number | null
   textoDelta: string
+  mostrarTendencia: boolean
 }) {
   const { t } = useTranslation()
   const fallo = fallaSensor(ultima, campo)
@@ -76,7 +78,7 @@ function Metrica({
       <dt className="flex items-center gap-1.5 text-meta font-medium text-muted">
         <Icono aria-hidden className="size-3.5 shrink-0" />
         <span className="truncate">{etiqueta}</span>
-        {desactualizado && !fallo && valor != null && <Antiguedad segundos={segundos} />}
+        {mostrarTendencia && desactualizado && !fallo && valor != null && <Antiguedad segundos={segundos} />}
       </dt>
       {fallo || valor == null ? (
         <dd className="mt-1 text-meta font-medium text-warning-700">
@@ -92,7 +94,7 @@ function Metrica({
             {valor.toFixed(decimales)}
           </span>
           <span className="text-body font-medium text-muted">{unidad}</span>
-          {delta != null && Math.abs(delta) >= 0.05 && (
+          {mostrarTendencia && delta != null && Math.abs(delta) >= 0.05 && (
             <span className="nums inline-flex items-center text-micro text-faint">
               {delta > 0 ? <ArrowUpRight aria-hidden className="size-3" /> : <ArrowDownRight aria-hidden className="size-3" />}
               {Math.abs(delta).toFixed(1)}
@@ -102,9 +104,9 @@ function Metrica({
         </dd>
       )}
       {/* Dentro de un <dd>: un <dl> solo admite dt/dd (axe definition-list). */}
-      <dd aria-hidden className="mt-auto pt-2 text-subtle">
+      {mostrarTendencia && <dd aria-hidden className="mt-auto pt-2 text-subtle">
         <Sparkline valores={puntos} />
-      </dd>
+      </dd>}
     </div>
   )
 }
@@ -171,6 +173,8 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   puertaEnVivo?: { abierta: boolean; desde: string } | null
 }) {
   const { t } = useTranslation()
+  const [mostrarTendencia, setMostrarTendencia] = useState(false)
+  const idDatos = useId()
   const segundosDesdeUltima = useSegundosDesde(ultima?.timestamp)
   const segundosDesdePuerta = useSegundosDesde(puertaEnVivo?.desde)
   const anterior = serie.at(-2) ?? null
@@ -230,6 +234,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           serie={serie}
           desactualizado={desactualizado}
           segundos={segundosDesdeUltima}
+          mostrarTendencia={mostrarTendencia}
           textoDelta={t('dashboard.variacionVsAnterior')}
         />
         <Metrica
@@ -244,6 +249,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           serie={serie}
           desactualizado={desactualizado}
           segundos={segundosDesdeUltima}
+          mostrarTendencia={mostrarTendencia}
           textoDelta={t('dashboard.variacionVsAnterior')}
         />
         <div className="flex min-w-0 flex-col px-3 first:pl-0 last:pr-0">
@@ -296,9 +302,9 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           </dd>
           {!puerta.sinSensor && (
             <>
-              <dd className="mt-auto">
+              {mostrarTendencia && <dd className="mt-auto">
                 <TiraAperturas serie={serie} umbral={puerta.umbral} desde={hasta - horasVentana * 3_600_000} hasta={hasta} />
-              </dd>
+              </dd>}
               {/* «5 aperturas · 24 h» cabe en la columna; la frase larga queda en el title. Con el
                   historial recortado el conteo es un mínimo («≥5»), no el total de la ventana. */}
               <dd
@@ -326,10 +332,22 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
       aria-labelledby="condiciones-titulo"
       className="superficie col-span-4 flex min-w-0 flex-col p-4 lg:col-span-5 xl:p-5"
     >
-      <h2 id="condiciones-titulo" className="sr-only">
+      <h2 id="condiciones-titulo" className="mb-4 text-title text-foreground">
         {t('dashboard.condicionesTitulo')}
       </h2>
-      {contenido}
+      <div id={idDatos}>{contenido}</div>
+      {ultima && (
+        <button
+          type="button"
+          aria-expanded={mostrarTendencia}
+          aria-controls={idDatos}
+          onClick={() => setMostrarTendencia((actual) => !actual)}
+          className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-1.5 self-start rounded-sm text-meta font-medium text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          {t('operacionFarmacia.variaciones', 'Variaciones del periodo')}
+          <ChevronDown aria-hidden className={clsx('size-3.5', mostrarTendencia && 'rotate-180')} />
+        </button>
+      )}
     </section>
   )
 })

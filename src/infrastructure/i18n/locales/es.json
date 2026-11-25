@@ -2842,5 +2842,8 @@
     "otrosFormatos": "Otros formatos",
     "alertasPreventivasActivas": "El modelo puede detectar riesgo y abrir alertas preventivas.",
     "detalleClasificacion": "Detalles del modelo"
+  },
+  "operacionFarmacia": {
+    "variaciones": "Variaciones del periodo"
   }
 }
