@@ -253,9 +253,13 @@ describe('HistorialPage — rediseño P6 (registros)', () => {
     expect(screen.queryAllByRole('button', { expanded: true })).toHaveLength(0)
   })
 
-  it('la tira resume lecturas, % en rango y excursiones', () => {
+  it('las estadísticas del periodo conservan lecturas, porcentaje en rango y excursiones', async () => {
     montar([lectura(), lectura({ id: 'l-2', timestamp: '2026-07-25T11:59:00Z', temperatura_interna: 9.4 })])
-    const tira = screen.getByRole('region', { name: /resumen del periodo/i })
+    const detalle = document.querySelectorAll('details')[1]
+    const resumen = detalle.querySelector('summary')!
+    expect(detalle).not.toHaveAttribute('open')
+    await userEvent.click(resumen)
+    const tira = within(detalle).getByRole('region')
     expect(tira).toHaveTextContent(/lecturas\s*2/i)
     expect(tira).toHaveTextContent(/en rango/i)
     expect(tira).toHaveTextContent(/excursiones\s*0/i)
@@ -268,17 +272,16 @@ describe('HistorialPage — rediseño P6 (registros)', () => {
     expect(screen.getByRole('columnheader', { name: /^equipo$/i })).toBeInTheDocument()
   })
 
-  it('«Filtros» (solo bajo 640 px) despliega riesgo y periodo sin quitarlos del formulario', async () => {
+  it('«Filtros» despliega riesgo y periodo sin quitarlos del formulario', async () => {
     montar([lectura()])
     const boton = screen.getByRole('button', { name: /^filtros$/i })
     const bloque = document.getElementById(boton.getAttribute('aria-controls') as string) as HTMLElement
     expect(boton).toHaveAttribute('aria-expanded', 'false')
-    // Los campos siguen en el formulario: desde 640 px se ven siempre.
     expect(bloque).toContainElement(screen.getByLabelText(/nivel de riesgo/i))
-    expect(bloque.className).toMatch(/max-sm:hidden/)
+    expect(bloque).toHaveClass('hidden')
     await userEvent.click(boton)
     expect(boton).toHaveAttribute('aria-expanded', 'true')
-    expect(bloque.className).not.toMatch(/max-sm:hidden/)
+    expect(bloque).not.toHaveClass('hidden')
   })
 
   it('la cabecera de día abarca solo las columnas montadas (sin columnas fantasma)', () => {
@@ -303,7 +306,11 @@ describe('HistorialPage — HU-36: periodo completo, tabla paginada en el servid
     const series = serieDe([lectura(), lectura({ id: 'l-2', timestamp: '2026-07-25T11:00:00Z', temperatura_interna: 9.1 })], { total_lecturas: 8640 })
     series[0].resumen.lecturas = 8640
     montar(pagina, vi.fn(), { series, total: 8640 })
-    const tira = screen.getByRole('region', { name: /resumen del periodo/i })
+    const detalle = document.querySelectorAll('details')[1]
+    const resumen = detalle.querySelector('summary')!
+    expect(detalle).not.toHaveAttribute('open')
+    await userEvent.click(resumen)
+    const tira = within(detalle).getByRole('region')
     expect(tira).toHaveTextContent(/lecturas\s*8640/i)
     expect(tira).toHaveTextContent(/máxima\s*9[.,]1/i)
     expect(screen.getByText(/8640 lecturas en el periodo/i)).toBeInTheDocument()

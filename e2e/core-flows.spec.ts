@@ -26,6 +26,7 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
   const curva = page.locator('[role="img"][aria-label^="Gráfica de líneas"]')
   const lecturaActual = await temperatura.getByTestId('valor-actual').getAttribute('data-valor')
   expect(lecturaActual).toMatch(/^\d+\.\d+$/)
+  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await expect(curva).toBeVisible()
 
   const rangos = page.getByRole('group', { name: 'Rango de la curva térmica' })
@@ -33,10 +34,12 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
     const opcion = rangos.getByRole('button', { name: nombre, exact: true })
     await opcion.click()
     await expect(opcion).toHaveAttribute('aria-pressed', 'true')
-    await expect(temperatura).toContainText(lecturaActual!)
+    await expect(page.getByRole('tab', { name: 'Tendencia' })).toHaveAttribute('aria-selected', 'true')
     await expect(curva).toBeVisible()
     await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0)
   }
+  await page.getByRole('tab', { name: /^ahora$/i }).click()
+  await expect(temperatura.getByTestId('valor-actual')).toBeVisible()
 })
 
 test('guardas de autenticación y permisos por rol', async ({ page }) => {
@@ -85,12 +88,19 @@ test('administrador puede abrir herramientas de administración en demo', async 
   await page.getByRole('button', { name: 'Administrador' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
 
+  const nav = page.getByRole('navigation', { name: 'Navegación principal', exact: true })
+  const seccion = nav.locator('summary', { hasText: 'Administración' })
+  await expect(nav.getByRole('link', { name: 'Usuarios' })).toBeHidden()
+  await seccion.focus()
+  await page.keyboard.press('Enter')
   for (const [ruta, titulo] of [
     ['/usuarios', 'Usuarios'],
     ['/dispositivos', 'Equipos de medición'],
     ['/estado-servicio', 'Estado del servicio'],
   ]) {
-    await irA(page, ruta)
+    const enlace = nav.locator(`a[href="${ruta}"]`)
+    await enlace.click()
+    await expect(enlace).toHaveAttribute('aria-current', 'page')
     await expect(page.getByRole('heading', { level: 1 })).toContainText(titulo)
     await expect(page.getByText(/permiso/i)).toHaveCount(0)
   }

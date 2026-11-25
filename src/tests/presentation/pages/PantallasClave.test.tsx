@@ -406,14 +406,12 @@ describe('Reportes BPA — RF-13 y manejo del error de descarga', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 
-  it('no ofrece descargas mientras no haya reporte', async () => {
+  it('no ofrece descargas mientras no haya reporte', () => {
     montarReportes({ reporte: null })
 
-    expect(screen.queryByRole('button', { name: /csv/i })).toBeNull()
-    // Dos regiones de estado: el recuento del periodo y la caja de vacío
-    // (tras la vista previa automática, que aquí no devuelve reporte).
-    expect(screen.getAllByRole('status').length).toBeGreaterThan(0)
-    expect(await screen.findByText(/genera el reporte para ver el resumen/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generar reporte' })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: /^descargar/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Resumen del periodo' })).not.toBeInTheDocument()
   })
 })
 

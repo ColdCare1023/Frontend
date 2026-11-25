@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Download, FileDown, FileText } from 'lucide-react'
+import { Download, FileDown } from 'lucide-react'
 
 import type { ReporteBPA } from '@/application/hooks/useReportesBPA'
 import { fechaCorta } from '@/lib/formato'
@@ -48,7 +48,6 @@ export interface PropsResumenReporte {
   onCsv: () => void
   onJson: () => void
   onReintentar: () => void
-  onGenerar: () => void
   onUsar30?: () => void
   className?: string
 }
@@ -70,16 +69,7 @@ export function ResumenReporte(props: PropsResumenReporte) {
       </div>
     )
   }
-  if (!reporte) {
-    return (
-      <EstadoVacio ilustracion="sin-reporte" titulo={t('reportes.sinReporte')} detalle={t('reportes.sinReporteDetalle')} className={className}>
-        <Button size="sm" onClick={props.onGenerar}>
-          <FileText />
-          {t('reportes.generar')}
-        </Button>
-      </EstadoVacio>
-    )
-  }
+  if (!reporte) return null
   return <ContenidoResumen {...props} reporte={reporte} />
 }
 
@@ -152,43 +142,16 @@ function ContenidoResumen({
           {cifras.map(([clave, cantidad]) => (
             <div key={clave} className="flex min-w-0 flex-col justify-between gap-1 px-3 py-2.5 sm:px-4">
               <dt className="text-meta text-muted">{t(clave)}</dt>
-              <dd className="text-metric text-foreground">
+              <dd className="nums text-title text-foreground">
                 <ContadorAnimado valor={cantidad} clave={generacion} formato={(n) => Math.round(n).toLocaleString('es-PE')} />
               </dd>
             </div>
           ))}
         </dl>
-
-        {vacio ? (
-          <EstadoVacio ilustracion="sin-datos" titulo={t('reportes.sinLecturas')} detalle={t('reportes.sinLecturasDetalle')} className="shadow-none">
-            {onUsar30 && (
-              <Button variant="secondary" size="sm" onClick={onUsar30}>
-                {t('reportes.usar30')}
-              </Button>
-            )}
-          </EstadoVacio>
-        ) : (
-          <>
-            {reporte.lecturas.length > 0 && <BarraTiempoEnRango tiempo={tiempo} parcial={parcial} clave={generacion} />}
-            <CurvaMiniReporte lecturas={reporte.lecturas} clave={generacion} />
-            {alertas.criticas + alertas.preventivas + alertas.pendientes > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-meta text-muted">{t('reportes.alertas')}</span>
-                {alertas.criticas > 0 && <Badge variant="critical">{t('reportes.alertasDesglose.criticas', { count: alertas.criticas })}</Badge>}
-                {alertas.preventivas > 0 && <Badge variant="warn">{t('reportes.alertasDesglose.preventivas', { count: alertas.preventivas })}</Badge>}
-                {alertas.pendientes > 0 && <Badge variant="outline">{t('reportes.alertasDesglose.pendientes', { count: alertas.pendientes })}</Badge>}
-              </div>
-            )}
-            {equipos.length >= 2 && (
-              <PorEquipo reporte={reporte} equipos={equipos} parcial={parcial} idioma={i18n.resolvedLanguage} />
-            )}
-          </>
-        )}
       </div>
-
-      <footer className="mt-auto flex flex-col gap-2 border-t border-border px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center xl:px-5">
+      <div className="grid grid-cols-2 gap-2 px-4 pb-4 sm:flex sm:flex-wrap sm:items-center xl:px-5">
         <h3 className="sr-only">{t('reportes.descargas')}</h3>
-        <Button size="sm" className="w-full max-sm:h-11 sm:w-auto" aria-busy={descargandoPdf} disabled={descargandoPdf} onClick={onPdf}>
+        <Button size="sm" className="col-span-2 w-full max-sm:h-11 sm:w-auto" aria-busy={descargandoPdf} disabled={descargandoPdf} onClick={onPdf}>
           <FileDown />
           <span key={descargandoPdf ? 'pdf-on' : 'pdf-off'} className="animate-(--animate-swap)">
             {descargandoPdf ? t('reportes.generandoPdf') : t('reportes.descargarPdf')}
@@ -202,11 +165,41 @@ function ContenidoResumen({
           <Download />
           {t('reportes.descargarJson')}
         </Button>
-        <Detalles className="basis-full" titulo={t('reportes.formatosDisponibles')}>
+        <Detalles className="col-span-2 basis-full" titulo={t('reportes.formatosDisponibles')}>
           <p className="max-w-[72ch] text-meta text-muted">{t('reportes.notaFormatos')}</p>
           <p className="mt-2 max-w-[72ch] text-meta text-muted lg:hidden">{t('reportes.notaPdf')}</p>
         </Detalles>
-      </footer>
+      </div>
+
+      <div className="px-4 pb-4 xl:px-5">
+        {vacio ? (
+          <EstadoVacio ilustracion="sin-datos" titulo={t('reportes.sinLecturas')} detalle={t('reportes.sinLecturasDetalle')} className="shadow-none">
+            {onUsar30 && (
+              <Button variant="secondary" size="sm" onClick={onUsar30}>
+                {t('reportes.usar30')}
+              </Button>
+            )}
+          </EstadoVacio>
+        ) : (
+          <Detalles titulo={t('lectura.datosReporte')}>
+            <div className="space-y-4 pt-2">
+              {reporte.lecturas.length > 0 && <BarraTiempoEnRango tiempo={tiempo} parcial={parcial} clave={generacion} />}
+              <CurvaMiniReporte lecturas={reporte.lecturas} clave={generacion} />
+              {alertas.criticas + alertas.preventivas + alertas.pendientes > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-meta text-muted">{t('reportes.alertas')}</span>
+                  {alertas.criticas > 0 && <Badge variant="critical">{t('reportes.alertasDesglose.criticas', { count: alertas.criticas })}</Badge>}
+                  {alertas.preventivas > 0 && <Badge variant="warn">{t('reportes.alertasDesglose.preventivas', { count: alertas.preventivas })}</Badge>}
+                  {alertas.pendientes > 0 && <Badge variant="outline">{t('reportes.alertasDesglose.pendientes', { count: alertas.pendientes })}</Badge>}
+                </div>
+              )}
+              {equipos.length >= 2 && (
+                <PorEquipo reporte={reporte} equipos={equipos} parcial={parcial} idioma={i18n.resolvedLanguage} />
+              )}
+            </div>
+          </Detalles>
+        )}
+      </div>
     </section>
   )
 }

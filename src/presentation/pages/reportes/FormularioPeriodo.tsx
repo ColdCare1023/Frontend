@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileText } from 'lucide-react'
 
@@ -32,9 +32,8 @@ export interface PropsFormularioPeriodo {
 const ATAJOS: AtajoPeriodo[] = ['dias7', 'dias30', 'mes']
 
 /** Periodo, equipo y «Generar» (columna izquierda, 5/12). */
-export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeriodo>(function FormularioPeriodo(
-  { desde, hasta, deviceId, onDesde, onHasta, onDeviceId, generando, rangoInvalido, lineaPeriodo, errorPeriodo, plegable, onGenerar, className },
-  ref,
+export function FormularioPeriodo(
+  { desde, hasta, deviceId, onDesde, onHasta, onDeviceId, generando, rangoInvalido, lineaPeriodo, errorPeriodo, plegable, onGenerar, className }: PropsFormularioPeriodo,
 ) {
   const { t } = useTranslation()
   const [abierto, setAbierto] = useState(false)
@@ -69,7 +68,6 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
       <div className={cn('grid transition-[grid-template-rows] duration-(--duration-reveal) ease-(--ease-out)', plegado ? 'max-sm:grid-rows-[0fr]' : 'grid-rows-[1fr]')}>
         <div className={cn('min-h-0', plegado && 'max-sm:overflow-hidden')} inert={plegado && esMovil ? true : undefined}>
           <form
-            ref={ref}
             id="reportes-form"
             aria-labelledby="reportes-rango-titulo"
             className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-[1fr_1fr_1.2fr_auto] md:items-end lg:grid-cols-2"
@@ -132,4 +130,4 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
       </div>
     </section>
   )
-})
+}

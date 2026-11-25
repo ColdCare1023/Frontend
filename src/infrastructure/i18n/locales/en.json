@@ -1,5 +1,14 @@
 {
   "lectura": {
+    "tendenciasEquipo": "Trends and history",
+    "flotaActividad": "Device summary and activity",
+    "servicioRevisar": "Some components need attention",
+    "resumenTermico": "Statistics and excursions",
+    "analizarActividad": "Analyze activity",
+    "datosReporte": "View report breakdown",
+    "filtrarPeriodo": "Filter by period",
+    "estadoPreventivoDesconocido": "Could not confirm whether preventive classification is running.",
+    "vigenciaOrigen": "Validity and source",
     "tendencia": "View temperature trend",
     "ultimaMedicion": "Last reading: {{valor}} on {{fecha}}",
     "indicadores": "View indicators",
@@ -142,6 +151,9 @@
     "sinInferencia": "No AI inference for this reading"
   },
   "dashboard": {
+    "pestanaTendencia": "Trend",
+    "pestanaAhora": "Now",
+    "estadoEquiposCorto": "Devices",
     "titulo": "Refrigerator status",
     "descripcion": "Temperature, conditions and alerts that need attention.",
     "tempInterna": "Refrigerator temperature",
@@ -590,6 +602,7 @@
     }
   },
   "alertas": {
+    "actividadEstadisticas": "Recent activity and statistics",
     "titulo": "Alerts",
     "descripcion": "Review notices about conditions that may need attention.",
     "filtro": {
@@ -2498,6 +2511,7 @@
     }
   },
   "estadoVivo": {
+    "requiereAtencion": "Needs attention",
     "titulo": "Live status",
     "cargando": "Loading status…",
     "equipos": "Devices",

@@ -26,11 +26,11 @@ export function ColdCareBrandPanel({ className = '' }: ColdCareBrandPanelProps) 
       </div>
 
       <div className="relative mt-7 max-w-[620px] lg:mt-auto">
-        <h1 className="animate-rise text-[28px] leading-[1.05] font-semibold tracking-[-0.035em] sm:text-[34px] lg:text-[50px] xl:text-[58px]">
+        <p className="animate-rise text-[28px] leading-[1.05] font-semibold tracking-[-0.035em] sm:text-[34px] lg:text-[50px] xl:text-[58px]">
           {t('login.esloganLinea1')}
           <br />
           <span className="text-secondary">{t('login.esloganLinea2')}</span>
-        </h1>
+        </p>
         <details className="group mt-5 max-w-[44ch] text-white/80">
           <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-sm text-sm font-medium hover:text-white focus-visible:outline-2 focus-visible:outline-white [&::-webkit-details-marker]:hidden">
             {t('lectura.acerca')}

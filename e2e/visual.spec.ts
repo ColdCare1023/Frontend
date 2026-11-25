@@ -46,7 +46,7 @@ test('guía de uso dentro del shell oscuro', async ({ page }) => {
   // El título propio de la guía: el h1 del monitoreo sigue en pantalla mientras carga.
   await expect(page.getByRole('heading', { level: 1, name: 'Consulta y usa ColdCare' })).toBeVisible()
   // Espera la primera lectura antes de comparar la cabecera.
-  await expect(page.locator('header [data-pildora-estado]')).toHaveAccessibleName(/Refrigerador principal: [\d.,]+ °C/)
+  await expect(page.locator('header [data-pildora-estado]')).toHaveAccessibleName(/Requiere atención.*Refrigerador principal: [\d.,]+ °C/)
   await expect(page).toHaveScreenshot('guia-dark.png', {
     fullPage: true,
     animations: 'disabled',

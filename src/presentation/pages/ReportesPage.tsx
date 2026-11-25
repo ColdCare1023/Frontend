@@ -42,7 +42,6 @@ export function ReportesPage() {
   const [deviceId, setDeviceId] = useState('')
   const [autoPendiente, setAutoPendiente] = useState(MODO_DEMO)
   const autoLanzada = useRef(false)
-  const formulario = useRef<HTMLFormElement>(null)
 
   // Vista previa automática solo en demo, una sola vez (el ref protege del
   // doble efecto de StrictMode). Fuera de demo dejaría una exportación BPA
@@ -97,9 +96,8 @@ export function ReportesPage() {
     <div>
       <PageHeader titulo={t('reportes.titulo')} descripcion={t('reportes.descripcion')} />
       <div className="grid items-start gap-3 lg:grid-cols-12 xl:gap-4">
-        <div className="min-w-0 space-y-3 lg:col-span-5 xl:space-y-4">
+        <div className={`min-w-0 space-y-3 xl:space-y-4 ${reporte || generando || autoPendiente || mensajeError ? 'lg:col-span-5' : 'lg:col-span-8'}`}>
           <FormularioPeriodo
-            ref={formulario}
             desde={desde}
             hasta={hasta}
             deviceId={deviceId}
@@ -130,7 +128,6 @@ export function ReportesPage() {
           onCsv={descargarCsv}
           onJson={descargarJson}
           onReintentar={() => (reintentar ? reintentar() : enviar())}
-          onGenerar={() => formulario.current?.requestSubmit()}
           onUsar30={atajoDe(desde, hasta) === 'dias30' ? undefined : usar30}
         />
       </div>

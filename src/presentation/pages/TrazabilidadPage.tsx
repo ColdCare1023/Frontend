@@ -19,7 +19,7 @@ import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSiz
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
-import { BotonCopiar, ChipsFiltro, Dato, PlantillaBandeja, TarjetaRail, type Chip } from '../components/registros/piezas'
+import { BotonCopiar, ChipsFiltro, Dato, type Chip } from '../components/registros/piezas'
 import { CeldaRegistro, EncabezadoRegistro, TablaRegistros } from '../components/registros/TablaRegistros'
 import { idBotonFila } from '../components/registros/ids'
 import { Badge } from '../components/ui/badge'
@@ -362,7 +362,10 @@ export function TrazabilidadPage() {
                       setSegmentoDesde(dia)
                       setSegmentoHasta(dia)
                       setFaltaDesde(false)
-                      requestAnimationFrame(() => document.getElementById('seg-enviar')?.focus())
+                      const enviar = document.getElementById('seg-enviar')
+                      const panel = enviar?.closest('details')
+                      if (panel) panel.open = true
+                      requestAnimationFrame(() => enviar?.focus())
                     }
                   : undefined
               }
@@ -379,139 +382,126 @@ export function TrazabilidadPage() {
     <div className="space-y-4">
       <PageHeader titulo={t('trazabilidad.titulo')} descripcion={t('trazabilidad.descripcion')} meta={meta} />
 
-      <PlantillaBandeja
-        etiquetaRail={t('trazabilidad.rail')}
-        superior={
-          <>
-            <VeredictoCadena
-              verificacion={verificacion}
-              estadoCadena={estadoCadena}
-              verificando={verificando}
-              registros={registros}
-              onVerificar={verificarCadena}
-              onAislar={puedeAislar ? () => setConfirmarAislar(true) : undefined}
-              onVerEnTabla={detalle ? () => irAFila(detalle.id) : undefined}
-              selectorCadena={selectorCadena}
-              error={mensajeVerificacion}
-            />
-            {fueraDeLista && (
-              <p role="status" className="flex flex-wrap items-center gap-2 text-meta text-muted">
-                {t('trazabilidad.veredicto.fueraDeLista', { n: registros.length })}
-                {hayFiltros && (
-                  <Button variant="ghost" size="sm" onClick={() => consultarCon('', '')}>
-                    {t('trazabilidad.veredicto.verTodosLosTipos')}
-                  </Button>
-                )}
-              </p>
-            )}
-          </>
-        }
-        rail={
-          <>
-            {/* ── HU-37: verificación acotada a un dispositivo y periodo ── */}
-            <TarjetaRail titulo={t('trazabilidad.verificarSegmento')}>
-              <form aria-label={t('trazabilidad.verificarSegmento')} className="grid gap-3" onSubmit={(e) => { e.preventDefault(); verificarSegmento() }}>
-                <div>
-                  <Label htmlFor="seg-device">{t('historial.dispositivo')}</Label>
-                  <Input id="seg-device" list={`${idEquipos}-seg`} value={segmentoDeviceId} onChange={(e) => setSegmentoDeviceId(e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} required />
-                  <datalist id={`${idEquipos}-seg`}>{equiposVistos.map((d) => <option key={d} value={d} />)}</datalist>
-                </div>
-                <div>
-                  <Label htmlFor="seg-desde">{t('historial.desde')}</Label>
-                  <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
-                    <SelectorFecha id="seg-desde" valor={segmentoDesde} onCambiar={setSegmentoDesde} invalido={(faltaDesde && !segmentoDesde) || segmentoInvertido} aria-describedby="segmento-desde-ayuda" />
-                    <Input
-                      id="seg-desde-hora"
-                      type="time"
-                      step={60}
-                      className="nums"
-                      value={segmentoHoraDesde}
-                      onChange={(e) => setSegmentoHoraDesde(e.target.value)}
-                      aria-label={t('trazabilidad.horaDesde')}
-                      aria-invalid={segmentoInvertido || undefined}
-                      aria-describedby="segmento-desde-ayuda"
-                    />
-                  </div>
-                  <p id="segmento-desde-ayuda" className="mt-1 text-meta text-faint">{t('trazabilidad.desdeAyuda')}</p>
-                </div>
-                <div>
-                  <Label htmlFor="seg-hasta">{t('historial.hasta')}</Label>
-                  <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
-                    <SelectorFecha id="seg-hasta" valor={segmentoHasta} onCambiar={setSegmentoHasta} invalido={segmentoInvertido} aria-describedby="segmento-hasta-ayuda" />
-                    <Input
-                      id="seg-hasta-hora"
-                      type="time"
-                      step={60}
-                      className="nums"
-                      value={segmentoHoraHasta}
-                      onChange={(e) => setSegmentoHoraHasta(e.target.value)}
-                      disabled={!segmentoHasta}
-                      aria-label={t('trazabilidad.horaHasta')}
-                      aria-invalid={segmentoInvertido || undefined}
-                      aria-describedby="segmento-hasta-ayuda"
-                    />
-                  </div>
-                  <p id="segmento-hasta-ayuda" className="mt-1 text-meta text-faint">{t('trazabilidad.hastaOpcional')}</p>
-                </div>
-                <Button id="seg-enviar" type="submit" variant="secondary" disabled={verificandoSegmento || segmentoInvertido} className="w-full">
-                  {verificandoSegmento ? t('trazabilidad.verificando') : t('trazabilidad.verificarSegmentoBoton')}
-                </Button>
-              </form>
-              {mensajeSegmento && (
-                <p role="alert" className="mt-3 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-meta text-critical">{mensajeSegmento}</p>
-              )}
-              {verificacionSegmento && <ResultadoSegmento resultado={verificacionSegmento} />}
-              <Detalles className="mt-2" titulo={t('trazabilidad.segmento.queRevisa')}>
-                <div className="space-y-2 text-meta text-muted">
-                  <p>{t('trazabilidad.cadenaExplicacion')}</p>
-                  {verificacionSegmento && <AlcanceVerificacion texto={verificacionSegmento.alcance} />}
-                </div>
-              </Detalles>
-            </TarjetaRail>
-            {composicion.length > 0 && (
-              <SeccionDetalle titulo={t('trazabilidad.composicion.titulo')}>
-                <TarjetaRail titulo={t('trazabilidad.composicion.titulo')}>
-                  <ul className="-mx-2 space-y-0.5">
-                    {composicion.map(([tipo, n]) => {
-                      const Icono = iconoEvento(tipo)
-                      const activo = tipoEvento === tipo
-                      return (
-                        <li key={tipo}>
-                          <button
-                            type="button"
-                            aria-pressed={activo}
-                            aria-label={`${t('trazabilidad.composicion.filtrar', { tipo: etiquetaEvento(tipo, t) })}: ${n}`}
-                            onClick={() => consultarCon(activo ? '' : tipo, equipoAplicado)}
-                            className={cn(
-                              'flex min-h-10 w-full cursor-pointer flex-col justify-center gap-1 rounded-(--radius-field) px-2 py-1.5 text-left transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring',
-                              activo && 'bg-primary-tint hover:bg-primary-tint',
-                            )}
-                          >
-                            <span className="flex w-full items-center gap-2 text-body">
-                              <Icono aria-hidden className="size-4 shrink-0 text-muted" />
-                              <span className="min-w-0 flex-1 truncate text-foreground">{etiquetaEvento(tipo, t)}</span>
-                              <span className="nums text-meta text-muted">{n}</span>
-                            </span>
-                            <span aria-hidden className="block h-1 w-full overflow-hidden rounded-full bg-surface-sunken">
-                              <span className="block h-full w-full origin-left rounded-full bg-border-strong" style={{ transform: `scaleX(${n / maxComposicion})` }} />
-                            </span>
-                          </button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </TarjetaRail>
-              </SeccionDetalle>
-            )}
-          </>
-        }
-        inferior={
-          <div className="superficie overflow-clip">
-            {barra}
-            {tabla}
-          </div>
-        }
+      <VeredictoCadena
+        verificacion={verificacion}
+        estadoCadena={estadoCadena}
+        verificando={verificando}
+        registros={registros}
+        onVerificar={verificarCadena}
+        onAislar={puedeAislar ? () => setConfirmarAislar(true) : undefined}
+        onVerEnTabla={detalle ? () => irAFila(detalle.id) : undefined}
+        selectorCadena={selectorCadena}
+        error={mensajeVerificacion}
       />
+      {fueraDeLista && (
+        <p role="status" className="flex flex-wrap items-center gap-2 text-meta text-muted">
+          {t('trazabilidad.veredicto.fueraDeLista', { n: registros.length })}
+          {hayFiltros && (
+            <Button variant="ghost" size="sm" onClick={() => consultarCon('', '')}>
+              {t('trazabilidad.veredicto.verTodosLosTipos')}
+            </Button>
+          )}
+        </p>
+      )}
+      <aside aria-label={t('trazabilidad.rail')} className="grid items-start gap-2 lg:grid-cols-2">
+        {/* ── HU-37: verificación acotada a un dispositivo y periodo ── */}
+        <SeccionDetalle titulo={t('trazabilidad.verificarSegmento')}>
+          <form aria-label={t('trazabilidad.verificarSegmento')} className="grid gap-3" onSubmit={(e) => { e.preventDefault(); verificarSegmento() }}>
+            <div>
+              <Label htmlFor="seg-device">{t('historial.dispositivo')}</Label>
+              <Input id="seg-device" list={`${idEquipos}-seg`} value={segmentoDeviceId} onChange={(e) => setSegmentoDeviceId(e.target.value)} placeholder={t('historial.codigoEquipoEjemplo')} required />
+              <datalist id={`${idEquipos}-seg`}>{equiposVistos.map((d) => <option key={d} value={d} />)}</datalist>
+            </div>
+            <div>
+              <Label htmlFor="seg-desde">{t('historial.desde')}</Label>
+              <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
+                <SelectorFecha id="seg-desde" valor={segmentoDesde} onCambiar={setSegmentoDesde} invalido={(faltaDesde && !segmentoDesde) || segmentoInvertido} aria-describedby="segmento-desde-ayuda" />
+                <Input
+                  id="seg-desde-hora"
+                  type="time"
+                  step={60}
+                  className="nums"
+                  value={segmentoHoraDesde}
+                  onChange={(e) => setSegmentoHoraDesde(e.target.value)}
+                  aria-label={t('trazabilidad.horaDesde')}
+                  aria-invalid={segmentoInvertido || undefined}
+                  aria-describedby="segmento-desde-ayuda"
+                />
+              </div>
+              <p id="segmento-desde-ayuda" className="mt-1 text-meta text-faint">{t('trazabilidad.desdeAyuda')}</p>
+            </div>
+            <div>
+              <Label htmlFor="seg-hasta">{t('historial.hasta')}</Label>
+              <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
+                <SelectorFecha id="seg-hasta" valor={segmentoHasta} onCambiar={setSegmentoHasta} invalido={segmentoInvertido} aria-describedby="segmento-hasta-ayuda" />
+                <Input
+                  id="seg-hasta-hora"
+                  type="time"
+                  step={60}
+                  className="nums"
+                  value={segmentoHoraHasta}
+                  onChange={(e) => setSegmentoHoraHasta(e.target.value)}
+                  disabled={!segmentoHasta}
+                  aria-label={t('trazabilidad.horaHasta')}
+                  aria-invalid={segmentoInvertido || undefined}
+                  aria-describedby="segmento-hasta-ayuda"
+                />
+              </div>
+              <p id="segmento-hasta-ayuda" className="mt-1 text-meta text-faint">{t('trazabilidad.hastaOpcional')}</p>
+            </div>
+            <Button id="seg-enviar" type="submit" variant="secondary" disabled={verificandoSegmento || segmentoInvertido} className="w-full">
+              {verificandoSegmento ? t('trazabilidad.verificando') : t('trazabilidad.verificarSegmentoBoton')}
+            </Button>
+          </form>
+          {mensajeSegmento && (
+            <p role="alert" className="mt-3 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-meta text-critical">{mensajeSegmento}</p>
+          )}
+          {verificacionSegmento && <ResultadoSegmento resultado={verificacionSegmento} />}
+          <Detalles className="mt-2" titulo={t('trazabilidad.segmento.queRevisa')}>
+            <div className="space-y-2 text-meta text-muted">
+              <p>{t('trazabilidad.cadenaExplicacion')}</p>
+              {verificacionSegmento && <AlcanceVerificacion texto={verificacionSegmento.alcance} />}
+            </div>
+          </Detalles>
+        </SeccionDetalle>
+        {composicion.length > 0 && (
+          <SeccionDetalle titulo={t('trazabilidad.composicion.titulo')}>
+              <ul className="-mx-2 space-y-0.5">
+                {composicion.map(([tipo, n]) => {
+                  const Icono = iconoEvento(tipo)
+                  const activo = tipoEvento === tipo
+                  return (
+                    <li key={tipo}>
+                      <button
+                        type="button"
+                        aria-pressed={activo}
+                        aria-label={`${t('trazabilidad.composicion.filtrar', { tipo: etiquetaEvento(tipo, t) })}: ${n}`}
+                        onClick={() => consultarCon(activo ? '' : tipo, equipoAplicado)}
+                        className={cn(
+                          'flex min-h-10 w-full cursor-pointer flex-col justify-center gap-1 rounded-(--radius-field) px-2 py-1.5 text-left transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring',
+                          activo && 'bg-primary-tint hover:bg-primary-tint',
+                        )}
+                      >
+                        <span className="flex w-full items-center gap-2 text-body">
+                          <Icono aria-hidden className="size-4 shrink-0 text-muted" />
+                          <span className="min-w-0 flex-1 truncate text-foreground">{etiquetaEvento(tipo, t)}</span>
+                          <span className="nums text-meta text-muted">{n}</span>
+                        </span>
+                        <span aria-hidden className="block h-1 w-full overflow-hidden rounded-full bg-surface-sunken">
+                          <span className="block h-full w-full origin-left rounded-full bg-border-strong" style={{ transform: `scaleX(${n / maxComposicion})` }} />
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+          </SeccionDetalle>
+        )}
+      </aside>
+      <div className="superficie overflow-clip">
+        {barra}
+        {tabla}
+      </div>
 
       {/* Aislar un registro inconsistente es irreversible: siempre con confirmación. */}
       <Dialog open={confirmarAislar} onOpenChange={(abierto) => { setConfirmarAislar(abierto); if (!abierto) setErrorAislar(null) }}>

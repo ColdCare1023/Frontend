@@ -5,8 +5,17 @@ import { cerrarSesion } from './helpers'
 test('login móvil mantiene formulario legible y controles operables', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/login')
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+
+  const marca = page.getByRole('button', { name: 'Acerca de ColdCare' })
+  await marca.click()
+  const acerca = page.getByRole('dialog', { name: 'Acerca de ColdCare' })
+  await expect(acerca).toContainText('Vigila tus equipos, recibe alertas a tiempo')
+  await expect(acerca).toContainText('Rango térmico de referencia · 2–8 °C')
+  await page.keyboard.press('Escape')
+  await expect(acerca).toHaveCount(0)
+  await expect(marca).toBeFocused()
 
   const password = page.locator('#login-password')
   await password.fill('demo-2026')
@@ -31,7 +40,7 @@ test('sesión demo vive solo en memoria y recarga exige volver a ingresar', asyn
 
   await page.reload()
   await expect(page).toHaveURL(/\/login$/)
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
 })
 
 test('login real de demo pide el código por correo y limita intentos sin revelar cuenta', async ({ page }) => {
@@ -72,7 +81,7 @@ test('el código demo se aplica con un clic y «Usar otra cuenta» vuelve al for
   await expect(page.getByRole('heading', { name: 'Revisa tu correo' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Usar otra cuenta' }).click()
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
   await expect(page.locator('#login-email')).toHaveValue('auditor@demo.pe')
   // «Usar otra cuenta» enfoca el correo (seleccionado: escribir lo reemplaza).
   await expect(page.locator('#login-email')).toBeFocused()
@@ -108,7 +117,7 @@ test('recuperación y activación por código en la demo', async ({ page }) => {
   await page.getByRole('button', { name: 'Activar cuenta' }).click()
   await expect(page.getByRole('heading', { name: 'Cuenta activada' })).toBeVisible()
   await page.getByRole('link', { name: 'Ir a iniciar sesión' }).click()
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
 })
 
 // FE-001: ya no existen botones sociales simulados. Sin VITE_GOOGLE_CLIENT_ID

@@ -11,8 +11,6 @@ import { formatearTemperatura } from '../../components/ui/formato-cifra'
 import { Regla } from '../../components/ui/regla'
 import { CONCEPTOS, GRUPOS, SECCIONES, type PasoId } from './contenidoGuia'
 
-const ENLACE = 'inline-flex items-center gap-1 text-meta font-medium text-primary-text underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded-sm'
-
 function Rutina() {
   const { t } = useTranslation()
   const pasos = [
@@ -21,18 +19,17 @@ function Rutina() {
     ['historial', History, '/historial', 'guia.pantallas.historial.titulo'],
   ] as const
   return (
-    <ol className="grid gap-4 sm:grid-cols-3">
-      {pasos.map(([paso, Icono, ruta, pantalla], i) => (
-        <li key={paso} className="flex flex-col gap-1">
-          <span className="flex items-center gap-2">
-            <span className="nums text-meta text-faint">{String(i + 1).padStart(2, '0')}</span>
-            <Icono aria-hidden className="size-[18px] text-faint" />
-          </span>
-          <h3 className="text-body font-semibold text-foreground">{t(`guia.pasos.${paso}.titulo`)}</h3>
-          <p className="text-meta text-muted">{t(`guia.pasos.${paso}.descripcion`)}</p>
-          <Link to={ruta} className={ENLACE}>
-            {t('guia.abrirPantalla', { pantalla: t(pantalla) })}
-            <ArrowRight aria-hidden className="size-3.5" />
+    <ol className="divide-y divide-border">
+      {pasos.map(([paso, Icono, ruta, pantalla]) => (
+        <li key={paso}>
+          <Link to={ruta} className="group flex min-h-14 items-center gap-3 rounded-(--radius-field) px-2 py-2.5 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring">
+            <Icono aria-hidden className="size-4 shrink-0 text-muted" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-body font-semibold text-foreground group-hover:underline">{t(`guia.pasos.${paso}.titulo`)}</span>
+              <span className="block text-meta text-muted">{t(`guia.pasos.${paso}.descripcion`)}</span>
+              <span className="sr-only">{t('guia.abrirPantalla', { pantalla: t(pantalla) })}</span>
+            </span>
+            <ArrowRight aria-hidden className="size-4 shrink-0 text-primary-text" />
           </Link>
         </li>
       ))}

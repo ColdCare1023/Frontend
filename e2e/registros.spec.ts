@@ -24,6 +24,7 @@ test('historial agrupa por día, expande una lectura y abre el origen del riesgo
 test('auditoría: el auditor filtra por resultado en el servidor y expande una fila con IP y recurso', async ({ page }) => {
   await entrar(page, 'Auditor Consulta de registros')
   await irA(page, '/auditoria')
+  await page.getByRole('button', { name: 'Filtros', exact: true }).click()
   await page.getByLabel('Resultado', { exact: true }).selectOption('fallido')
   await expect(page.getByText('Resultado: Fallido', { exact: true })).toBeVisible()
   const tabla = page.locator('[role="region"][aria-label="Bitácora de auditoría"]')

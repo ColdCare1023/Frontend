@@ -35,6 +35,7 @@ test('HU-36: la curva y el resumen cubren el periodo y la tabla pagina en el ser
 test('HU-36 esc. 2: un rango sin telemetría muestra el texto literal del criterio', async ({ page }) => {
   await entrar(page, 'Químico Farmacéutico')
   await irA(page, '/historial')
+  await page.getByRole('button', { name: 'Filtros', exact: true }).click()
   await page.getByLabel('Desde', { exact: true }).fill('2020-01-01T00:00')
   await page.getByLabel('Hasta', { exact: true }).fill('2020-01-02T00:00')
   await page.getByRole('button', { name: 'Aplicar filtros' }).click()
@@ -60,6 +61,7 @@ test('HU-37: una lectura alterada en el periodo se rotula «Corrupta» con su ID
   await page.getByRole('button', { name: 'Simular inconsistencia (demo)' }).click()
   await expect(page.getByText('Alteración detectada')).toBeVisible()
   const dia = (f: Date) => `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`
+  await page.locator('summary').filter({ hasText: 'Verificar por dispositivo y periodo' }).click()
   await page.locator('#seg-device').fill('FARM-01-CDL')
   await page.locator('#seg-desde').fill(dia(new Date(Date.now() - 8 * 86_400_000)))
   await page.locator('#seg-hasta').fill(dia(new Date()))
@@ -91,6 +93,7 @@ test('HU-49: el auditor consulta el historial de configuración con actor y vige
 test('HU-50: el administrador filtra eventos bloqueados y ve el umbral de intentos', async ({ page }) => {
   await entrar(page, 'Administrador')
   await irA(page, '/auditoria')
+  await page.getByRole('button', { name: 'Filtros', exact: true }).click()
   await page.getByLabel('Resultado', { exact: true }).selectOption('bloqueado')
   await expect(page.getByText('Resultado: Bloqueado', { exact: true })).toBeVisible()
   const tabla = page.locator('[role="region"][aria-label="Bitácora de auditoría"]')

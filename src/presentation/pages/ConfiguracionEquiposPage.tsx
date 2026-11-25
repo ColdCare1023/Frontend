@@ -90,7 +90,7 @@ export function ConfiguracionEquiposPage() {
       <form
         role="search"
         aria-label={t('configuracionEquipos.filtro.etiqueta')}
-        className="grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4 2xl:grid-cols-4"
+        className="grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4"
         onSubmit={(e) => {
           e.preventDefault()
           consultarCon(equipo, filtros)
@@ -115,20 +115,22 @@ export function ConfiguracionEquiposPage() {
             {CATEGORIAS_HISTORIAL.map((c) => <option key={c} value={c}>{t(`configuracionEquipos.categorias.${c}`)}</option>)}
           </NativeSelect>
         </div>
-        <div className="min-w-0">
-          <Label htmlFor="cfg-desde" className="text-meta text-muted">{t('historial.desde')}</Label>
-          <SelectorFecha id="cfg-desde" conHora valor={filtros.desde ?? ''} onCambiar={(valor) => setFiltros((f) => ({ ...f, desde: valor || undefined }))} invalido={errorRango} aria-describedby={errorRango ? 'cfg-error-rango' : undefined} />
-        </div>
-        <div className="min-w-0">
-          <Label htmlFor="cfg-hasta" className="text-meta text-muted">{t('historial.hasta')}</Label>
-          <SelectorFecha id="cfg-hasta" conHora valor={filtros.hasta ?? ''} onCambiar={(valor) => setFiltros((f) => ({ ...f, hasta: valor || undefined }))} invalido={errorRango} aria-describedby={errorRango ? 'cfg-error-rango' : undefined} />
-        </div>
-        <div className="col-span-full flex flex-wrap items-center gap-2">
-          <Button type="submit" size="sm" disabled={!equipo}>{t('historial.aplicar')}</Button>
-          <span aria-live="polite" className="nums ml-auto text-meta text-faint">
-            {cargando ? t('comunes.consultando') : aplicados ? t('configuracionEquipos.resultados', { count: cambios.length }) : ''}
-          </span>
-        </div>
+        <details className="col-span-full">
+          <summary className="min-h-10 w-fit cursor-pointer content-center text-body font-medium text-subtle">{t('lectura.filtrarPeriodo')}</summary>
+          <div className="grid items-end gap-3 pb-2 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
+            <div className="min-w-0">
+              <Label htmlFor="cfg-desde" className="text-meta text-muted">{t('historial.desde')}</Label>
+              <SelectorFecha id="cfg-desde" conHora valor={filtros.desde ?? ''} onCambiar={(valor) => setFiltros((f) => ({ ...f, desde: valor || undefined }))} invalido={errorRango} aria-describedby={errorRango ? 'cfg-error-rango' : undefined} />
+            </div>
+            <div className="min-w-0">
+              <Label htmlFor="cfg-hasta" className="text-meta text-muted">{t('historial.hasta')}</Label>
+              <SelectorFecha id="cfg-hasta" conHora valor={filtros.hasta ?? ''} onCambiar={(valor) => setFiltros((f) => ({ ...f, hasta: valor || undefined }))} invalido={errorRango} aria-describedby={errorRango ? 'cfg-error-rango' : undefined} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="submit" size="sm" disabled={!equipo}>{t('historial.aplicar')}</Button>
+            </div>
+          </div>
+        </details>
       </form>
       {errorRango && (
         <p id="cfg-error-rango" role="alert" className="mx-3 mt-2.5 rounded-(--radius-field) bg-critical-tint px-3 py-2 text-meta text-critical sm:mx-4">
@@ -156,6 +158,7 @@ export function ConfiguracionEquiposPage() {
   ) : (
     <div className="p-3 sm:p-4">
       <LineaTiempoCambios
+        resumir
         cambios={cambios}
         cargando={cargando}
         vacio={chips.length > 0 ? t('configuracionEquipos.vacioFiltros') : t('dispositivos.sinHistorial')}
@@ -165,29 +168,31 @@ export function ConfiguracionEquiposPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader titulo={t('configuracionEquipos.titulo')} descripcion={t('configuracionEquipos.descripcion')} meta={aplicados ? aplicados.equipo : undefined} />
-
-      {aplicados && !error && cambios.length > 0 && (
-        <TiraEstado
-          etiqueta={t('configuracionEquipos.resumen.etiqueta')}
-          segmentos={[
-            { clave: 'cambios', etiqueta: t('configuracionEquipos.resumen.cambios'), valor: cambios.length },
-            { clave: 'vigentes', etiqueta: t('configuracionEquipos.resumen.vigentes'), valor: vigentes },
-            { clave: 'actores', etiqueta: t('configuracionEquipos.resumen.actores'), valor: actores },
-          ]}
-        />
-      )}
+      <PageHeader titulo={t('configuracionEquipos.titulo')} descripcion={t('configuracionEquipos.descripcion')} />
 
       <section aria-labelledby="cfg-historial-titulo" className="superficie overflow-clip">
         <h2 id="cfg-historial-titulo" className="flex items-center gap-2 px-3 pt-3 text-title text-foreground sm:px-4">
           <History aria-hidden className="size-4 text-muted" />
           {t('configuracionEquipos.cambiosRegistrados')}
+          <span aria-live="polite" className="nums ml-auto text-meta text-faint">
+            {cargando ? t('comunes.consultando') : aplicados ? t('configuracionEquipos.resultados', { count: cambios.length }) : ''}
+          </span>
         </h2>
         {barra}
         {contenido}
       </section>
       <aside aria-label={t('configuracionEquipos.rail.etiqueta')}>
         <SeccionDetalle titulo={t('lectura.registro')}>
+          {aplicados && !error && cambios.length > 0 && (
+            <TiraEstado
+              etiqueta={t('configuracionEquipos.resumen.etiqueta')}
+              segmentos={[
+                { clave: 'cambios', etiqueta: t('configuracionEquipos.resumen.cambios'), valor: cambios.length },
+                { clave: 'vigentes', etiqueta: t('configuracionEquipos.resumen.vigentes'), valor: vigentes },
+                { clave: 'actores', etiqueta: t('configuracionEquipos.resumen.actores'), valor: actores },
+              ]}
+            />
+          )}
           <TarjetaRail titulo={t('configuracionEquipos.rail.soloLectura')}>
             <p className="flex items-start gap-2 text-body text-subtle">
               <Lock aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />

@@ -18,6 +18,7 @@ test('HU-30: el Químico Farmacéutico registra la calibración y ve la vencida 
   await entrarComo(page, 'Químico Farmacéutico')
 
   // Ficha del equipo en Monitoreo: el QF no entra a Dispositivos (solo admin).
+  await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
   await page.getByRole('button', { name: 'Detalles', exact: true }).click()
   const panel = page.getByRole('dialog')
   await panel.getByRole('button', { name: 'Registrar calibración' }).click()
@@ -33,6 +34,7 @@ test('HU-30: el Químico Farmacéutico registra la calibración y ve la vencida 
   await panel.getByRole('button', { name: 'Cerrar' }).first().click()
 
   // La curva del equipo en pantalla avisa de la condición documental.
+  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await expect(page.getByRole('note').filter({ hasText: 'La calibración del sensor venció' })).toBeVisible()
 
   await irA(page, '/historial?device_id=FARM-01-CDL')
@@ -43,6 +45,7 @@ test('HU-30: el Químico Farmacéutico registra la calibración y ve la vencida 
 test('HU-46 / P-12: el administrador ve el rechazo 409, registra, activa y desactiva una versión del modelo', async ({ page }) => {
   await entrarComo(page, 'Administrador')
   await irA(page, '/metricas-ia')
+  await page.locator('summary').filter({ hasText: 'Versiones del modelo' }).click()
   const seccion = page.getByRole('region', { name: 'Versiones del modelo' })
   await expect(seccion.getByTestId('version-modelo-demo-3.0.0')).toContainText('No activable')
   // HU-20 / HU-46: sin versión activa en el registro, la clasificación preventiva no opera
@@ -115,6 +118,7 @@ test('HU-46 / P-12: el administrador ve el rechazo 409, registra, activa y desac
 test('HU-46: el auditor consulta las versiones en solo lectura; el QF no las ve', async ({ page }) => {
   await entrarComo(page, 'Auditor Consulta de registros')
   await irA(page, '/metricas-ia')
+  await page.locator('summary').filter({ hasText: 'Versiones del modelo' }).click()
   const seccion = page.getByRole('region', { name: 'Versiones del modelo' })
   await expect(seccion.getByTestId('version-modelo-demo-3.0.0')).toBeVisible()
   await expect(seccion).toContainText('Solo lectura')

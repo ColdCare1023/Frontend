@@ -1,6 +1,4 @@
-import { useCoincideMedia } from '../hooks/useCoincideMedia'
-import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlaskConical } from 'lucide-react'
 
@@ -16,6 +14,9 @@ import { resumenCombinado } from '@/domain/entities/SerieTermica'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
+import { PanelPestana, Pestanas } from '../components/ui/pestanas'
+import { idPestana } from '../components/ui/pestanas-ids'
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useVencido } from '../hooks/useReloj'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
 import { PageHeader } from '../components/PageHeader'
@@ -35,17 +36,11 @@ import { condicionesLineaEstado } from './dashboard/condicionesLinea'
 import { useEquipoSeleccionado } from './dashboard/useEquipoSeleccionado'
 import { ROLES_SIMULADOR, resumenVentana } from './dashboard/utilidades'
 
-/** La entrada escalonada del bento ocurre una vez por sesión (MOTION 4.12). */
-let bentoYaEntro = false
+type VistaMonitoreo = 'actual' | 'tendencia' | 'equipos' | 'alertas'
 
-/**
- * Monitoreo (P5c): un bento de siete celdas con un solo foco, la cifra. La
- * página orquesta datos y selección; cada celda vive en `dashboard/` y se
- * memoriza para que una lectura SSE no repinte lo que no cambió.
- */
 export function DashboardPage() {
   const { t } = useTranslation()
-  const esMovil = useCoincideMedia('(max-width: 639px)')
+  const [vista, setVista] = useState<VistaMonitoreo>('actual')
   const rol = useAuthStore((s) => s.usuario?.rol)
   const [horasVentana, setHorasVentana] = useState<number>(24)
   // HU-31/HU-33: el dashboard muestra UN refrigerador a la vez. Por defecto,
@@ -66,11 +61,6 @@ export function DashboardPage() {
   const flota = equipos
   const estadoIoTPrincipal =
     flota.find((equipo) => equipo.id === deviceId) ?? flota.find((equipo) => equipo.id === (deviceId ?? DISPOSITIVO_DEMO))
-
-  const [animarBento] = useState(() => !bentoYaEntro)
-  useEffect(() => {
-    bentoYaEntro = true
-  }, [])
 
   // HU-32 criterio 4 / HU-33 criterio 2: «hace cuánto» avanza aunque no
   // llegue lectura nueva. El segundo vive en las celdas que lo muestran
@@ -135,12 +125,19 @@ export function DashboardPage() {
     setDetalleId(id)
   }, [])
   const cerrarDetalle = useCallback(() => setDetalleId(null), [])
+  const mostrarLectura = useCallback((id: string) => {
+    setEquipoElegido(id)
+    setVista('actual')
+    const pestana = document.getElementById(idPestana('monitor', 'actual'))
+    pestana?.focus({ preventScroll: true })
+    return pestana
+  }, [setEquipoElegido])
   const mostrarDesdePanel = useCallback(
     (id: string) => {
-      setEquipoElegido(id)
+      origenPanel.current = mostrarLectura(id)
       setDetalleId(null)
     },
-    [setEquipoElegido],
+    [mostrarLectura],
   )
 
   const actualizarDemo = useCallback(async () => {
@@ -190,7 +187,6 @@ export function DashboardPage() {
       <PageHeader
         eyebrow={t('nav.seccionOperacion')}
         titulo={t('dashboard.titulo')}
-        descripcion={t('dashboard.descripcion')}
         meta={flota.length > 0 ? t('dashboard.encabezadoMeta', { count: flota.length }) : undefined}
       >
         {puedeSimular && (
@@ -217,55 +213,70 @@ export function DashboardPage() {
         onReintentar={alertas.reintentar}
       />
 
-      <div
-        className={
-          'grid grid-cols-4 gap-3 sm:grid-cols-8 lg:grid-cols-12 lg:grid-rows-[minmax(136px,auto)_minmax(136px,auto)_auto_auto] xl:gap-4' +
-          (animarBento ? ' bento-entra' : '')
-        }
-      >
-        <CeldaLectura
-          ultima={ultima}
-          estadoHistorial={estadoHistorial}
-          reintentar={reintentar}
-          equipos={equipos}
-          deviceId={deviceId}
-          onElegirEquipo={elegir}
-          desactualizado={datoDesactualizado}
-          sseConectado={sseConectado}
-          motivoDesconexion={motivoDesconexion}
-          extremos={extremos}
-          ventana={ventana}
-        />
-        <CeldaCondiciones
-          ultima={ultima}
-          serie={serie}
-          cargando={estadoHistorial === 'cargando'}
-          desactualizado={datoDesactualizado}
-          ventana={ventana}
-          horasVentana={horasVentana}
-          umbralPuertaEquipo={estadoIoTPrincipal?.umbral_puerta_abierta_segundos ?? null}
-          recorte={recorte}
-          puertaEnVivo={puertaEnVivo && (!ultima || puertaEnVivo.device_id === ultima.device_id) ? puertaEnVivo : null}
-        />
-        {esMovil && bandeja}
-        <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
-        {esMovil ? (
-          <SeccionDetalle titulo={t('lectura.tendencia')} className="col-span-full">
+      <Pestanas<VistaMonitoreo>
+        idBase="monitor"
+        valor={vista}
+        onCambiar={setVista}
+        etiqueta={t('nav.dashboard')}
+        pestanas={[
+          { valor: 'actual', etiqueta: t('dashboard.pestanaAhora') },
+          { valor: 'tendencia', etiqueta: t('dashboard.pestanaTendencia') },
+          { valor: 'equipos', etiqueta: t('dashboard.estadoEquiposCorto', 'Equipos') },
+          { valor: 'alertas', etiqueta: t('nav.alertas') },
+        ]}
+      />
+      <PanelPestana idBase="monitor" valor={vista} className="mt-4 min-w-0">
+        {vista === 'actual' && (
+          <div className="superficie grid overflow-hidden lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] [&>section]:col-span-1 [&>section]:row-span-1 [&>section]:rounded-none [&>section]:border-0 [&>section]:shadow-none lg:[&>section+section]:border-l lg:[&>section+section]:border-border">
+            <CeldaLectura
+              ultima={ultima}
+              estadoHistorial={estadoHistorial}
+              reintentar={reintentar}
+              equipos={equipos}
+              deviceId={deviceId}
+              onElegirEquipo={elegir}
+              desactualizado={datoDesactualizado}
+              sseConectado={sseConectado}
+              motivoDesconexion={motivoDesconexion}
+              extremos={extremos}
+              ventana={ventana}
+            />
+            <CeldaCondiciones
+              ultima={ultima}
+              serie={serie}
+              cargando={estadoHistorial === 'cargando'}
+              desactualizado={datoDesactualizado}
+              ventana={ventana}
+              horasVentana={horasVentana}
+              umbralPuertaEquipo={estadoIoTPrincipal?.umbral_puerta_abierta_segundos ?? null}
+              recorte={recorte}
+              puertaEnVivo={puertaEnVivo && (!ultima || puertaEnVivo.device_id === ultima.device_id) ? puertaEnVivo : null}
+            />
+          </div>
+        )}
+        {vista === 'tendencia' && (
+          <div className="space-y-3">
+            {deviceId && <p className="text-body font-medium text-subtle">{nombres.get(deviceId) || deviceId}</p>}
             {curva}
-          </SeccionDetalle>
-        ) : curva}
-        <CeldaEstadoEquipos
-          equipos={flota}
-          deviceId={deviceId}
-          temperaturas={temperaturas}
-          onElegir={elegir}
-          onVerDetalles={verDetalles}
-        />
-        {!esMovil && bandeja}
-        <SeccionDetalle titulo={t('lectura.recientes')} className="col-span-full">
-          <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
-        </SeccionDetalle>
-      </div>
+            <SeccionDetalle titulo={t('lectura.recientes')} className="col-span-full">
+              <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
+            </SeccionDetalle>
+          </div>
+        )}
+        {vista === 'equipos' && (
+          <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] [&>section]:col-span-1">
+            <CeldaEstadoEquipos
+              equipos={flota}
+              deviceId={deviceId}
+              temperaturas={temperaturas}
+              onElegir={mostrarLectura}
+              onVerDetalles={verDetalles}
+            />
+            <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
+          </div>
+        )}
+        {vista === 'alertas' && bandeja}
+      </PanelPestana>
 
       <PanelDetalleEquipo
         equipo={equipoDetalle}

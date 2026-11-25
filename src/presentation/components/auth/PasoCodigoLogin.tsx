@@ -214,9 +214,9 @@ export function PasoCodigoLogin({
         <div className="mb-5 flex size-11 items-center justify-center rounded-xl bg-primary-tint text-primary ring-1 ring-inset ring-primary/15">
           <MailCheck className="size-5" aria-hidden />
         </div>
-        <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
+        <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
           {t('loginCodigo.titulo')}
-        </h2>
+        </h1>
         <p id="login-codigo-ayuda" className="mt-2 text-[15px] leading-6 text-muted">
           <Trans
             i18nKey="loginCodigo.subtitulo"

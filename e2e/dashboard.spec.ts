@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { congelarAnimaciones } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 
-/** P5c: el monitoreo como bento. Demo; los valores cambian, se afirma estructura. */
+/** El monitoreo usa datos de demostración que cambian en tiempo real. */
 async function entrar(page: Page, perfil = 'Químico Farmacéutico') {
   await page.goto('/login')
   await page.getByRole('button', { name: perfil }).click()
@@ -15,24 +15,22 @@ async function sinScrollHorizontal(page: Page) {
   expect(desborde).toBeLessThanOrEqual(1)
 }
 
-test('monitoreo 1440×900: lectura, condiciones, equipo y curva sobre el pliegue', async ({ page }) => {
+test('monitoreo 1440×900: lectura y condiciones al entrar; las pestañas dan acceso a la curva y los equipos', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await entrar(page)
   const lectura = page.getByTestId('celda-lectura')
   const condiciones = page.getByRole('region', { name: 'Condiciones', exact: true })
-  const equipo = page.getByRole('region', { name: 'Equipo', exact: true })
+  await expect(lectura).toBeVisible()
+  await expect(condiciones).toBeVisible()
   const curva = page.getByRole('region', { name: 'Cómo cambió la temperatura' })
-  for (const celda of [lectura, condiciones, equipo, curva]) await expect(celda).toBeVisible()
-  const cajaCurva = await curva.boundingBox()
-  expect(cajaCurva!.y).toBeLessThan(900)
-  // Fila A: lectura a la izquierda, condiciones y equipo apilados a la derecha.
-  const [a, c, e] = await Promise.all([lectura.boundingBox(), condiciones.boundingBox(), equipo.boundingBox()])
-  expect(c!.x).toBeGreaterThan(a!.x + a!.width - 1)
-  expect(e!.y).toBeGreaterThan(c!.y + c!.height - 1)
-  // Fila A de 288 px (DIRECTION §12): Condiciones y Equipo miden lo mismo y la Lectura no se estira.
-  expect(Math.abs(c!.height - e!.height)).toBeLessThanOrEqual(2)
-  expect(a!.height).toBeLessThanOrEqual(300)
-  // Estado de equipos: con 2 equipos, la cinta de 24 h de cada uno se ve sin desplazar la lista.
+  await expect(curva).toBeHidden()
+  const ahora = page.getByRole('tab', { name: /^ahora$/i })
+  await ahora.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(curva).toBeVisible()
+  await expect(lectura).toBeHidden()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('tab', { name: 'Equipos' })).toBeFocused()
   const estado = page.getByRole('region', { name: 'Estado operativo de equipos' })
   const cajaLista = (await estado.getByRole('list').boundingBox())!
   const cintas = estado.getByRole('img', { name: /^Últimas 24 h de / })
@@ -54,28 +52,32 @@ test('monitoreo 768×1024 y 375×812 sin scroll horizontal', async ({ page }) =>
   await expect(page.getByRole('region', { name: 'Condiciones', exact: true })).toBeVisible()
   await sinScrollHorizontal(page)
   if (process.env.CAPTURAS_P5C) await page.screenshot({ path: `${process.env.CAPTURAS_P5C}/dashboard-375.png`, fullPage: true })
-  const tendencia = page.locator('summary').filter({ hasText: 'Ver tendencia de temperatura' })
-  await expect(page.getByRole('region', { name: 'Alertas pendientes' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Cómo cambió la temperatura' })).toBeHidden()
-  await tendencia.click()
+  await page.getByRole('tab', { name: 'Alertas', exact: true }).click()
+  await expect(page.getByRole('region', { name: 'Alertas pendientes' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Cómo cambió la temperatura' })).toBeVisible()
 })
 
 test('cambiar de equipo desde Estado de equipos actualiza la lectura', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await entrar(page)
+  await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
   const estado = page.getByRole('region', { name: 'Estado operativo de equipos' })
   const filas = estado.getByRole('listitem')
   await expect(filas).toHaveCount(2)
   const otra = estado.locator('li:not([aria-current])').getByRole('button', { name: /^Mostrar .* en el monitoreo$/ })
   const nombre = (await otra.getAttribute('aria-label'))!.replace(/^Mostrar (.*) en el monitoreo$/, '$1')
   await otra.click()
-  await expect(estado.locator('li[aria-current="true"]')).toContainText(nombre)
+  await expect(page.getByRole('tab', { name: /^ahora$/i })).toBeFocused()
   await expect(page.getByTestId('valor-actual')).toBeVisible()
+  await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
+  await expect(estado.locator('li[aria-current="true"]')).toContainText(nombre)
 })
 
 test('panel de detalle de equipo: buffer, incidentes y ficha; Escape devuelve el foco', async ({ page }) => {
   await entrar(page)
+  await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
   const boton = page.getByRole('region', { name: 'Equipo', exact: true }).getByRole('button', { name: 'Detalles' })
   await boton.click()
   const panel = page.getByRole('dialog')
@@ -89,6 +91,7 @@ test('panel de detalle de equipo: buffer, incidentes y ficha; Escape devuelve el
 
 test('vista Lista: tabla paginada accesible', async ({ page }) => {
   await entrar(page)
+  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await page.getByRole('group', { name: 'Vista de la curva' }).getByRole('button', { name: 'Lista' }).click()
   const tabla = page.getByRole('region', { name: 'Cómo cambió la temperatura' }).getByRole('table')
   await expect(tabla).toBeVisible()
@@ -97,7 +100,9 @@ test('vista Lista: tabla paginada accesible', async ({ page }) => {
 
 test('Alertas pendientes visibles y lecturas recientes a un clic', async ({ page }) => {
   await entrar(page)
+  await page.getByRole('tab', { name: 'Alertas', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Alertas pendientes' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await expect(page.locator('details').filter({ has: page.locator('summary', { hasText: 'Consultar lecturas recientes' }) })).not.toHaveAttribute('open')
   await page.getByText('Consultar lecturas recientes', { exact: true }).click()
   await expect(page.getByRole('region', { name: 'Lecturas recientes' }).getByRole('listitem').first()).toBeVisible()
@@ -151,6 +156,7 @@ test('HU-07/HU-34: un arranque sin hora se rotula «Sin hora» y «Sin clasifica
   await expect(lectura.getByTestId('riesgo-sin-clasificacion')).toContainText('Sin clasificación IA')
   await expect(lectura.getByText('Normal', { exact: true })).toHaveCount(0)
   await expect(lectura.getByText(/^Sin hora/)).toBeVisible()
+  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   await page.getByText('Consultar lecturas recientes', { exact: true }).click()
   const recientes = page.getByRole('region', { name: 'Lecturas recientes' })
   await expect(recientes.getByText(/^Sin hora/).first()).toBeVisible()
@@ -165,6 +171,7 @@ test('HU-07/HU-34: un arranque sin hora se rotula «Sin hora» y «Sin clasifica
 test('HU-31: 24 h y 7 d dibujan la serie agregada del periodo completo', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await entrar(page)
+  await page.getByRole('tab', { name: 'Tendencia', exact: true }).click()
   const curva = page.getByRole('region', { name: 'Cómo cambió la temperatura' })
   const grafica = curva.locator('[role="img"][aria-label^="Gráfica de líneas"]')
   await expect(grafica).toHaveAttribute('aria-label', /promedio cada 1 min con su mínimo y máximo/)
@@ -185,6 +192,7 @@ test('HU-48: buffer lleno muestra el periodo en cola, las pérdidas y la brecha 
   await entrar(page, 'Administrador')
   await aplicarEscenario(page, 'Simular buffer lleno y pérdidas')
   await cerrarSimulador(page)
+  await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
   const equipo = page.getByRole('region', { name: 'Equipo', exact: true })
   await expect(equipo.getByTestId('buffer-rango')).toContainText(/Periodo en cola: .+ – .+ · Perdidas: \d+/)
   await equipo.getByRole('button', { name: 'Detalles' }).click()
@@ -210,6 +218,7 @@ test('simular silencio del equipo: Sin datos en la línea de estado y la fila', 
   await panel.getByRole('button', { name: 'Simular silencio del equipo' }).click()
   await expect(panel.getByRole('status')).toContainText('Escenario aplicado')
   await page.keyboard.press('Escape')
+  await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
   const estado = page.getByRole('region', { name: 'Estado operativo de equipos' })
   await expect(estado.getByText(/^Sin datos \(\d+ s\)$/).first()).toBeVisible()
 })
@@ -226,6 +235,7 @@ for (const tema of ['light', 'dark'] as const) {
       return resultado.violations.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(' ')}`))
     }
     expect(await axe(), 'monitoreo').toEqual([])
+    await page.getByRole('tab', { name: 'Equipos', exact: true }).click()
     await page.getByRole('region', { name: 'Equipo', exact: true }).getByRole('button', { name: 'Detalles' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     expect(await axe(), 'detalle').toEqual([])

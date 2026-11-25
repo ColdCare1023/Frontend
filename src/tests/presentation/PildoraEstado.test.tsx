@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -60,7 +60,7 @@ describe('PildoraEstado', () => {
     montar()
     expect(
       screen.getByRole('button', {
-        name: 'Estado en vivo. Refrigerador principal: 5.2\u202F°C, Normal. 1 equipo más con incidencia. 2 alertas sin atender, 1 crítica. Conectado en vivo',
+        name: 'Estado en vivo. Requiere atención. Refrigerador principal: 5.2\u202F°C, Normal. 1 equipo más con incidencia. 2 alertas sin atender, 1 crítica. Conectado en vivo',
       }),
     ).toBeInTheDocument()
   })
@@ -74,13 +74,14 @@ describe('PildoraEstado', () => {
     expect(boton).toHaveAccessibleName(/Demasiadas pestañas en tiempo real/)
     expect(boton).not.toHaveAccessibleName(/Sin conexión en vivo/)
     await userEvent.setup().click(boton)
-    expect(await screen.findByText('Demasiadas pestañas en tiempo real')).toBeInTheDocument()
+    const panel = await screen.findByRole('dialog')
+    expect(within(panel).getByText('Demasiadas pestañas en tiempo real')).toBeInTheDocument()
   })
 
-  it('muestra el estado con texto, no solo con color', () => {
+  it('señala la incidencia de la flota aunque el equipo principal esté en rango', () => {
     estadoDemo()
     montar()
-    expect(screen.getByText('Normal')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Estado en vivo/ })).toHaveTextContent('Requiere atención')
   })
 
   it('abre el panel con Enter, lista los equipos como enlaces y Escape devuelve el foco', async () => {

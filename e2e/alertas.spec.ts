@@ -155,19 +155,19 @@ test('teclado: Tab recorre Reconocer, Registrar acción y Cronología; Esc cierr
   await expect(registrar).toBeFocused()
 })
 
-test('escritorio 1440: rail a la derecha con incidentes y cinta 24 h', async ({ page }) => {
+test('escritorio 1440: incidentes visibles y estadísticas accesibles con el teclado', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await entrarComo(page, 'Químico Farmacéutico')
   const rail = page.getByRole('complementary', { name: 'Contexto operativo' })
   await expect(rail.getByRole('heading', { name: 'Incidentes operativos' })).toBeVisible()
-  const historial = rail.locator('summary').filter({ hasText: 'Últimas 24 h' })
-  await expect(historial).toBeVisible()
+  const historial = page.locator('summary').filter({ hasText: 'Actividad reciente y estadísticas' })
+  const cinta = page.getByRole('heading', { name: 'Últimas 24 h' })
+  await expect(cinta).toBeHidden()
   await historial.focus()
   await page.keyboard.press('Enter')
-  await expect(rail.getByRole('heading', { name: 'Últimas 24 h' })).toBeVisible()
-  const lista = await page.getByRole('table').boundingBox()
-  const caja = await rail.boundingBox()
-  expect(caja!.x).toBeGreaterThan(lista!.x + lista!.width - 1)
+  await expect(cinta).toBeVisible()
+  await page.keyboard.press('Enter')
+  await expect(cinta).toBeHidden()
 })
 
 test('tablet 768: rail debajo de la lista', async ({ page }) => {

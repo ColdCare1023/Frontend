@@ -6,7 +6,6 @@ import { ArrowLeft, ArrowRight, Check, CircleAlert, ClipboardPaste, Copy, Link2O
 import { codigoDesdeFragmento } from '@/domain/value-objects/codigoVerificacion'
 import { cn } from '@/lib/utils'
 import { AuthShell } from '../components/auth/AuthShell'
-import { ColdCareBrandPanel } from '../components/auth/ColdCareBrandPanel'
 import { CambioTexto } from '../components/ui/cambio-texto'
 
 type EstadoCopia = 'pendiente' | 'copiado' | 'fallido'
@@ -71,7 +70,7 @@ export function CopiarCodigoPage() {
   const copiado = estado === 'copiado'
 
   return (
-    <AuthShell brandPanel={<ColdCareBrandPanel />}>
+    <AuthShell>
       <div className="w-full">
         <Link
           to="/login"
@@ -82,7 +81,7 @@ export function CopiarCodigoPage() {
         </Link>
 
         <p className="eyebrow text-faint">{t('copiarCodigo.etiqueta')}</p>
-        <h2 className="mt-2 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.titulo')}</h2>
+        <h1 className="mt-2 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.titulo')}</h1>
         <p className="mt-2 text-[15px] leading-6 text-muted">{t('copiarCodigo.subtitulo')}</p>
 
         <div className="mt-7 overflow-hidden rounded-(--radius-card) border border-border bg-surface">
@@ -154,13 +153,13 @@ export function CopiarCodigoPage() {
 function EnlaceSinCodigo() {
   const { t } = useTranslation()
   return (
-    <AuthShell brandPanel={<ColdCareBrandPanel />}>
+    <AuthShell>
       <div className="w-full space-y-6">
         <div className="flex size-12 items-center justify-center rounded-2xl bg-surface-sunken text-muted ring-1 ring-inset ring-border">
           <Link2Off className="size-6" aria-hidden />
         </div>
         <div>
-          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.invalido.titulo')}</h2>
+          <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.invalido.titulo')}</h1>
           <p className="mt-2 text-[15px] leading-6 text-muted">{t('copiarCodigo.invalido.mensaje')}</p>
         </div>
         <Link

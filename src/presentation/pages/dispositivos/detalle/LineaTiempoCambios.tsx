@@ -17,12 +17,14 @@ export function LineaTiempoCambios({
   campos,
   vacio,
   className,
+  resumir = false,
 }: {
   cambios: readonly HistorialConfiguracion[]
   cargando: boolean
   /** Si se indica, solo esos campos. */
   campos?: readonly string[]
   vacio?: string
+  resumir?: boolean
   className?: string
 }) {
   const { t } = useTranslation()
@@ -37,12 +39,19 @@ export function LineaTiempoCambios({
         const campo = campoBase(c)
         const actor = c.actor_nombre ?? c.actor_id
         const vigenteDesde = c.vigente_desde ?? c.created_at
+        const vigencia = c.vigente_desde !== undefined && (
+          <p className="nums text-meta text-muted">
+            {c.vigente_hasta
+              ? t('dispositivos.cambio.vigenteEntre', { desde: fechaHora(vigenteDesde), hasta: fechaHora(c.vigente_hasta) })
+              : t('dispositivos.cambio.vigenteDesde', { desde: fechaHora(vigenteDesde) })}
+          </p>
+        )
         return (
           <li key={c.id} className="min-w-0" data-campo={campo}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3">
               <p className="text-body font-medium text-foreground">
                 {t(`dispositivos.campos.${campo}`, { defaultValue: campo })}{' '}
-                <span className="codigo text-micro font-normal text-faint">{c.campo}</span>
+                {!resumir && <span className="codigo text-micro font-normal text-faint">{c.campo}</span>}
               </p>
               <span className="nums text-meta text-faint">{fechaHora(c.created_at)}</span>
             </div>
@@ -53,15 +62,15 @@ export function LineaTiempoCambios({
             </p>
             <p className="mt-0.5 text-meta text-muted">
               {actor ? t('dispositivos.cambio.actor', { actor }) : t('dispositivos.cambio.sinActor')}
-              {c.origen && <> · {t('dispositivos.cambio.origen', { origen: c.origen })}</>}
+              {!resumir && c.origen && <> · {t('dispositivos.cambio.origen', { origen: c.origen })}</>}
             </p>
-            {c.vigente_desde !== undefined && (
-              <p className="nums text-meta text-muted">
-                {c.vigente_hasta
-                  ? t('dispositivos.cambio.vigenteEntre', { desde: fechaHora(vigenteDesde), hasta: fechaHora(c.vigente_hasta) })
-                  : t('dispositivos.cambio.vigenteDesde', { desde: fechaHora(vigenteDesde) })}
-              </p>
-            )}
+            {resumir ? (
+              <details className="mt-1 text-meta text-muted">
+                <summary className="w-fit cursor-pointer py-1 font-medium">{t('lectura.vigenciaOrigen')}</summary>
+                <p className="break-words"><span className="codigo">{c.campo}</span>{c.origen && <> · {t('dispositivos.cambio.origen', { origen: c.origen })}</>}</p>
+                {vigencia}
+              </details>
+            ) : vigencia}
           </li>
         )
       })}

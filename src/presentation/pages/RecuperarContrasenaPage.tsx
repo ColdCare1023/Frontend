@@ -11,7 +11,6 @@ import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { cn } from '@/lib/utils'
 import { AuthShell } from '../components/auth/AuthShell'
 import { CamposPasswordNueva } from '../components/auth/CamposPasswordNueva'
-import { ColdCareBrandPanel } from '../components/auth/ColdCareBrandPanel'
 import { TransicionPasos } from '../components/auth/TransicionPasos'
 import { errorPasswordNueva } from '../components/auth/errorPasswordNueva'
 import { CampoCodigo, type CampoCodigoRef, type EstadoCampoCodigo } from '../components/ui/campo-codigo'
@@ -245,7 +244,7 @@ export function RecuperarContrasenaPage() {
   const indicePaso = PASOS.indexOf(paso)
 
   return (
-    <AuthShell brandPanel={<ColdCareBrandPanel />}>
+    <AuthShell>
       <div className="w-full">
         <div className="mb-6 flex items-center justify-between gap-4">
           <Link
@@ -412,7 +411,7 @@ export function RecuperarContrasenaPage() {
 function Encabezado({ titulo, subtitulo, idSubtitulo }: { titulo: string; subtitulo: ReactNode; idSubtitulo?: string }) {
   return (
     <div className="mb-7">
-      <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{titulo}</h2>
+      <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{titulo}</h1>
       <p id={idSubtitulo} className="mt-2 text-[15px] leading-6 text-muted">
         {subtitulo}
       </p>

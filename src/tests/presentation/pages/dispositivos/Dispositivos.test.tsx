@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import i18n from '@/infrastructure/i18n'
 
 const useDispositivos = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useDispositivos', () => ({ useDispositivos }))
@@ -116,8 +117,15 @@ describe('Lista de dispositivos (HU-43, RF-18)', () => {
     expect(consultar).toHaveBeenCalled()
   })
 
-  it('distingue un nodo en línea de uno sin conexión', () => {
+  it('mantiene el problema de conexión visible y permite consultar la telemetría completa', async () => {
     montar([dispositivo({ id: 'FARM-01-CDL', estado_conectividad: 'online' }), dispositivo({ id: 'FARM-02-CDL', estado_conectividad: 'offline' })])
+    const tendencias = screen.getByRole('button', { name: i18n.t('lectura.tendenciasEquipo') })
+    expect(tendencias).toHaveAttribute('aria-pressed', 'false')
+    const lista = screen.getByRole('list', { name: i18n.t('dispositivos.lista.etiqueta') })
+    const offline = within(lista).getByRole('link', { name: /FARM-02-CDL/ }).closest('li')!
+    expect(offline.textContent).toMatch(/sin conexi[oó]n/i)
+    await userEvent.click(tendencias)
+    expect(tendencias).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getAllByText('En línea').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Sin conexión').length).toBeGreaterThan(0)
   })

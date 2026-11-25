@@ -1,5 +1,14 @@
 {
   "lectura": {
+    "tendenciasEquipo": "Tendencias e historial",
+    "flotaActividad": "Resumen y actividad de los equipos",
+    "servicioRevisar": "Hay componentes que revisar",
+    "resumenTermico": "Estadísticas y excursiones",
+    "analizarActividad": "Analizar actividad",
+    "datosReporte": "Ver desglose del reporte",
+    "filtrarPeriodo": "Filtrar por periodo",
+    "estadoPreventivoDesconocido": "No se pudo confirmar si la clasificación preventiva está en operación.",
+    "vigenciaOrigen": "Vigencia y origen",
     "tendencia": "Ver tendencia de temperatura",
     "ultimaMedicion": "Última lectura: {{valor}} el {{fecha}}",
     "indicadores": "Ver indicadores",
@@ -142,6 +151,9 @@
     "sinInferencia": "Sin inferencia de IA para esta lectura"
   },
   "dashboard": {
+    "pestanaTendencia": "Tendencia",
+    "pestanaAhora": "Ahora",
+    "estadoEquiposCorto": "Equipos",
     "titulo": "Estado del refrigerador",
     "descripcion": "Temperatura, condiciones y alertas que requieren atención.",
     "tempInterna": "Temperatura del refrigerador",
@@ -590,6 +602,7 @@
     }
   },
   "alertas": {
+    "actividadEstadisticas": "Actividad reciente y estadísticas",
     "titulo": "Alertas",
     "descripcion": "Revisa avisos sobre condiciones que pueden requerir atención.",
     "filtro": {
@@ -2498,6 +2511,7 @@
     }
   },
   "estadoVivo": {
+    "requiereAtencion": "Requiere atención",
     "titulo": "Estado en vivo",
     "cargando": "Cargando estado…",
     "equipos": "Equipos",

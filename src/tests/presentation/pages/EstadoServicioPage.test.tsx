@@ -74,11 +74,11 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
 
     const resumen = region('Resumen del servicio')
     expect(resumen).toHaveTextContent('La base de datos y la API del broker responden.')
-    expect(valorDe(resumen, 'Consumidor MQTT único')).toHaveTextContent('Sí')
-    // En móvil la etiqueta es corta; y nada en la tira se corta con «…».
-    expect(within(resumen).getByText('Consumidor único')).toHaveClass('sm:hidden')
-    expect(within(resumen).getByText('Consumidor MQTT único')).toHaveClass('max-sm:hidden')
-    expect(resumen.querySelector('.truncate')).toBeNull()
+    expect(resumen.querySelector('dl')).toBeNull()
+    const diagnostico = screen.getByText('Diagnóstico por componente').closest('details')!
+    expect(diagnostico.open).toBe(false)
+    await userEvent.click(diagnostico.querySelector('summary')!)
+    expect(diagnostico.open).toBe(true)
 
     const bd = region('Base de datos')
     expect(within(bd).getAllByText('Al día').length).toBeGreaterThan(0)
@@ -324,7 +324,7 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     const anterior = estado()
     for (const clave of ['alembic_head', 'arranque', 'respaldos', 'modelo_ia']) delete anterior[clave]
     montar({ data: anterior })
-    await screen.findByText('Operativo')
+    await screen.findByRole('region', { name: 'Resumen del servicio' })
     expect(region('Base de datos')).toHaveTextContent('El servidor no informó la revisión aplicada')
     expect(region('Arranque')).toHaveTextContent('El servidor no informa con qué comando arrancó.')
     expect(region('Respaldos')).toHaveTextContent('Sin vigilancia')

@@ -52,6 +52,15 @@ function lectura(overrides: Partial<LecturaTermica> = {}): LecturaTermica {
   }
 }
 
+function abrirVista(vista: 'Ahora' | 'Tendencia' | 'Equipos') {
+  fireEvent.click(screen.getByRole('tab', { name: new RegExp(`^${vista}$`, 'i') }))
+}
+
+function abrirRecientes() {
+  abrirVista('Tendencia')
+  fireEvent.click(screen.getByText('Consultar lecturas recientes', { exact: true }))
+}
+
 function renderizar(ultima: LecturaTermica, sseConectado = true) {
   useMonitoreoTermico.mockReturnValue({ ultima, serie: [ultima], sseConectado })
   return render(
@@ -81,6 +90,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
       },
     ]
     renderizar(lectura({ estado_conectividad: 'online' }))
+    abrirVista('Equipos')
 
     expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent(/Sin conexión desde las/)
   })
@@ -118,6 +128,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
   it('muestra el dispositivo en línea junto a su identificador', () => {
     renderizar(lectura({ estado_conectividad: 'online' }))
 
+    abrirVista('Equipos')
     expect(screen.getByText('FARM-01-CDL')).toBeInTheDocument()
     expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent('En línea')
   })
@@ -125,6 +136,7 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
   it('muestra el dispositivo sin conexión cuando el nodo dejó de reportar', () => {
     renderizar(lectura({ estado_conectividad: 'offline' }))
 
+    abrirVista('Equipos')
     expect(screen.getByTestId('conectividad-dispositivo')).toHaveTextContent('Sin conexión')
   })
 
@@ -134,11 +146,13 @@ describe('DashboardPage — RF-18: conectividad del dispositivo', () => {
     // y ese es justo el caso que la farmacia necesita ver.
     renderizar(lectura({ estado_conectividad: 'offline' }), true)
 
+    abrirVista('Equipos')
     const insignia = screen.getByTestId('conectividad-dispositivo')
     expect(insignia).toHaveTextContent('Sin conexión')
 
     // El indicador SSE sigue en línea, y no es la insignia del dispositivo:
     // ambos comparten vocabulario pero no estado.
+    abrirVista('Ahora')
     const enLinea = screen.getAllByText('En vivo')
     expect(enLinea.length).toBeGreaterThan(0)
     expect(enLinea.some((el) => insignia.contains(el))).toBe(false)
@@ -188,6 +202,7 @@ describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
   it('HU-34: las lecturas recientes tampoco rotulan Normal una lectura sin clasificación', () => {
     renderizar(lectura({ timestamp: new Date().toISOString(), estado_riesgo: 'sin_clasificacion_ia' }))
 
+    abrirRecientes()
     const recientes = within(screen.getByRole('region', { name: 'Lecturas recientes' }))
     expect(recientes.getByText('Sin clasificación IA')).toBeInTheDocument()
     expect(recientes.queryByText('Normal')).not.toBeInTheDocument()
@@ -196,8 +211,6 @@ describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
   it('HU-54: sin datos recientes no presenta el equipo como Normal', () => {
     renderizar(lectura({ riesgo_efectivo: 'normal' }))
 
-    // Lecturas recientes, ahora siempre visibles, pueden rotular «Normal» una
-    // lectura HISTÓRICA; lo que no puede decirlo es la lectura actual.
     const celda = within(screen.getByTestId('celda-lectura'))
     expect(celda.getByText('Sin datos recientes')).toBeInTheDocument()
     expect(celda.queryByText('Normal')).not.toBeInTheDocument()
@@ -388,12 +401,14 @@ describe('DashboardPage — bento P5c', () => {
     expect(valor).toHaveTextContent('°C')
   })
 
-  it('Lecturas recientes y Estado de equipos visibles sin incidencias', () => {
+  it('Las pestañas dan acceso a las lecturas recientes y al estado de equipos', () => {
     equiposOperativos.lista = [
       { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', ultimo_reporte_en: '2026-07-25T12:34:56Z' },
     ]
     renderizar(lectura())
+    abrirRecientes()
     expect(screen.getByRole('heading', { name: 'Lecturas recientes' })).toBeInTheDocument()
+    abrirVista('Equipos')
     expect(screen.getByRole('heading', { name: 'Estado operativo de equipos' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Mostrar Vacunas en el monitoreo' })).toBeInTheDocument()
     // La cinta de 24 h resume la disponibilidad en un nombre accesible.
@@ -407,6 +422,7 @@ describe('DashboardPage — bento P5c', () => {
     ]
     renderizar(lectura({ device_id: 'FARM-A' }))
     expect(useMonitoreoTermico.mock.lastCall?.[1]).toBe('FARM-A')
+    abrirVista('Equipos')
     // Problemas primero: B (sin datos) va arriba aunque no esté seleccionado.
     const filas = screen.getAllByRole('button', { name: /^Mostrar .* en el monitoreo$/ })
     expect(filas[0]).toHaveAccessibleName('Mostrar B en el monitoreo')
@@ -419,6 +435,7 @@ describe('DashboardPage — bento P5c', () => {
       { id: 'FARM-01-CDL', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', fecha_proxima_calibracion: '2020-01-01' },
     ]
     renderizar(lectura())
+    abrirVista('Equipos')
     expect(screen.getByText(/^Vencida el/)).toBeInTheDocument()
   })
 
@@ -440,6 +457,7 @@ describe('DashboardPage — bento P5c', () => {
       },
     ]
     renderizar(lectura())
+    abrirVista('Equipos')
     expect(screen.getByRole('img', { name: /Buffer local: 120 de 30,000|Buffer local: 120 de 30.000|Buffer local: 120 de 30000/ })).toBeInTheDocument()
     expect(screen.getByText(/Se perdieron 3 lecturas/)).toBeInTheDocument()
   })
@@ -454,6 +472,7 @@ describe('DashboardPage — bento P5c', () => {
         <DashboardPage />
       </MemoryRouter>,
     )
+    abrirVista('Tendencia')
     fireEvent.click(within(screen.getByRole('group', { name: 'Vista de la curva' })).getByRole('button', { name: 'Lista' }))
     const tabla = screen.getByRole('table')
     // Cabecera + 5 filas; la más reciente primero.
@@ -466,6 +485,7 @@ describe('DashboardPage — bento P5c', () => {
       { id: 'FARM-01-CDL', nombre: 'Vacunas', estado_conectividad: 'online', estado_operativo: 'OPERATIVO', firmware_version: '2.1.0' },
     ]
     renderizar(lectura())
+    abrirVista('Equipos')
     fireEvent.click(screen.getByRole('button', { name: 'Detalles de Vacunas' }))
     const panel = await screen.findByRole('dialog')
     expect(within(panel).getByText('Ficha técnica')).toBeInTheDocument()
@@ -623,6 +643,7 @@ describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () =>
     })
     renderizar(lectura())
 
+    abrirVista('Equipos')
     const rango = screen.getByTestId('buffer-rango')
     expect(rango).toHaveTextContent(/^Periodo en cola: .+ – .+ \(estimado\) · Perdidas: 2$/)
   })
@@ -653,6 +674,7 @@ describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () =>
     })
     renderizar(lectura())
 
+    abrirVista('Equipos')
     const fila = screen.getByText(/Se perdieron 40 lecturas/)
     expect(fila).toHaveTextContent('buffer local lleno · en curso')
     expect(fila).toHaveTextContent('arranque 7, muestras 1200–1240')
@@ -674,6 +696,7 @@ describe('DashboardPage — HU-48: rango, pérdidas y brechas del buffer', () =>
       ],
     })
     renderizar(lectura())
+    abrirVista('Equipos')
     fireEvent.click(screen.getByRole('button', { name: 'Detalles de Vacunas' }))
     const panel = within(await screen.findByRole('dialog'))
 
@@ -693,11 +716,12 @@ describe('DashboardPage — HU-07: lecturas sin hora', () => {
   it('una lectura de un arranque sin hora se rotula «Sin hora», no con la hora de llegada', () => {
     const sinHora = lectura({ timestamp: new Date().toISOString(), time_quality: 'unsynced', sin_hora: true, origen_hora: 'recepcion' })
     renderizar(sinHora)
+    expect(within(screen.getByTestId('celda-lectura')).getByText('Sin hora')).toBeInTheDocument()
 
+    abrirRecientes()
     const recientes = within(screen.getByRole('region', { name: 'Lecturas recientes' }))
     expect(recientes.getByText('Sin hora')).toBeInTheDocument()
     expect(recientes.queryByRole('time')).not.toBeInTheDocument()
-    expect(within(screen.getByTestId('celda-lectura')).getByText('Sin hora')).toBeInTheDocument()
     // La curva lo dice: no se ubica en el eje.
     expect(screen.getByTestId('aviso-curva-sin-hora')).toHaveTextContent('1 lectura sin hora no se ubica en la curva.')
   })
@@ -720,7 +744,9 @@ describe('DashboardPage — HU-31: periodo completo y aviso de recorte', () => {
       </MemoryRouter>,
     )
 
+    abrirVista('Tendencia')
     expect(screen.getByTestId('aviso-curva-recorte')).toHaveTextContent(/solo las 5[.,]?000 lecturas más recientes de 8[.,]?640/)
+    abrirVista('Ahora')
     // El conteo de aperturas es un mínimo, no el total de la ventana.
     expect(within(screen.getByRole('region', { name: 'Condiciones' })).getByText(/^≥0 aperturas/)).toBeInTheDocument()
   })
@@ -764,6 +790,7 @@ describe('DashboardPage — HU-31: periodo completo y aviso de recorte', () => {
       </MemoryRouter>,
     )
 
+    abrirVista('Tendencia')
     const curva = within(screen.getByRole('region', { name: 'Cómo cambió la temperatura' }))
     expect(curva.getByText(/8[.,]?640 lecturas · promedio cada 1 min/)).toBeInTheDocument()
     expect(curva.getByText('9.1 °C')).toBeInTheDocument()
@@ -789,6 +816,7 @@ describe('DashboardPage — HU-30: calibración para el Químico Farmacéutico',
 
   it('la curva avisa de la calibración vencida del equipo en pantalla', () => {
     renderizar(lectura())
+    abrirVista('Tendencia')
     expect(screen.getByRole('note')).toHaveTextContent(/La calibración del sensor venció el 1\/1\/2020/)
   })
 
@@ -800,6 +828,7 @@ describe('DashboardPage — HU-30: calibración para el Químico Farmacéutico',
   ] as const)('%s: «Registrar calibración» en la ficha del equipo = %s', (rol, visible) => {
     sesion(rol)
     renderizar(lectura())
+    abrirVista('Equipos')
     fireEvent.click(screen.getAllByRole('button', { name: /^Detalles/ })[0])
     const panel = screen.getByRole('dialog')
     expect(within(panel).queryAllByRole('button', { name: 'Registrar calibración' })).toHaveLength(visible ? 1 : 0)

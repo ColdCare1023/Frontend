@@ -1,4 +1,3 @@
-import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -16,6 +15,7 @@ import { EsqueletoTexto } from '../../../components/ui/esqueleto'
 import { DECIMALES_HUMEDAD, ESPACIO_FINO, formatearCifra, formatearTemperatura } from '../../../components/ui/formato-cifra'
 import { Regla } from '../../../components/ui/regla'
 import { segmentarLecturas } from '../../../components/ui/segmentar-lecturas'
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useMinuto } from '../../../hooks/useReloj'
 import { CeldaCurva } from '../../dashboard/CeldaCurva'
 import { claveBrecha, textosBrecha } from '../../dashboard/bufferNodo'
@@ -78,7 +78,7 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
 
   return (
     <div className="grid grid-cols-12 gap-3 xl:gap-4">
-      <section aria-labelledby="monitoreo-foco" className="superficie col-span-12 flex flex-col p-4 lg:col-span-7 xl:p-5">
+      <section aria-labelledby="monitoreo-foco" className="superficie col-span-12 flex flex-col p-4 xl:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="monitoreo-foco" className="eyebrow">{t('dispositivos.monitoreo.temperaturaInterna')}</h2>
           <span className={cn('text-meta font-medium', TEXTO_EQUIPO[estado])}>{t(`dispositivos.estadoEquipo.${estado}`)}</span>
@@ -103,7 +103,7 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
         </p>
       </section>
 
-      <SeccionDetalle titulo={t('lectura.nodo')} className="col-span-12 lg:col-span-5">
+      <SeccionDetalle titulo={t('lectura.nodo')} className="col-span-12">
         <Tarjeta id="monitoreo-equipo" titulo={t('dispositivos.monitoreo.equipo')} icono={Cpu} className="col-span-12 lg:col-span-5">
           <dl className="grid grid-cols-2 gap-x-4">
             <Dato etiqueta={t('dispositivos.monitoreo.conexion')}>
@@ -167,85 +167,89 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
         </Tarjeta>
       </SeccionDetalle>
 
-      {/* La celda de la curva del Dashboard ocupa una grilla de 4/8 columnas. */}
-      <div className="col-span-12 grid min-w-0 grid-cols-4 sm:grid-cols-8 xl:col-span-8">
-        {horas === 24 ? (
-          <CeldaCurva
-            serie={dia.serie}
-            ultimaPresente={dia.ultima !== null}
-            estadoHistorial={dia.estadoHistorial}
-            reintentar={dia.reintentar}
-            horasVentana={24}
-            onCambiarVentana={setHoras}
-            ventana={t('dashboard.ventanaFrase.24')}
-            agregada={agregada24.serie}
-            cobertura={dia.cobertura}
-          />
-        ) : (
-          <CurvaOtraVentana deviceId={dispositivo.id} horas={horas} onCambiar={setHoras} />
-        )}
-      </div>
+      <SeccionDetalle titulo={t('lectura.tendencia')} className="col-span-12">
+        <div className="grid grid-cols-12 gap-3 xl:gap-4">
+          {/* La celda de la curva del Dashboard ocupa una grilla de 4/8 columnas. */}
+          <div className="col-span-12 grid min-w-0 grid-cols-4 sm:grid-cols-8 xl:col-span-8">
+            {horas === 24 ? (
+              <CeldaCurva
+                serie={dia.serie}
+                ultimaPresente={dia.ultima !== null}
+                estadoHistorial={dia.estadoHistorial}
+                reintentar={dia.reintentar}
+                horasVentana={24}
+                onCambiarVentana={setHoras}
+                ventana={t('dashboard.ventanaFrase.24')}
+                agregada={agregada24.serie}
+                cobertura={dia.cobertura}
+              />
+            ) : (
+              <CurvaOtraVentana deviceId={dispositivo.id} horas={horas} onCambiar={setHoras} />
+            )}
+          </div>
 
-      {/* A ≥1280 la columna mide lo mismo que la curva (360 px): la actividad se desplaza dentro. */}
-      <div
-        className={cn(
-          'col-span-12 grid min-w-0 content-start gap-3 sm:grid-cols-2 xl:col-span-4 xl:grid-cols-1 xl:gap-4',
-          !pocaActividad && 'xl:h-[360px] xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch',
-        )}
-      >
-        <section aria-labelledby="monitoreo-24h" className="superficie min-w-0 p-4">
-          <h2 id="monitoreo-24h" className="text-title text-foreground">{t('dispositivos.monitoreo.ultimas24h')}</h2>
-          {dia.estadoHistorial === 'cargando' && dia.serie.length === 0 ? (
-            <EsqueletoTexto lineas={2} className="mt-3" />
-          ) : dia.estadoHistorial === 'error' && dia.serie.length === 0 ? (
-            <p className="mt-2 text-meta text-muted">{t('dispositivos.monitoreo.cintaNoDisponible')}</p>
-          ) : (
-            <>
-              <Cinta24h segmentos={segmentos} etiqueta={dispositivo.id} className="mt-3 h-5" />
-              <div aria-hidden className="mt-1 flex justify-between text-micro text-faint">
-                <span>−24 h</span>
-                <span>−12</span>
-                <span>{t('dispositivos.monitoreo.ahora')}</span>
-              </div>
-              <p className="mt-2 nums text-meta text-muted">
-                {fuera === 0 && sinDatos === 0
-                  ? t('dispositivos.monitoreo.resumen24hOk')
-                  : [
-                      fuera > 0 ? t('dispositivos.monitoreo.resumenRiesgo', { duracion: duracionLegible(fuera * TRAMO_S) }) : null,
-                      sinDatos > 0 ? t('dispositivos.monitoreo.resumenSinDatos', { duracion: duracionLegible(sinDatos * TRAMO_S) }) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-              </p>
-            </>
-          )}
-        </section>
-        <ActividadReciente
-          id="monitoreo-actividad"
-          titulo={t('dispositivos.actividad.tituloEquipo')}
-          eventos={eventos}
-          cargando={actividad.cargando}
-          error={actividad.error}
-          ahora={ahora}
-          conEquipo={false}
-          desplazable={!pocaActividad}
-          className="xl:min-h-0"
-          pie={
-            pocaActividad && eventos.length > 0 ? (
-              <>
-                {t('dispositivos.actividad.sinMas')}
-                {' · '}
-                <Link
-                  to={`/historial?device_id=${encodeURIComponent(dispositivo.id)}`}
-                  className="font-medium text-primary-text underline-offset-2 hover:underline"
-                >
-                  {t('dispositivos.actividad.verHistorial')}
-                </Link>
-              </>
-            ) : undefined
-          }
-        />
-      </div>
+          {/* A ≥1280 la columna mide lo mismo que la curva (360 px): la actividad se desplaza dentro. */}
+          <div
+            className={cn(
+              'col-span-12 grid min-w-0 content-start gap-3 sm:grid-cols-2 xl:col-span-4 xl:grid-cols-1 xl:gap-4',
+              !pocaActividad && 'xl:h-[360px] xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch',
+            )}
+          >
+            <section aria-labelledby="monitoreo-24h" className="superficie min-w-0 p-4">
+              <h2 id="monitoreo-24h" className="text-title text-foreground">{t('dispositivos.monitoreo.ultimas24h')}</h2>
+              {dia.estadoHistorial === 'cargando' && dia.serie.length === 0 ? (
+                <EsqueletoTexto lineas={2} className="mt-3" />
+              ) : dia.estadoHistorial === 'error' && dia.serie.length === 0 ? (
+                <p className="mt-2 text-meta text-muted">{t('dispositivos.monitoreo.cintaNoDisponible')}</p>
+              ) : (
+                <>
+                  <Cinta24h segmentos={segmentos} etiqueta={dispositivo.id} className="mt-3 h-5" />
+                  <div aria-hidden className="mt-1 flex justify-between text-micro text-faint">
+                    <span>−24 h</span>
+                    <span>−12</span>
+                    <span>{t('dispositivos.monitoreo.ahora')}</span>
+                  </div>
+                  <p className="mt-2 nums text-meta text-muted">
+                    {fuera === 0 && sinDatos === 0
+                      ? t('dispositivos.monitoreo.resumen24hOk')
+                      : [
+                          fuera > 0 ? t('dispositivos.monitoreo.resumenRiesgo', { duracion: duracionLegible(fuera * TRAMO_S) }) : null,
+                          sinDatos > 0 ? t('dispositivos.monitoreo.resumenSinDatos', { duracion: duracionLegible(sinDatos * TRAMO_S) }) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                  </p>
+                </>
+              )}
+            </section>
+            <ActividadReciente
+              id="monitoreo-actividad"
+              titulo={t('dispositivos.actividad.tituloEquipo')}
+              eventos={eventos}
+              cargando={actividad.cargando}
+              error={actividad.error}
+              ahora={ahora}
+              conEquipo={false}
+              desplazable={!pocaActividad}
+              className="xl:min-h-0"
+              pie={
+                pocaActividad && eventos.length > 0 ? (
+                  <>
+                    {t('dispositivos.actividad.sinMas')}
+                    {' · '}
+                    <Link
+                      to={`/historial?device_id=${encodeURIComponent(dispositivo.id)}`}
+                      className="font-medium text-primary-text underline-offset-2 hover:underline"
+                    >
+                      {t('dispositivos.actividad.verHistorial')}
+                    </Link>
+                  </>
+                ) : undefined
+              }
+            />
+          </div>
+        </div>
+      </SeccionDetalle>
     </div>
   )
 }

@@ -10,16 +10,15 @@ import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
 import { Detalles } from '../components/ui/detalles'
 import { StepperInteractivo } from '../components/ui/stepper'
-import { useCoincideMedia } from '../hooks/useCoincideMedia'
 import { prefiereMovimientoReducido } from '../motion/tokens'
 import { ContenidoPaso } from './guia/ContenidoPaso'
 import { ANCLAS_ANTIGUAS, ETIQUETA_PASO, PASOS, TITULO_PASO, esPaso, type PasoId } from './guia/contenidoGuia'
 
-function PreguntasFrecuentes({ className }: { className?: string }) {
+function PreguntasFrecuentes() {
   const { t } = useTranslation()
   return (
-    <section id="guia-preguntas" aria-labelledby="guia-preguntas-titulo" className={cn('superficie p-4 xl:p-5', className)}>
-      <h2 id="guia-preguntas-titulo" tabIndex={-1} className="text-title text-foreground outline-none scroll-mt-24">
+    <section id="guia-preguntas" aria-labelledby="guia-preguntas-titulo">
+      <h2 id="guia-preguntas-titulo" tabIndex={-1} className="sr-only">
         {t('guia.preguntasTitulo')}
       </h2>
       <div className="mt-1 divide-y divide-border">
@@ -34,8 +33,7 @@ function PreguntasFrecuentes({ className }: { className?: string }) {
 }
 
 /**
- * Guía como stepper (H7): cinco pasos en un `tablist` a la izquierda (5/12)
- * y el paso actual a la derecha (7/12). El paso vive en `?paso=` para poder
+ * La guía expone un paso a la vez. El paso vive en `?paso=` para poder
  * compartirlo; los anclajes antiguos (`#guia-alerta-titulo`) se traducen.
  */
 export function GuiaPage() {
@@ -43,7 +41,6 @@ export function GuiaPage() {
   const rol = useAuthStore((s) => s.usuario?.rol)
   const [params, setParams] = useSearchParams()
   const { hash } = useLocation()
-  const esLg = useCoincideMedia('(min-width: 64rem)')
   const ancla = hash.replace(/^#/, '')
   const paso: PasoId = esPaso(params.get('paso')) ? (params.get('paso') as PasoId) : (ANCLAS_ANTIGUAS[ancla] ?? 'inicio')
   const [animar, setAnimar] = useState<{ dir: 1 | -1 } | null>(null)
@@ -80,30 +77,27 @@ export function GuiaPage() {
     <div>
       <PageHeader
         titulo={t('guia.titulo')}
-        descripcion={t('guia.descripcion')}
         meta={rol ? t('guia.metaRol', { rol: t(`roles.${rol}`) }) : undefined}
       />
-      <div className="grid items-start gap-3 lg:grid-cols-12 xl:gap-4">
-        <div className="min-w-0 space-y-3 lg:col-span-5 xl:space-y-4">
-          <nav aria-label={t('guia.navegacion')} className={cn('superficie', esLg ? 'p-2' : 'p-3')}>
+      <div className="mx-auto max-w-4xl space-y-3 xl:space-y-4">
+        <div className="min-w-0">
+          <nav aria-label={t('guia.navegacion')} className="superficie p-3 sm:px-5">
             <StepperInteractivo
               idBase="guia"
               etiqueta={t('guia.navegacion')}
-              orientacion={esLg ? 'vertical' : 'horizontal'}
-              pasos={PASOS.map((id) => ({ id, titulo: t(ETIQUETA_PASO[id]), resumen: t(`guia.resumenPasos.${id}`) }))}
+              orientacion="horizontal"
+              pasos={PASOS.map((id) => ({ id, titulo: t(ETIQUETA_PASO[id]) }))}
               valor={paso}
               onCambiar={cambiar}
             />
-            {!esLg && (
-              <p className="nums mt-1 text-center text-meta text-muted sm:hidden">
-                {t('guia.pasoDe', { actual: indice + 1, total: PASOS.length })} · {t(ETIQUETA_PASO[paso])}
-              </p>
-            )}
+            <p className="nums mt-1 text-center text-meta text-muted sm:hidden">
+              {t('guia.pasoDe', { actual: indice + 1, total: PASOS.length })} · {t(ETIQUETA_PASO[paso])}
+            </p>
           </nav>
         </div>
 
-        <div className="min-w-0 lg:col-span-7">
-          {PASOS.map((id, i) => {
+        <div className="min-w-0">
+          {PASOS.map((id) => {
             const activo = id === paso
             return (
               <section
@@ -115,13 +109,6 @@ export function GuiaPage() {
                 className={cn('superficie p-4 sm:p-5 xl:p-6', activo && animar && 'panel-eje-x')}
                 style={activo && animar ? ({ '--dir': animar.dir } as React.CSSProperties) : undefined}
               >
-                <p className="eyebrow">
-                  {id === 'inicio'
-                    ? t('guia.inicioEyebrow')
-                    : id === 'alertas'
-                      ? t('guia.alertaEyebrow')
-                      : t('guia.pasoDe', { actual: i + 1, total: PASOS.length })}
-                </p>
                 <h2 id={`guia-titulo-${id}`} tabIndex={-1} className="mt-1 text-title text-foreground outline-none scroll-mt-24">
                   {t(TITULO_PASO[id])}
                 </h2>
@@ -163,16 +150,16 @@ export function GuiaPage() {
             )
           })}
         </div>
-        {/* A todo lo ancho bajo el stepper y el paso: en la columna izquierda
-            dejaba ~230 px vacíos bajo el panel del paso. */}
-        <PreguntasFrecuentes className="lg:col-span-12" />
+        <SeccionDetalle titulo={t('guia.preguntasTitulo')} open={ancla === 'guia-preguntas-titulo' || undefined}>
+          <PreguntasFrecuentes />
+        </SeccionDetalle>
+        <SeccionDetalle titulo={t('lectura.alcance')}>
+          <p className="flex items-start gap-2 text-meta text-muted">
+            <ShieldCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+            {t('guia.nota')}
+          </p>
+        </SeccionDetalle>
       </div>
-      <SeccionDetalle titulo={t('lectura.alcance')} className="mt-4">
-        <p className="mt-4 flex items-start gap-2 text-meta text-muted">
-          <ShieldCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-          {t('guia.nota')}
-        </p>
-      </SeccionDetalle>
     </div>
   )
 }

@@ -147,9 +147,9 @@ export function LoginPage() {
         ) : (
           <div className="w-full">
             <div className="mb-8">
-              <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
+              <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
                 {t('login.titulo')}
-              </h2>
+              </h1>
               <p className="mt-2 text-[15px] leading-6 text-muted">{t('login.subtitulo')}</p>
             </div>
 

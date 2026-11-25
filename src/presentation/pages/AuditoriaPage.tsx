@@ -15,7 +15,7 @@ import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSiz
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { Paginacion } from '../components/Paginacion'
 import { PageHeader } from '../components/PageHeader'
-import { BotonCopiar, BotonMasFiltros, ChipsFiltro, Dato, PlantillaBandeja, TarjetaRail, type Chip } from '../components/registros/piezas'
+import { BotonCopiar, BotonMasFiltros, ChipsFiltro, Dato, TarjetaRail, type Chip } from '../components/registros/piezas'
 import { CeldaRegistro, EncabezadoRegistro, TablaRegistros } from '../components/registros/TablaRegistros'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -218,7 +218,7 @@ export function AuditoriaPage() {
       <form
         role="search"
         aria-label={t('auditoria.filtro.etiqueta')}
-        className="grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4 lg:grid-cols-3"
+        className={cn('grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4', masFiltros && 'lg:grid-cols-3')}
         onSubmit={(e) => {
           e.preventDefault()
           consultarCon(filtros)
@@ -243,7 +243,7 @@ export function AuditoriaPage() {
           </div>
           <p id="fa-accion-ayuda" className="sr-only">{t('auditoria.ayudaAccion')}</p>
         </div>
-        <div id="auditoria-mas-filtros" className={cn('grid grid-cols-1 gap-x-3 gap-y-2 min-[480px]:grid-cols-2 sm:contents', !masFiltros && 'max-sm:hidden')}>
+        <div id="auditoria-mas-filtros" className={cn('grid-cols-1 gap-x-3 gap-y-2 min-[480px]:grid-cols-2', masFiltros ? 'grid sm:contents' : 'hidden')}>
           <div className="min-w-0">
             <Label htmlFor="fa-usuario" className="text-meta text-muted">{t('auditoria.usuario')}</Label>
             <Input id="fa-usuario" list="fa-usuario-ids" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.usuario_id ?? ''} onChange={(e) => actualizarFiltro('usuario_id', e.target.value)} placeholder={t('auditoria.usuarioPlaceholder')} aria-describedby="fa-usuario-ayuda" />
@@ -463,106 +463,90 @@ export function AuditoriaPage() {
         </p>
       )}
 
-      {registros.length > 0 && (
-        <TiraEstado
-          resumir
-          etiqueta={t('auditoria.resumen')}
-          apilarGuia
-          guia={guia}
-          segmentos={[
-            { clave: 'eventos', etiqueta: t('auditoria.totalEventos'), valor: registros.length },
-            { clave: 'fallidos', etiqueta: t('auditoria.kpi.fallidos'), valor: fallidos, tono: fallidos > 0 ? 'critico' : 'neutro' },
-            { clave: 'denegados', etiqueta: t('auditoria.kpi.denegados'), valor: denegados, tono: denegados > 0 ? 'critico' : 'neutro' },
-            { clave: 'bloqueos', etiqueta: t('auditoria.bloqueos'), valor: bloqueos, tono: bloqueos > 0 ? 'aviso' : 'neutro' },
-            { clave: 'usuarios', etiqueta: t('auditoria.usuariosDistintos'), valor: usuarios },
-          ]}
-        />
-      )}
+      {registros.length > 0 && <p className="text-body text-subtle">{guia}</p>}
 
-      <PlantillaBandeja
-        etiquetaRail={t('auditoria.rail.etiqueta')}
-        superior={
-          baseHistograma.length > 0 && (
-            <SeccionDetalle titulo={t('lectura.actividad')}>
-              <HistogramaActividad
-                registros={baseHistograma}
-                diaSeleccionado={diaHistograma}
-                onSeleccionar={(clave, inicio) => {
-                  if (!clave) {
-                    consultarCon({ ...aplicados, desde: undefined, hasta: undefined })
-                    return
-                  }
-                  const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate(), 23, 59, 59)
-                  consultarCon({ ...aplicados, desde: inicio.toISOString(), hasta: fin.toISOString() }, claveDia(inicio.toISOString()))
-                }}
-              />
-            </SeccionDetalle>
-          )
-        }
-        rail={
-          registros.length > 0 ? (
-            <>
-              <TarjetaRail titulo={t('auditoria.rail.categorias')}>
-                <ul className="-mx-2 space-y-0.5">
-                  {porCategoria.map(({ categoria: c, total, fallidas }) => {
-                    const Icono = ICONO_CATEGORIA[c]
-                    const activa = categoria === c
-                    return (
-                      <li key={c}>
-                        <button
-                          type="button"
-                          aria-pressed={activa}
-                          onClick={() => setCategoria(activa ? null : c)}
-                          className={cn(
-                            'flex min-h-10 w-full cursor-pointer flex-col justify-center gap-1 rounded-(--radius-field) px-2 py-1.5 text-left transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring',
-                            activa && 'bg-primary-tint hover:bg-primary-tint',
-                          )}
-                        >
-                          <span className="flex w-full items-center gap-2 text-body">
-                            <Icono aria-hidden className="size-4 shrink-0 text-muted" />
-                            <span className="min-w-0 flex-1 truncate text-foreground">{t(`auditoria.categorias.${c}`)}</span>
-                            {fallidas > 0 && <span className="nums text-meta text-critical">{t('auditoria.dia.fallidas', { count: fallidas })}</span>}
-                            <span className="nums text-meta text-muted">{total}</span>
-                          </span>
-                          <span aria-hidden className="block h-1 w-full overflow-hidden rounded-full bg-surface-sunken">
-                            <span className="block h-full w-full origin-left rounded-full bg-border-strong" style={{ transform: `scaleX(${total / maxCategoria})` }} />
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
+      {(registros.length > 0 || baseHistograma.length > 0) && (
+        <SeccionDetalle titulo={t('lectura.analizarActividad')}>
+          {registros.length > 0 && <TiraEstado
+            etiqueta={t('auditoria.resumen')}
+            segmentos={[
+              { clave: 'eventos', etiqueta: t('auditoria.totalEventos'), valor: registros.length },
+              { clave: 'fallidos', etiqueta: t('auditoria.kpi.fallidos'), valor: fallidos, tono: fallidos > 0 ? 'critico' : 'neutro' },
+              { clave: 'denegados', etiqueta: t('auditoria.kpi.denegados'), valor: denegados, tono: denegados > 0 ? 'critico' : 'neutro' },
+              { clave: 'bloqueos', etiqueta: t('auditoria.bloqueos'), valor: bloqueos, tono: bloqueos > 0 ? 'aviso' : 'neutro' },
+              { clave: 'usuarios', etiqueta: t('auditoria.usuariosDistintos'), valor: usuarios },
+            ]}
+          />}
+          {registros.length > 0 && <div className="grid items-start gap-3 lg:grid-cols-2">
+            <TarjetaRail titulo={t('auditoria.rail.categorias')}>
+              <ul className="-mx-2 space-y-0.5">
+                {porCategoria.map(({ categoria: c, total, fallidas }) => {
+                  const Icono = ICONO_CATEGORIA[c]
+                  const activa = categoria === c
+                  return (
+                    <li key={c}>
+                      <button
+                        type="button"
+                        aria-pressed={activa}
+                        onClick={() => setCategoria(activa ? null : c)}
+                        className={cn(
+                          'flex min-h-10 w-full cursor-pointer flex-col justify-center gap-1 rounded-(--radius-field) px-2 py-1.5 text-left transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring',
+                          activa && 'bg-primary-tint hover:bg-primary-tint',
+                        )}
+                      >
+                        <span className="flex w-full items-center gap-2 text-body">
+                          <Icono aria-hidden className="size-4 shrink-0 text-muted" />
+                          <span className="min-w-0 flex-1 truncate text-foreground">{t(`auditoria.categorias.${c}`)}</span>
+                          {fallidas > 0 && <span className="nums text-meta text-critical">{t('auditoria.dia.fallidas', { count: fallidas })}</span>}
+                          <span className="nums text-meta text-muted">{total}</span>
+                        </span>
+                        <span aria-hidden className="block h-1 w-full overflow-hidden rounded-full bg-surface-sunken">
+                          <span className="block h-full w-full origin-left rounded-full bg-border-strong" style={{ transform: `scaleX(${total / maxCategoria})` }} />
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </TarjetaRail>
+            {origenes.length > 0 && (
+              <TarjetaRail titulo={t('auditoria.rail.origenes')}>
+                <ul className="divide-y divide-border">
+                  {origenes.map(([ip, v]) => (
+                    <li key={ip} className="flex items-baseline justify-between gap-3 py-1.5 first:pt-0 last:pb-0">
+                      <span className="codigo text-body text-foreground">{ip}</span>
+                      <span className="nums text-meta text-muted">
+                        {t('auditoria.rail.origenValor', { count: v.total })}
+                        {v.fallidas > 0 && <span className="text-critical"> · {t('auditoria.dia.fallidas', { count: v.fallidas })}</span>}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </TarjetaRail>
-              {origenes.length > 0 && (
-                <TarjetaRail titulo={t('auditoria.rail.origenes')}>
-                  <ul className="divide-y divide-border">
-                    {origenes.map(([ip, v]) => (
-                      <li key={ip} className="flex items-baseline justify-between gap-3 py-1.5 first:pt-0 last:pb-0">
-                        <span className="codigo text-body text-foreground">{ip}</span>
-                        <span className="nums text-meta text-muted">
-                          {t('auditoria.rail.origenValor', { count: v.total })}
-                          {v.fallidas > 0 && <span className="text-critical"> · {t('auditoria.dia.fallidas', { count: v.fallidas })}</span>}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </TarjetaRail>
-              )}
-              <TarjetaRail titulo={t('auditoria.rail.alcance')} className="max-xl:hidden">
-                {alcance}
-              </TarjetaRail>
-            </>
-          ) : undefined
-        }
-        inferior={
-          <div className="superficie overflow-clip">
-            {barra}
-            {tabla}
-            {/* HU-50 esc. 4: el alcance siempre visible; bajo 1280 px, como nota al pie. */}
-            <div className={cn('border-t border-border px-3 py-2.5 sm:px-4', registros.length > 0 && 'xl:hidden')}>{alcance}</div>
-          </div>
-        }
-      />
+            )}
+          </div>}
+          {baseHistograma.length > 0 && (
+            <HistogramaActividad
+              registros={baseHistograma}
+              diaSeleccionado={diaHistograma}
+              onSeleccionar={(clave, inicio) => {
+                if (!clave) {
+                  consultarCon({ ...aplicados, desde: undefined, hasta: undefined })
+                  return
+                }
+                const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate(), 23, 59, 59)
+                consultarCon({ ...aplicados, desde: inicio.toISOString(), hasta: fin.toISOString() }, claveDia(inicio.toISOString()))
+              }}
+            />
+          )}
+        </SeccionDetalle>
+      )}
+      <div className="superficie overflow-clip">
+        {barra}
+        {tabla}
+
+        <div className="border-t border-border px-3 py-2.5 sm:px-4">{alcance}</div>
+      </div>
     </div>
   )
 }

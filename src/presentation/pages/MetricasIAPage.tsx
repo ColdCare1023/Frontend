@@ -41,12 +41,6 @@ function EsqueletoClasificador() {
   )
 }
 
-/**
- * Clasificador (RNF-04), Plantilla Documento en bento: primero el estado del
- * modelo (HU-16) y de la clasificación preventiva (HU-20), después el de la
- * evaluación (H10), el F1 en un anillo y, a la vista y sin plegar, la tabla
- * por clase, la validación cruzada, las variables y la ficha del modelo.
- */
 export function MetricasIAPage() {
   const { t, i18n } = useTranslation()
   const { datos, estado, motivo, consultar, recargar } = useModeloIA()
@@ -70,21 +64,15 @@ export function MetricasIAPage() {
       }}
     />
   ) : null
-  const estadoPreventivo = <EstadoClasificacionPreventiva clasificacion={preventiva.clasificacion} />
-
-  const encabezado = (
-    <PageHeader
-      titulo={t('metricasIA.titulo')}
-      descripcion={t('metricasIA.descripcion')}
-      meta={
-        m && (
-          <>
-            {t('metricasIA.meta', { modelo: m.model_name, version: m.model_version, fecha: fechaCorta(m.trained_at) })}
-          </>
-        )
-      }
-    />
+  const estadoPreventivo = preventiva.clasificacion ? (
+    <EstadoClasificacionPreventiva clasificacion={preventiva.clasificacion} />
+  ) : (
+    <p role="status" className="superficie p-4 text-body text-subtle">
+      {t(preventiva.cargando ? 'app.cargando' : 'lectura.estadoPreventivoDesconocido')}
+    </p>
   )
+
+  const encabezado = <PageHeader titulo={t('metricasIA.titulo')} descripcion={t('metricasIA.descripcion')} />
 
   if (estado === 'cargando') {
     return (
@@ -95,7 +83,6 @@ export function MetricasIAPage() {
     )
   }
 
-  let disponible = false
   let cuerpo: React.ReactNode
   if (estado !== 'disponible' || !datos || !m) {
     cuerpo = (
@@ -114,21 +101,17 @@ export function MetricasIAPage() {
       </>
     )
   } else {
-    disponible = true
     const evaluacionVerificada = datos.datos_simulados === false && Boolean(m.dataset_hash && m.model_hash && m.particion)
     const estadoEvaluacion: EstadoClasificador = !evaluacionVerificada ? 'sin-verificar' : m.f1_weighted >= UMBRAL_F1 ? 'cumple' : 'no-cumple'
     cuerpo = (
       <>
         {estadoPreventivo}
-        <EstadoModelo estado="disponible" version={datos.metadata?.model_version ?? m.model_version} />
-        <EstadoEvaluacion estado={estadoEvaluacion} umbral={porcentaje(UMBRAL_F1, i18n.resolvedLanguage, 0)} />
-        {/* Desde 1024 px, dos columnas que se apilan por separado (5 + 7): en
-            una rejilla de filas, cada tarjeta se estiraba al alto de su vecina
-            y el F1 y las variables quedaban con 100–130 px en blanco. La última
-            tarjeta de cada columna toma el sobrante para que ambas terminen
-            alineadas. Bajo 1024 px las columnas se disuelven (`contents`) y
-            `order` mantiene el orden de lectura: F1, resultados, método y variables. */}
         <SeccionDetalle titulo={t('lectura.evaluacion')}>
+          <p className="text-meta text-muted">
+            {t('metricasIA.meta', { modelo: m.model_name, version: m.model_version, fecha: fechaCorta(m.trained_at) })}
+          </p>
+          <EstadoModelo estado="disponible" version={datos.metadata?.model_version ?? m.model_version} />
+          <EstadoEvaluacion estado={estadoEvaluacion} umbral={porcentaje(UMBRAL_F1, i18n.resolvedLanguage, 0)} />
           <div className="grid gap-3 lg:grid-cols-12 xl:gap-4">
             <div className="contents lg:col-span-5 lg:flex lg:flex-col lg:gap-3 xl:gap-4">
               <ResultadoEvaluacion className="order-1" metricas={m} estado={estadoEvaluacion} umbral={UMBRAL_F1} />
@@ -140,6 +123,10 @@ export function MetricasIAPage() {
             </div>
             <FichaModelo className="order-5 lg:col-span-12" metricas={m} />
           </div>
+          <p className="flex items-start gap-2 text-meta text-muted">
+            <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+            {t('metricasIA.notaUsoProfesional')}
+          </p>
         </SeccionDetalle>
       </>
     )
@@ -154,13 +141,7 @@ export function MetricasIAPage() {
             versión puede cambiar el estado del modelo y la sección no se vuelve
             a montar (conserva el aviso anunciado y el foco). Sin modelo cargado
             (503) el administrador necesita justo esto: registrar y activar. */}
-        {versiones}
-        {disponible && (
-          <p className="flex items-start gap-2 text-meta text-muted">
-            <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-            {t('metricasIA.notaUsoProfesional')}
-          </p>
-        )}
+        {versiones && <SeccionDetalle titulo={t('metricasIA.versiones.titulo')}>{versiones}</SeccionDetalle>}
       </div>
     </div>
   )

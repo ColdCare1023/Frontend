@@ -14,7 +14,7 @@ import { PageHeader } from '../components/PageHeader'
 import { Paginacion } from '../components/Paginacion'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Esqueleto, EsqueletoTabla } from '../components/ui/esqueleto'
+import { EsqueletoTabla } from '../components/ui/esqueleto'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { TiraEstado } from '../components/ui/tira-estado'
 import { DialogoCambioRol, DialogoDesactivar, DialogoTemporal, type AccionTemporal } from './usuarios/DialogosUsuario'
@@ -80,7 +80,6 @@ export function UsuariosPage() {
     <div>
       <PageHeader
         titulo={t('usuarios.titulo')}
-        descripcion={t('usuarios.descripcion')}
         meta={!cargando && !errorCarga && usuarios.length > 0 ? t('usuarios.meta', { count: usuarios.length }) : undefined}
       >
         {nuevo}
@@ -89,7 +88,6 @@ export function UsuariosPage() {
       {cargando ? (
         <div role="status" className="esqueleto-diferido space-y-3">
           <span className="sr-only">{t('app.cargando')}</span>
-          <Esqueleto aria-hidden className="h-16 w-full rounded-(--radius-card)" />
           <EsqueletoTabla filas={6} columnas={4} />
         </div>
       ) : errorCarga ? (
@@ -102,29 +100,6 @@ export function UsuariosPage() {
         <EstadoVacio ilustracion="sin-resultados" titulo={t('usuarios.sinUsuarios')} />
       ) : (
         <>
-          <TiraEstado
-            resumir
-            className="mb-3 xl:mb-4"
-            etiqueta={t('usuarios.resumen')}
-            apilarGuia
-            guia={pendientes > 0 ? t('usuarios.guiaPendientes', { count: pendientes }) : t('usuarios.guiaTodoEnOrden')}
-            segmentos={[
-              { clave: 'activas', etiqueta: t('usuarios.conAcceso'), valor: activos.length },
-              {
-                clave: 'admins',
-                // A 375 px «Administradores activos» se cortaba: etiqueta corta solo en móvil.
-                etiqueta: (
-                  <>
-                    <span className="sm:hidden">{t('usuarios.administradoresCorto')}</span>
-                    <span className="max-sm:hidden">{t('usuarios.administradores')}</span>
-                  </>
-                ),
-                valor: administradoresActivos,
-              },
-              { clave: 'pendientes', etiqueta: t('usuarios.pendientePassword'), valor: pendientes, tono: pendientes > 0 ? 'aviso' : 'neutro' },
-              { clave: 'inactivas', etiqueta: t('usuarios.sinAcceso'), valor: usuarios.length - activos.length },
-            ]}
-          />
           <div className="grid items-start gap-3 xl:grid-cols-12 xl:gap-4">
             {/* El recuento y la paginación van dentro de la tarjeta, como en
                 Alertas y Dispositivos (antes quedaban sueltos debajo). */}
@@ -237,6 +212,27 @@ export function UsuariosPage() {
               </div>
             </div>
             <SeccionDetalle titulo={t('lectura.cuentas')} className="xl:col-span-12">
+              <TiraEstado
+                etiqueta={t('usuarios.resumen')}
+                apilarGuia
+                guia={pendientes > 0 ? t('usuarios.guiaPendientes', { count: pendientes }) : t('usuarios.guiaTodoEnOrden')}
+                segmentos={[
+                  { clave: 'activas', etiqueta: t('usuarios.conAcceso'), valor: activos.length },
+                  {
+                    clave: 'admins',
+                    // A 375 px «Administradores activos» se cortaba: etiqueta corta solo en móvil.
+                    etiqueta: (
+                      <>
+                        <span className="sm:hidden">{t('usuarios.administradoresCorto')}</span>
+                        <span className="max-sm:hidden">{t('usuarios.administradores')}</span>
+                      </>
+                    ),
+                    valor: administradoresActivos,
+                  },
+                  { clave: 'pendientes', etiqueta: t('usuarios.pendientePassword'), valor: pendientes, tono: pendientes > 0 ? 'aviso' : 'neutro' },
+                  { clave: 'inactivas', etiqueta: t('usuarios.sinAcceso'), valor: usuarios.length - activos.length },
+                ]}
+              />
               <RielUsuarios usuarios={usuarios} />
             </SeccionDetalle>
           </div>
