@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
-import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import { umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import type { EstadoRiesgo } from '@/domain/entities/LecturaTermica'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 import type { MotivoDesconexionSse } from '@/infrastructure/sse/sseClient'
@@ -32,6 +32,7 @@ export interface EquipoVivo {
   estadoOperativo?: Dispositivo['estado_operativo']
   conectividad: string
   ultimoReporteEn: string | null
+  umbralSegundos?: number
 }
 
 export interface LecturaVivo {
@@ -105,6 +106,7 @@ export function aEquipoVivo(d: Dispositivo): EquipoVivo {
     estadoOperativo: d.estado_operativo,
     conectividad: d.estado_conectividad,
     ultimoReporteEn: d.ultimo_reporte_en ?? null,
+    umbralSegundos: umbralSilencioSegundos(d),
   }
 }
 
@@ -138,11 +140,14 @@ export interface EstadoEquipo {
 
 /** Estado de un equipo, en el orden de la tabla del spec del shell (§3.1). */
 export function estadoDeEquipo(e: EquipoVivo, l: LecturaVivo | undefined): EstadoEquipo {
-  if (e.estadoOperativo === 'FALLA_SENSOR' || l?.estadoRiesgo === 'falla_sensor') return { clave: 'falla_sensor', tono: 'critico', severidad: 5 }
-  if (l?.riesgo === 'excursion_critica') return { clave: 'excursion_critica', tono: 'critico', severidad: 4 }
   if (e.estadoOperativo === 'SIN_DATOS') return { clave: 'sin_datos', tono: 'aviso', severidad: 3 }
   if (e.estadoOperativo === 'MONITOREO_SUSPENDIDO') return { clave: 'suspendido', tono: 'aviso', severidad: 3 }
   if (e.conectividad === 'offline') return { clave: 'sin_conexion', tono: 'aviso', severidad: 3 }
+  if (l && e.umbralSegundos && Date.now() - Date.parse(l.timestamp) >= e.umbralSegundos * 1000) {
+    return { clave: 'sin_datos', tono: 'aviso', severidad: 3 }
+  }
+  if (e.estadoOperativo === 'FALLA_SENSOR' || l?.estadoRiesgo === 'falla_sensor') return { clave: 'falla_sensor', tono: 'critico', severidad: 5 }
+  if (l?.riesgo === 'excursion_critica') return { clave: 'excursion_critica', tono: 'critico', severidad: 4 }
   if (l?.riesgo === 'riesgo_preventivo') return { clave: 'riesgo_preventivo', tono: 'aviso', severidad: 2 }
   // HU-34 esc. 4: sin clasificación del modelo no se presenta como Normal.
   if (l?.estadoRiesgo === 'sin_clasificacion_ia') return { clave: 'sin_clasificacion_ia', tono: 'neutro', severidad: 1 }

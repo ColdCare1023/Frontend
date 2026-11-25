@@ -20,6 +20,10 @@ import { formatearTemperatura } from '../ui/formato-cifra'
 import { FONDO_ESTADO, TEXTO_ESTADO, type TonoEstado } from '../ui/estado-tonos'
 import { Regla } from '../ui/regla'
 
+function temperaturaVigente(clave: ClaveEstado | 'sin_equipos' | 'desconocido') {
+  return ['normal', 'sin_clasificacion_ia', 'riesgo_preventivo', 'excursion_critica'].includes(clave)
+}
+
 /** Tono de la píldora → vocabulario de estado compartido. */
 function tonoVisual(clave: ClaveEstado | 'sin_equipos' | 'desconocido'): TonoEstado {
   switch (clave) {
@@ -86,7 +90,7 @@ export function PildoraEstado({ className }: { className?: string }) {
     carga === 'error' ? 'desconocido' : carga !== 'cargando' && equipos.length === 0 ? 'sin_equipos' : foco?.estado.clave ?? 'sin_lectura'
   const tonoFoco = tonoVisual(clave)
   const temperatura = foco?.lectura?.temperatura ?? null
-  const mostrarTemperatura = clave !== 'falla_sensor' && temperatura !== null
+  const mostrarTemperatura = temperaturaVigente(clave) && temperatura !== null
 
   // HU-32 esc. 3: con la cuenta en su tope de flujos se nombra la causa.
   const conexion: Conexion =
@@ -243,7 +247,7 @@ function PanelEstadoVivo({
         <ul className="space-y-px">
           {filas.map(({ equipo, lectura, estado }) => {
             const tono = tonoVisual(estado.clave)
-            const temperatura = estado.clave === 'falla_sensor' ? null : lectura?.temperatura ?? null
+            const temperatura = temperaturaVigente(estado.clave) ? lectura?.temperatura ?? null : null
             const edad = lectura ? Math.max(0, Math.round((ahora - Date.parse(lectura.timestamp)) / 1000)) : null
             return (
               <li key={equipo.id}>
@@ -325,8 +329,11 @@ function PanelEstadoVivo({
             })}
           </ul>
           <Link
-            to="/alertas"
-            onClick={cerrar}
+            to={rol === 'farmaceutico' ? '/dashboard#alertas-monitoreo' : '/alertas'}
+            onClick={() => {
+              cerrar()
+              if (rol === 'farmaceutico') requestAnimationFrame(() => document.getElementById('alertas-monitoreo')?.focus())
+            }}
             className="mx-2 mt-1 mb-1 flex h-9 items-center justify-center gap-1 rounded-(--radius-field) bg-primary text-meta font-semibold text-on-primary transition-colors duration-(--duration-micro) hover:bg-primary-hover pointer-coarse:h-11"
           >
             {t('estadoVivo.verAlertas')}
