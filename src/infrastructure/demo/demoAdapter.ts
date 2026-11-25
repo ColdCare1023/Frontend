@@ -20,6 +20,7 @@ import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTe
 import { MOTIVOS_DESACTIVACION, type Usuario } from '@/domain/entities/Usuario'
 import type { Rol } from '@/domain/value-objects/Rol'
 import { ROLES } from '@/domain/value-objects/Rol'
+import { problemaPassword } from '@/domain/value-objects/politicaPassword'
 import {
   completarLecturaDemo,
   crearTokenDemo,
@@ -60,7 +61,7 @@ const VIGENCIA_CODIGO_DEMO_S = 600
 const ESPERA_REENVIO_DEMO_S = 30
 const MAX_INTENTOS_CODIGO_DEMO = 5
 const desafiosDemo = new Map<string, { email: string; expiraEn: number; reenviarDesde: number; intentos: number }>()
-/** Contraseñas fijadas con recuperación o activación durante la sesión demo. */
+/** Solo en memoria, durante el uso de la demo. */
 const passwordsDemo = new Map<string, string>()
 
 /**
@@ -145,6 +146,19 @@ function describirHistorialDemo(filas: HistorialConfiguracion[], params: Record<
 function enmascararEmailDemo(email: string): string {
   const [local, dominio] = email.split('@')
   return `${local.slice(0, 1)}***@${dominio ?? ''}`
+}
+
+function passwordDemoVigente(email: string): string {
+  return passwordsDemo.get(email) ?? 'demo-2026'
+}
+
+function respuestaSesionDemo(usuario: Usuario) {
+  return {
+    access_token: crearTokenDemo(usuario.email),
+    token_type: 'bearer',
+    require_password_change: Boolean(usuario.debe_cambiar_password),
+    require_privacy_consent: false,
+  }
 }
 
 function respuestaDesafioDemo(desafio: string, email: string, ahora: number) {
@@ -672,7 +686,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       registrarAuditoriaDemo('UMBRAL_INTENTOS_FALLIDOS_EXCEDIDO', 'auth/login', usuario?.id ?? null, 'bloqueado')
       fallar(config, 429, 'Demasiados intentos fallidos')
     }
-    const passwordValida = password === 'demo-2026' || passwordsDemo.get(emailNormalizado) === password
+    const passwordValida = password === passwordDemoVigente(emailNormalizado)
     if (!usuario || !usuario.is_active || !passwordValida) {
       control.cantidad += 1
       if (control.cantidad >= 5) control.bloqueadoHasta = ahora + 5 * 60_000
@@ -697,10 +711,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       return responder(config, respuestaDesafioDemo(desafio, emailNormalizado, ahora))
     }
     registrarAuditoriaDemo('LOGIN_EXITOSO', '/api/auth/login', usuario.id, 'exitoso')
-    return responder(config, {
-      access_token: crearTokenDemo(email),
-      token_type: 'bearer',
-    })
+    return responder(config, respuestaSesionDemo(usuario))
   }
   if (metodo === 'post' && url === '/api/auth/login/verificar') {
     const cuerpo = cuerpoJson(config)
@@ -725,7 +736,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     desafiosDemo.delete(desafio)
     if (!usuario || !usuario.is_active) fallar(config, 401, 'La verificación caducó o no es válida. Vuelve a iniciar sesión.')
     registrarAuditoriaDemo('LOGIN_EXITOSO', '/api/auth/login', usuario.id, 'exitoso', { metodo: 'password+codigo' })
-    return responder(config, { access_token: crearTokenDemo(usuario.email), token_type: 'bearer' })
+    return responder(config, respuestaSesionDemo(usuario))
   }
   if (metodo === 'post' && url === '/api/auth/login/reenviar') {
     const desafio = String(cuerpoJson(config).desafio ?? '')
@@ -786,11 +797,18 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     return responder(config, null, 204)
   }
   if (metodo === 'post' && url === '/api/auth/cambiar-password') {
-    const email = sesionDemo(config)?.email
+    const actor = actorDemo(config)
+    const usuario = actor ? usuarioDemo(actor) : undefined
+    if (!usuario?.is_active) fallar(config, 401, 'Sesión no válida')
     const cuerpo = cuerpoJson(config)
-    if (typeof email !== 'string') fallar(config, 401, 'Sesión no válida')
-    if (cuerpo.password_actual !== 'demo-2026') fallar(config, 400, 'La contraseña actual no es correcta')
-    return responder(config, { access_token: crearTokenDemo(email), token_type: 'bearer' })
+    const nueva = String(cuerpo.password_nueva ?? '')
+    if (problemaPassword(nueva)) fallar(config, 422, 'La contraseña nueva no cumple los requisitos')
+    if (cuerpo.password_actual !== passwordDemoVigente(usuario.email)) fallar(config, 400, 'La contraseña actual no es correcta')
+    if (cuerpo.password_actual === nueva) fallar(config, 400, 'La nueva contraseña debe ser distinta de la actual')
+    passwordsDemo.set(usuario.email, nueva)
+    usuario.debe_cambiar_password = false
+    registrarAuditoriaDemo('PASSWORD_CAMBIADA', 'auth/cambiar-password', usuario.id, 'exitoso')
+    return responder(config, respuestaSesionDemo(usuario))
   }
 
   /* ── Lecturas y alertas ─────────────────────────────────────── */
@@ -1735,6 +1753,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
       debe_cambiar_password: true,
       telefono,
     }
+    passwordsDemo.set(email, password)
     estadoDemo.usuarios.unshift(nuevo)
     // La demo «envía» el correo de activación: el alta lo informa.
     return responder(config, { ...nuevo, codigo_activacion_emitido: true }, 201)
@@ -1779,6 +1798,7 @@ export const demoAdapter: AxiosAdapter = async (config) => {
     usuario.debe_cambiar_password = true
     const bytes = crypto.getRandomValues(new Uint8Array(12))
     const temporal = `Tmp${Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('')}7`
+    passwordsDemo.set(usuario.email, temporal)
     return responder(config, { usuario: { ...usuario }, password_temporal: temporal })
   }
   if (metodo === 'get' && url === '/api/auditoria') {

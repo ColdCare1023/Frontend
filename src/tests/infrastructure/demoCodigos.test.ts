@@ -72,6 +72,27 @@ describe('demoAdapter: códigos de verificación', () => {
     expect(ultima!.data).toEqual({ detail: 'Se agotaron los intentos para este código. Vuelve a iniciar sesión.' })
   })
 
+  it('mantiene el cambio obligatorio en la sesión emitida hasta sustituir la contraseña temporal', async () => {
+    const email = 'nuevo.quimico@demo.pe'
+    const rapido = await login(email, 'demo-2026', { 'X-Demo-Acceso-Rapido': '1' })
+    expect(rapido.data.require_password_change).toBe(true)
+    const { data } = await login(email)
+    const sesion = await demoAdapter(peticion('/api/auth/login/verificar', { desafio: data.desafio, codigo: CODIGO_VERIFICACION_DEMO }))
+    expect(sesion.data.require_password_change).toBe(true)
+    const cambiar = (actual: string, nueva: string) => demoAdapter(peticion(
+      '/api/auth/cambiar-password',
+      { password_actual: actual, password_nueva: nueva },
+      { Authorization: `Bearer ${sesion.data.access_token}` },
+    ))
+    expect((await rechazo(cambiar('OtraClave2026', 'NuevaClave2026'))).status).toBe(400)
+    const cambio = await cambiar('demo-2026', 'NuevaClave2026')
+    expect(cambio.data.require_password_change).toBe(false)
+    expect(cambio.data.access_token).not.toEqual(sesion.data.access_token)
+    expect((await rechazo(login(email))).status).toBe(401)
+    const siguiente = await login(email, 'NuevaClave2026', { 'X-Demo-Acceso-Rapido': '1' })
+    expect(siguiente.data.require_password_change).toBe(false)
+  })
+
   it('el reenvío respeta la espera con Retry-After', async () => {
     const { data } = await login('farmaceutico@demo.pe')
     const espera = await rechazo(demoAdapter(peticion('/api/auth/login/reenviar', { desafio: data.desafio })))
@@ -99,7 +120,7 @@ describe('demoAdapter: códigos de verificación', () => {
     )
     expect(ok.status).toBe(204)
 
-    // La contraseña nueva sirve para entrar (además de la común de la demo).
+    expect((await rechazo(login('tecnico@demo.pe'))).status).toBe(401)
     const { data } = await login('tecnico@demo.pe', 'NuevaClave2026')
     expect(data.requiere_codigo).toBe(true)
   })

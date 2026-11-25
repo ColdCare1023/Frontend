@@ -73,6 +73,32 @@ test('login real de demo pide el código por correo y limita intentos sin revela
   }
 })
 
+test('la cuenta demo con contraseña temporal exige cambiarla y permite volver a ingresar con la nueva', async ({ page }) => {
+  await page.goto('/login')
+  const correo = 'nuevo.quimico@demo.pe'
+  const nueva = 'FarmaciaPrueba2026'
+  const acceder = async (password: string) => {
+    await page.locator('#login-email').fill(correo)
+    await page.locator('#login-password').fill(password)
+    await page.getByRole('button', { name: 'Ingresar', exact: true }).click()
+  }
+  await acceder('demo-2026')
+  await page.getByRole('button', { name: 'Usar código' }).click()
+  await expect(page).toHaveURL(/\/cambiar-password$/)
+  await page.locator('#password-actual').fill('demo-2026')
+  await page.getByLabel('Nueva contraseña', { exact: true }).fill(nueva)
+  await page.getByLabel('Confirmar contraseña', { exact: true }).fill(nueva)
+  await page.getByRole('button', { name: 'Guardar contraseña' }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
+  await cerrarSesion(page)
+
+  await acceder('demo-2026')
+  await expect(page.getByRole('alert')).toContainText('Correo o contraseña incorrectos')
+  await acceder(nueva)
+  await page.getByRole('button', { name: 'Usar código' }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
+})
+
 test('el código demo se aplica con un clic y «Usar otra cuenta» vuelve al formulario', async ({ page }) => {
   await page.goto('/login')
   await page.locator('#login-email').fill('auditor@demo.pe')
