@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -14,13 +14,19 @@ vi.mock('@/presentation/pages/ReportesPage', () => ({
   ReportesPage: ({ equipoId }: { equipoId?: string }) => <p>PDF de {equipoId}</p>,
 }))
 
+vi.mock('@/application/hooks/useClasificacionPreventiva', () => ({
+  useClasificacionPreventiva: () => ({ clasificacion: null, operativa: false }),
+}))
+vi.mock('@/presentation/pages/AlertasPage', () => ({ AlertasPage: () => <p>Registro de alertas de prueba</p> }))
+vi.mock('@/presentation/pages/TrazabilidadPage', () => ({ TrazabilidadPage: () => <p>Cadena de prueba</p> }))
+
 function ProbeRuta() {
   return <output data-testid="ubicacion">{useLocation().pathname}</output>
 }
 
 function montar(rol: Rol) {
   useAuthStore.setState({ usuario: { id: 'qa', email: 'qa@example.test', expiraEn: Date.now() + 60_000, rol } })
-  return render(<MemoryRouter initialEntries={['/dashboard']}><ProbeRuta /><ConsultasFarmacia equipoId="FRIO-1" /></MemoryRouter>)
+  return render(<MemoryRouter initialEntries={['/dashboard']}><ProbeRuta /><div id="equipo-monitoreado" tabIndex={-1}>Equipo</div><div id="alertas-monitoreo" tabIndex={-1}>Bandeja</div><ConsultasFarmacia equipoId="FRIO-1" /></MemoryRouter>)
 }
 afterEach(() => useAuthStore.setState({ usuario: null }))
 
@@ -43,6 +49,38 @@ describe('Consultas en el tablero', () => {
     expect(abrir).toHaveFocus()
   })
 
+  it.each([
+    [/Atiende una alerta/, 'alertas-monitoreo'],
+    [/Revisa el equipo/, 'equipo-monitoreado'],
+  ] as const)('la guía vuelve al punto de trabajo de Monitoreo y le entrega el foco', async (nombre, id) => {
+    const user = userEvent.setup()
+    montar('farmaceutico')
+    await user.click(screen.getByRole('button', { name: 'Consultas' }))
+    await user.click(screen.getByRole('button', { name: 'Guía de uso' }))
+    await user.click(await screen.findByRole('button', { name: nombre }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(document.getElementById(id)).toHaveFocus())
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/dashboard')
+  })
+
+  it.each([
+    [/Historial Busca/, 'Lecturas de FRIO-1'],
+    [/Reportes de monitoreo/, 'PDF de FRIO-1'],
+    [/Integridad de registros/, 'Cadena de prueba'],
+    [/Alertas Revisa/, 'Registro de alertas de prueba'],
+  ] as const)('el índice de la guía abre la consulta sin abandonar el equipo', async (nombre, resultado) => {
+    const user = userEvent.setup()
+    montar('farmaceutico')
+    await user.click(screen.getByRole('button', { name: 'Consultas' }))
+    await user.click(screen.getByRole('button', { name: 'Guía de uso' }))
+    await user.click(await screen.findByRole('tab', { name: /Encontrar una pantalla/ }))
+    await user.click(within(screen.getByRole('tabpanel')).getByRole('button', { name: nombre }))
+    const destino = await screen.findByText(resultado)
+    expect(destino).toBeVisible()
+    expect(destino.closest('section')).toHaveFocus()
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/dashboard')
+  })
+
   it('el técnico consulta lecturas, alertas, integridad y guía sin recibir una opción de reportes o de IA', async () => {
     montar('tecnico')
     await userEvent.click(screen.getByRole('button', { name: 'Consultas' }))
@@ -50,5 +88,11 @@ describe('Consultas en el tablero', () => {
     expect(grupo.getAllByRole('button')).toHaveLength(4)
     expect(grupo.queryByRole('button', { name: 'Reportes' })).toBeNull()
     expect(grupo.queryByRole('button', { name: /clasificación/i })).toBeNull()
+    await userEvent.click(grupo.getByRole('button', { name: 'Guía de uso' }))
+    expect(await screen.findByText(/Abre Alertas para revisar/)).toBeVisible()
+    await userEvent.click(screen.getByRole('tab', { name: /Encontrar una pantalla/ }))
+    const indice = within(screen.getByRole('tabpanel'))
+    expect(indice.queryByRole('button', { name: /Reportes|clasificador/i })).toBeNull()
+    expect(indice.getByRole('button', { name: /Integridad de registros/ })).toBeVisible()
   })
 })

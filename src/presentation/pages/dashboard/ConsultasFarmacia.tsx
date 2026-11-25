@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BookOpen } from 'lucide-react'
 
@@ -30,13 +30,41 @@ export function ConsultasFarmacia({ equipoId }: { equipoId?: string | null }) {
     const destino = ubicarRuta(ruta)
     return destino && puedeAbrirRuta(rol, ruta) ? [{ ruta, item: destino.item }] : []
   })
+  const focoAlCerrar = useRef<string | null>(null)
+  const focoAlElegir = useRef(false)
+  const cuerpoActual = useRef<HTMLElement>(null)
   const actual = permitidas.find(({ ruta }) => ruta === seleccion) ?? permitidas[0]
-  if (!actual) return null
-  const activa = actual.ruta
+  const activa = actual?.ruta
+  useEffect(() => {
+    if (focoAlElegir.current && cuerpoActual.current) {
+      focoAlElegir.current = false
+      cuerpoActual.current.focus()
+    }
+  }, [activa])
+  if (!activa) return null
 
   function elegir(ruta: RutaConsulta) {
-    setVisitadas((previas) => previas.includes(activa) ? previas : [...previas, activa])
+    if (activa) setVisitadas((previas) => previas.includes(activa) ? previas : [...previas, activa])
     setSeleccion(ruta)
+  }
+
+  const destinosGuia = new Set<string>(permitidas.map(({ ruta }) => ruta))
+  destinosGuia.add('/dashboard')
+  destinosGuia.add('/dashboard#alertas-monitoreo')
+
+  function abrirDesdeGuia(destino: string) {
+    if (!destinosGuia.has(destino)) return
+    if (destino === '/dashboard' || destino === '/dashboard#alertas-monitoreo') {
+      focoAlCerrar.current = destino === '/dashboard' ? 'equipo-monitoreado' : 'alertas-monitoreo'
+      setAbierto(false)
+      setVisitadas([])
+      return
+    }
+    const modulo = permitidas.find(({ ruta }) => ruta === destino)
+    if (modulo) {
+      focoAlElegir.current = true
+      elegir(modulo.ruta)
+    }
   }
 
   return (
@@ -50,7 +78,17 @@ export function ConsultasFarmacia({ equipoId }: { equipoId?: string | null }) {
           {t('consultasFarmacia.abrir')}
         </Button>
       </SidePanelTrigger>
-      <SidePanelContent className="max-w-5xl" aria-describedby={undefined}>
+      <SidePanelContent className="max-w-5xl" aria-describedby={undefined}
+        onCloseAutoFocus={(evento) => {
+          const destino = focoAlCerrar.current && document.getElementById(focoAlCerrar.current)
+          focoAlCerrar.current = null
+          if (destino) {
+            evento.preventDefault()
+            destino.focus()
+            destino.scrollIntoView?.({ block: 'center' })
+          }
+        }}
+      >
         <SidePanelHeader className="space-y-3">
           <SidePanelTitle>{t('consultasFarmacia.abrir')}</SidePanelTitle>
           <label className="block sm:hidden">
@@ -73,14 +111,14 @@ export function ConsultasFarmacia({ equipoId }: { equipoId?: string | null }) {
         </SidePanelHeader>
         {permitidas.filter(({ ruta }) => ruta === activa || visitadas.includes(ruta)).map(({ ruta, item }) => (
           <SidePanelBody key={ruta} hidden={activa !== ruta} className="overscroll-contain bg-background px-3 py-3 sm:px-5">
-            <section aria-label={t(item.claveI18n)}>
+            <section ref={activa === ruta ? cuerpoActual : undefined} tabIndex={-1} aria-label={t(item.claveI18n)} className="outline-none">
               <Suspense fallback={<p role="status" className="py-2 text-body text-muted">{t('app.cargando')}</p>}>
                 {ruta === '/historial' && <Historial key={equipoId ?? ''} integrada equipoId={equipoId} />}
                 {ruta === '/alertas' && <Alertas integrada />}
                 {ruta === '/reportes' && <Reportes key={equipoId ?? ''} integrada equipoId={equipoId} />}
                 {ruta === '/trazabilidad' && <Integridad integrada />}
                 {ruta === '/metricas-ia' && <Clasificacion integrada />}
-                {ruta === '/guia' && <Guia integrada />}
+                {ruta === '/guia' && <Guia integrada navegacion={{ disponibles: destinosGuia, abrir: abrirDesdeGuia }} />}
               </Suspense>
             </section>
           </SidePanelBody>

@@ -1,7 +1,7 @@
 import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation, useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { ArrowRight, ChevronLeft, ShieldCheck } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
@@ -13,6 +13,7 @@ import { Detalles } from '../components/ui/detalles'
 import { StepperInteractivo } from '../components/ui/stepper'
 import { useCoincideMedia } from '../hooks/useCoincideMedia'
 import { prefiereMovimientoReducido } from '../motion/tokens'
+import { EnlaceGuia, type NavegacionGuia } from './guia/EnlaceGuia'
 import { ContenidoPaso } from './guia/ContenidoPaso'
 import { ANCLAS_ANTIGUAS, ETIQUETA_PASO, PASOS, TITULO_PASO, esPaso, type PasoId } from './guia/contenidoGuia'
 
@@ -34,11 +35,13 @@ function PreguntasFrecuentes() {
   )
 }
 
+type PropsGuia = { integrada?: false; navegacion?: undefined } | { integrada: true; navegacion: NavegacionGuia }
+
 /**
  * La guía expone un paso a la vez. El paso vive en `?paso=` para poder
  * compartirlo; los anclajes antiguos (`#guia-alerta-titulo`) se traducen.
  */
-export function GuiaPage({ integrada = false }: { integrada?: boolean } = {}) {
+export function GuiaPage({ integrada = false, navegacion }: PropsGuia = {}) {
   const { t } = useTranslation()
   const selectorMovil = useCoincideMedia('(max-width: 639px)')
   const rol = useAuthStore((s) => s.usuario?.rol)
@@ -127,7 +130,7 @@ export function GuiaPage({ integrada = false }: { integrada?: boolean } = {}) {
                   </p>
                 )}
                 <div className="mt-4">
-                  <ContenidoPaso paso={id} rol={rol} />
+                  <ContenidoPaso paso={id} rol={rol} navegacion={navegacion} />
                 </div>
                 {/* Bajo 640 px los botones van apilados a todo el ancho: a media
                     columna «Siguiente: Temperatura y estados» se cortaba. */}
@@ -146,13 +149,13 @@ export function GuiaPage({ integrada = false }: { integrada?: boolean } = {}) {
                       <ArrowRight />
                     </Button>
                   ) : (
-                    <Link
-                      to="/dashboard"
+                    <EnlaceGuia
+                      ruta="/dashboard" navegacion={navegacion}
                       className="coldcare-primary-action inline-flex h-10 items-center justify-center gap-2 rounded-(--radius-field) px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-sm:h-11 max-sm:w-full sm:ml-auto"
                     >
                       {t('guia.irMonitoreo')}
                       <ArrowRight aria-hidden className="size-4" />
-                    </Link>
+                    </EnlaceGuia>
                   )}
                 </footer>
               </section>

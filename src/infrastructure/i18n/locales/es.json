@@ -2203,6 +2203,26 @@
     "porExpirar": "Tu sesión expirará en {{restante}}. Guarda lo que estés haciendo."
   },
   "guia": {
+    "farmacia": {
+      "pasos": {
+        "monitoreo": {
+          "titulo": "Revisa el equipo",
+          "descripcion": "Comprueba su temperatura y la hora de la última lectura en Monitoreo."
+        },
+        "alerta": {
+          "titulo": "Atiende una alerta",
+          "descripcion": "En Alertas pendientes, selecciona Atender junto al equipo."
+        },
+        "historial": {
+          "titulo": "Consulta las lecturas anteriores",
+          "descripcion": "En Consultas, elige Historial y filtra por equipo y fecha."
+        }
+      },
+      "alertas": {
+        "revisar": "Selecciona Atender en la bandeja de Monitoreo para ver la temperatura y cuándo ocurrió la alerta.",
+        "registrar": "Puedes reconocer la alerta antes de actuar. Al terminar, registra la decisión, lo que hiciste y la justificación."
+      }
+    },
     "eyebrow": "Ayuda de ColdCare",
     "titulo": "Consulta y usa ColdCare",
     "descripcion": "Qué revisar, cómo responder a un aviso y dónde consultar los registros.",

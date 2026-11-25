@@ -2203,6 +2203,26 @@
     "porExpirar": "Your session expires in {{restante}}. Save your work."
   },
   "guia": {
+    "farmacia": {
+      "pasos": {
+        "monitoreo": {
+          "titulo": "Check the refrigerator",
+          "descripcion": "Check its temperature and the time of the latest reading in Monitoring."
+        },
+        "alerta": {
+          "titulo": "Respond to an alert",
+          "descripcion": "Under Pending alerts, select Respond next to the refrigerator."
+        },
+        "historial": {
+          "titulo": "Review earlier readings",
+          "descripcion": "In Queries, choose History and filter by refrigerator and date."
+        }
+      },
+      "alertas": {
+        "revisar": "Select Respond in the Monitoring alert list to see the temperature and when the alert occurred.",
+        "registrar": "You can acknowledge the alert before acting. When finished, record your decision, what you did, and the reason."
+      }
+    },
     "eyebrow": "ColdCare help",
     "titulo": "Using ColdCare",
     "descripcion": "What to check, how to respond to an alert, and where to find records.",
