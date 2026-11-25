@@ -185,7 +185,7 @@ export function useHistorial(inicial: FiltrosHistorial = {}, tamanoPagina = TAMA
     void consultar(primeraConsulta)
   }, [consultar, primeraConsulta])
 
-  // 15 filas en escritorio y 5 en el móvil: al cambiar, se vuelve a la página 1.
+  // Al cambiar el tamaño de página, se vuelve a la primera con los mismos filtros.
   useEffect(() => {
     if (tamano.current === tamanoPagina) return
     tamano.current = tamanoPagina

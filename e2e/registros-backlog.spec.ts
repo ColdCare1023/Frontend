@@ -16,20 +16,36 @@ test('HU-36: la curva y el resumen cubren el periodo y la tabla pagina en el ser
   await irA(page, '/historial?device_id=FARM-01-CDL')
   const tira = page.getByRole('region', { name: 'Resumen del periodo' })
   await expect(tira).toBeVisible()
-  // 24 h a 10 min por lectura son ~144 lecturas: más de una página de 15.
   const resultados = page.getByText(/\d+ lecturas en el periodo/)
   await expect(resultados).toBeVisible()
   const total = Number((await resultados.textContent())?.match(/(\d+)/)?.[1])
-  expect(total).toBeGreaterThan(15)
   await page.getByText('Curva del periodo', { exact: true }).filter({ visible: true }).click()
   await expect(page.getByText(/Promedio y mín\.–máx\. cada 1\s*min/)).toBeVisible()
   await expect(page.locator('#historial-grafica canvas').first()).toBeVisible()
 
   const tabla = page.locator('[role="region"][aria-label="Historial de lecturas"]')
-  const primera = await tabla.getByRole('button', { name: /Ver detalle de la lectura/ }).first().getAttribute('aria-label')
-  await page.getByRole('button', { name: 'Página siguiente' }).click()
-  await expect(page.getByText(/Mostrando 16–30 de/)).toBeVisible()
-  await expect(tabla.getByRole('button', { name: /Ver detalle de la lectura/ }).first()).not.toHaveAttribute('aria-label', primera ?? '')
+  // La demo de un único equipo tiene una captura cada diez minutos. La hora ISO
+  // identifica cada muestra de la consulta, incluso al cambiar de día.
+  const horas = tabla.locator('tr[data-fila] time[datetime]')
+  const leerHoras = () => horas.evaluateAll((filas) => filas.map((fila) => fila.getAttribute('datetime')!))
+  const paginacion = page.getByRole('navigation', { name: 'Paginación', exact: true })
+  await expect(horas.first()).toBeVisible()
+  const primeraPagina = await leerHoras()
+  const tamano = primeraPagina.length
+  expect(total).toBeGreaterThan(tamano)
+  const vistas: string[] = []
+  for (let desde = 0; desde < total; desde += tamano) {
+    const hasta = Math.min(desde + tamano, total)
+    if (desde > 0) await paginacion.getByRole('button', { name: 'Página siguiente' }).click()
+    await expect(paginacion).toContainText(`Mostrando ${desde + 1}–${hasta} de ${total}`)
+    await expect(horas).toHaveCount(hasta - desde)
+    vistas.push(...await leerHoras())
+  }
+  expect(new Set(vistas).size).toBe(total)
+  await expect(paginacion.getByRole('button', { name: 'Página siguiente' })).toBeDisabled()
+  await paginacion.getByRole('button', { name: '1', exact: true }).click()
+  await expect(paginacion).toContainText(`Mostrando 1–${tamano} de ${total}`)
+  expect(await leerHoras()).toEqual(primeraPagina)
 })
 
 test('HU-36 esc. 2: un rango sin telemetría muestra el texto literal del criterio', async ({ page }) => {
