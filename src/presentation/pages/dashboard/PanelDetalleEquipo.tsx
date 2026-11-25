@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowRight, CalendarPlus } from 'lucide-react'
 
 import { registrarCalibracionDispositivo } from '@/application/hooks/useCalibracion'
-import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, INTERVALO_REPORTE_POR_DEFECTO, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { tramosDisponibilidad } from '@/domain/value-objects/Disponibilidad'
 import { fechaDia, fechaHora } from '@/lib/formato'
 import { BadgeConectividad } from '../../components/BadgeConectividad'
@@ -279,7 +279,7 @@ function DetalleEquipo({
           </div>
           <div>
             <dt className="text-faint">{t('dispositivos.intervaloReporte')}</dt>
-            <dd className="mt-0.5 font-medium text-foreground">{equipo.intervalo_reporte_segundos ?? 30} s</dd>
+            <dd className="mt-0.5 font-medium text-foreground">{equipo.intervalo_reporte_segundos ?? INTERVALO_REPORTE_POR_DEFECTO} s</dd>
           </div>
           <div>
             <dt className="text-faint">{t('dispositivos.umbralSinDatos')}</dt>

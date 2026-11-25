@@ -1,4 +1,4 @@
-import { PATRON_DEVICE_ID, type BrechaTelemetria } from '@/domain/entities/Dispositivo'
+import { INTERVALO_REPORTE_POR_DEFECTO, PATRON_DEVICE_ID, type BrechaTelemetria } from '@/domain/entities/Dispositivo'
 import { instanteCaptura, lecturaSinHora, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import {
   bucketAutomatico,
@@ -229,7 +229,7 @@ export function calcularSerieDemo(
         desde,
         hasta,
         bucket: params.bucket,
-        intervaloReporteSegundos: equipo.intervalo_reporte_segundos ?? 30,
+        intervaloReporteSegundos: equipo.intervalo_reporte_segundos ?? INTERVALO_REPORTE_POR_DEFECTO,
         brechasBuffer: equipo.buffer_littlefs?.brechas ?? [],
         registradoEn: equipo.registrado_en ?? null,
       }),
