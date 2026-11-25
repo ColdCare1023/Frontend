@@ -396,7 +396,13 @@
     "seccionFicha": "Ficha técnica",
     "gestionarEnDispositivos": "Gestionar en Dispositivos",
     "demasiadasPestanas": "Demasiadas pestañas en tiempo real",
-    "demasiadasPestanasGuia": "Cierra otra pestaña o equipo con ColdCare abierto; esta se conectará sola."
+    "demasiadasPestanasGuia": "Cierra otra pestaña o equipo con ColdCare abierto; esta se conectará sola.",
+    "ficha": "Ficha del equipo",
+    "diagnostico": "Diagnóstico de equipos",
+    "bandejaAtender": "Atender",
+    "bandejaMas": "Otras alertas ({{count}})",
+    "bandejaLimite": "Hay al menos {{count}} alertas abiertas. Se consultan hasta {{limite}} por estado.",
+    "estadisticasCurva": "Estadísticas del periodo"
   },
   "demo": {
     "accesoRapido": "Acceso de demostración",
@@ -1432,7 +1438,8 @@
     "listo": "Listo",
     "grupoCuenta": "Cuenta",
     "grupoRiesgo": "Zona de riesgo",
-    "administradoresCorto": "Admins activos"
+    "administradoresCorto": "Admins activos",
+    "todosEstados": "Todos los estados"
   },
   "privacidad": {
     "titulo": "Aviso de privacidad",
@@ -2845,5 +2852,14 @@
   },
   "operacionFarmacia": {
     "variaciones": "Variaciones del periodo"
+  },
+  "consultasFarmacia": {
+    "abrir": "Consultas",
+    "elegir": "Elegir consulta"
+  },
+  "medicion": {
+    "flujoConectado": "Flujo de actualizaciones conectado",
+    "duracionRegistrada": "durante {{duracion}}",
+    "umbralSuperado": "Superó el umbral de {{segundos}} s."
   }
 }

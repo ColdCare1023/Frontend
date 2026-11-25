@@ -42,7 +42,7 @@ function sesionCon(rol: Rol) {
   })
 }
 
-function montar(alertas: AlertaTermica[], over: Record<string, unknown> = {}) {
+function montar(alertas: AlertaTermica[], over: Record<string, unknown> = {}, integrada = false) {
   const valor = {
     alertas,
     cargando: false,
@@ -59,7 +59,7 @@ function montar(alertas: AlertaTermica[], over: Record<string, unknown> = {}) {
   useAlertas.mockReturnValue(valor)
   render(
     <MemoryRouter>
-      <AlertasPage />
+      <AlertasPage integrada={integrada} />
     </MemoryRouter>,
   )
   return valor
@@ -84,6 +84,19 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     expect(fila).toHaveTextContent('Excursión crítica')
     await userEvent.setup().click(within(fila).getByRole('button', { name: /ver cronología/i }))
     expect(within(await screen.findByRole('dialog')).getByRole('heading', { name: /fuera del rango 2-8/i })).toBeVisible()
+  })
+
+  it('en Consultas empieza en atendidas, conserva los filtros y la cronología y no saca al usuario del monitoreo', async () => {
+    const user = userEvent.setup()
+    const { setFiltro } = montar([alerta({ estado: 'atendida' })], { filtro: 'atendida' }, true)
+    expect(useAlertas).toHaveBeenCalledWith('atendida')
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Todas', exact: true }))
+    expect(setFiltro).toHaveBeenCalledWith('todas')
+    await user.click(within(fila()).getByRole('button', { name: /ver cronología de atención/i }))
+    const dialogo = within(await screen.findByRole('dialog'))
+    expect(dialogo.getByRole('heading', { name: 'Cronología de atención' })).toBeVisible()
+    expect(dialogo.queryByRole('link')).not.toBeInTheDocument()
   })
 
   it('ofrece los cuatro filtros de la máquina de estados con aria-pressed', () => {
@@ -205,6 +218,7 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
   })
 
   it('Todo en orden: vacío de pendientes con la última atendida y una acción', () => {
+    useEstadoVivoStore.setState({ alertas: resumirAlertas([[], []]), carga: 'listo' })
     useAtendidasRecientes.mockReturnValue({
       alertas: [alerta({ id: 'at-1', estado: 'atendida', atendida_en: '2026-07-25T13:00:00Z', device_id: 'FARM-02-CDL' })],
       estado: 'listo',
@@ -216,6 +230,15 @@ describe('AlertasPage (RF-09, RF-10, HU-20/21/23/27/41)', () => {
     expect(screen.getByText('Todo en orden')).toBeInTheDocument()
     expect(screen.getByText(/Última atendida: FARM-02-CDL/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ver atendidas' })).toBeInTheDocument()
+  })
+
+  it('un filtro sin pendientes no declara que todo está en orden mientras falte confirmar el resto', () => {
+    montar([])
+    expect(screen.getByText('No hay alertas pendientes de reconocimiento.')).toBeVisible()
+    expect(screen.queryByText('Todo en orden')).not.toBeInTheDocument()
+    const actividad = screen.getByText('Actividad reciente y estadísticas').closest('details')
+    expect(actividad).not.toHaveAttribute('open')
+    expect(actividad).toContainElement(screen.getByRole('region', { name: 'Incidentes operativos' }))
   })
 
   it.each([

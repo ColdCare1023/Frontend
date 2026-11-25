@@ -396,7 +396,13 @@
     "seccionFicha": "Technical sheet",
     "gestionarEnDispositivos": "Manage in Devices",
     "demasiadasPestanas": "Too many real-time tabs",
-    "demasiadasPestanasGuia": "Close another tab or device with ColdCare open; this one will connect on its own."
+    "demasiadasPestanasGuia": "Close another tab or device with ColdCare open; this one will connect on its own.",
+    "ficha": "Device details",
+    "diagnostico": "Device diagnostics",
+    "bandejaAtender": "Respond",
+    "bandejaMas": "Other alerts ({{count}})",
+    "bandejaLimite": "There are at least {{count}} open alerts. Up to {{limite}} are loaded for each status.",
+    "estadisticasCurva": "Period statistics"
   },
   "demo": {
     "accesoRapido": "Demo access",
@@ -1432,7 +1438,8 @@
     "listo": "Done",
     "grupoCuenta": "Account",
     "grupoRiesgo": "Danger zone",
-    "administradoresCorto": "Active admins"
+    "administradoresCorto": "Active admins",
+    "todosEstados": "All statuses"
   },
   "privacidad": {
     "titulo": "Privacy notice",
@@ -2845,5 +2852,14 @@
   },
   "operacionFarmacia": {
     "variaciones": "Changes over the period"
+  },
+  "consultasFarmacia": {
+    "abrir": "Queries",
+    "elegir": "Select a view"
+  },
+  "medicion": {
+    "flujoConectado": "Update feed connected",
+    "duracionRegistrada": "for {{duracion}}",
+    "umbralSuperado": "Exceeded the {{segundos}} s threshold."
   }
 }

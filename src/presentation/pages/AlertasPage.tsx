@@ -39,7 +39,7 @@ import { TiraEstadoAlertas } from './alertas/TiraEstadoAlertas'
 import { cuantasAtendidas, FILAS_CON_CONTEXTO, resumirBandeja } from './alertas/logica'
 import { FilasCargando } from './alertas/FilasCargando'
 import { useAhora } from './alertas/useAhora'
-import type { BorradorAccion, PestanaPanel } from './alertas/tipos'
+import { puedeRectificarAccion, type BorradorAccion, type PestanaPanel } from './alertas/tipos'
 import { VacioAlertas } from './alertas/VacioAlertas'
 
 // HU-23: los filtros siguen la máquina de estados, no un booleano.
@@ -56,7 +56,7 @@ interface EstadoPanel {
  * operativos y cinta 24 h) y «Atendidas recientemente» cuando hay pocas filas.
  * El foco es la primera fila: la pendiente más grave y más antigua.
  */
-export function AlertasPage() {
+export function AlertasPage({ integrada = false }: { integrada?: boolean } = {}) {
   const { t } = useTranslation()
   const usuario = useAuthStore((s) => s.usuario)
   const {
@@ -73,7 +73,7 @@ export function AlertasPage() {
     registrarAccionCorrectiva,
     obtenerCicloAtencion,
     rectificarAccion,
-  } = useAlertas()
+  } = useAlertas(integrada ? 'atendida' : 'pendiente')
   const incidentesConsulta = useIncidentesOperativos()
   useRefrescoIncidentes(incidentesConsulta.consultar)
   const atendidas = useAtendidasRecientes()
@@ -95,10 +95,7 @@ export function AlertasPage() {
   // HU-28: rectifica el autor técnico de una acción anterior a H16 o un
   // farmacéutico (el backend no cambió); nunca el auditor; solo la vigente.
   const puedeRectificar = useCallback(
-    (accion: AccionCorrectiva) =>
-      usuario !== null &&
-      accion.vigente !== false &&
-      (tienePermiso(usuario.rol, ['farmaceutico']) || (accion.usuario_id === usuario.id && tienePermiso(usuario.rol, ['tecnico']))),
+    (accion: AccionCorrectiva) => puedeRectificarAccion(usuario, accion),
     [usuario],
   )
   // HU-28 esc. 3: el enlace a la cadena del equipo, solo para quien puede
@@ -219,7 +216,7 @@ export function AlertasPage() {
   // su página, se desplaza la fila a la vista y se abre su panel. Al cerrar el
   // panel, el `id` sale de la URL para no volver a abrirla al recargar.
   const [parametros, setParametros] = useSearchParams()
-  const idEnlace = parametros.get('id')
+  const idEnlace = integrada ? null : parametros.get('id')
   const enlaceResuelto = useRef<string | null>(null)
   const enlaceBuscoEnTodas = useRef<string | null>(null)
   const [filaEnlace, setFilaEnlace] = useState<AlertaTermica | null>(null)
@@ -325,20 +322,28 @@ export function AlertasPage() {
   const pocasFilas = !cargando && !errorCarga && ordenEsTriage(filtro) && visibles.length <= FILAS_CON_CONTEXTO
   const sinAtendidas = atendidas.estado !== 'cargando' && atendidas.alertas.length === 0
 
+  const panelIncidentes = (
+    <aside aria-label={t('alertas.rail.region')} className="min-w-0">
+      <IncidentesOperativos
+        incidentes={incidentes}
+        cargando={incidentesConsulta.cargando}
+        errorCarga={incidentesConsulta.errorCarga}
+        onReintentar={() => void incidentesConsulta.consultar()}
+        ahora={ahora}
+      />
+    </aside>
+  )
+
   return (
     <TooltipProvider delayDuration={250} skipDelayDuration={300}>
       <div className="mx-auto w-full max-w-(--ancho-contenido-max)">
-        <PageHeader titulo={t('alertas.titulo')} meta={meta}>
-          {MODO_DEMO && <SimularAlertaDemo onError={() => setAnuncio(t('alertas.demo.error'))} />}
-        </PageHeader>
-
-        <TiraEstadoAlertas
-          resumen={resumen}
-          incidentesActivos={incidentesActivos}
-          estado={estadoResumen}
-          atendidasDisponibles={atendidas.estado !== 'error'}
-          ahora={ahora}
-        />
+        {integrada ? (
+          meta && <p className="nums mb-2 text-meta text-muted">{meta}</p>
+        ) : (
+          <PageHeader titulo={t('alertas.titulo')} meta={meta}>
+            {MODO_DEMO && <SimularAlertaDemo onError={() => setAnuncio(t('alertas.demo.error'))} />}
+          </PageHeader>
+        )}
 
         <div className="flex flex-col gap-3 xl:gap-4">
           <div className="min-w-0 space-y-3">
@@ -366,6 +371,11 @@ export function AlertasPage() {
                   className="grid w-full grid-cols-4 sm:inline-flex sm:w-auto"
                   botonClassName="px-1.5 text-meta sm:px-3 sm:text-body"
                 />
+                {incidentesActivos !== null && incidentesActivos > 0 && (
+                  <a href="#incidentes-operativos" className="rounded-sm px-2 py-1.5 text-meta font-medium text-warning-700 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-ring">
+                    {t('alertas.resumen.verIncidentes', { count: incidentesActivos })}
+                  </a>
+                )}
                 <p className="hidden pr-1 text-meta text-faint sm:block">
                   {ordenEsTriage(filtro) ? t('alertas.ordenUrgencia') : t('alertas.ordenReciente')}
                 </p>
@@ -381,10 +391,11 @@ export function AlertasPage() {
                 </div>
               ) : !cargando && ordenadas.length === 0 ? (
                 <VacioAlertas
+                  integrada={integrada}
                   filtro={filtro}
-                  revisadas={resumen?.revisadas ?? 0}
+                  revisadas={resumen?.revisadas ?? null}
                   ultimaAtendida={ultimaAtendida}
-                  incidentesActivos={incidentesActivos ?? 0}
+                  incidentesActivos={incidentesActivos}
                   onFiltro={cambiarFiltro}
                 />
               ) : (
@@ -442,17 +453,17 @@ export function AlertasPage() {
               )}
             </div>
           </div>
-          <aside aria-label={t('alertas.rail.region')} className="min-w-0">
-            <IncidentesOperativos
-              incidentes={incidentes}
-              cargando={incidentesConsulta.cargando}
-              errorCarga={incidentesConsulta.errorCarga}
-              onReintentar={() => void incidentesConsulta.consultar()}
+          {incidentesActivos !== 0 && panelIncidentes}
+          <SeccionDetalle titulo={t('alertas.actividadEstadisticas')}>
+            <TiraEstadoAlertas
+              resumen={resumen}
+              incidentesActivos={incidentesActivos}
+              estado={estadoResumen}
+              atendidasDisponibles={atendidas.estado !== 'error'}
               ahora={ahora}
             />
-          </aside>
-          <SeccionDetalle titulo={t('alertas.actividadEstadisticas')}>
-            {pocasFilas && <EquiposAhora ahora={ahora} />}
+            {incidentesActivos === 0 && panelIncidentes}
+            {pocasFilas && <EquiposAhora ahora={ahora} integrada={integrada} />}
             <Cinta24hAlertas cintas={cintas} cargando={estadoResumen === 'cargando' && atendidas.estado === 'cargando'} />
             <AtendidasRecientes
               alertas={atendidas.alertas}
@@ -463,7 +474,7 @@ export function AlertasPage() {
               conAccion={ordenadas.length > 0}
             />
 
-            {pocasFilas && sinAtendidas && <GuiaAtencion />}
+            {pocasFilas && sinAtendidas && <GuiaAtencion integrada={integrada} />}
           </SeccionDetalle>
         </div>
 
@@ -476,7 +487,8 @@ export function AlertasPage() {
           pestanaInicial={panel?.pestana ?? 'cronologia'}
           puedeRegistrar={puedeRegistrarAccion}
           puedeRectificar={puedeRectificar}
-          puedeVerificarCadena={puedeVerificarCadena}
+          puedeVerificarCadena={!integrada && puedeVerificarCadena}
+          mostrarEnlaceHistorial={!integrada}
           borradores={borradores.current}
           onCerrar={cerrarPanel}
           onDevolverFoco={devolverFoco}

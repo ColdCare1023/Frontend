@@ -14,15 +14,17 @@ import { Button } from '../../components/ui/button'
  */
 export function VacioAlertas({
   filtro,
+  integrada = false,
   revisadas,
   ultimaAtendida,
   incidentesActivos,
   onFiltro,
 }: {
   filtro: FiltroEstado
-  revisadas: number
+  integrada?: boolean
+  revisadas: number | null
   ultimaAtendida: AlertaTermica | null
-  incidentesActivos: number
+  incidentesActivos: number | null
   onFiltro: (filtro: FiltroEstado) => void
 }) {
   const { t } = useTranslation()
@@ -33,14 +35,15 @@ export function VacioAlertas({
   )
 
   if (filtro === 'pendiente') {
+    const sinOtrasTareas = revisadas === 0 && incidentesActivos === 0
     return (
       <EstadoVacio
-        ilustracion="al-dia"
+        ilustracion={sinOtrasTareas ? 'al-dia' : 'sin-resultados'}
         className="rounded-none border-0"
-        titulo={t('alertas.vacio.enOrdenTitulo')}
-        detalle={t('alertas.vacio.enOrdenDetalle')}
+        titulo={t(sinOtrasTareas ? 'alertas.vacio.enOrdenTitulo' : 'alertas.vacio.enOrdenDetalle')}
+        detalle={sinOtrasTareas ? t('alertas.vacio.enOrdenDetalle') : undefined}
         contexto={
-          ultimaAtendida || incidentesActivos > 0 ? (
+          ultimaAtendida || (incidentesActivos ?? 0) > 0 ? (
             <>
               {ultimaAtendida && (
                 <p className="nums">
@@ -50,20 +53,20 @@ export function VacioAlertas({
                   })}
                 </p>
               )}
-              {incidentesActivos > 0 && (
+              {(incidentesActivos ?? 0) > 0 && (
                 <a
                   href="#incidentes-operativos"
                   className="underline decoration-border-strong underline-offset-4 hover:decoration-foreground"
                 >
-                  {t('alertas.vacio.incidentes', { count: incidentesActivos })}
+                  {t('alertas.vacio.incidentes', { count: incidentesActivos ?? 0 })}
                 </a>
               )}
             </>
           ) : undefined
         }
       >
-        {revisadas > 0
-          ? accion('reconocida', t('alertas.vacio.verRevisadas', { count: revisadas }))
+        {(revisadas ?? 0) > 0
+          ? accion('reconocida', t('alertas.vacio.verRevisadas', { count: revisadas ?? 0 }))
           : accion('atendida', t('alertas.vacio.verAtendidas'))}
       </EstadoVacio>
     )
@@ -89,13 +92,15 @@ export function VacioAlertas({
       titulo={t('alertas.sinAlertas')}
       detalle={t('alertas.vacio.todasDetalle')}
     >
-      <Link
-        to="/dashboard"
-        data-accion-vacio
-        className="inline-flex h-11 items-center rounded-(--radius-field) border border-border-strong bg-surface px-3 text-body font-medium text-foreground transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
-      >
-        {t('alertas.vacio.irMonitoreo')}
-      </Link>
+      {integrada ? accion('pendiente', t('alertas.vacio.verPendientes')) : (
+        <Link
+          to="/dashboard"
+          data-accion-vacio
+          className="inline-flex h-11 items-center rounded-(--radius-field) border border-border-strong bg-surface px-3 text-body font-medium text-foreground transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
+        >
+          {t('alertas.vacio.irMonitoreo')}
+        </Link>
+      )}
     </EstadoVacio>
   )
 }
