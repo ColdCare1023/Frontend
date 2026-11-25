@@ -218,7 +218,46 @@ test('demo: simular excursión crítica hace llegar una fila nueva sin recargar'
   // Evidencia: el pico con su Regla S (el lector oye «Pico 8.6 °C»).
   await expect(nueva).toContainText(/Pico 8\.6\s°C/)
   await expect(nueva.getByRole('button', { name: /registrar acción correctiva/i })).toBeVisible()
-  // La tira cuenta ya dos críticas abiertas y la página no se recargó.
+  // El resumen se consulta a petición y debe incorporar la alerta recibida por SSE.
+  await page.locator('summary').filter({ hasText: 'Actividad reciente y estadísticas' }).click()
   await expect(page.getByRole('region', { name: 'Resumen de alertas' })).toContainText('2 excursiones críticas sin atender')
   expect(await page.evaluate(() => (window as unknown as { __sinRecargar?: boolean }).__sinRecargar)).toBe(true)
 })
+
+for (const ancho of [1440, 390]) {
+  test(`monitoreo ${ancho}: atender una alerta y consultar su cronología sin cambiar de pantalla`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 900 })
+    await page.goto('/login')
+    await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
+    await expect(page).toHaveURL(/\/dashboard$/)
+    const bandeja = page.getByRole('region', { name: /^Alertas pendientes/ })
+    await bandeja.getByRole('button', { name: /^Atender/ }).first().click()
+    const panel = page.locator('[data-panel-alerta]')
+    await panel.getByRole('button', { name: 'Reconocer', exact: true }).click()
+    await expect(panel.getByText('Reconocida', { exact: true })).toBeVisible()
+    const nota = `Traslado verificado con el equipo de respaldo (${ancho})`
+    await panel.getByLabel('Decisión adoptada').fill('Traslado preventivo')
+    await panel.getByLabel('Descripción de la acción correctiva').fill(nota)
+    await panel.getByLabel('Justificación').fill('Proteger el lote durante la excursión de prueba.')
+    await panel.getByRole('button', { name: 'Guardar acción' }).click()
+    await expect(panel.getByText('Acción correctiva registrada.')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(panel).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Consultas', exact: true }).click()
+    const consultas = page.getByRole('dialog', { name: 'Consultas' })
+    if (ancho < 640) {
+      await consultas.getByRole('combobox', { name: 'Elegir consulta' }).selectOption('/alertas')
+    } else {
+      await consultas.getByRole('group', { name: 'Elegir consulta' }).getByRole('button', { name: 'Alertas', exact: true }).click()
+    }
+    await expect(consultas.getByRole('button', { name: 'Atendidas', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(consultas.getByRole('heading', { level: 1 })).toHaveCount(0)
+    await consultas.getByRole('button', { name: /^Ver cronología de atención/i }).first().click()
+    await expect(panel.getByText(nota, { exact: true })).toBeVisible()
+    await expect(panel.getByRole('link')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(consultas).toBeVisible()
+    await expect(page).toHaveURL(/\/dashboard$/)
+  })
+}
