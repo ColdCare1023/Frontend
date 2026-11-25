@@ -148,9 +148,10 @@ test('teclado: Tab recorre Reconocer, Registrar acción y Cronología; Esc cierr
 
   await registrar.focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('dialog')).toBeVisible()
+  const panel = page.getByRole('dialog')
+  await expect(panel.getByRole('textbox', { name: 'Decisión adoptada' })).toBeFocused()
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(panel).toHaveCount(0)
   await expect(registrar).toBeFocused()
 })
 

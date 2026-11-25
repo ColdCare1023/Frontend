@@ -60,6 +60,13 @@ export function PanelAlerta(props: PropsPanelAlerta) {
       <SidePanelContent
         data-panel-alerta=""
         className="max-sm:max-w-none"
+        onKeyDown={(evento) => {
+          // Un diálogo anidado o un control que ya consumió Escape conserva la tecla.
+          if (evento.key !== 'Escape' || evento.defaultPrevented || evento.nativeEvent.isComposing) return
+          if (!(evento.target instanceof Element) || evento.target.closest('[role="dialog"]') !== evento.currentTarget) return
+          evento.preventDefault()
+          onCerrar()
+        }}
         onOpenAutoFocus={(evento) => {
           evento.preventDefault()
           // Acción: primer campo. Cronología: la pestaña activa o, sin pestañas, su título.

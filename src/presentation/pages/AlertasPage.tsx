@@ -276,8 +276,11 @@ export function AlertasPage() {
   const enLista = panel ? alertas.find((a) => a.id === panel.alerta.id) : undefined
   const alertaPanel = enLista ?? panel?.alerta ?? null
   useEffect(() => {
-    if (enLista && panel && enLista !== panel.alerta) setPanel({ ...panel, alerta: enLista })
-  }, [enLista, panel])
+    if (!enLista) return
+    setPanel((actual) => actual && actual.alerta.id === enLista.id && actual.alerta !== enLista
+      ? { ...actual, alerta: enLista }
+      : actual)
+  }, [enLista])
 
   const devolverFoco = useCallback(() => {
     const origen = disparador.current
