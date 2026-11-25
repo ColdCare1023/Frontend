@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
@@ -468,37 +469,39 @@ export function TrazabilidadPage() {
               </Detalles>
             </TarjetaRail>
             {composicion.length > 0 && (
-              <TarjetaRail titulo={t('trazabilidad.composicion.titulo')}>
-                <ul className="-mx-2 space-y-0.5">
-                  {composicion.map(([tipo, n]) => {
-                    const Icono = iconoEvento(tipo)
-                    const activo = tipoEvento === tipo
-                    return (
-                      <li key={tipo}>
-                        <button
-                          type="button"
-                          aria-pressed={activo}
-                          aria-label={`${t('trazabilidad.composicion.filtrar', { tipo: etiquetaEvento(tipo, t) })}: ${n}`}
-                          onClick={() => consultarCon(activo ? '' : tipo, equipoAplicado)}
-                          className={cn(
-                            'flex min-h-10 w-full cursor-pointer flex-col justify-center gap-1 rounded-(--radius-field) px-2 py-1.5 text-left transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring',
-                            activo && 'bg-primary-tint hover:bg-primary-tint',
-                          )}
-                        >
-                          <span className="flex w-full items-center gap-2 text-body">
-                            <Icono aria-hidden className="size-4 shrink-0 text-muted" />
-                            <span className="min-w-0 flex-1 truncate text-foreground">{etiquetaEvento(tipo, t)}</span>
-                            <span className="nums text-meta text-muted">{n}</span>
-                          </span>
-                          <span aria-hidden className="block h-1 w-full overflow-hidden rounded-full bg-surface-sunken">
-                            <span className="block h-full w-full origin-left rounded-full bg-border-strong" style={{ transform: `scaleX(${n / maxComposicion})` }} />
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </TarjetaRail>
+              <SeccionDetalle titulo={t('trazabilidad.composicion.titulo')}>
+                <TarjetaRail titulo={t('trazabilidad.composicion.titulo')}>
+                  <ul className="-mx-2 space-y-0.5">
+                    {composicion.map(([tipo, n]) => {
+                      const Icono = iconoEvento(tipo)
+                      const activo = tipoEvento === tipo
+                      return (
+                        <li key={tipo}>
+                          <button
+                            type="button"
+                            aria-pressed={activo}
+                            aria-label={`${t('trazabilidad.composicion.filtrar', { tipo: etiquetaEvento(tipo, t) })}: ${n}`}
+                            onClick={() => consultarCon(activo ? '' : tipo, equipoAplicado)}
+                            className={cn(
+                              'flex min-h-10 w-full cursor-pointer flex-col justify-center gap-1 rounded-(--radius-field) px-2 py-1.5 text-left transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring',
+                              activo && 'bg-primary-tint hover:bg-primary-tint',
+                            )}
+                          >
+                            <span className="flex w-full items-center gap-2 text-body">
+                              <Icono aria-hidden className="size-4 shrink-0 text-muted" />
+                              <span className="min-w-0 flex-1 truncate text-foreground">{etiquetaEvento(tipo, t)}</span>
+                              <span className="nums text-meta text-muted">{n}</span>
+                            </span>
+                            <span aria-hidden className="block h-1 w-full overflow-hidden rounded-full bg-surface-sunken">
+                              <span className="block h-full w-full origin-left rounded-full bg-border-strong" style={{ transform: `scaleX(${n / maxComposicion})` }} />
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </TarjetaRail>
+              </SeccionDetalle>
             )}
           </>
         }

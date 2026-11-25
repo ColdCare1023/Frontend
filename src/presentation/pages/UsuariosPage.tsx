@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { KeyRound, RotateCcw, ShieldCheck, UserPlus, UserX } from 'lucide-react'
@@ -102,6 +103,7 @@ export function UsuariosPage() {
       ) : (
         <>
           <TiraEstado
+            resumir
             className="mb-3 xl:mb-4"
             etiqueta={t('usuarios.resumen')}
             apilarGuia
@@ -126,7 +128,7 @@ export function UsuariosPage() {
           <div className="grid items-start gap-3 xl:grid-cols-12 xl:gap-4">
             {/* El recuento y la paginación van dentro de la tarjeta, como en
                 Alertas y Dispositivos (antes quedaban sueltos debajo). */}
-            <div className="superficie min-w-0 overflow-hidden xl:col-span-8 2xl:col-span-9">
+            <div className="superficie min-w-0 overflow-hidden xl:col-span-12">
               <Table variante="embebida" mobileLayout="stack" titulo={t('usuarios.titulo')}>
                 <TableHeader>
                   <TableRow>
@@ -234,7 +236,9 @@ export function UsuariosPage() {
                 <Paginacion total={usuarios.length} pagina={pagina} onCambiar={setPagina} tamano={tamanoPagina} />
               </div>
             </div>
-            <RielUsuarios usuarios={usuarios} />
+            <SeccionDetalle titulo={t('lectura.cuentas')} className="xl:col-span-12">
+              <RielUsuarios usuarios={usuarios} />
+            </SeccionDetalle>
           </div>
         </>
       )}

@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -112,7 +113,9 @@ export function ReportesPage() {
             plegable={reporte !== null}
             onGenerar={enviar}
           />
-          <QueIncluye className="hidden lg:block" />
+          <SeccionDetalle titulo={t('reportes.queIncluye')}>
+            <QueIncluye />
+          </SeccionDetalle>
         </div>
         <ResumenReporte
           className="min-w-0 lg:col-span-7"

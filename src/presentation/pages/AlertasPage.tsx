@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
@@ -455,7 +456,9 @@ export function AlertasPage() {
                 onReintentar={() => void incidentesConsulta.consultar()}
                 ahora={ahora}
               />
-              <Cinta24hAlertas cintas={cintas} cargando={estadoResumen === 'cargando' && atendidas.estado === 'cargando'} />
+              <SeccionDetalle titulo={t('alertas.rail.ultimas24h')}>
+                <Cinta24hAlertas cintas={cintas} cargando={estadoResumen === 'cargando' && atendidas.estado === 'cargando'} />
+              </SeccionDetalle>
             </aside>
           </div>
 

@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useTranslation } from 'react-i18next'
 import { Info } from 'lucide-react'
 
@@ -118,8 +119,8 @@ export function MetricasIAPage() {
     const estadoEvaluacion: EstadoClasificador = !evaluacionVerificada ? 'sin-verificar' : m.f1_weighted >= UMBRAL_F1 ? 'cumple' : 'no-cumple'
     cuerpo = (
       <>
-        <EstadoModelo estado="disponible" version={datos.metadata?.model_version ?? m.model_version} />
         {estadoPreventivo}
+        <EstadoModelo estado="disponible" version={datos.metadata?.model_version ?? m.model_version} />
         <EstadoEvaluacion estado={estadoEvaluacion} umbral={porcentaje(UMBRAL_F1, i18n.resolvedLanguage, 0)} />
         {/* Desde 1024 px, dos columnas que se apilan por separado (5 + 7): en
             una rejilla de filas, cada tarjeta se estiraba al alto de su vecina
@@ -127,17 +128,19 @@ export function MetricasIAPage() {
             tarjeta de cada columna toma el sobrante para que ambas terminen
             alineadas. Bajo 1024 px las columnas se disuelven (`contents`) y
             `order` mantiene el orden de lectura: F1, resultados, método y variables. */}
-        <div className="grid gap-3 lg:grid-cols-12 xl:gap-4">
-          <div className="contents lg:col-span-5 lg:flex lg:flex-col lg:gap-3 xl:gap-4">
-            <ResultadoEvaluacion className="order-1" metricas={m} estado={estadoEvaluacion} umbral={UMBRAL_F1} />
-            <ComoSeEvaluo className="order-3 lg:flex-1" metricas={m} umbral={UMBRAL_F1} />
+        <SeccionDetalle titulo={t('lectura.evaluacion')}>
+          <div className="grid gap-3 lg:grid-cols-12 xl:gap-4">
+            <div className="contents lg:col-span-5 lg:flex lg:flex-col lg:gap-3 xl:gap-4">
+              <ResultadoEvaluacion className="order-1" metricas={m} estado={estadoEvaluacion} umbral={UMBRAL_F1} />
+              <ComoSeEvaluo className="order-3 lg:flex-1" metricas={m} umbral={UMBRAL_F1} />
+            </div>
+            <div className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-3 xl:gap-4">
+              <ResultadosPorClase className="order-2" metricas={m} />
+              <ImportanciaVariables className="order-4 lg:flex-1" metricas={m} />
+            </div>
+            <FichaModelo className="order-5 lg:col-span-12" metricas={m} />
           </div>
-          <div className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-3 xl:gap-4">
-            <ResultadosPorClase className="order-2" metricas={m} />
-            <ImportanciaVariables className="order-4 lg:flex-1" metricas={m} />
-          </div>
-          <FichaModelo className="order-5 lg:col-span-12" metricas={m} />
-        </div>
+        </SeccionDetalle>
       </>
     )
   }

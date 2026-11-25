@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useTranslation } from 'react-i18next'
 import { OctagonAlert, RefreshCw, ServerCog, TriangleAlert } from 'lucide-react'
 
@@ -182,16 +183,18 @@ export function EstadoServicioPage() {
           </p>
         )}
         <Resumen e={datos} />
-        <div className="grid gap-3 lg:grid-cols-2 xl:gap-4">
-          <BloqueBaseDatos e={datos} />
-          <BloqueMqtt e={datos} />
-          <BloqueArranque e={datos} />
-          <BloqueProxy e={datos} />
-          <BloqueNotificaciones e={datos} />
-          <BloqueVigilancia e={datos} />
-          <BloqueRespaldos e={datos} />
-          <BloqueModeloIA e={datos} />
-        </div>
+        <SeccionDetalle titulo={t('lectura.diagnostico')} open={datos.status !== 'ok'}>
+          <div className="grid gap-3 lg:grid-cols-2 xl:gap-4">
+            <BloqueBaseDatos e={datos} />
+            <BloqueMqtt e={datos} />
+            <BloqueArranque e={datos} />
+            <BloqueProxy e={datos} />
+            <BloqueNotificaciones e={datos} />
+            <BloqueVigilancia e={datos} />
+            <BloqueRespaldos e={datos} />
+            <BloqueModeloIA e={datos} />
+          </div>
+        </SeccionDetalle>
       </div>
     )
   }

@@ -212,7 +212,7 @@ export const CeldaAlertasPendientes = memo(function CeldaAlertasPendientes({
   const linea = estado === 'listo' && total > 0 && primeras.length < 3 ? <LineaPendientes alertas={alertas} nombres={nombres} /> : null
 
   return (
-    <section aria-labelledby="alertas-pendientes-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 lg:col-span-6 xl:p-5">
+    <section aria-labelledby="alertas-pendientes-titulo" className="superficie col-span-4 flex min-w-0 flex-col p-4 sm:col-span-8 lg:col-span-12 xl:p-5">
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="alertas-pendientes-titulo" className="text-title text-foreground">
           {t('dashboard.alertasTitulo')}

@@ -166,61 +166,66 @@ export const CeldaEquipo = memo(function CeldaEquipo({
           </Button>
         )}
       </div>
-      <dl className="mt-2 grid grid-cols-3 gap-x-3 text-meta text-muted">
-        <div className="min-w-0">
-          <dt className="flex items-center gap-1.5 font-medium">
-            {conectividad === 'online' ? <Wifi aria-hidden className="size-3.5 shrink-0" /> : <WifiOff aria-hidden className="size-3.5 shrink-0" />}
-            <span className="min-w-0 lg:truncate">{t('dispositivos.conectividad')}</span>
-          </dt>
-          <dd className="mt-1">
-            {/* HU-13: estado del NODO (LWT/online/telemetría), no el de la
-                lectura, que siempre se envió conectada. Sin datos del equipo
-                (modo demo) se usa el de la lectura. */}
-            <BadgeConectividad estado={conectividad} desde={equipo?.conectividad_cambiada_en} testId="conectividad-dispositivo" />
-          </dd>
-          {ultimoReporte && (
-            <dd className="nums mt-1 text-faint lg:truncate" title={t('dashboard.ultimoReporteCorto', { hora: hora(ultimoReporte) })}>
-              <span className="sr-only">{t('dashboard.ultimoReporteCorto', { hora: '' })}</span>
-              <time dateTime={ultimoReporte}>{horaCorta(ultimoReporte)}</time>
+      <details className="mt-2" open={Boolean(equipo && (conectividad !== 'online' || estadoCalibracion(equipo) !== 'vigente' || pendientes > 0 || buffer?.perdidas))}>
+        <summary className="flex min-h-11 cursor-pointer items-center text-body font-medium text-muted hover:text-foreground">
+          {t('lectura.nodo')}
+        </summary>
+        <dl className="mt-2 grid grid-cols-3 gap-x-3 text-meta text-muted">
+          <div className="min-w-0">
+            <dt className="flex items-center gap-1.5 font-medium">
+              {conectividad === 'online' ? <Wifi aria-hidden className="size-3.5 shrink-0" /> : <WifiOff aria-hidden className="size-3.5 shrink-0" />}
+              <span className="min-w-0 lg:truncate">{t('dispositivos.conectividad')}</span>
+            </dt>
+            <dd className="mt-1">
+              {/* HU-13: estado del NODO (LWT/online/telemetría), no el de la
+                  lectura, que siempre se envió conectada. Sin datos del equipo
+                  (modo demo) se usa el de la lectura. */}
+              <BadgeConectividad estado={conectividad} desde={equipo?.conectividad_cambiada_en} testId="conectividad-dispositivo" />
             </dd>
-          )}
-        </div>
-        <div className="min-w-0">
-          <dt className="flex items-center gap-1.5 font-medium">
-            <HardDrive aria-hidden className="size-3.5 shrink-0" />
-            <span className="min-w-0 lg:truncate">{t('dashboard.bufferTitulo')}</span>
-          </dt>
-          {buffer ? (
-            <>
-              <dd className="mt-1 flex min-h-5 min-w-0 items-center gap-1.5">
-                <AnilloBuffer
-                  pendientes={pendientes}
-                  limite={limite}
-                  perdidas={buffer.perdidas ?? 0}
-                  tamano={18}
-                  etiqueta={t('dashboard.bufferAnillo', { n: pendientes.toLocaleString(), max: limite.toLocaleString() })}
-                />
-                <span className="nums text-body text-foreground lg:truncate">
-                  {pendientes.toLocaleString()}
-                  <span className="text-meta text-faint"> / {limite.toLocaleString()}</span>
-                </span>
+            {ultimoReporte && (
+              <dd className="nums mt-1 text-faint lg:truncate" title={t('dashboard.ultimoReporteCorto', { hora: hora(ultimoReporte) })}>
+                <span className="sr-only">{t('dashboard.ultimoReporteCorto', { hora: '' })}</span>
+                <time dateTime={ultimoReporte}>{horaCorta(ultimoReporte)}</time>
               </dd>
-              <dd className="mt-1 text-faint lg:truncate">
-                <MetaBuffer equipo={equipo} />
-              </dd>
-            </>
-          ) : (
-            <dd className="mt-1 text-body text-faint">—</dd>
-          )}
-        </div>
-        <div className="min-w-0">
-          <dt className="flex items-center gap-1.5 font-medium">
-            <CalendarClock aria-hidden className="size-3.5 shrink-0" />
-            <span className="min-w-0 lg:truncate">{t('dashboard.calibracionTitulo')}</span>
-          </dt>
-          <CalibracionCelda equipo={equipo} />
-        </div>
-      </dl>
+            )}
+          </div>
+          <div className="min-w-0">
+            <dt className="flex items-center gap-1.5 font-medium">
+              <HardDrive aria-hidden className="size-3.5 shrink-0" />
+              <span className="min-w-0 lg:truncate">{t('dashboard.bufferTitulo')}</span>
+            </dt>
+            {buffer ? (
+              <>
+                <dd className="mt-1 flex min-h-5 min-w-0 items-center gap-1.5">
+                  <AnilloBuffer
+                    pendientes={pendientes}
+                    limite={limite}
+                    perdidas={buffer.perdidas ?? 0}
+                    tamano={18}
+                    etiqueta={t('dashboard.bufferAnillo', { n: pendientes.toLocaleString(), max: limite.toLocaleString() })}
+                  />
+                  <span className="nums text-body text-foreground lg:truncate">
+                    {pendientes.toLocaleString()}
+                    <span className="text-meta text-faint"> / {limite.toLocaleString()}</span>
+                  </span>
+                </dd>
+                <dd className="mt-1 text-faint lg:truncate">
+                  <MetaBuffer equipo={equipo} />
+                </dd>
+              </>
+            ) : (
+              <dd className="mt-1 text-body text-faint">—</dd>
+            )}
+          </div>
+          <div className="min-w-0">
+            <dt className="flex items-center gap-1.5 font-medium">
+              <CalendarClock aria-hidden className="size-3.5 shrink-0" />
+              <span className="min-w-0 lg:truncate">{t('dashboard.calibracionTitulo')}</span>
+            </dt>
+            <CalibracionCelda equipo={equipo} />
+          </div>
+        </dl>
+      </details>
     </section>
   )
 })

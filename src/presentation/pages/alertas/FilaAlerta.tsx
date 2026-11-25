@@ -2,6 +2,8 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, History } from 'lucide-react'
 
+import { estadoDeEquipo, useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
+import { formatearTemperatura } from '../../components/ui/formato-cifra'
 import type { FiltroEstado } from '@/application/hooks/useAlertas'
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { duracionLegible, fechaHora, fechaHoraCompacta } from '@/lib/formato'
@@ -76,6 +78,10 @@ export const FilaAlerta = memo(function FilaAlerta({
   const IconoRiesgo = ICONO_ESTADO[tono]
   const fecha = fechaHoraCompacta(alerta.created_at)
   const datos = { equipo: alerta.device_id, fecha }
+  const equipo = useEstadoVivoStore((s) => s.equipos.find((e) => e.id === alerta.device_id))
+  const ultima = useEstadoVivoStore((s) => s.ultimas[alerta.device_id])
+  const estadoEquipo = equipo ? estadoDeEquipo(equipo, ultima).clave : null
+
 
   // La fila sale de su pestaña tras mostrar el resultado (Revisada / atendida).
   const recienRevisada = filtro === 'pendiente' && alerta.estado === 'reconocida'
@@ -126,6 +132,14 @@ export const FilaAlerta = memo(function FilaAlerta({
             {fecha}
           </time>
         </div>
+        {alerta.estado !== 'atendida' && equipo && (
+          <p className="mt-1 pl-6 text-meta text-muted">
+            {equipo.nombre || equipo.id} · {t(`estadoVivo.estado.${estadoEquipo}`)}
+            {ultima?.temperatura != null && estadoEquipo !== 'falla_sensor' && (
+              <> · {t('lectura.ultimaMedicion', { valor: formatearTemperatura(ultima.temperatura), fecha: fechaHoraCompacta(ultima.timestamp) })}</>
+            )}
+          </p>
+        )}
         {/* Bajo 768 la columna Excursión se oculta: su contenido baja aquí. */}
         <div className="mt-1.5 space-y-1.5 pl-6 md:hidden">
           {(alerta.temperatura_pico != null || alerta.duracion_s != null) && (

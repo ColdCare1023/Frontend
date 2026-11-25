@@ -1,4 +1,19 @@
 {
+  "lectura": {
+    "tendencia": "View temperature trend",
+    "ultimaMedicion": "Last reading: {{valor}} on {{fecha}}",
+    "indicadores": "View indicators",
+    "evaluacion": "Model evaluation and results",
+    "diagnostico": "Diagnostics by component",
+    "actividad": "Activity by day",
+    "registro": "How to read this log",
+    "cuentas": "Account roles and status",
+    "equipos": "Device calibration and storage",
+    "nodo": "Connection, sensors and calibration",
+    "recientes": "View recent readings",
+    "alcance": "Scope of this guide",
+    "acerca": "About ColdCare"
+  },
   "app": {
     "nombre": "ColdCare",
     "subtitulo": "Cold-chain monitoring",

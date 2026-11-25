@@ -31,16 +31,22 @@ export function ColdCareBrandPanel({ className = '' }: ColdCareBrandPanelProps) 
           <br />
           <span className="text-secondary">{t('login.esloganLinea2')}</span>
         </h1>
-        <p className="mt-5 hidden max-w-[44ch] animate-rise text-[15px] leading-7 text-white/75 [animation-delay:70ms] lg:block">
-          {t('login.descripcion')}
-        </p>
-        <div className="mt-9 hidden animate-fade items-center justify-between gap-4 border-t border-white/15 pt-5 text-sm text-white/75 [animation-delay:140ms] lg:flex">
-          <span>{t('login.rangoReferencia')}</span>
-          <span className="nums flex items-center gap-2.5 text-[28px] leading-none font-semibold tracking-[-0.03em] text-white">
-            <span aria-hidden className="size-2 rounded-full bg-secondary shadow-[0_0_12px_rgb(0_209_255/0.9)]" />
-            2–8 °C
-          </span>
-        </div>
+        <details className="group mt-5 max-w-[44ch] text-white/80">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-sm text-sm font-medium hover:text-white focus-visible:outline-2 focus-visible:outline-white [&::-webkit-details-marker]:hidden">
+            {t('lectura.acerca')}
+            <span aria-hidden className="transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <p className="mt-2 max-w-[44ch] animate-rise text-[15px] leading-7 text-white/75 [animation-delay:70ms]">
+            {t('login.descripcion')}
+          </p>
+          <div className="mt-3 flex animate-fade items-center justify-between gap-4 border-t border-white/15 pt-5 text-sm text-white/75 [animation-delay:140ms] lg:flex">
+            <span>{t('login.rangoReferencia')}</span>
+            <span className="nums flex items-center gap-2.5 text-[28px] leading-none font-semibold tracking-[-0.03em] text-white">
+              <span aria-hidden className="size-2 rounded-full bg-secondary shadow-[0_0_12px_rgb(0_209_255/0.9)]" />
+              2–8 °C
+            </span>
+          </div>
+        </details>
       </div>
     </section>
   )

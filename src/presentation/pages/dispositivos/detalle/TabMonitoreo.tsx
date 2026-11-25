@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -102,67 +103,69 @@ export function TabMonitoreo({ dispositivo, estado, ultima }: { dispositivo: Dis
         </p>
       </section>
 
-      <Tarjeta id="monitoreo-equipo" titulo={t('dispositivos.monitoreo.equipo')} icono={Cpu} className="col-span-12 lg:col-span-5">
-        <dl className="grid grid-cols-2 gap-x-4">
-          <Dato etiqueta={t('dispositivos.monitoreo.conexion')}>
-            <BadgeConectividad estado={dispositivo.estado_conectividad} desde={dispositivo.conectividad_cambiada_en} />
-          </Dato>
-          <Dato etiqueta={t('dispositivos.estado')}>
-            {dispositivo.estado_operativo ? t(`dispositivos.estadoOperativo.${dispositivo.estado_operativo}`) : '—'}
-          </Dato>
-          <Dato etiqueta={t('dispositivos.ultimoReporte')}>
-            <span className="nums">{dispositivo.ultimo_reporte_en ? fechaHora(dispositivo.ultimo_reporte_en) : '—'}</span>
-          </Dato>
-          <Dato etiqueta={t('dispositivos.bufferLocal')}>
-            <span className="flex items-center gap-2">
-              <AnilloBuffer
-                tamano={28}
-                pendientes={buffer?.pendientes ?? 0}
-                limite={buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS}
-                perdidas={buffer?.perdidas ?? 0}
-              />
-              <span className="nums">
-                {numero(buffer?.pendientes ?? 0)} / {numero(buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS)}
-              </span>
-            </span>
-            <span className="block nums text-meta text-muted">{t('dispositivos.perdidas', { n: buffer?.perdidas ?? 0 })}</span>
-          </Dato>
-          {buffer?.desde && (
-            <Dato etiqueta={t('dispositivos.periodoCola')} className="col-span-2">
-              <span className="nums">
-                {fechaHora(buffer.desde)} – {buffer.hasta ? fechaHora(buffer.hasta) : '—'}
-                {buffer.rango_estimado && ` (${t('dashboard.rangoEstimado')})`}
-              </span>
+      <SeccionDetalle titulo={t('lectura.nodo')} className="col-span-12 lg:col-span-5">
+        <Tarjeta id="monitoreo-equipo" titulo={t('dispositivos.monitoreo.equipo')} icono={Cpu} className="col-span-12 lg:col-span-5">
+          <dl className="grid grid-cols-2 gap-x-4">
+            <Dato etiqueta={t('dispositivos.monitoreo.conexion')}>
+              <BadgeConectividad estado={dispositivo.estado_conectividad} desde={dispositivo.conectividad_cambiada_en} />
             </Dato>
-          )}
-          {(buffer?.brechas ?? []).length > 0 && (
-            <Dato etiqueta={t('dispositivos.monitoreo.brechas')} className="col-span-2">
-              {/* HU-48: la más reciente primero; sin hora del nodo, su secuencia. */}
-              <ul className="space-y-0.5">
-                {brechasRecientes(buffer).map((b, indice) => (
-                  <li key={claveBrecha(b, indice)} className="nums text-meta">
-                    {b.desde || b.hasta
-                      ? t('dispositivos.monitoreo.brecha', { desde: fechaHora(b.desde), hasta: fechaHora(b.hasta), n: perdidasDeBrecha(b) })
-                      : `${textosBrecha(b, t).resumen} · ${textosBrecha(b, t).periodo}`}
-                    {b.abierta && (b.desde || b.hasta) && ` · ${t('dashboard.brechaEnCurso')}`}
-                  </li>
-                ))}
-              </ul>
+            <Dato etiqueta={t('dispositivos.estado')}>
+              {dispositivo.estado_operativo ? t(`dispositivos.estadoOperativo.${dispositivo.estado_operativo}`) : '—'}
             </Dato>
-          )}
-          {(dispositivo.sensores ?? []).length > 0 && (
-            <Dato etiqueta={t('dispositivos.sensores')} className="col-span-2">
-              <span className="flex flex-wrap gap-x-3 gap-y-1 text-meta">
-                {(dispositivo.sensores ?? []).map((s) => (
-                  <span key={s.modelo}>
-                    {s.modelo} · <span className={s.estado === 'error' ? 'text-critical' : 'text-muted'}>{t(`dispositivos.sensorEstado.${s.estado}`)}</span>
-                  </span>
-                ))}
+            <Dato etiqueta={t('dispositivos.ultimoReporte')}>
+              <span className="nums">{dispositivo.ultimo_reporte_en ? fechaHora(dispositivo.ultimo_reporte_en) : '—'}</span>
+            </Dato>
+            <Dato etiqueta={t('dispositivos.bufferLocal')}>
+              <span className="flex items-center gap-2">
+                <AnilloBuffer
+                  tamano={28}
+                  pendientes={buffer?.pendientes ?? 0}
+                  limite={buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS}
+                  perdidas={buffer?.perdidas ?? 0}
+                />
+                <span className="nums">
+                  {numero(buffer?.pendientes ?? 0)} / {numero(buffer?.limite ?? CAPACIDAD_BUFFER_LITTLEFS)}
+                </span>
               </span>
+              <span className="block nums text-meta text-muted">{t('dispositivos.perdidas', { n: buffer?.perdidas ?? 0 })}</span>
             </Dato>
-          )}
-        </dl>
-      </Tarjeta>
+            {buffer?.desde && (
+              <Dato etiqueta={t('dispositivos.periodoCola')} className="col-span-2">
+                <span className="nums">
+                  {fechaHora(buffer.desde)} – {buffer.hasta ? fechaHora(buffer.hasta) : '—'}
+                  {buffer.rango_estimado && ` (${t('dashboard.rangoEstimado')})`}
+                </span>
+              </Dato>
+            )}
+            {(buffer?.brechas ?? []).length > 0 && (
+              <Dato etiqueta={t('dispositivos.monitoreo.brechas')} className="col-span-2">
+                {/* HU-48: la más reciente primero; sin hora del nodo, su secuencia. */}
+                <ul className="space-y-0.5">
+                  {brechasRecientes(buffer).map((b, indice) => (
+                    <li key={claveBrecha(b, indice)} className="nums text-meta">
+                      {b.desde || b.hasta
+                        ? t('dispositivos.monitoreo.brecha', { desde: fechaHora(b.desde), hasta: fechaHora(b.hasta), n: perdidasDeBrecha(b) })
+                        : `${textosBrecha(b, t).resumen} · ${textosBrecha(b, t).periodo}`}
+                      {b.abierta && (b.desde || b.hasta) && ` · ${t('dashboard.brechaEnCurso')}`}
+                    </li>
+                  ))}
+                </ul>
+              </Dato>
+            )}
+            {(dispositivo.sensores ?? []).length > 0 && (
+              <Dato etiqueta={t('dispositivos.sensores')} className="col-span-2">
+                <span className="flex flex-wrap gap-x-3 gap-y-1 text-meta">
+                  {(dispositivo.sensores ?? []).map((s) => (
+                    <span key={s.modelo}>
+                      {s.modelo} · <span className={s.estado === 'error' ? 'text-critical' : 'text-muted'}>{t(`dispositivos.sensorEstado.${s.estado}`)}</span>
+                    </span>
+                  ))}
+                </span>
+              </Dato>
+            )}
+          </dl>
+        </Tarjeta>
+      </SeccionDetalle>
 
       {/* La celda de la curva del Dashboard ocupa una grilla de 4/8 columnas. */}
       <div className="col-span-12 grid min-w-0 grid-cols-4 sm:grid-cols-8 xl:col-span-8">

@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CircleCheck, Download, FilterX, Info, Search, ShieldAlert, TriangleAlert } from 'lucide-react'
@@ -464,6 +465,7 @@ export function AuditoriaPage() {
 
       {registros.length > 0 && (
         <TiraEstado
+          resumir
           etiqueta={t('auditoria.resumen')}
           apilarGuia
           guia={guia}
@@ -481,18 +483,20 @@ export function AuditoriaPage() {
         etiquetaRail={t('auditoria.rail.etiqueta')}
         superior={
           baseHistograma.length > 0 && (
-            <HistogramaActividad
-              registros={baseHistograma}
-              diaSeleccionado={diaHistograma}
-              onSeleccionar={(clave, inicio) => {
-                if (!clave) {
-                  consultarCon({ ...aplicados, desde: undefined, hasta: undefined })
-                  return
-                }
-                const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate(), 23, 59, 59)
-                consultarCon({ ...aplicados, desde: inicio.toISOString(), hasta: fin.toISOString() }, claveDia(inicio.toISOString()))
-              }}
-            />
+            <SeccionDetalle titulo={t('lectura.actividad')}>
+              <HistogramaActividad
+                registros={baseHistograma}
+                diaSeleccionado={diaHistograma}
+                onSeleccionar={(clave, inicio) => {
+                  if (!clave) {
+                    consultarCon({ ...aplicados, desde: undefined, hasta: undefined })
+                    return
+                  }
+                  const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate(), 23, 59, 59)
+                  consultarCon({ ...aplicados, desde: inicio.toISOString(), hasta: fin.toISOString() }, claveDia(inicio.toISOString()))
+                }}
+              />
+            </SeccionDetalle>
           )
         }
         rail={

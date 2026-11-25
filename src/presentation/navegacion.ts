@@ -34,14 +34,14 @@ export const SECCIONES: SeccionNav[] = [
       { ruta: '/dashboard', icono: Activity, claveI18n: 'nav.dashboard', claveDescripcion: 'nav.descripciones.dashboard', roles: ['farmaceutico', 'tecnico', 'auditor'] },
       { ruta: '/alertas', icono: Bell, claveI18n: 'nav.alertas', claveDescripcion: 'nav.descripciones.alertas', roles: ['farmaceutico', 'tecnico', 'auditor'] },
       { ruta: '/historial', icono: History, claveI18n: 'nav.historial', claveDescripcion: 'nav.descripciones.historial', roles: ['farmaceutico', 'tecnico', 'auditor'] },
-      { ruta: '/guia', icono: BookOpen, claveI18n: 'nav.guia', claveDescripcion: 'nav.descripciones.guia', roles: ['farmaceutico', 'tecnico', 'auditor'] },
+      { ruta: '/reportes', icono: FileText, claveI18n: 'nav.reportes', claveDescripcion: 'nav.descripciones.reportes', roles: ['farmaceutico', 'auditor'] },
     ],
   },
   {
     claveI18n: 'nav.seccionCumplimiento',
     items: [
       { ruta: '/trazabilidad', icono: Link2, claveI18n: 'nav.trazabilidad', claveDescripcion: 'nav.descripciones.trazabilidad', roles: ['farmaceutico', 'tecnico', 'auditor'] },
-      { ruta: '/reportes', icono: FileText, claveI18n: 'nav.reportes', claveDescripcion: 'nav.descripciones.reportes', roles: ['farmaceutico', 'auditor'] },
+      { ruta: '/guia', icono: BookOpen, claveI18n: 'nav.guia', claveDescripcion: 'nav.descripciones.guia', roles: ['farmaceutico', 'tecnico', 'auditor'] },
       { ruta: '/metricas-ia', icono: Brain, claveI18n: 'nav.metricasIA', claveDescripcion: 'nav.descripciones.metricasIA', roles: ['farmaceutico', 'auditor'] },
       // HU-49: el auditor consulta el historial de configuración del hardware (solo lectura).
       { ruta: '/configuracion-equipos', icono: SlidersHorizontal, claveI18n: 'nav.configuracionEquipos', claveDescripcion: 'nav.descripciones.configuracionEquipos', roles: ['auditor'] },

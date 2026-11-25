@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { History, Info, Lock, ShieldCheck } from 'lucide-react'
@@ -7,7 +8,7 @@ import { CATEGORIAS_HISTORIAL, type CategoriaHistorial } from '@/domain/entities
 import { fechaHora } from '@/lib/formato'
 import { EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
-import { ChipsFiltro, PlantillaBandeja, TarjetaRail, type Chip } from '../components/registros/piezas'
+import { ChipsFiltro, TarjetaRail, type Chip } from '../components/registros/piezas'
 import { Button } from '../components/ui/button'
 import { Label, NativeSelect } from '../components/ui/input'
 import { SelectorFecha } from '../components/ui/selector-fecha'
@@ -177,42 +178,36 @@ export function ConfiguracionEquiposPage() {
         />
       )}
 
-      <PlantillaBandeja
-        etiquetaRail={t('configuracionEquipos.rail.etiqueta')}
-        superior={
-          <section aria-labelledby="cfg-historial-titulo" className="superficie overflow-clip">
-            <h2 id="cfg-historial-titulo" className="flex items-center gap-2 px-3 pt-3 text-title text-foreground sm:px-4">
-              <History aria-hidden className="size-4 text-muted" />
-              {t('configuracionEquipos.cambiosRegistrados')}
-            </h2>
-            {barra}
-            {contenido}
-          </section>
-        }
-        rail={
-          <>
-            <TarjetaRail titulo={t('configuracionEquipos.rail.soloLectura')}>
-              <p className="flex items-start gap-2 text-body text-subtle">
-                <Lock aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
-                {t('configuracionEquipos.rail.soloLecturaDetalle')}
-              </p>
-            </TarjetaRail>
-            <TarjetaRail titulo={t('configuracionEquipos.rail.telemetria')}>
-              <p className="flex items-start gap-2 text-body text-subtle">
-                <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-success-700" />
-                {t('configuracionEquipos.rail.telemetriaDetalle')}
-              </p>
-            </TarjetaRail>
-            <TarjetaRail titulo={t('configuracionEquipos.rail.rango')}>
-              <p className="flex items-start gap-2 text-body text-subtle">
-                <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
-                {t('configuracionEquipos.rail.rangoDetalle')}
-              </p>
-            </TarjetaRail>
-          </>
-        }
-        inferior={null}
-      />
+      <section aria-labelledby="cfg-historial-titulo" className="superficie overflow-clip">
+        <h2 id="cfg-historial-titulo" className="flex items-center gap-2 px-3 pt-3 text-title text-foreground sm:px-4">
+          <History aria-hidden className="size-4 text-muted" />
+          {t('configuracionEquipos.cambiosRegistrados')}
+        </h2>
+        {barra}
+        {contenido}
+      </section>
+      <aside aria-label={t('configuracionEquipos.rail.etiqueta')}>
+        <SeccionDetalle titulo={t('lectura.registro')}>
+          <TarjetaRail titulo={t('configuracionEquipos.rail.soloLectura')}>
+            <p className="flex items-start gap-2 text-body text-subtle">
+              <Lock aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+              {t('configuracionEquipos.rail.soloLecturaDetalle')}
+            </p>
+          </TarjetaRail>
+          <TarjetaRail titulo={t('configuracionEquipos.rail.telemetria')}>
+            <p className="flex items-start gap-2 text-body text-subtle">
+              <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-success-700" />
+              {t('configuracionEquipos.rail.telemetriaDetalle')}
+            </p>
+          </TarjetaRail>
+          <TarjetaRail titulo={t('configuracionEquipos.rail.rango')}>
+            <p className="flex items-start gap-2 text-body text-subtle">
+              <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+              {t('configuracionEquipos.rail.rangoDetalle')}
+            </p>
+          </TarjetaRail>
+        </SeccionDetalle>
+      </aside>
     </div>
   )
 }

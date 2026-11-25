@@ -21,6 +21,7 @@ test('HU-36: la curva y el resumen cubren el periodo y la tabla pagina en el ser
   await expect(resultados).toBeVisible()
   const total = Number((await resultados.textContent())?.match(/(\d+)/)?.[1])
   expect(total).toBeGreaterThan(15)
+  await page.getByText('Curva del periodo', { exact: true }).filter({ visible: true }).click()
   await expect(page.getByText(/Promedio y mín\.–máx\. cada 1\s*min/)).toBeVisible()
   await expect(page.locator('#historial-grafica canvas').first()).toBeVisible()
 

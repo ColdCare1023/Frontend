@@ -1,3 +1,5 @@
+import { useCoincideMedia } from '../hooks/useCoincideMedia'
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FlaskConical } from 'lucide-react'
@@ -43,6 +45,7 @@ let bentoYaEntro = false
  */
 export function DashboardPage() {
   const { t } = useTranslation()
+  const esMovil = useCoincideMedia('(max-width: 639px)')
   const rol = useAuthStore((s) => s.usuario?.rol)
   const [horasVentana, setHorasVentana] = useState<number>(24)
   // HU-31/HU-33: el dashboard muestra UN refrigerador a la vez. Por defecto,
@@ -146,6 +149,34 @@ export function DashboardPage() {
     recargarSerie()
   }, [consultarEstadoOperativo, reintentar, recargarSerie])
 
+  const curva = (
+    <CeldaCurva
+      serie={serie}
+      ultimaPresente={ultima !== null}
+      estadoHistorial={estadoHistorial}
+      reintentar={reintentar}
+      horasVentana={horasVentana}
+      onCambiarVentana={setHorasVentana}
+      ventana={ventana}
+      agregada={agregada}
+      resumen={resumen}
+      cobertura={cobertura}
+      calibracionVencidaDesde={calibracionVencidaDesde}
+      vencimientoCalibracion={vencimientoCalibracion}
+    />
+  )
+  const bandeja = (
+    <CeldaAlertasPendientes
+      total={alertas.total}
+      criticas={alertas.criticas}
+      alertas={alertas.alertas}
+      estado={alertas.estado}
+      reintentar={alertas.reintentar}
+      nombres={nombres}
+      ultimaAtendida={ultimaAtendida}
+    />
+  )
+
   return (
     <TooltipProvider delayDuration={300}>
       {/* RF-11 + WCAG 4.1.3: la excursión térmica que llega por SSE se anuncia.
@@ -216,21 +247,13 @@ export function DashboardPage() {
           recorte={recorte}
           puertaEnVivo={puertaEnVivo && (!ultima || puertaEnVivo.device_id === ultima.device_id) ? puertaEnVivo : null}
         />
+        {esMovil && bandeja}
         <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
-        <CeldaCurva
-          serie={serie}
-          ultimaPresente={ultima !== null}
-          estadoHistorial={estadoHistorial}
-          reintentar={reintentar}
-          horasVentana={horasVentana}
-          onCambiarVentana={setHorasVentana}
-          ventana={ventana}
-          agregada={agregada}
-          resumen={resumen}
-          cobertura={cobertura}
-          calibracionVencidaDesde={calibracionVencidaDesde}
-          vencimientoCalibracion={vencimientoCalibracion}
-        />
+        {esMovil ? (
+          <SeccionDetalle titulo={t('lectura.tendencia')} className="col-span-full">
+            {curva}
+          </SeccionDetalle>
+        ) : curva}
         <CeldaEstadoEquipos
           equipos={flota}
           deviceId={deviceId}
@@ -238,16 +261,10 @@ export function DashboardPage() {
           onElegir={elegir}
           onVerDetalles={verDetalles}
         />
-        <CeldaAlertasPendientes
-          total={alertas.total}
-          criticas={alertas.criticas}
-          alertas={alertas.alertas}
-          estado={alertas.estado}
-          reintentar={alertas.reintentar}
-          nombres={nombres}
-          ultimaAtendida={ultimaAtendida}
-        />
-        <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
+        {!esMovil && bandeja}
+        <SeccionDetalle titulo={t('lectura.recientes')} className="col-span-full">
+          <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
+        </SeccionDetalle>
       </div>
 
       <PanelDetalleEquipo

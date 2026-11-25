@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -170,6 +171,7 @@ export function ListaDispositivosPage() {
       ) : (
         <div className="grid grid-cols-12 gap-3 xl:gap-4">
           <TiraEstado
+            resumir
             className="col-span-12"
             apilarGuia
             etiqueta={t('dispositivos.resumenIoT')}
@@ -180,7 +182,7 @@ export function ListaDispositivosPage() {
           {/* Lista y rail en su propia grilla: el rail fijo (sticky) no puede
               salirse de ella y montarse sobre la actividad de debajo. */}
           <div className="col-span-12 grid grid-cols-12 gap-3 xl:gap-4">
-            <section aria-labelledby="titulo-lista" className="superficie col-span-12 min-w-0 self-start overflow-hidden xl:col-span-8 2xl:col-span-9">
+            <section aria-labelledby="titulo-lista" className="superficie col-span-12 min-w-0 self-start overflow-hidden xl:col-span-12">
               <h2 id="titulo-lista" className="sr-only">{t('dispositivos.lista.etiqueta')}</h2>
               <BarraFiltros
                 className="items-center"
@@ -266,7 +268,9 @@ export function ListaDispositivosPage() {
               </div>
             </section>
 
-            <RailContexto dispositivos={dispositivos} />
+            <SeccionDetalle titulo={t('lectura.equipos')} className="col-span-12">
+              <RailContexto dispositivos={dispositivos} />
+            </SeccionDetalle>
           </div>
 
           {/* Con pocas filas, la actividad de la flota va a todo lo ancho bajo la
@@ -312,7 +316,7 @@ function segmentosTira(resumen: ReturnType<typeof resumenFlota>, t: TFunction): 
     },
     { clave: 'sinDatos', etiqueta: t('dispositivos.sinDatos'), valor: resumen.sinDatos, tono: resumen.sinDatos > 0 ? 'sinDatos' : 'neutro' },
     { clave: 'fallas', etiqueta: t('dispositivos.fallasSensor'), valor: resumen.fallas, tono: resumen.fallas > 0 ? 'aviso' : 'neutro' },
-    { clave: 'buffer', etiqueta: t('dispositivos.bufferPendiente'), valor: resumen.buffer },
+    { clave: 'buffer', etiqueta: t('dispositivos.bufferPendiente'), valor: resumen.buffer, tono: resumen.buffer > 0 ? 'aviso' : 'neutro' },
     {
       clave: 'calibracion',
       etiqueta: t('dispositivos.tira.calibracion'),

@@ -54,6 +54,11 @@ test('monitoreo 768×1024 y 375×812 sin scroll horizontal', async ({ page }) =>
   await expect(page.getByRole('region', { name: 'Condiciones', exact: true })).toBeVisible()
   await sinScrollHorizontal(page)
   if (process.env.CAPTURAS_P5C) await page.screenshot({ path: `${process.env.CAPTURAS_P5C}/dashboard-375.png`, fullPage: true })
+  const tendencia = page.locator('summary').filter({ hasText: 'Ver tendencia de temperatura' })
+  await expect(page.getByRole('region', { name: 'Alertas pendientes' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Cómo cambió la temperatura' })).toBeHidden()
+  await tendencia.click()
+  await expect(page.getByRole('region', { name: 'Cómo cambió la temperatura' })).toBeVisible()
 })
 
 test('cambiar de equipo desde Estado de equipos actualiza la lectura', async ({ page }) => {
@@ -90,9 +95,11 @@ test('vista Lista: tabla paginada accesible', async ({ page }) => {
   await expect(tabla.locator('tbody tr')).toHaveCount(5)
 })
 
-test('Alertas pendientes y Lecturas recientes siempre visibles', async ({ page }) => {
+test('Alertas pendientes visibles y lecturas recientes a un clic', async ({ page }) => {
   await entrar(page)
   await expect(page.getByRole('region', { name: 'Alertas pendientes' })).toBeVisible()
+  await expect(page.locator('details').filter({ has: page.locator('summary', { hasText: 'Consultar lecturas recientes' }) })).not.toHaveAttribute('open')
+  await page.getByText('Consultar lecturas recientes', { exact: true }).click()
   await expect(page.getByRole('region', { name: 'Lecturas recientes' }).getByRole('listitem').first()).toBeVisible()
 })
 
@@ -144,6 +151,7 @@ test('HU-07/HU-34: un arranque sin hora se rotula «Sin hora» y «Sin clasifica
   await expect(lectura.getByTestId('riesgo-sin-clasificacion')).toContainText('Sin clasificación IA')
   await expect(lectura.getByText('Normal', { exact: true })).toHaveCount(0)
   await expect(lectura.getByText(/^Sin hora/)).toBeVisible()
+  await page.getByText('Consultar lecturas recientes', { exact: true }).click()
   const recientes = page.getByRole('region', { name: 'Lecturas recientes' })
   await expect(recientes.getByText(/^Sin hora/).first()).toBeVisible()
   await expect(page.getByTestId('aviso-curva-sin-hora')).toContainText('sin hora')

@@ -1,4 +1,19 @@
 {
+  "lectura": {
+    "tendencia": "Ver tendencia de temperatura",
+    "ultimaMedicion": "Última lectura: {{valor}} el {{fecha}}",
+    "indicadores": "Ver indicadores",
+    "evaluacion": "Evaluación y resultados del modelo",
+    "diagnostico": "Diagnóstico por componente",
+    "actividad": "Actividad por día",
+    "registro": "Cómo interpretar este registro",
+    "cuentas": "Distribución y estado de las cuentas",
+    "equipos": "Calibración y memoria de los equipos",
+    "nodo": "Conexión, sensores y calibración",
+    "recientes": "Consultar lecturas recientes",
+    "alcance": "Alcance de la guía",
+    "acerca": "Acerca de ColdCare"
+  },
   "app": {
     "nombre": "ColdCare",
     "subtitulo": "Monitoreo de cadena de frío",

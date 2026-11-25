@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useSearchParams } from 'react-router'
@@ -166,10 +167,12 @@ export function GuiaPage() {
             dejaba ~230 px vacíos bajo el panel del paso. */}
         <PreguntasFrecuentes className="lg:col-span-12" />
       </div>
-      <p className="mt-4 flex items-start gap-2 text-meta text-muted">
-        <ShieldCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-        {t('guia.nota')}
-      </p>
+      <SeccionDetalle titulo={t('lectura.alcance')} className="mt-4">
+        <p className="mt-4 flex items-start gap-2 text-meta text-muted">
+          <ShieldCheck aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+          {t('guia.nota')}
+        </p>
+      </SeccionDetalle>
     </div>
   )
 }

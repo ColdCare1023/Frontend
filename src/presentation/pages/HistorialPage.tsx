@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalendarX2, CircleCheck, DoorClosed, DoorOpen, Droplets, FilterX, Hourglass, Info, OctagonAlert, Search, ThermometerSun, Timer, Wifi, WifiOff, Hash, Inbox, Brain } from 'lucide-react'
@@ -518,18 +519,20 @@ export function HistorialPage() {
         etiquetaRail={t('historial.rail.etiqueta')}
         superior={
           conDatos ? (
-            <section aria-labelledby="historial-curva-titulo" className="superficie p-4 xl:p-5">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <h2 id="historial-curva-titulo" className="text-title text-foreground">{t('historial.curva.titulo')}</h2>
-                <p className="nums text-meta text-faint">
-                  {`${intervaloSerie ? t('historial.curva.agregada', { intervalo: duracionLegible(intervaloSerie) }) : ''} · ${t('dashboard.rangoConservacion')}`}
-                </p>
-              </div>
-              {/* HU-36 criterio 1: el mismo periodo filtrado alimenta la gráfica y la tabla. */}
-              <div id="historial-grafica" aria-busy={cargandoSerie || undefined} className={revelarCurva ? 'revelar-grafica' : undefined}>
-                <GraficaDiferida option={opcionHistorial} height="clamp(220px, 30vh, 280px)" ariaLabel={t('historial.curva.etiqueta', { n: resumen.n, periodo: textoPeriodo })} ariaDescribedBy="historial-datos-tabla" />
-              </div>
-            </section>
+            <SeccionDetalle titulo={t('historial.curva.titulo')}>
+              <section aria-labelledby="historial-curva-titulo" className="superficie p-4 xl:p-5">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <h2 id="historial-curva-titulo" className="text-title text-foreground">{t('historial.curva.titulo')}</h2>
+                  <p className="nums text-meta text-faint">
+                    {`${intervaloSerie ? t('historial.curva.agregada', { intervalo: duracionLegible(intervaloSerie) }) : ''} · ${t('dashboard.rangoConservacion')}`}
+                  </p>
+                </div>
+                {/* HU-36 criterio 1: el mismo periodo filtrado alimenta la gráfica y la tabla. */}
+                <div id="historial-grafica" aria-busy={cargandoSerie || undefined} className={revelarCurva ? 'revelar-grafica' : undefined}>
+                  <GraficaDiferida option={opcionHistorial} height="clamp(220px, 30vh, 280px)" ariaLabel={t('historial.curva.etiqueta', { n: resumen.n, periodo: textoPeriodo })} ariaDescribedBy="historial-datos-tabla" />
+                </div>
+              </section>
+            </SeccionDetalle>
           ) : errorSerie && !cargandoSerie && (total > 0 || errorSerie === 'no_encontrado') ? (
             <p role="status" className="superficie flex items-start gap-2 p-4 text-body text-muted">
               <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
