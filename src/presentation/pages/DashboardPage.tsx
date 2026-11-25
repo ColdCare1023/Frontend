@@ -11,6 +11,7 @@ import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { inicioCalibracionVencida, umbralSilencioSegundos } from '@/domain/entities/Dispositivo'
 import { estadoRiesgoDe } from '@/domain/entities/LecturaTermica'
 import { resumenCombinado } from '@/domain/entities/SerieTermica'
+import { cn } from '@/lib/utils'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
@@ -142,6 +143,7 @@ export function DashboardPage() {
     recargarSerie()
   }, [consultarEstadoOperativo, reintentar, recargarSerie])
 
+  const haySerie = serie.length > 0 || Boolean(agregada?.buckets.length)
   const curva = (
     <CeldaCurva
       serie={serie}
@@ -211,12 +213,15 @@ export function DashboardPage() {
               })}
             </select>
           ) : <span className="min-w-0 flex-1 break-all text-body font-semibold">{estadoIoTPrincipal?.nombre || deviceId || t('dashboard.equipo')}</span>}
-          {estadoIoTPrincipal && <Button variant="ghost" size="sm" className="ml-auto" onClick={() => verDetalles(estadoIoTPrincipal.id)}>
-            <SlidersHorizontal aria-hidden className="size-4" /> {t('dashboard.ficha')}
+          {estadoIoTPrincipal && <Button variant="ghost" size="sm" className="ml-auto max-sm:size-11 max-sm:px-0" onClick={() => verDetalles(estadoIoTPrincipal.id)}>
+            <SlidersHorizontal aria-hidden className="size-4" /> <span className="max-sm:sr-only">{t('dashboard.ficha')}</span>
           </Button>}
         </div>
-        <div className="grid min-w-0 lg:grid-cols-[minmax(17rem,0.78fr)_minmax(0,1.5fr)]">
-          <div className="min-w-0 space-y-5 border-b border-border px-4 py-5 sm:px-6 lg:border-r lg:border-b-0">
+        <div className={cn("grid min-w-0", haySerie && "lg:grid-cols-[minmax(17rem,0.78fr)_minmax(0,1.5fr)]")}>
+          <div className={cn(
+            'min-w-0 border-b border-border px-4 py-5 sm:px-6',
+            haySerie ? 'space-y-5 lg:border-r lg:border-b-0' : 'grid items-start gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]',
+          )}>
             <CeldaLectura
               ultima={ultima}
               estadoHistorial={estadoHistorial}
