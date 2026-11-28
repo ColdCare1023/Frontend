@@ -29,7 +29,7 @@ test('monitoreo 1440×900: lectura y condiciones al entrar; curva y alertas en l
   await page.keyboard.press('Enter')
   await expect(escala).toHaveAttribute('open', '')
   await page.keyboard.press('Enter')
-  const variaciones = condiciones.getByRole('button', { name: 'Variaciones del periodo' })
+  const variaciones = condiciones.getByRole('button', { name: 'Ver tendencia' })
   await expect(variaciones).toHaveAttribute('aria-expanded', 'false')
   await variaciones.click()
   await expect(variaciones).toHaveAttribute('aria-expanded', 'true')
@@ -37,7 +37,7 @@ test('monitoreo 1440×900: lectura y condiciones al entrar; curva y alertas en l
   await expect(curva).toBeVisible()
   await expect(lectura).toBeVisible()
   await expect(page.getByRole('tablist', { name: 'Monitoreo' })).toHaveCount(0)
-  await page.getByText('Diagnóstico de equipos', { exact: true }).click()
+  await page.getByText('Más detalles', { exact: true }).click()
   const estado = page.getByRole('region', { name: 'Estado operativo de equipos' })
   const cajaLista = (await estado.getByRole('list').boundingBox())!
   const cintas = estado.getByRole('img', { name: /^Últimas 24 h de / })
@@ -67,7 +67,7 @@ test('monitoreo 768×1024 y 375×812 sin scroll horizontal', async ({ page }) =>
 test('cambiar de equipo desde Estado de equipos actualiza la lectura', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await entrar(page)
-  await page.getByText('Diagnóstico de equipos', { exact: true }).click()
+  await page.getByText('Más detalles', { exact: true }).click()
   const estado = page.getByRole('region', { name: 'Estado operativo de equipos' })
   const filas = estado.getByRole('listitem')
   await expect(filas).toHaveCount(2)
@@ -90,7 +90,7 @@ test('la cabecera abre el equipo elegido sin abandonar el tablero', async ({ pag
 
 test('panel de detalle de equipo: buffer, incidentes y ficha; Escape devuelve el foco', async ({ page }) => {
   await entrar(page)
-  await page.getByText('Diagnóstico de equipos', { exact: true }).click()
+  await page.getByText('Más detalles', { exact: true }).click()
   const boton = page.getByRole('region', { name: 'Equipo', exact: true }).getByRole('button', { name: 'Detalles' })
   await boton.click()
   const panel = page.getByRole('dialog')
@@ -113,8 +113,8 @@ test('vista Lista: tabla paginada accesible', async ({ page }) => {
 test('Alertas pendientes visibles y lecturas recientes a un clic', async ({ page }) => {
   await entrar(page)
   await expect(page.getByRole('region', { name: 'Alertas pendientes' })).toBeVisible()
-  await expect(page.locator('details').filter({ has: page.locator('summary', { hasText: 'Consultar lecturas recientes' }) })).not.toHaveAttribute('open')
-  await page.getByText('Consultar lecturas recientes', { exact: true }).click()
+  await expect(page.locator('details').filter({ has: page.locator('summary', { hasText: 'Más detalles' }) })).not.toHaveAttribute('open')
+  await page.getByText('Más detalles', { exact: true }).click()
   await expect(page.getByRole('region', { name: 'Lecturas recientes' }).getByRole('listitem').first()).toBeVisible()
 })
 
@@ -166,7 +166,7 @@ test('HU-07/HU-34: un arranque sin hora se rotula «Sin hora» y «Sin clasifica
   await expect(lectura.getByTestId('riesgo-sin-clasificacion')).toContainText('Sin clasificación IA')
   await expect(lectura.getByText('Normal', { exact: true })).toHaveCount(0)
   await expect(lectura.getByText(/^Sin hora/)).toBeVisible()
-  await page.getByText('Consultar lecturas recientes', { exact: true }).click()
+  await page.getByText('Más detalles', { exact: true }).click()
   const recientes = page.getByRole('region', { name: 'Lecturas recientes' })
   await expect(recientes.getByText(/^Sin hora/).first()).toBeVisible()
   await expect(page.getByTestId('aviso-curva-sin-hora')).toContainText('sin hora')
@@ -200,7 +200,7 @@ test('HU-48: buffer lleno muestra el periodo en cola, las pérdidas y la brecha 
   await entrar(page, 'Administrador')
   await aplicarEscenario(page, 'Simular buffer lleno y pérdidas')
   await cerrarSimulador(page)
-  await page.getByText('Diagnóstico de equipos', { exact: true }).click()
+  await page.getByText('Más detalles', { exact: true }).click()
   const equipo = page.getByRole('region', { name: 'Equipo', exact: true })
   await expect(equipo.getByTestId('buffer-rango')).toContainText(/Periodo en cola: .+ – .+ · Perdidas: \d+/)
   await equipo.getByRole('button', { name: 'Detalles' }).click()
@@ -226,7 +226,7 @@ test('simular silencio del equipo: Sin datos en la línea de estado y la fila', 
   await panel.getByRole('button', { name: 'Simular silencio del equipo' }).click()
   await expect(panel.getByRole('status')).toContainText('Escenario aplicado')
   await page.keyboard.press('Escape')
-  await page.getByText('Diagnóstico de equipos', { exact: true }).click()
+  await page.getByText('Más detalles', { exact: true }).click()
   const estado = page.getByRole('region', { name: 'Estado operativo de equipos' })
   await expect(estado.getByText(/^Sin datos \(\d+ s\)$/).first()).toBeVisible()
 })
@@ -243,7 +243,7 @@ for (const tema of ['light', 'dark'] as const) {
       return resultado.violations.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(' ')}`))
     }
     expect(await axe(), 'monitoreo').toEqual([])
-    await page.getByText('Diagnóstico de equipos', { exact: true }).click()
+    await page.getByText('Más detalles', { exact: true }).click()
     await page.getByRole('region', { name: 'Equipo', exact: true }).getByRole('button', { name: 'Detalles' }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     expect(await axe(), 'detalle').toEqual([])

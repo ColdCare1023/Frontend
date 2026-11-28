@@ -79,7 +79,7 @@ describe('AuditoriaPage (HU-42, RF-16)', () => {
     render(<AuditoriaPage />)
 
     await usuario.type(screen.getByLabelText(/acción/i), 'LOGIN_FALLIDO')
-    await usuario.click(screen.getByRole('button', { name: /aplicar filtros/i }))
+    await usuario.click(screen.getByRole('button', { name: /^buscar$/i }))
 
     expect(consultar).toHaveBeenCalledWith(expect.objectContaining({ accion: 'LOGIN_FALLIDO' }))
   })

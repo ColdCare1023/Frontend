@@ -253,7 +253,8 @@ export function TrazabilidadPage({ integrada = false }: { integrada?: boolean } 
               )}
             </div>
           </details>
-          <span aria-live="polite" className="nums ml-auto text-meta text-faint">
+          {/* El total ya sale en la cabecera del día: aquí solo se anuncia. */}
+          <span aria-live="polite" className={cn('nums ml-auto text-meta text-faint', !cargando && 'sr-only')}>
             {cargando ? t('comunes.consultando') : t('trazabilidad.filtro.resultados', { count: registros.length })}
           </span>
         </div>

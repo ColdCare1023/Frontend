@@ -92,6 +92,9 @@ export function DashboardPage() {
     () => condicionesLineaEstado({ alertas: { estado: alertas.estado, total: alertas.total, criticas: alertas.criticas }, equipos: flota }),
     [alertas.estado, alertas.total, alertas.criticas, flota],
   )
+  // Con alertas pendientes, la bandeja (con «Atender») ocupa el lugar de la
+  // línea de estado: antes la misma cuenta salía en la línea y en la bandeja.
+  const hayAlertas = alertas.estado === 'listo' && alertas.alertas.length > 0
 
   const [detalleId, setDetalleId] = useState<string | null>(null)
   const equipoDetalle = detalleId ? (flota.find((e) => e.id === detalleId) ?? null) : null
@@ -174,7 +177,6 @@ export function DashboardPage() {
       <PageHeader
         eyebrow={t('nav.seccionOperacion')}
         titulo={t('dashboard.titulo')}
-        meta={flota.length > 0 ? t('dashboard.encabezadoMeta', { count: flota.length }) : undefined}
       >
         <ConsultasFarmacia equipoId={deviceId} />
         {puedeSimular && (
@@ -194,12 +196,27 @@ export function DashboardPage() {
         )}
       </PageHeader>
 
-      <LineaEstado
-        condiciones={condiciones}
-        cargando={alertas.estado === 'cargando'}
-        onVerEquipo={verDetalles}
-        onReintentar={alertas.reintentar}
-      />
+      {!hayAlertas && (
+        <LineaEstado
+          condiciones={condiciones}
+          cargando={alertas.estado === 'cargando'}
+          onVerEquipo={verDetalles}
+          onReintentar={alertas.reintentar}
+        />
+      )}
+      {/* Siempre montada: al atender la última alerta su panel sigue abierto
+          con la cronología, aunque la bandeja ya no se muestre. */}
+      <div
+        id="alertas-monitoreo"
+        tabIndex={-1}
+        className={cn(
+          'mb-3 min-w-0 scroll-mt-20 rounded-(--radius-card) border bg-surface px-4 py-3 focus:outline-none sm:px-5 xl:mb-4',
+          alertas.criticas > 0 ? 'border-critical/40' : 'border-warning-200',
+          !hayAlertas && 'hidden',
+        )}
+      >
+        <BandejaAlertasOperativa bandeja={alertas} nombres={nombres} />
+      </div>
 
       <div className="hoja-monitoreo">
         <div id="equipo-monitoreado" tabIndex={-1} className="flex min-w-0 scroll-mt-20 flex-wrap items-center gap-2 border-b border-border px-4 py-2 focus:outline-none sm:px-6">
@@ -247,16 +264,14 @@ export function DashboardPage() {
           </div>
           <div className="min-w-0 px-4 py-5 sm:px-6">{curva}</div>
         </div>
-        <div id="alertas-monitoreo" tabIndex={-1} className="min-w-0 scroll-mt-20 border-t border-border px-4 py-4 focus:outline-none sm:px-6">
-          <BandejaAlertasOperativa bandeja={alertas} nombres={nombres} />
-        </div>
+        {/* Lo secundario, a un clic: lecturas recientes y diagnóstico de equipos. */}
         <div className="border-t border-border px-3 py-1 sm:px-5">
-          <SeccionDetalle titulo={t('lectura.recientes')}>
+          <SeccionDetalle titulo={t('dashboard.masDetalles')} className="border-0">
             <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
-          </SeccionDetalle>
-          <SeccionDetalle titulo={t('dashboard.diagnostico')} className="border-0">
-            <CeldaEstadoEquipos equipos={flota} deviceId={deviceId} temperaturas={temperaturas} onElegir={mostrarLectura} onVerDetalles={verDetalles} />
-            <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
+            <div className="space-y-3 border-t border-border pt-3">
+              <CeldaEstadoEquipos equipos={flota} deviceId={deviceId} temperaturas={temperaturas} onElegir={mostrarLectura} onVerDetalles={verDetalles} />
+              <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
+            </div>
           </SeccionDetalle>
         </div>
       </div>

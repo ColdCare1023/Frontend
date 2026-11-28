@@ -52,12 +52,18 @@ function lectura(overrides: Partial<LecturaTermica> = {}): LecturaTermica {
   }
 }
 
+// Lecturas recientes y diagnóstico comparten un solo desplegable «Más detalles».
+function abrirMasDetalles() {
+  const resumen = screen.getByText('Más detalles', { exact: true })
+  if (!resumen.closest('details')?.open) fireEvent.click(resumen)
+}
+
 function abrirDiagnostico() {
-  fireEvent.click(screen.getByText('Diagnóstico de equipos', { exact: true }))
+  abrirMasDetalles()
 }
 
 function abrirRecientes() {
-  fireEvent.click(screen.getByText('Consultar lecturas recientes', { exact: true }))
+  abrirMasDetalles()
 }
 
 function renderizar(ultima: LecturaTermica, sseConectado = true) {

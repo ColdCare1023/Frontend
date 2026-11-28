@@ -122,7 +122,8 @@ export function FormularioPeriodo(
           <p
             id="reportes-periodo"
             role={errorPeriodo ? 'alert' : 'status'}
-            className={cn('nums mt-2 text-meta', errorPeriodo ? 'text-critical' : 'text-faint')}
+            // «Periodo: 7 días» repetía el botón ya marcado: visible solo si es un error.
+            className={cn('nums mt-2 text-meta', errorPeriodo ? 'text-critical' : 'sr-only')}
           >
             {lineaPeriodo}
           </p>

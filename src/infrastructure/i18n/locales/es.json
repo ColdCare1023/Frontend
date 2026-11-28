@@ -82,7 +82,7 @@
     "dashboard": "Monitoreo",
     "historial": "Historial",
     "alertas": "Alertas",
-    "trazabilidad": "Integridad de registros",
+    "trazabilidad": "Integridad",
     "reportes": "Reportes",
     "auditoria": "Auditoría",
     "usuarios": "Usuarios",
@@ -92,8 +92,8 @@
     "seccionOperacion": "Operación",
     "seccionCumplimiento": "Registros y revisión",
     "seccionAdministracion": "Administración",
-    "metricasIA": "Clasificador de riesgo",
-    "guia": "Guía de uso",
+    "metricasIA": "Modelo IA",
+    "guia": "Ayuda",
     "saltarAlContenido": "Saltar al contenido principal",
     "principal": "Navegación principal",
     "principalMovil": "Navegación principal (menú móvil)",
@@ -397,12 +397,13 @@
     "gestionarEnDispositivos": "Gestionar en Dispositivos",
     "demasiadasPestanas": "Demasiadas pestañas en tiempo real",
     "demasiadasPestanasGuia": "Cierra otra pestaña o equipo con ColdCare abierto; esta se conectará sola.",
-    "ficha": "Ficha del equipo",
+    "ficha": "Ver equipo",
     "diagnostico": "Diagnóstico de equipos",
+    "masDetalles": "Más detalles",
     "bandejaAtender": "Atender",
     "bandejaMas": "Otras alertas ({{count}})",
     "bandejaLimite": "Hay al menos {{count}} alertas abiertas. Se consultan hasta {{limite}} por estado.",
-    "estadisticasCurva": "Estadísticas del periodo"
+    "estadisticasCurva": "Ver resumen"
   },
   "demo": {
     "accesoRapido": "Acceso de demostración",
@@ -442,7 +443,7 @@
     "todosNiveles": "Todos",
     "desde": "Desde",
     "hasta": "Hasta",
-    "aplicar": "Aplicar filtros",
+    "aplicar": "Buscar",
     "limpiar": "Limpiar",
     "fecha": "Fecha y hora",
     "tempInterna": "Temp. interna (°C)",
@@ -551,7 +552,7 @@
       "error": "No pudimos cargar la curva del periodo. La tabla sigue disponible."
     },
     "dia": {
-      "resumen": "{{n}} lecturas · mín {{min}} · máx {{max}} °C",
+      "resumen": "mín {{min}} · máx {{max}} °C",
       "excursiones_one": "{{count}} excursión",
       "excursiones_other": "{{count}} excursiones"
     },
@@ -966,7 +967,7 @@
     "veredicto": {
       "etiqueta": "Estado de la cadena",
       "sinVerificar": "Sin alertas de integridad",
-      "sinVerificarDetalle": "No hay inconsistencias registradas. Revisa la cadena completa para obtener un resultado actual.",
+      "sinVerificarDetalle": "No hay inconsistencias registradas.",
       "comprometidaAccion": "Revisa la integridad para ubicar el registro afectado.",
       "verificandoTitulo": "Verificando la cadena…",
       "verificada": "Verificada {{tiempo}}",
@@ -2181,7 +2182,7 @@
       "demostracion": "Demostración",
       "detalleOperativa": "Modelo preventivo {{version}}: es la versión activa y aprobada del registro. El riesgo efectivo puede mostrarse como Riesgo preventivo y abrir alertas preventivas.",
       "detalleSombra": "Registra predicciones como evidencia, pero no decide el riesgo ni abre alertas preventivas.",
-      "reglaDecide": "El riesgo efectivo lo decide la regla de 2⁠–⁠8 °C: no se muestran estados ni alertas preventivas del modelo.",
+      "reglaDecide": "Hoy el estado lo define el rango 2⁠–⁠8 °C. El modelo no genera alertas.",
       "versionRegistro": "Versión activa del registro: {{version}}",
       "ninguna": "ninguna",
       "motivos": {
@@ -2871,10 +2872,10 @@
     "detalleClasificacion": "Detalles del modelo"
   },
   "operacionFarmacia": {
-    "variaciones": "Variaciones del periodo"
+    "variaciones": "Ver tendencia"
   },
   "consultasFarmacia": {
-    "abrir": "Consultas",
+    "abrir": "Historial y reportes",
     "elegir": "Elegir consulta"
   },
   "medicion": {

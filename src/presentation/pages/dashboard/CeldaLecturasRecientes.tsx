@@ -25,7 +25,8 @@ export const CeldaLecturasRecientes = memo(function CeldaLecturasRecientes({
 
   return (
     <section aria-labelledby="recientes-titulo" className="min-w-0">
-      <h2 id="recientes-titulo" className="sr-only">
+      {/* Visible: dentro de «Más detalles» separa las lecturas del diagnóstico. */}
+      <h2 id="recientes-titulo" className="px-2 text-body font-semibold text-foreground">
         {t('dashboard.lecturasRecientesTitulo')}
       </h2>
       <p className="sr-only">{t('dashboard.lecturasRecientesAyuda')}</p>
