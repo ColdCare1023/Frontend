@@ -159,7 +159,7 @@ export function FormularioAccionCorrectiva({
         )}
       </SidePanelBody>
       <SidePanelFooter className="items-stretch px-4 sm:items-center sm:px-6">
-        <p id={idFaltan} className="mr-auto self-center text-meta text-faint max-sm:hidden">
+        <p id={idFaltan} className="mr-auto self-center text-meta text-faint max-sm:w-full max-sm:text-center">
           {completo ? (
             <span className="pointer-coarse:hidden">{t('alertas.panel.atajo')}</span>
           ) : (
