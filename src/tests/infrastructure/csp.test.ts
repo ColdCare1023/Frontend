@@ -53,4 +53,20 @@ describe('Content-Security-Policy', () => {
     expect(cabeceras['Content-Security-Policy']).toBe(politicaCsp({ backend }))
     expect(cabeceras['Content-Security-Policy-Report-Only']).toBe(politicaCspReportOnly({ backend }))
   })
+
+  it('vercel.json cachea como inmutables solo los ficheros con hash de /assets', () => {
+    const vercel = JSON.parse(readFileSync(path.resolve(__dirname, '../../../vercel.json'), 'utf-8'))
+    const regla = vercel.headers.find((h: { headers: { key: string }[] }) =>
+      h.headers.some((c) => c.key === 'Cache-Control'),
+    )
+    expect(regla.source).toBe('/assets/(.*\\.(?:js|css|woff2))')
+    expect(regla.headers).toEqual([{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }])
+    // Equivalente RegExp del patrón path-to-regexp: las imágenes de
+    // public/assets no llevan hash y no deben quedar congeladas en caché.
+    const patron = /^\/assets\/(.*\.(?:js|css|woff2))$/
+    expect(patron.test('/assets/index-B0GlBf0l.js')).toBe(true)
+    expect(patron.test('/assets/inter-latin-wght-normal-Dx4kXJAl.woff2')).toBe(true)
+    expect(patron.test('/assets/coldcare-auth-editorial.webp')).toBe(false)
+    expect(patron.test('/assets/cold-chain-hero.jpg')).toBe(false)
+  })
 })
