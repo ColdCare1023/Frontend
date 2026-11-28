@@ -290,8 +290,7 @@ export const CeldaCurva = memo(function CeldaCurva({
           <p className="nums text-meta text-faint">
             {intervalo
               ? t('dashboard.lecturasAgregadas', { n: lecturasEnCurva.toLocaleString(), intervalo })
-              : t('dashboard.ultimasLecturas', { n: serie.length })}{' '}
-            · {t('dashboard.rangoConservacion')}
+              : t('dashboard.ultimasLecturas', { n: serie.length })}
           </p>
         </div>
         {estadoHistorial === 'cargando' && ultimaPresente && (

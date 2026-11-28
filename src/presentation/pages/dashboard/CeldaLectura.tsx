@@ -153,15 +153,6 @@ export const CeldaLectura = memo(function CeldaLectura({
         ) : (
           <RiskBadge nivel={riesgo} />
         )}
-        {ultima.ia_experimental && !ultima.excursion_confirmada && (
-          // HU-20 / B-1: la clase la produjo el modelo legado (datos sintéticos).
-          <Tooltip contenido={t('dashboard.iaExperimentalDetalle')} lado="top">
-            <button type="button" className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-              <Badge variant="outline">{t('dashboard.iaExperimental')}</Badge>
-              <span className="sr-only">. {t('dashboard.iaExperimentalDetalle')}</span>
-            </button>
-          </Tooltip>
-        )}
       </div>
 
       <div className="mt-3 flex items-baseline gap-1">
@@ -227,6 +218,14 @@ export const CeldaLectura = memo(function CeldaLectura({
           {ultima.excursion_confirmada && <> {t('dashboard.excursionConfirmada')}</>}
         </p>}
         {!desactualizado && riesgo === 'normal' && <p className="mt-2 text-meta text-muted">{t('riesgo.detalle.normal')}</p>}
+        {ultima.ia_experimental && !ultima.excursion_confirmada && (
+          // HU-20 / B-1: la clase la produjo el modelo legado (datos sintéticos).
+          // Plegado junto al rango: no compite con la temperatura.
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted">
+            <Badge variant="outline">{t('dashboard.iaExperimental')}</Badge>
+            <span>{t('dashboard.iaExperimentalDetalle')}</span>
+          </p>
+        )}
       </details>
       {fueraDeEscala && lectura != null && (
         <p role="note" className="mt-2 text-meta font-medium text-danger-700">
@@ -282,11 +281,10 @@ export const CeldaLectura = memo(function CeldaLectura({
             <span className="font-medium text-warning-700">{t('dashboard.actualizacionReconectando')}</span>
           </>
         )}
-        {!desactualizado && <>
-          <span aria-hidden>·</span>
-          <span className="sr-only">{t('dashboard.ultimaLecturaHora')}:</span>
-          <HoraLectura lectura={ultima} formato="hora" />
-        </>}
+        {/* «hace X s» basta a la vista; la hora exacta sigue para lector de pantalla. */}
+        {!desactualizado && <span className="sr-only">
+          · {t('dashboard.ultimaLecturaHora')}: <HoraLectura lectura={ultima} formato="hora" />
+        </span>}
       </p>
     </section>
   )

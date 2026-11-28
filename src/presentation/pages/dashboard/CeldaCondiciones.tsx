@@ -5,7 +5,6 @@ import { ArrowDownRight, ArrowUpRight, ChevronDown, DoorClosed, DoorOpen, Drople
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionBreve } from '@/lib/formato'
 import { clsx } from 'clsx'
-import { HoraLectura } from '../../components/HoraLectura'
 import { Esqueleto } from '../../components/ui/esqueleto'
 import { DECIMALES_HUMEDAD } from '../../components/ui/formato-cifra'
 import { useSegundosDesde } from '../../hooks/useReloj'
@@ -293,8 +292,9 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
                 <TiraAperturas serie={serie} umbral={puerta.umbral} desde={hasta - horasVentana * 3_600_000} hasta={hasta} />
               </dd>}
               {/* «5 aperturas · 24 h» cabe en la columna; la frase larga queda en el title. Con el
-                  historial recortado el conteo es un mínimo («≥5»), no el total de la ventana. */}
-              <dd
+                  historial recortado el conteo es un mínimo («≥5»), no el total de la ventana.
+                  «0 aperturas» no aporta a la vista: aparece con «Variaciones del periodo». */}
+              {(aperturas > 0 || recorte || mostrarTendencia) && <dd
                 className="nums mt-1 text-micro text-muted"
                 title={
                   recorte
@@ -306,7 +306,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
                   count: aperturas,
                   ventana: ventanaCorta(horasVentana, t).replace(' ', '\u00a0'),
                 })}
-              </dd>
+              </dd>}
             </>
           )}
         </div>
@@ -319,14 +319,11 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
       aria-labelledby="condiciones-titulo"
       className="flex min-w-0 flex-col"
     >
-      <h2 id="condiciones-titulo" className="mb-3 text-title text-foreground">
+      {/* El título queda para lector de pantalla: las etiquetas Ambiente, Humedad
+          y Puerta ya lo dicen. La hora de la lectura la muestra la celda de temperatura. */}
+      <h2 id="condiciones-titulo" className="sr-only">
         {t('dashboard.condicionesTitulo')}
       </h2>
-      {desactualizado && ultima && (
-        <p className="mb-3 flex flex-wrap items-baseline gap-x-2 text-meta text-muted">
-          {t('dashboard.ultimaLecturaHora')} <HoraLectura lectura={ultima} formato="fechaHora" />
-        </p>
-      )}
       <div id={idDatos}>{contenido}</div>
       {ultima && (
         <button
