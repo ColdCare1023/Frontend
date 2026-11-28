@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
-import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
+import { BadgeConectividad } from '@/presentation/components/BadgeConectividad'
 import { useVencido } from '../hooks/useReloj'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
 import { PageHeader } from '../components/PageHeader'
@@ -230,6 +230,8 @@ export function DashboardPage() {
               })}
             </select>
           ) : <span className="min-w-0 flex-1 break-all text-body font-semibold">{estadoIoTPrincipal?.nombre || deviceId || t('dashboard.equipo')}</span>}
+          {/* OE2.I3 Tabla 3: la conexión del equipo se ve junto a su nombre. */}
+          {estadoIoTPrincipal && <BadgeConectividad estado={estadoIoTPrincipal.estado_conectividad} desde={estadoIoTPrincipal.conectividad_cambiada_en} />}
           {estadoIoTPrincipal && <Button variant="ghost" size="sm" className="ml-auto max-sm:size-11 max-sm:px-0" onClick={() => verDetalles(estadoIoTPrincipal.id)}>
             <SlidersHorizontal aria-hidden className="size-4" /> <span className="max-sm:sr-only">{t('dashboard.ficha')}</span>
           </Button>}
@@ -264,15 +266,15 @@ export function DashboardPage() {
           </div>
           <div className="min-w-0 px-4 py-5 sm:px-6">{curva}</div>
         </div>
-        {/* Lo secundario, a un clic: lecturas recientes y diagnóstico de equipos. */}
-        <div className="border-t border-border px-3 py-1 sm:px-5">
-          <SeccionDetalle titulo={t('dashboard.masDetalles')} className="border-0">
+        {/* OE2.I3 Fig. 3: tarjeta del equipo y lecturas recientes, lado a lado. */}
+        <div className="grid min-w-0 border-t border-border lg:grid-cols-2">
+          <div className="min-w-0 space-y-3 border-b border-border px-4 py-5 sm:px-6 lg:border-r lg:border-b-0">
+            <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
+            <CeldaEstadoEquipos equipos={flota} deviceId={deviceId} temperaturas={temperaturas} onElegir={mostrarLectura} onVerDetalles={verDetalles} />
+          </div>
+          <div className="min-w-0 px-4 py-5 sm:px-6">
             <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
-            <div className="space-y-3 border-t border-border pt-3">
-              <CeldaEstadoEquipos equipos={flota} deviceId={deviceId} temperaturas={temperaturas} onElegir={mostrarLectura} onVerDetalles={verDetalles} />
-              <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
-            </div>
-          </SeccionDetalle>
+          </div>
         </div>
       </div>
 
