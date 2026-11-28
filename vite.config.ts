@@ -72,6 +72,13 @@ export default defineConfig(({ command, mode }) => {
           target: backend,
           changeOrigin: true,
         },
+        // Estado del servicio (GET /health/detalle) vive fuera de /api. Sin
+        // esta entrada Vite respondía su propio index.html con 200 y la
+        // pantalla mostraba «Sin estado del servicio» en local.
+        '/health': {
+          target: backend,
+          changeOrigin: true,
+        },
       },
     },
   }
