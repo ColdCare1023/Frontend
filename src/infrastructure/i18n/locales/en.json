@@ -82,7 +82,7 @@
     "dashboard": "Monitoring",
     "historial": "History",
     "alertas": "Alerts",
-    "trazabilidad": "Record integrity",
+    "trazabilidad": "Integrity",
     "reportes": "Reports",
     "auditoria": "Audit log",
     "usuarios": "Users",
@@ -92,8 +92,8 @@
     "seccionOperacion": "Operations",
     "seccionCumplimiento": "Records & review",
     "seccionAdministracion": "Administration",
-    "metricasIA": "Risk classifier",
-    "guia": "User guide",
+    "metricasIA": "AI model",
+    "guia": "Help",
     "saltarAlContenido": "Skip to main content",
     "principal": "Main navigation",
     "principalMovil": "Main navigation (mobile menu)",
@@ -397,12 +397,13 @@
     "gestionarEnDispositivos": "Manage in Devices",
     "demasiadasPestanas": "Too many real-time tabs",
     "demasiadasPestanasGuia": "Close another tab or device with ColdCare open; this one will connect on its own.",
-    "ficha": "Device details",
+    "ficha": "View device",
     "diagnostico": "Device diagnostics",
+    "masDetalles": "More details",
     "bandejaAtender": "Respond",
     "bandejaMas": "Other alerts ({{count}})",
     "bandejaLimite": "There are at least {{count}} open alerts. Up to {{limite}} are loaded for each status.",
-    "estadisticasCurva": "Period statistics"
+    "estadisticasCurva": "Show summary"
   },
   "demo": {
     "accesoRapido": "Demo access",
@@ -442,7 +443,7 @@
     "todosNiveles": "All",
     "desde": "From",
     "hasta": "To",
-    "aplicar": "Apply filters",
+    "aplicar": "Search",
     "limpiar": "Clear",
     "fecha": "Date & time",
     "tempInterna": "Internal temp. (°C)",
@@ -551,7 +552,7 @@
       "error": "We could not load the curve for the period. The table is still available."
     },
     "dia": {
-      "resumen": "{{n}} readings · min {{min}} · max {{max}} °C",
+      "resumen": "min {{min}} · max {{max}} °C",
       "excursiones_one": "{{count}} excursion",
       "excursiones_other": "{{count}} excursions"
     },
@@ -966,7 +967,7 @@
     "veredicto": {
       "etiqueta": "Chain status",
       "sinVerificar": "No integrity alerts",
-      "sinVerificarDetalle": "No inconsistencies are recorded. Check the full chain to get a current result.",
+      "sinVerificarDetalle": "No inconsistencies are recorded.",
       "comprometidaAccion": "Run an integrity check to locate the affected record.",
       "verificandoTitulo": "Checking the chain…",
       "verificada": "Checked {{tiempo}}",
@@ -2181,7 +2182,7 @@
       "demostracion": "Demo",
       "detalleOperativa": "Preventive model {{version}}: it is the active, approved registry version. The effective risk can show Preventive risk and open preventive alerts.",
       "detalleSombra": "It records predictions as evidence but does not decide the risk or open preventive alerts.",
-      "reglaDecide": "The effective risk is decided by the 2⁠–⁠8 °C rule: no preventive states or alerts from the model are shown.",
+      "reglaDecide": "Today the 2⁠–⁠8 °C range defines the status. The model does not raise alerts.",
       "versionRegistro": "Active registry version: {{version}}",
       "ninguna": "none",
       "motivos": {
@@ -2871,10 +2872,10 @@
     "detalleClasificacion": "Model details"
   },
   "operacionFarmacia": {
-    "variaciones": "Changes over the period"
+    "variaciones": "Show trend"
   },
   "consultasFarmacia": {
-    "abrir": "Queries",
+    "abrir": "History & reports",
     "elegir": "Select a view"
   },
   "medicion": {
