@@ -18,7 +18,6 @@ test('HU-30: el Químico Farmacéutico registra la calibración y ve la vencida 
   await entrarComo(page, 'Químico Farmacéutico')
 
   // Ficha del equipo en Monitoreo: el QF no entra a Dispositivos (solo admin).
-  await page.getByText('Más detalles', { exact: true }).click()
   await page.getByRole('button', { name: 'Detalles', exact: true }).click()
   const panel = page.getByRole('dialog')
   await panel.getByRole('button', { name: 'Registrar calibración' }).click()
