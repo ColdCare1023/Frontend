@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { CircleCheck, Eye, PowerOff } from 'lucide-react'
+import { BrainCircuit, Eye, PowerOff } from 'lucide-react'
 
 import type { ClasificacionPreventiva } from '@/application/hooks/useClasificacionPreventiva'
 import { cn } from '@/lib/utils'
@@ -12,13 +12,17 @@ function situacionDe(c: ClasificacionPreventiva): Situacion {
   return c.modo === 'sombra' && c.disponible ? 'sombra' : 'fuera'
 }
 
-const ICONO = { operativa: CircleCheck, sombra: Eye, fuera: PowerOff } as const
+// Un ícono y un color por estado: se entiende sin leer.
+const ESTILO = {
+  operativa: { Icono: BrainCircuit, circulo: 'bg-success-100 text-success-700' },
+  sombra: { Icono: Eye, circulo: 'bg-primary-tint text-primary-text' },
+  fuera: { Icono: PowerOff, circulo: 'bg-warning-100 text-warning-700' },
+} as const
 
 /**
  * HU-20 / HU-34 (P0-3): si la clasificación preventiva decide el riesgo y
  * abre alertas, según lo que informa el backend (`GET /api/ia/preventivo`).
- * Fuera de operación se dice por qué (motivo estable del backend) y que el
- * riesgo lo decide la regla de 2–8 °C; nunca se infiere desde la interfaz.
+ * A la vista: estado y una sola línea. El motivo técnico queda en «¿Por qué?».
  */
 export function EstadoClasificacionPreventiva({
   clasificacion,
@@ -30,34 +34,41 @@ export function EstadoClasificacionPreventiva({
   const { t } = useTranslation()
   if (!clasificacion) return null
   const situacion = situacionDe(clasificacion)
-  const Icono = ICONO[situacion]
+  const { Icono, circulo } = ESTILO[situacion]
   const version = clasificacion.version ?? clasificacion.versionActivaRegistrada
   return (
     <section
       aria-labelledby="estado-preventivo-titulo"
       data-testid="estado-preventivo"
       data-situacion={situacion}
-      className={cn('py-4 sm:py-5', className)}
+      className={cn('py-4 animate-(--animate-rise) sm:py-5', className)}
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-l-2 border-border-strong pl-3">
-        <h2 id="estado-preventivo-titulo" className="flex items-center gap-2 text-title text-foreground">
-          <Icono aria-hidden className={cn('size-4', situacion === 'operativa' ? 'text-success-700' : 'text-muted')} />
-          {t('metricasIA.preventivo.titulo')}
-        </h2>
-        {situacion === 'operativa' ? (
-          <Badge variant="ok" dot>{t('metricasIA.preventivo.enOperacion')}</Badge>
-        ) : situacion === 'sombra' ? (
-          <Badge variant="outline">{t('metricasIA.preventivo.enSombra')}</Badge>
-        ) : (
-          <Badge variant="warn">{t('metricasIA.preventivo.fueraDeOperacion')}</Badge>
-        )}
-        {clasificacion.datosSimulados && <Badge variant="outline">{t('metricasIA.preventivo.demostracion')}</Badge>}
+      <div className="flex items-center gap-4">
+        <span className={cn('relative grid size-14 shrink-0 place-items-center rounded-full', circulo)}>
+          {situacion === 'operativa' && (
+            <span aria-hidden className="absolute inset-0 rounded-full bg-success-600/25 motion-safe:animate-ping" />
+          )}
+          <Icono aria-hidden className="relative size-7" />
+        </span>
+        <div className="min-w-0">
+          <h2 id="estado-preventivo-titulo" className="flex flex-wrap items-center gap-2 text-title text-foreground">
+            {t('metricasIA.preventivo.titulo')}
+            {situacion === 'operativa' ? (
+              <Badge variant="ok" dot>{t('metricasIA.preventivo.enOperacion')}</Badge>
+            ) : situacion === 'sombra' ? (
+              <Badge variant="outline">{t('metricasIA.preventivo.enSombra')}</Badge>
+            ) : (
+              <Badge variant="warn">{t('metricasIA.preventivo.fueraDeOperacion')}</Badge>
+            )}
+            {clasificacion.datosSimulados && <Badge variant="outline">{t('metricasIA.preventivo.demostracion')}</Badge>}
+          </h2>
+          <p className="mt-1 text-body text-subtle">
+            {situacion === 'operativa' ? t('registros.alertasPreventivasActivas') : t('metricasIA.preventivo.reglaDecide')}
+          </p>
+        </div>
       </div>
-      <p className="mt-2 max-w-prose text-body text-subtle">
-        {situacion === 'operativa' ? t('registros.alertasPreventivasActivas') : t('metricasIA.preventivo.reglaDecide')}
-      </p>
-      <details className="mt-2 text-meta text-muted">
-        <summary className="w-fit cursor-pointer py-1 font-medium">{t('registros.detalleClasificacion')}</summary>
+      <details className="mt-3 text-meta text-muted">
+        <summary className="w-fit cursor-pointer py-1 font-medium">{t('metricasIA.preventivo.porQue')}</summary>
         <p className="mt-1 max-w-prose">
           {situacion === 'operativa'
             ? t('metricasIA.preventivo.detalleOperativa', { version: version ?? '—' })
