@@ -477,7 +477,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
     await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
     await usuario.type(
-      within(dialogo).getByLabelText(/descripción/i),
+      within(dialogo).getByLabelText(/acción realizada/i),
       'Se reubicaron los viales',
     )
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
@@ -497,7 +497,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const dialogo = await screen.findByRole('dialog')
     await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
     await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
-    await usuario.type(within(dialogo).getByLabelText(/descripción/i), 'Termostato ajustado')
+    await usuario.type(within(dialogo).getByLabelText(/acción realizada/i), 'Termostato ajustado')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
 
     expect(await within(dialogo).findByRole('alert')).toHaveTextContent(/actualizada por otra persona/i)
@@ -525,7 +525,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const dialogo = await screen.findByRole('dialog')
     await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
     await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
-    await usuario.type(within(dialogo).getByLabelText(/descripción/i), '   ')
+    await usuario.type(within(dialogo).getByLabelText(/acción realizada/i), '   ')
 
     expect(within(dialogo).getByRole('button', { name: /guardar/i })).toHaveAttribute('aria-disabled', 'true')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
@@ -540,7 +540,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const dialogo = await screen.findByRole('dialog')
     await usuario.type(within(dialogo).getByLabelText(/Decisión adoptada/), 'Inmovilizar')
     await usuario.type(within(dialogo).getByLabelText(/Justificación/), 'Superó 8 °C')
-    await usuario.type(within(dialogo).getByLabelText(/descripción/i), 'Termostato ajustado')
+    await usuario.type(within(dialogo).getByLabelText(/acción realizada/i), 'Termostato ajustado')
     await usuario.click(within(dialogo).getByRole('button', { name: /guardar/i }))
 
     await waitFor(() =>
@@ -556,7 +556,7 @@ describe('Alertas — ciclo completo de acción correctiva (RF-09, RF-10)', () =
     const dialogo = await screen.findByRole('dialog')
 
     // El `placeholder` desaparece al escribir: no sirve como etiqueta.
-    expect(within(dialogo).getByLabelText(/descripción/i)).toBeInTheDocument()
+    expect(within(dialogo).getByLabelText(/acción realizada/i)).toBeInTheDocument()
   })
 
   it('un técnico no puede reconocer la alerta ni registrar la acción (RBAC en la vista, H16)', async () => {
