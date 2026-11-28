@@ -170,11 +170,14 @@ export const CeldaLectura = memo(function CeldaLectura({
           )
         ) : (
           <p
+            // Cada lectura nueva entra con un leve movimiento: se nota que cambió.
+            // Se anima solo cuando cambia la cifra: cada lectura igual no debe parpadear.
+            key={lectura.toFixed(1)}
             data-testid={desactualizado ? 'valor-historico' : 'valor-actual'}
             data-valor={lectura.toFixed(1)}
             {...(!desactualizado && { elementtiming: 'valor-actual' })}
             className={clsx(
-              'nums inline-flex items-baseline gap-1 whitespace-nowrap',
+              'nums inline-flex items-baseline gap-1 whitespace-nowrap motion-safe:animate-(--animate-cifra)',
               desactualizado ? 'text-metric text-subtle' : 'text-hero max-sm:text-[56px] max-sm:leading-[56px]',
               critica && 'text-danger-700',
             )}
@@ -256,7 +259,11 @@ export const CeldaLectura = memo(function CeldaLectura({
       <p className="nums mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-3 text-meta text-faint">
         {sseConectado ? (
           <>
-            <span aria-hidden className="size-1.5 rounded-full bg-success-600" />
+            {/* Punto que late mientras llegan lecturas: «está vivo» sin leer nada. */}
+            <span aria-hidden className="relative grid size-2 place-items-center">
+              {!desactualizado && <span className="absolute inset-0 rounded-full bg-success-600/60 motion-safe:animate-ping" />}
+              <span className="relative size-2 rounded-full bg-success-600" />
+            </span>
             <span className="font-medium text-subtle">{t(desactualizado ? 'medicion.flujoConectado' : 'dashboard.actualizacionActiva')}</span>
             {!desactualizado && (
               <>
