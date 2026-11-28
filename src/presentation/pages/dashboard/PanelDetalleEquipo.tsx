@@ -271,9 +271,10 @@ function DetalleEquipo({
 
       {/* Datos técnicos: plegados, a un clic. */}
       <details className="group py-4">
-        <summary className="eyebrow flex w-fit cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
-          <ChevronRight aria-hidden className="size-3.5 transition-transform duration-(--duration-ui) group-open:rotate-90" />
-          {t('dashboard.seccionFicha')}
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
+          <ChevronRight aria-hidden className="size-3.5 text-faint transition-transform duration-(--duration-ui) group-open:rotate-90" />
+          {/* Un encabezado dentro del summary: la sección sigue en el índice de encabezados. */}
+          <h3 className="eyebrow">{t('dashboard.seccionFicha')}</h3>
         </summary>
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-meta animate-(--animate-fade)">
           <div>
