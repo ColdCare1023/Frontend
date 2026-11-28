@@ -124,7 +124,7 @@ describe('RequireRoles (RBAC)', () => {
     montar('/protegida', ['farmaceutico'])
 
     expect(screen.getByText('Tu rol: Técnico de Farmacia.')).toBeInTheDocument()
-    for (const destino of [/Monitoreo/, /Alertas/, /Historial/, /Ayuda/, /Integridad/]) {
+    for (const destino of [/Monitoreo/, /Alertas/, /Historial/, /Guía de uso/, /Integridad de registros/]) {
       expect(screen.getByRole('link', { name: destino })).toBeInTheDocument()
     }
   })
@@ -134,7 +134,7 @@ describe('RequireRoles (RBAC)', () => {
 
     montar('/protegida', ['farmaceutico'])
 
-    for (const prohibido of [/Reportes/, /Modelo IA/, /Auditoría/, /Usuarios/, /Dispositivos/]) {
+    for (const prohibido of [/Reportes/, /Clasificador de riesgo/, /Auditoría/, /Usuarios/, /Dispositivos/]) {
       expect(screen.queryByRole('link', { name: prohibido })).not.toBeInTheDocument()
     }
     // Solo el texto del 403 menciona «permiso» (las e2e lo buscan con /permiso/i).
