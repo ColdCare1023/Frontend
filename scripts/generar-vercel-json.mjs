@@ -36,6 +36,10 @@ import { politicaCsp, politicaCspReportOnly } from './csp.mjs'
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
+// Sintaxis path-to-regexp de Vercel (no RegExp): solo los ficheros con hash que
+// genera Vite (.js, .css, .woff2).
+const CACHE_INMUTABLE_SOURCE = '/assets/(.*\\.(?:js|css|woff2))'
+
 // Uso: node scripts/generar-vercel-json.mjs [URL del backend] [--google]
 // `--google`: el build define VITE_GOOGLE_CLIENT_ID (FE-001) y la CSP debe
 // permitir Google Identity Services; sin él no se autoriza ningún origen de
@@ -70,6 +74,16 @@ const configuracion = {
         { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), microphone=()' },
         { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
       ],
+    },
+    {
+      // Vite emite JS, CSS y fuentes en /assets con el hash del contenido en el
+      // nombre: un cambio produce otro nombre, así que el navegador puede
+      // guardarlos un año sin revalidar. Las imágenes de public/assets
+      // (coldcare-auth-editorial.webp, cold-chain-hero.jpg) NO llevan hash y
+      // quedan fuera del patrón: con `immutable` una imagen actualizada nunca
+      // llegaría a quien ya la tiene en caché.
+      source: CACHE_INMUTABLE_SOURCE,
+      headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
     },
   ],
 }
