@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FlaskConical } from 'lucide-react'
+import { FlaskConical, Refrigerator, SlidersHorizontal } from 'lucide-react'
 
-import { useAlertasPendientes, useUltimaAlertaAtendida } from '@/application/hooks/useAlertasPendientes'
+import { useAlertasPendientes } from '@/application/hooks/useAlertasPendientes'
 import { useEstadoOperativo } from '@/application/hooks/useEstadoOperativo'
 import { useMonitoreoTermico } from '@/application/hooks/useMonitoreoTermico'
 import { useSerieTermica } from '@/application/hooks/useSerieTermica'
@@ -11,15 +11,18 @@ import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { inicioCalibracionVencida, umbralSilencioSegundos } from '@/domain/entities/Dispositivo'
 import { estadoRiesgoDe } from '@/domain/entities/LecturaTermica'
 import { resumenCombinado } from '@/domain/entities/SerieTermica'
+import { cn } from '@/lib/utils'
 import { tienePermiso } from '@/domain/value-objects/Rol'
 import { DISPOSITIVO_DEMO } from '@/infrastructure/demo/constantesDemo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useVencido } from '../hooks/useReloj'
 import { AnuncioRiesgo } from '../components/AnuncioRiesgo'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
 import { TooltipProvider } from '../components/ui/tooltip'
-import { CeldaAlertasPendientes } from './dashboard/CeldaAlertasPendientes'
+import { BandejaAlertasOperativa } from './dashboard/BandejaAlertasOperativa'
+import { ConsultasFarmacia } from './dashboard/ConsultasFarmacia'
 import { CeldaCondiciones } from './dashboard/CeldaCondiciones'
 import { CeldaCurva } from './dashboard/CeldaCurva'
 import { CeldaEquipo } from './dashboard/CeldaEquipo'
@@ -33,14 +36,6 @@ import { condicionesLineaEstado } from './dashboard/condicionesLinea'
 import { useEquipoSeleccionado } from './dashboard/useEquipoSeleccionado'
 import { ROLES_SIMULADOR, resumenVentana } from './dashboard/utilidades'
 
-/** La entrada escalonada del bento ocurre una vez por sesión (MOTION 4.12). */
-let bentoYaEntro = false
-
-/**
- * Monitoreo (P5c): un bento de siete celdas con un solo foco, la cifra. La
- * página orquesta datos y selección; cada celda vive en `dashboard/` y se
- * memoriza para que una lectura SSE no repinte lo que no cambió.
- */
 export function DashboardPage() {
   const { t } = useTranslation()
   const rol = useAuthStore((s) => s.usuario?.rol)
@@ -55,19 +50,11 @@ export function DashboardPage() {
   // HU-31: la curva y el resumen de 24 h y 7 d cubren el periodo completo.
   const { serie: agregada, recargar: recargarSerie } = useSerieTermica(deviceId, horasVentana)
   const alertas = useAlertasPendientes()
-  // Contexto de «Alertas pendientes»: sin pendientes es el estado vacío y con
-  // menos de 3 completa la lista (misma consulta de lectura que Alertas).
-  const ultimaAtendida = useUltimaAlertaAtendida(alertas.estado === 'listo' && alertas.total < 3)
   const ultimasVivo = useEstadoVivoStore((s) => s.ultimas)
 
   const flota = equipos
   const estadoIoTPrincipal =
     flota.find((equipo) => equipo.id === deviceId) ?? flota.find((equipo) => equipo.id === (deviceId ?? DISPOSITIVO_DEMO))
-
-  const [animarBento] = useState(() => !bentoYaEntro)
-  useEffect(() => {
-    bentoYaEntro = true
-  }, [])
 
   // HU-32 criterio 4 / HU-33 criterio 2: «hace cuánto» avanza aunque no
   // llegue lectura nueva. El segundo vive en las celdas que lo muestran
@@ -76,7 +63,11 @@ export function DashboardPage() {
   // HU-33 criterio 2 / B-17: desactualizado al superar el umbral SIN_DATOS del propio nodo.
   const umbralFrescura = umbralSilencioSegundos(estadoIoTPrincipal)
   const vencido = useVencido(ultima?.timestamp, umbralFrescura)
-  const datoDesactualizado = estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' || (ultima !== null && vencido)
+  const datoDesactualizado =
+    estadoIoTPrincipal?.estado_operativo === 'SIN_DATOS' ||
+    estadoIoTPrincipal?.estado_operativo === 'MONITOREO_SUSPENDIDO' ||
+    estadoIoTPrincipal?.estado_conectividad === 'offline' ||
+    (ultima !== null && vencido)
 
   const ventana = t(`dashboard.ventanaFrase.${horasVentana}`)
   const resumen = useMemo(() => (agregada ? resumenCombinado(agregada, serie) : resumenVentana(serie)), [agregada, serie])
@@ -90,8 +81,8 @@ export function DashboardPage() {
 
   const temperaturas = useMemo(() => {
     const mapa: Record<string, TemperaturaEquipo> = {}
-    for (const [id, lectura] of Object.entries(ultimasVivo)) mapa[id] = { valor: lectura.temperatura, riesgo: lectura.riesgo }
-    if (ultima && deviceId) mapa[deviceId] = { valor: ultima.temperatura_interna ?? null, riesgo: estadoRiesgo }
+    for (const [id, lectura] of Object.entries(ultimasVivo)) mapa[id] = { valor: lectura.temperatura, riesgo: lectura.riesgo, timestamp: lectura.timestamp }
+    if (ultima && deviceId) mapa[deviceId] = { valor: ultima.temperatura_interna ?? null, riesgo: estadoRiesgo, timestamp: ultima.timestamp }
     return mapa
   }, [ultimasVivo, ultima, deviceId, estadoRiesgo])
 
@@ -132,12 +123,18 @@ export function DashboardPage() {
     setDetalleId(id)
   }, [])
   const cerrarDetalle = useCallback(() => setDetalleId(null), [])
+  const mostrarLectura = useCallback((id: string) => {
+    setEquipoElegido(id)
+    const destino = document.getElementById('equipo-monitoreado')
+    destino?.focus()
+    return destino
+  }, [setEquipoElegido])
   const mostrarDesdePanel = useCallback(
     (id: string) => {
-      setEquipoElegido(id)
+      origenPanel.current = mostrarLectura(id)
       setDetalleId(null)
     },
-    [setEquipoElegido],
+    [mostrarLectura],
   )
 
   const actualizarDemo = useCallback(async () => {
@@ -145,6 +142,24 @@ export function DashboardPage() {
     reintentar()
     recargarSerie()
   }, [consultarEstadoOperativo, reintentar, recargarSerie])
+
+  const haySerie = serie.length > 0 || Boolean(agregada?.buckets.length)
+  const curva = (
+    <CeldaCurva
+      serie={serie}
+      ultimaPresente={ultima !== null}
+      estadoHistorial={estadoHistorial}
+      reintentar={reintentar}
+      horasVentana={horasVentana}
+      onCambiarVentana={setHorasVentana}
+      ventana={ventana}
+      agregada={agregada}
+      resumen={resumen}
+      cobertura={cobertura}
+      calibracionVencidaDesde={calibracionVencidaDesde}
+      vencimientoCalibracion={vencimientoCalibracion}
+    />
+  )
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -159,9 +174,9 @@ export function DashboardPage() {
       <PageHeader
         eyebrow={t('nav.seccionOperacion')}
         titulo={t('dashboard.titulo')}
-        descripcion={t('dashboard.descripcion')}
         meta={flota.length > 0 ? t('dashboard.encabezadoMeta', { count: flota.length }) : undefined}
       >
+        <ConsultasFarmacia equipoId={deviceId} />
         {puedeSimular && (
           <Button
             variant="secondary"
@@ -186,68 +201,64 @@ export function DashboardPage() {
         onReintentar={alertas.reintentar}
       />
 
-      <div
-        className={
-          'grid grid-cols-4 gap-3 sm:grid-cols-8 lg:grid-cols-12 lg:grid-rows-[minmax(136px,auto)_minmax(136px,auto)_auto_auto] xl:gap-4' +
-          (animarBento ? ' bento-entra' : '')
-        }
-      >
-        <CeldaLectura
-          ultima={ultima}
-          estadoHistorial={estadoHistorial}
-          reintentar={reintentar}
-          equipos={equipos}
-          deviceId={deviceId}
-          onElegirEquipo={elegir}
-          desactualizado={datoDesactualizado}
-          sseConectado={sseConectado}
-          motivoDesconexion={motivoDesconexion}
-          extremos={extremos}
-          ventana={ventana}
-        />
-        <CeldaCondiciones
-          ultima={ultima}
-          serie={serie}
-          cargando={estadoHistorial === 'cargando'}
-          desactualizado={datoDesactualizado}
-          ventana={ventana}
-          horasVentana={horasVentana}
-          umbralPuertaEquipo={estadoIoTPrincipal?.umbral_puerta_abierta_segundos ?? null}
-          recorte={recorte}
-          puertaEnVivo={puertaEnVivo && (!ultima || puertaEnVivo.device_id === ultima.device_id) ? puertaEnVivo : null}
-        />
-        <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
-        <CeldaCurva
-          serie={serie}
-          ultimaPresente={ultima !== null}
-          estadoHistorial={estadoHistorial}
-          reintentar={reintentar}
-          horasVentana={horasVentana}
-          onCambiarVentana={setHorasVentana}
-          ventana={ventana}
-          agregada={agregada}
-          resumen={resumen}
-          cobertura={cobertura}
-          calibracionVencidaDesde={calibracionVencidaDesde}
-          vencimientoCalibracion={vencimientoCalibracion}
-        />
-        <CeldaEstadoEquipos
-          equipos={flota}
-          deviceId={deviceId}
-          temperaturas={temperaturas}
-          onElegir={elegir}
-          onVerDetalles={verDetalles}
-        />
-        <CeldaAlertasPendientes
-          total={alertas.total}
-          criticas={alertas.criticas}
-          alertas={alertas.alertas}
-          estado={alertas.estado}
-          reintentar={alertas.reintentar}
-          nombres={nombres}
-          ultimaAtendida={ultimaAtendida}
-        />
-        <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
+      <div className="hoja-monitoreo">
+        <div id="equipo-monitoreado" tabIndex={-1} className="flex min-w-0 scroll-mt-20 flex-wrap items-center gap-2 border-b border-border px-4 py-2 focus:outline-none sm:px-6">
+          <Refrigerator aria-hidden className="size-4 shrink-0 text-muted" />
+          {equipos.length > 1 ? (
+            <select aria-label={t('dashboard.equipo')} value={deviceId ?? ''} onChange={(event) => elegir(event.target.value)}
+              className="min-h-10 min-w-0 max-w-full flex-1 cursor-pointer truncate bg-transparent pr-3 text-body font-semibold focus-visible:outline-ring sm:flex-none">
+              {equipos.map((equipo) => {
+                const repetido = equipo.nombre && equipos.some((otro) => otro.id !== equipo.id && otro.nombre === equipo.nombre)
+                return <option key={equipo.id} value={equipo.id}>{repetido ? `${equipo.nombre} (${equipo.id})` : equipo.nombre || equipo.id}</option>
+              })}
+            </select>
+          ) : <span className="min-w-0 flex-1 break-all text-body font-semibold">{estadoIoTPrincipal?.nombre || deviceId || t('dashboard.equipo')}</span>}
+          {estadoIoTPrincipal && <Button variant="ghost" size="sm" className="ml-auto max-sm:size-11 max-sm:px-0" onClick={() => verDetalles(estadoIoTPrincipal.id)}>
+            <SlidersHorizontal aria-hidden className="size-4" /> <span className="max-sm:sr-only">{t('dashboard.ficha')}</span>
+          </Button>}
+        </div>
+        <div className={cn("grid min-w-0", haySerie && "lg:grid-cols-[minmax(17rem,0.78fr)_minmax(0,1.5fr)]")}>
+          <div className={cn(
+            'min-w-0 border-b border-border px-4 py-5 sm:px-6',
+            haySerie ? 'space-y-5 lg:border-r lg:border-b-0' : 'grid items-start gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]',
+          )}>
+            <CeldaLectura
+              ultima={ultima}
+              estadoHistorial={estadoHistorial}
+              reintentar={reintentar}
+              deviceId={deviceId}
+              desactualizado={datoDesactualizado}
+              sseConectado={sseConectado}
+              motivoDesconexion={motivoDesconexion}
+              extremos={extremos}
+              ventana={ventana}
+            />
+            <CeldaCondiciones
+              ultima={ultima}
+              serie={serie}
+              cargando={estadoHistorial === 'cargando'}
+              desactualizado={datoDesactualizado}
+              ventana={ventana}
+              horasVentana={horasVentana}
+              umbralPuertaEquipo={estadoIoTPrincipal?.umbral_puerta_abierta_segundos ?? null}
+              recorte={recorte}
+              puertaEnVivo={puertaEnVivo && (!ultima || puertaEnVivo.device_id === ultima.device_id) ? puertaEnVivo : null}
+            />
+          </div>
+          <div className="min-w-0 px-4 py-5 sm:px-6">{curva}</div>
+        </div>
+        <div id="alertas-monitoreo" tabIndex={-1} className="min-w-0 scroll-mt-20 border-t border-border px-4 py-4 focus:outline-none sm:px-6">
+          <BandejaAlertasOperativa bandeja={alertas} nombres={nombres} />
+        </div>
+        <div className="border-t border-border px-3 py-1 sm:px-5">
+          <SeccionDetalle titulo={t('lectura.recientes')}>
+            <CeldaLecturasRecientes serie={serie} cargando={estadoHistorial === 'cargando'} ventana={ventana} />
+          </SeccionDetalle>
+          <SeccionDetalle titulo={t('dashboard.diagnostico')} className="border-0">
+            <CeldaEstadoEquipos equipos={flota} deviceId={deviceId} temperaturas={temperaturas} onElegir={mostrarLectura} onVerDetalles={verDetalles} />
+            <CeldaEquipo deviceId={deviceId} equipo={estadoIoTPrincipal} ultima={ultima} onVerDetalles={verDetalles} />
+          </SeccionDetalle>
+        </div>
       </div>
 
       <PanelDetalleEquipo

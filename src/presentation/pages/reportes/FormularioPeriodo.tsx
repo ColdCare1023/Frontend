@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileText } from 'lucide-react'
 
@@ -32,9 +32,8 @@ export interface PropsFormularioPeriodo {
 const ATAJOS: AtajoPeriodo[] = ['dias7', 'dias30', 'mes']
 
 /** Periodo, equipo y «Generar» (columna izquierda, 5/12). */
-export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeriodo>(function FormularioPeriodo(
-  { desde, hasta, deviceId, onDesde, onHasta, onDeviceId, generando, rangoInvalido, lineaPeriodo, errorPeriodo, plegable, onGenerar, className },
-  ref,
+export function FormularioPeriodo(
+  { desde, hasta, deviceId, onDesde, onHasta, onDeviceId, generando, rangoInvalido, lineaPeriodo, errorPeriodo, plegable, onGenerar, className }: PropsFormularioPeriodo,
 ) {
   const { t } = useTranslation()
   const [abierto, setAbierto] = useState(false)
@@ -44,7 +43,7 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
   const esMovil = useCoincideMedia('(max-width: 39.99rem)')
 
   return (
-    <section aria-labelledby="reportes-rango-titulo" className={cn('superficie p-4 xl:p-5', className)}>
+    <section aria-labelledby="reportes-rango-titulo" className={cn('px-3 py-3 sm:px-4', className)}>
       <div className="flex items-center justify-between gap-3">
         <h2 id="reportes-rango-titulo" className="text-title text-foreground">{t('reportes.rango')}</h2>
         {plegable && (
@@ -69,10 +68,9 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
       <div className={cn('grid transition-[grid-template-rows] duration-(--duration-reveal) ease-(--ease-out)', plegado ? 'max-sm:grid-rows-[0fr]' : 'grid-rows-[1fr]')}>
         <div className={cn('min-h-0', plegado && 'max-sm:overflow-hidden')} inert={plegado && esMovil ? true : undefined}>
           <form
-            ref={ref}
             id="reportes-form"
             aria-labelledby="reportes-rango-titulo"
-            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-[1fr_1fr_1.2fr_auto] md:items-end lg:grid-cols-2"
+            className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto] md:items-end"
             onSubmit={(e) => {
               e.preventDefault()
               if (rangoInvalido) return
@@ -88,7 +86,7 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
                 onDesde(p.desde)
                 onHasta(p.hasta)
               }}
-              className="col-span-2 flex w-full md:col-span-4 lg:col-span-2"
+              className="col-span-2 flex w-full md:col-span-4 md:w-fit"
               botonClassName="flex-1"
             />
             <div className="min-w-0">
@@ -99,7 +97,7 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
               <Label htmlFor="r-hasta">{t('reportes.hasta')}</Label>
               <SelectorFecha id="r-hasta" valor={hasta} onCambiar={onHasta} invalido={!hasta || errorPeriodo} aria-describedby="reportes-periodo" />
             </div>
-            <div className="col-span-2 min-w-0 md:col-span-1 lg:col-span-2">
+            <div className="col-span-2 min-w-0 md:col-span-1">
               <Label htmlFor="r-device">{t('reportes.dispositivo')}</Label>
               <Input
                 id="r-device"
@@ -112,7 +110,7 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
             </div>
             <Button
               type="submit"
-              className="col-span-2 w-full max-sm:h-11 md:col-span-1 md:w-auto lg:col-span-2 lg:w-full"
+              className="col-span-2 w-full max-sm:h-11 md:col-span-1 md:w-auto"
               disabled={generando || rangoInvalido}
             >
               <FileText />
@@ -132,4 +130,4 @@ export const FormularioPeriodo = forwardRef<HTMLFormElement, PropsFormularioPeri
       </div>
     </section>
   )
-})
+}

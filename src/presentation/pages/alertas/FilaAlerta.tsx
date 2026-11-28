@@ -2,9 +2,10 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, History } from 'lucide-react'
 
+import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import type { FiltroEstado } from '@/application/hooks/useAlertas'
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
-import { duracionLegible, fechaHora, fechaHoraCompacta } from '@/lib/formato'
+import { fechaHora, fechaHoraCompacta } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { Button } from '../../components/ui/button'
 import { CambioTexto } from '../../components/ui/cambio-texto'
@@ -12,7 +13,7 @@ import { ICONO_ESTADO, TEXTO_ESTADO, tonoDesdeRiesgo } from '../../components/ui
 import { PuntoEstado } from '../../components/ui/estado'
 import { TableCell, TableRow } from '../../components/ui/table'
 import { Tooltip } from '../../components/ui/tooltip'
-import { AvisosEvidencia, EvidenciaFila, PicoExcursion } from './EvidenciaAlerta'
+import { EvidenciaFila, PicoExcursion } from './EvidenciaAlerta'
 import type { PestanaPanel } from './tipos'
 import { tituloAlerta } from './tituloAlerta'
 
@@ -76,7 +77,7 @@ export const FilaAlerta = memo(function FilaAlerta({
   const IconoRiesgo = ICONO_ESTADO[tono]
   const fecha = fechaHoraCompacta(alerta.created_at)
   const datos = { equipo: alerta.device_id, fecha }
-
+  const equipo = useEstadoVivoStore((s) => s.equipos.find((e) => e.id === alerta.device_id))
   // La fila sale de su pestaña tras mostrar el resultado (Revisada / atendida).
   const recienRevisada = filtro === 'pendiente' && alerta.estado === 'reconocida'
   const saliendo = recienRevisada || ((filtro === 'pendiente' || filtro === 'reconocida') && alerta.estado === 'atendida')
@@ -87,6 +88,7 @@ export const FilaAlerta = memo(function FilaAlerta({
   return (
     <TableRow
       data-alerta-id={alerta.id}
+      data-equipo-id={alerta.device_id}
       data-seleccionada={seleccionada || undefined}
       data-saliendo={saliendo || undefined}
       {...(nueva ? { 'data-nueva': '', style: { '--i': Math.min(indice, 3) } as React.CSSProperties } : {})}
@@ -100,46 +102,33 @@ export const FilaAlerta = memo(function FilaAlerta({
       >
         <div className="flex min-w-0 items-start gap-2">
           <IconoRiesgo aria-hidden className={cn('mt-0.5 size-4 shrink-0', TEXTO_ESTADO[tono])} />
-          <span className="sr-only">
-            {alerta.nivel_riesgo ? `${t(`riesgo.${alerta.nivel_riesgo}`)} — ${t(`riesgo.detalle.${alerta.nivel_riesgo}`)}` : ''}
-          </span>
-          <p
+          <button
+            type="button"
+            onClick={(evento) => onAbrir(alerta, 'cronologia', evento.currentTarget)}
             title={titulo}
-            className="min-w-0 text-body font-medium text-foreground max-sm:line-clamp-3 sm:line-clamp-2 sm:text-pretty"
+            className="min-w-0 cursor-pointer break-words rounded-sm text-left text-body font-semibold text-foreground hover:text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-ring"
           >
-            {titulo}
-          </p>
+            {equipo?.nombre || alerta.device_id}
+          </button>
         </div>
-        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 pl-6 text-meta text-faint sm:flex-nowrap sm:overflow-hidden sm:whitespace-nowrap">
+        <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 pl-6 text-meta text-muted">
+          <span className={cn('font-medium', TEXTO_ESTADO[tono])}>
+            {alerta.nivel_riesgo ? t(`riesgo.${alerta.nivel_riesgo}`) : titulo}
+          </span>
           {filtro === 'todas' && (
-            <>
-              <span className="inline-flex items-center gap-1.5 text-muted">
-                <PuntoEstado tono={TONO_ESTADO_ALERTA[alerta.estado]} />
-                {t(`alertas.estadoAlerta.${alerta.estado}`)}
-              </span>
-              <span aria-hidden>·</span>
-            </>
+            <span className="inline-flex items-center gap-1.5">
+              <PuntoEstado tono={TONO_ESTADO_ALERTA[alerta.estado]} />
+              {t(`alertas.estadoAlerta.${alerta.estado}`)}
+            </span>
           )}
-          <span className="codigo text-muted">{alerta.device_id}</span>
           <span aria-hidden>·</span>
           <time className="nums" dateTime={alerta.created_at ?? undefined} title={fechaHora(alerta.created_at)}>
             {fecha}
           </time>
         </div>
-        {/* Bajo 768 la columna Excursión se oculta: su contenido baja aquí. */}
-        <div className="mt-1.5 space-y-1.5 pl-6 md:hidden">
-          {(alerta.temperatura_pico != null || alerta.duracion_s != null) && (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-faint">
-              <PicoExcursion alerta={alerta} />
-              {alerta.duracion_s != null && (
-                <span className="nums">
-                  <span className="sr-only">{t('alertas.duracion')} </span>
-                  {duracionLegible(alerta.duracion_s)}
-                </span>
-              )}
-            </div>
-          )}
-          <AvisosEvidencia alerta={alerta} />
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 pl-6 text-meta text-muted md:hidden">
+          {alerta.temperatura_pico != null && <PicoExcursion alerta={alerta} />}
+          <EvidenciaFila alerta={alerta} />
         </div>
       </TableCell>
       <TableCell className="hidden w-36 px-3 py-2 max-sm:hidden! sm:px-3 md:table-cell">

@@ -1,4 +1,5 @@
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
+import { INTERVALO_REPORTE_POR_DEFECTO } from '@/domain/entities/Dispositivo'
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { estaEnRango } from '@/domain/value-objects/NivelRiesgo'
 
@@ -19,7 +20,7 @@ export interface TiempoEnRango {
   hasta: number
 }
 
-const INTERVALO_POR_DEFECTO = 30_000
+const INTERVALO_POR_DEFECTO = INTERVALO_REPORTE_POR_DEFECTO * 1000
 
 function mediana(valores: number[]): number {
   if (valores.length === 0) return INTERVALO_POR_DEFECTO

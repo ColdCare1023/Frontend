@@ -12,6 +12,13 @@ const equipo = (overrides: Partial<Dispositivo> = {}) =>
 const listo = (total = 0, criticas = 0) => ({ estado: 'listo' as const, total, criticas })
 
 describe('Línea de estado: prioridades', () => {
+  it('muestra falta de datos cuando la conexión o la hora del último envío contradicen el estado operativo', () => {
+    const atrasado = equipo({ ultimo_reporte_en: '2026-07-25T11:59:00Z', intervalo_reporte_segundos: 10 })
+    const offline = equipo({ estado_conectividad: 'offline' })
+    const [principal] = condicionesLineaEstado({ alertas: listo(), equipos: [atrasado, offline], hoy: HOY })
+    expect(principal).toMatchObject({ tipo: 'sin_datos', equipos: [atrasado, offline] })
+  })
+
   it('crítica › pendientes › sin datos › calibración › error › todo en orden', () => {
     const sinDatos = equipo({ id: 'B', estado_operativo: 'SIN_DATOS' })
     const vencida = equipo({ id: 'C', fecha_proxima_calibracion: '2026-01-01' })

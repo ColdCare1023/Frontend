@@ -30,8 +30,8 @@ export function Tooltip({
           collisionPadding={8}
           className={cn(
             'flotante z-[70] origin-(--radix-tooltip-content-transform-origin) rounded-(--radius-small) px-2 py-1 text-meta font-medium text-foreground',
-            // MOTION 4.9: crece desde el trigger; abierto al instante (riel) no anima; cierra solo con opacidad.
-            'data-[state=delayed-open]:animate-(--animate-pop-in) data-[state=closed]:animate-[fade-out_100ms_var(--ease-out)_both]',
+            // Al cerrar, Radix debe desmontar la capa de inmediato para que Escape llegue al diálogo activo.
+            'data-[state=delayed-open]:animate-(--animate-pop-in)',
           )}
         >
           {contenido}

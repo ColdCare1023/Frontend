@@ -25,12 +25,18 @@ for (const tema of ['dark', 'light'] as const) {
       await page.setViewportSize({ width: vista.width, height: vista.height })
       await page.goto('/login')
       await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
-      await expect(page).toHaveScreenshot(`login-${tema}-${vista.nombre}.png`, { fullPage: true, animations: 'disabled' })
+      await expect(page).toHaveScreenshot(`login-${tema}-${vista.nombre}.png`, {
+        fullPage: true,
+        animations: 'disabled',
+        maxDiffPixels: 1, // El rasterizado de Chrome puede variar en un píxel del logotipo.
+      })
     })
   }
 }
 
 test('guía de uso dentro del shell oscuro', async ({ page }) => {
+  // La fecha también determina la semilla de las lecturas del adaptador demo.
+  await page.clock.setFixedTime(new Date('2026-11-25T15:00:00Z'))
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/login')
@@ -39,6 +45,8 @@ test('guía de uso dentro del shell oscuro', async ({ page }) => {
   await irA(page, '/guia')
   // El título propio de la guía: el h1 del monitoreo sigue en pantalla mientras carga.
   await expect(page.getByRole('heading', { level: 1, name: 'Consulta y usa ColdCare' })).toBeVisible()
+  // Espera la primera lectura antes de comparar la cabecera.
+  await expect(page.locator('header [data-pildora-estado]')).toHaveAccessibleName(/Requiere atención.*Refrigerador principal: [\d.,]+ °C/)
   await expect(page).toHaveScreenshot('guia-dark.png', {
     fullPage: true,
     animations: 'disabled',

@@ -99,7 +99,7 @@ export function BotonMasFiltros({
       type="button"
       variant="secondary"
       size="sm"
-      className="shrink-0 sm:hidden"
+      className="shrink-0"
       aria-expanded={abierto}
       aria-controls={controla}
       onClick={() => onCambiar(!abierto)}

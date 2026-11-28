@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-import { estadoCalibracion, type Dispositivo, type EstadoCalibracion, type HistorialConfiguracion } from '@/domain/entities/Dispositivo'
+import { estadoCalibracion, umbralSilencioSegundos, type Dispositivo, type EstadoCalibracion, type HistorialConfiguracion } from '@/domain/entities/Dispositivo'
 import type { NivelRiesgo } from '@/domain/value-objects/NivelRiesgo'
 import type { TonoEstado } from '../../components/ui/estado-tonos'
 
@@ -84,14 +84,15 @@ export function tonoDeEstado(estado: EstadoVisual): TonoEstado {
 }
 
 /** Estado por precedencia: lo que pide actuar antes gana. */
-export function estadoVisualEquipo(d: Dispositivo, ultima?: LecturaBreve | null): EstadoVisual {
+export function estadoVisualEquipo(d: Dispositivo, ultima?: LecturaBreve | null, ahora = Date.now()): EstadoVisual {
   if (!d.activo) return 'baja'
   if (d.rotacion_por_compromiso || d.estado_operativo === 'MONITOREO_SUSPENDIDO') return 'retenida'
   const operativo = d.estado_operativo === undefined || d.estado_operativo === 'OPERATIVO'
-  if (operativo && ultima?.riesgo === 'excursion_critica') return 'critico'
   if (d.estado_operativo === 'FALLA_SENSOR') return 'falla_sensor'
   if (d.estado_operativo === 'SIN_DATOS') return 'sin_datos'
   if (d.estado_conectividad !== 'online') return 'sin_conexion'
+  if (ultima && ahora - Date.parse(ultima.timestamp) >= umbralSilencioSegundos(d) * 1000) return 'sin_datos'
+  if (operativo && ultima?.riesgo === 'excursion_critica') return 'critico'
   if (operativo && ultima?.riesgo === 'riesgo_preventivo') return 'preventivo'
   if (!d.ultimo_reporte_en && !ultima) return 'esperando'
   return 'normal'

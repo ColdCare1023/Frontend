@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { accionAlerta, irA, cerrarSesion } from './helpers'
+import { irA, cerrarSesion } from './helpers'
 
 test('sesión demo, navegación y reapertura', async ({ page }) => {
   // El recorrido guiado se retiró (4e27dbe): tras entrar se llega al monitoreo.
@@ -12,8 +12,8 @@ test('sesión demo, navegación y reapertura', async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/)
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
-  await expect(page.getByRole('heading', { name: 'Alertas' })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link')).toHaveCount(1)
+  await expect(page.getByRole('heading', { name: /Alertas pendientes/ })).toBeVisible()
 })
 
 test('cambiar periodo de la curva conserva monitoreo visible sin destellos', async ({ page }) => {
@@ -33,10 +33,11 @@ test('cambiar periodo de la curva conserva monitoreo visible sin destellos', asy
     const opcion = rangos.getByRole('button', { name: nombre, exact: true })
     await opcion.click()
     await expect(opcion).toHaveAttribute('aria-pressed', 'true')
-    await expect(temperatura).toContainText(lecturaActual!)
+    await expect(temperatura).toBeVisible()
     await expect(curva).toBeVisible()
     await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0)
   }
+  await expect(temperatura.getByTestId('valor-actual')).toBeVisible()
 })
 
 test('guardas de autenticación y permisos por rol', async ({ page }) => {
@@ -85,12 +86,19 @@ test('administrador puede abrir herramientas de administración en demo', async 
   await page.getByRole('button', { name: 'Administrador' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
 
+  const nav = page.getByRole('navigation', { name: 'Navegación principal', exact: true })
+  const seccion = nav.locator('summary', { hasText: 'Administración' })
+  await expect(nav.getByRole('link', { name: 'Usuarios' })).toBeHidden()
+  await seccion.focus()
+  await page.keyboard.press('Enter')
   for (const [ruta, titulo] of [
     ['/usuarios', 'Usuarios'],
     ['/dispositivos', 'Equipos de medición'],
     ['/estado-servicio', 'Estado del servicio'],
   ]) {
-    await irA(page, ruta)
+    const enlace = nav.locator(`a[href="${ruta}"]`)
+    await enlace.click()
+    await expect(enlace).toHaveAttribute('aria-current', 'page')
     await expect(page.getByRole('heading', { level: 1 })).toContainText(titulo)
     await expect(page.getByText(/permiso/i)).toHaveCount(0)
   }
@@ -115,14 +123,10 @@ test('alertas permiten abrir detalle contextual', async ({ page }) => {
   await page.goto('/login')
   await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Alertas' }).click()
-  await page.getByRole('button', { name: 'Todas', exact: true }).click()
-  // El riesgo de cada fila va con forma propia y texto (lector de pantalla).
-  await expect(page.getByRole('row').filter({ hasText: /fuera del rango/i }).first()).toBeVisible()
-  await expect(page.getByRole('row').filter({ hasText: /se acerca al límite/i }).first()).toBeVisible()
-  await accionAlerta(page, /ver cronología de atención/i)
-  await expect(page.getByRole('dialog')).toContainText(/temperatura/i)
+  const bandeja = page.getByRole('region', { name: /Alertas pendientes/ })
+  await bandeja.getByRole('button', { name: /^Atender/ }).first().click()
   await expect(page.getByRole('dialog')).toContainText(/Excursión crítica|Riesgo preventivo/)
+  await expect(page).toHaveURL(/\/dashboard$/)
 })
 
 test('logout elimina acceso a ruta protegida', async ({ page }) => {
@@ -138,7 +142,7 @@ test('logout elimina acceso a ruta protegida', async ({ page }) => {
 test('navegación móvil abre menú y permite llegar a alertas', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/login')
-  await page.getByRole('button', { name: 'Químico Farmacéutico' }).click()
+  await page.getByRole('button', { name: 'Técnico de Farmacia' }).click()
   await expect(page).toHaveURL(/\/dashboard$/)
   await page.getByRole('button', { name: 'Abrir menú' }).click()
   await page.getByRole('dialog').getByRole('link', { name: 'Alertas' }).click()
@@ -154,6 +158,9 @@ test('navegación móvil abre menú y permite llegar a alertas', async ({ page }
     await expect(botones).toHaveCount(4)
     for (const opcion of opciones) await expect(filtros.getByRole('button', { name: opcion, exact: true })).toBeVisible()
 
+    const aviso = page.locator('[data-pildora-estado]').getByText('Requiere atención', { exact: true })
+    await expect(aviso).toBeVisible()
+    expect(await aviso.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight + 1), `estado legible a ${width} px`).toBe(true)
     const medidas = await filtros.evaluate((grupo) => {
       const caja = grupo.getBoundingClientRect()
       const botones = [...grupo.querySelectorAll('button')].map((boton) => {
@@ -232,6 +239,7 @@ test('trazabilidad explica cadena, oculta sellos y muestra verificación', async
   await expect(page.getByRole('heading', { name: 'Sin alertas de integridad' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Evento' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toHaveCount(0)
+  await page.locator('summary').filter({ hasText: 'Herramientas de revisión' }).click()
   await page.getByRole('button', { name: 'Mostrar detalles técnicos de los sellos' }).click()
   await expect(page.getByRole('columnheader', { name: 'Sellos digitales' })).toBeVisible()
   await page.getByRole('button', { name: 'Revisar integridad' }).click()

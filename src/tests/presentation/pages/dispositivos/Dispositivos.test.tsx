@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import i18n from '@/infrastructure/i18n'
 
 const useDispositivos = vi.hoisted(() => vi.fn())
 vi.mock('@/application/hooks/useDispositivos', () => ({ useDispositivos }))
@@ -81,6 +82,14 @@ function montar(dispositivos: Dispositivo[], extra: Record<string, unknown> = {}
 }
 
 describe('estado de equipo (SPEC P5b §5.4)', () => {
+  it('el nodo en línea conserva el valor antiguo como histórico al vencer su intervalo', () => {
+    const d = dispositivo({ estado_operativo: 'OPERATIVO', estado_conectividad: 'online', umbral_sin_datos_segundos: 30 })
+    const timestamp = '2026-11-18T10:00:00Z'
+    const lectura = { temperatura: 1.2, riesgo: 'excursion_critica' as const, timestamp }
+    expect(estadoVisualEquipo(d, lectura, Date.parse(timestamp) + 29_000)).toBe('critico')
+    expect(estadoVisualEquipo(d, lectura, Date.parse(timestamp) + 30_000)).toBe('sin_datos')
+  })
+
   it('prioriza la telemetría retenida sobre cualquier otro estado', () => {
     expect(estadoVisualEquipo(dispositivo({ rotacion_por_compromiso: true, estado_operativo: 'SIN_DATOS' }))).toBe('retenida')
   })
@@ -116,8 +125,15 @@ describe('Lista de dispositivos (HU-43, RF-18)', () => {
     expect(consultar).toHaveBeenCalled()
   })
 
-  it('distingue un nodo en línea de uno sin conexión', () => {
+  it('mantiene el problema de conexión visible y permite consultar la telemetría completa', async () => {
     montar([dispositivo({ id: 'FARM-01-CDL', estado_conectividad: 'online' }), dispositivo({ id: 'FARM-02-CDL', estado_conectividad: 'offline' })])
+    const tendencias = screen.getByRole('button', { name: i18n.t('lectura.tendenciasEquipo') })
+    expect(tendencias).toHaveAttribute('aria-pressed', 'false')
+    const lista = screen.getByRole('list', { name: i18n.t('dispositivos.lista.etiqueta') })
+    const offline = within(lista).getByRole('link', { name: /FARM-02-CDL/ }).closest('li')!
+    expect(offline.textContent).toMatch(/sin conexi[oó]n/i)
+    await userEvent.click(tendencias)
+    expect(tendencias).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getAllByText('En línea').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Sin conexión').length).toBeGreaterThan(0)
   })
@@ -209,10 +225,15 @@ describe('Detalle de dispositivo (pestañas)', () => {
     expect(screen.getByRole('link', { name: 'Volver a equipos' })).toHaveAttribute('href', '/dispositivos')
   })
 
-  it('muestra el device_id y su versión de firmware en Configuración', () => {
+  it('prioriza el nombre y conserva el código y el firmware en los detalles de Configuración', async () => {
     montar([dispositivo()], {}, '/dispositivos/FARM-01-CDL?tab=configuracion')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('FARM-01-CDL')
-    expect(screen.getByText('1.0.0')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Refrigerador principal')
+    const ficha = screen.getByText('1.0.0').closest('details')!
+    expect(ficha).toHaveTextContent('FARM-01-CDL')
+    expect(ficha.open).toBe(false)
+    await userEvent.click(ficha.querySelector('summary')!)
+    expect(ficha.open).toBe(true)
+    expect(screen.getByText('1.0.0')).toBeVisible()
   })
 
   it('HU-30: la fecha de calibración usa el selector, es obligatoria y viaja como yyyy-MM-dd', async () => {

@@ -5,8 +5,17 @@ import { cerrarSesion } from './helpers'
 test('login móvil mantiene formulario legible y controles operables', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/login')
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+
+  const marca = page.getByRole('button', { name: 'Acerca de ColdCare' })
+  await marca.click()
+  const acerca = page.getByRole('dialog', { name: 'Acerca de ColdCare' })
+  await expect(acerca).toContainText('Vigila tus equipos, recibe alertas a tiempo')
+  await expect(acerca).toContainText('Rango térmico de referencia · 2–8 °C')
+  await page.keyboard.press('Escape')
+  await expect(acerca).toHaveCount(0)
+  await expect(marca).toBeFocused()
 
   const password = page.locator('#login-password')
   await password.fill('demo-2026')
@@ -31,7 +40,7 @@ test('sesión demo vive solo en memoria y recarga exige volver a ingresar', asyn
 
   await page.reload()
   await expect(page).toHaveURL(/\/login$/)
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
 })
 
 test('login real de demo pide el código por correo y limita intentos sin revelar cuenta', async ({ page }) => {
@@ -64,6 +73,32 @@ test('login real de demo pide el código por correo y limita intentos sin revela
   }
 })
 
+test('la cuenta demo con contraseña temporal exige cambiarla y permite volver a ingresar con la nueva', async ({ page }) => {
+  await page.goto('/login')
+  const correo = 'nuevo.quimico@demo.pe'
+  const nueva = 'FarmaciaPrueba2026'
+  const acceder = async (password: string) => {
+    await page.locator('#login-email').fill(correo)
+    await page.locator('#login-password').fill(password)
+    await page.getByRole('button', { name: 'Ingresar', exact: true }).click()
+  }
+  await acceder('demo-2026')
+  await page.getByRole('button', { name: 'Usar código' }).click()
+  await expect(page).toHaveURL(/\/cambiar-password$/)
+  await page.locator('#password-actual').fill('demo-2026')
+  await page.getByLabel('Nueva contraseña', { exact: true }).fill(nueva)
+  await page.getByLabel('Confirmar contraseña', { exact: true }).fill(nueva)
+  await page.getByRole('button', { name: 'Guardar contraseña' }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
+  await cerrarSesion(page)
+
+  await acceder('demo-2026')
+  await expect(page.getByRole('alert')).toContainText('Correo o contraseña incorrectos')
+  await acceder(nueva)
+  await page.getByRole('button', { name: 'Usar código' }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
+})
+
 test('el código demo se aplica con un clic y «Usar otra cuenta» vuelve al formulario', async ({ page }) => {
   await page.goto('/login')
   await page.locator('#login-email').fill('auditor@demo.pe')
@@ -72,7 +107,7 @@ test('el código demo se aplica con un clic y «Usar otra cuenta» vuelve al for
   await expect(page.getByRole('heading', { name: 'Revisa tu correo' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Usar otra cuenta' }).click()
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
   await expect(page.locator('#login-email')).toHaveValue('auditor@demo.pe')
   // «Usar otra cuenta» enfoca el correo (seleccionado: escribir lo reemplaza).
   await expect(page.locator('#login-email')).toBeFocused()
@@ -108,7 +143,7 @@ test('recuperación y activación por código en la demo', async ({ page }) => {
   await page.getByRole('button', { name: 'Activar cuenta' }).click()
   await expect(page.getByRole('heading', { name: 'Cuenta activada' })).toBeVisible()
   await page.getByRole('link', { name: 'Ir a iniciar sesión' }).click()
-  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Iniciar sesión' })).toBeVisible()
 })
 
 // FE-001: ya no existen botones sociales simulados. Sin VITE_GOOGLE_CLIENT_ID

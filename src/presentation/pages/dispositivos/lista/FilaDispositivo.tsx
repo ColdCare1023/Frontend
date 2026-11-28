@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import { CalendarClock, FlaskConical, MapPin, Minus, Settings2, ShieldCheck, TrendingDown, TrendingUp } from 'lucide-react'
 
-import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import type { CintaEquipo } from '@/lib/cinta24h'
 import { duracionLegible, fechaCorta, fechaDia, fechaHora, hora, localeActual } from '@/lib/formato'
 import { cn } from '@/lib/utils'
+import { useVencido } from '../../../hooks/useReloj'
 import { ActionMenu, ActionMenuLabel } from '../../../components/ActionMenu'
 import { BadgeConectividad } from '../../../components/BadgeConectividad'
 import { Badge } from '../../../components/ui/badge'
@@ -41,6 +42,7 @@ function horaMinuto(iso: string): string {
  */
 export const FilaDispositivo = memo(function FilaDispositivo({
   dispositivo,
+  ampliada,
   estado,
   ultima,
   desde,
@@ -49,6 +51,7 @@ export const FilaDispositivo = memo(function FilaDispositivo({
   cinta,
 }: {
   dispositivo: Dispositivo
+  ampliada: boolean
   estado: EstadoVisual
   ultima: LecturaBreve | undefined
   /** URL de la lista (con filtros) a la que vuelve el detalle. */
@@ -61,13 +64,18 @@ export const FilaDispositivo = memo(function FilaDispositivo({
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const nombre = dispositivo.nombre?.trim() || dispositivo.id
+  const vencida = useVencido(ultima?.timestamp, umbralSilencioSegundos(dispositivo))
+  const historica = vencida || ['sin_datos', 'sin_conexion', 'falla_sensor', 'retenida', 'baja'].includes(estado)
   const calibracion = estadoCalibracion(dispositivo)
   const accion = accionFila(dispositivo, calibracion)
   const ruta = `/dispositivos/${encodeURIComponent(dispositivo.id)}`
   const irA = (tab: string) => navigate(`${ruta}?tab=${tab}`, { state: { desde } })
   const idEstado = `eq-${dispositivo.id}-estado`
   const textoEstado =
-    estado === 'sin_datos' && dispositivo.ultimo_reporte_en
+    vencida && ['normal', 'preventivo', 'critico'].includes(estado)
+      ? t('dashboard.sinDatosRecientes')
+    : estado === 'sin_datos' && dispositivo.ultimo_reporte_en
       ? t('dispositivos.estadoEquipo.sin_datos_desde', { hora: fechaHora(dispositivo.ultimo_reporte_en) })
       : t(`dispositivos.estadoEquipo.${estado}`)
 
@@ -75,12 +83,13 @@ export const FilaDispositivo = memo(function FilaDispositivo({
     <li
       className={cn(
         'relative col-span-full grid grid-cols-subgrid gap-y-3 px-4 py-4 transition-colors duration-(--duration-micro) ease-(--ease-hover) hover:bg-surface-hover has-[a[data-fila]:focus-visible]:bg-surface-hover',
-        'sm:items-center lg:min-h-22',
+        'sm:items-center',
+        ampliada && 'lg:min-h-22',
         !dispositivo.activo && 'text-faint',
       )}
     >
       {/* Equipo */}
-      <div className="min-w-0 sm:row-span-2 lg:row-span-1">
+      <div className={cn('min-w-0', ampliada && 'sm:row-span-2 lg:row-span-1')}>
         <h3 className="flex min-w-0 items-center gap-2">
           <IconoEquipo estado={estado} className="size-4" />
           <Link
@@ -88,20 +97,25 @@ export const FilaDispositivo = memo(function FilaDispositivo({
             state={{ desde }}
             data-fila
             aria-describedby={idEstado}
-            className="codigo truncate text-title text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:rounded-(--radius-card) focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
+            className="min-w-0 [overflow-wrap:anywhere] text-title text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:rounded-(--radius-card) focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
           >
-            {dispositivo.id}
+            {nombre}
+            {nombre !== dispositivo.id && <span className="sr-only"> · {dispositivo.id}</span>}
           </Link>
         </h3>
         {/* Hasta dos líneas: a 1440 «Sala de dispensación» se cortaba con sitio de sobra debajo. */}
         <p className="mt-0.5 line-clamp-2 text-meta text-muted">
-          {[dispositivo.nombre, dispositivo.ubicacion].filter(Boolean).join(' · ') || '—'}
+          {nombre !== dispositivo.id && <span>{dispositivo.id}</span>}
+          {nombre !== dispositivo.id && dispositivo.ubicacion && ' · '}
+          {dispositivo.ubicacion}
         </p>
         <div id={idEstado} className="relative z-10 mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-meta">
           <span className={cn('font-medium', TEXTO_EQUIPO[estado])}>{textoEstado}</span>
           {dispositivo.activo ? (
             <>
-              <BadgeConectividad estado={dispositivo.estado_conectividad} desde={dispositivo.conectividad_cambiada_en} />
+              {(ampliada || (dispositivo.estado_conectividad !== 'online' && estado !== 'sin_conexion')) && (
+                <BadgeConectividad estado={dispositivo.estado_conectividad} desde={dispositivo.conectividad_cambiada_en} />
+              )}
               {dispositivo.estado_operativo && dispositivo.estado_operativo !== 'OPERATIVO' && estado !== 'sin_datos' && estado !== 'falla_sensor' && (
                 <Badge variant="critical">{t(`dispositivos.estadoOperativo.${dispositivo.estado_operativo}`)}</Badge>
               )}
@@ -121,14 +135,14 @@ export const FilaDispositivo = memo(function FilaDispositivo({
               {dispositivo.posesion_pendiente && (
                 <Badge variant="warn" title={t('dispositivos.posesionPendienteAyuda')}>{t('dispositivos.posesionPendiente')}</Badge>
               )}
-              <Badge
+              {(ampliada || calibracion === 'vencida' || calibracion === 'proxima_a_vencer') && <Badge
                 variant={calibracion === 'vencida' ? 'critical' : calibracion === 'proxima_a_vencer' ? 'warn' : 'outline'}
                 title={dispositivo.fecha_proxima_calibracion
                   ? t('dispositivos.calibracionVence', { fecha: fechaDia(dispositivo.fecha_proxima_calibracion) })
                   : undefined}
               >
                 {t('dispositivos.calibracion')}: {t(`dispositivos.calibracionEstado.${calibracion}`)}
-              </Badge>
+              </Badge>}
             </>
           ) : (
             <span className="text-faint">
@@ -144,14 +158,22 @@ export const FilaDispositivo = memo(function FilaDispositivo({
         {!dispositivo.activo ? (
           <p className="text-meta text-faint">{t('dispositivos.lista.fueraDeServicio')}</p>
         ) : ultima && ultima.temperatura !== null ? (
-          <LecturaFila ultima={ultima} temperatura={ultima.temperatura} estado={estado} tendencia={tendencia} />
+          ampliada && !historica ? <LecturaFila ultima={ultima} temperatura={ultima.temperatura} estado={estado} tendencia={tendencia} /> : (
+            <>
+              {historica && <p className="text-meta font-medium text-muted">{t('dashboard.ultimaLecturaHora')}</p>}
+              <p className={cn('nums', historica ? 'text-body text-muted' : 'text-title text-foreground')}>{formatearCifra(ultima.temperatura)}<span className="text-meta text-muted">{ESPACIO_FINO}°C</span></p>
+              <time dateTime={ultima.timestamp} className="text-meta text-muted" title={fechaHora(ultima.timestamp)}>
+                {historica ? fechaHora(ultima.timestamp) : `${t('dashboard.ultimaLecturaHora')} · ${horaMinuto(ultima.timestamp)}`}
+              </time>
+            </>
+          )
         ) : (
           <p className="text-meta text-muted">{t('dispositivos.lista.sinLectura')}</p>
         )}
       </div>
 
       {/* Últimas 24 h: alertas e incidentes del equipo */}
-      <div className="relative z-10 min-w-0 sm:col-start-2 sm:row-start-2 lg:col-start-3 lg:row-start-1">
+      {ampliada && <div className="relative z-10 min-w-0 sm:col-start-2 sm:row-start-2 lg:col-start-3 lg:row-start-1">
         {!dispositivo.activo ? (
           <p className="text-meta text-faint max-sm:hidden">—</p>
         ) : cinta ? (
@@ -171,10 +193,10 @@ export const FilaDispositivo = memo(function FilaDispositivo({
         ) : (
           <Esqueleto className="h-4 lg:h-5" />
         )}
-      </div>
+      </div>}
 
       {/* Acciones */}
-      <div className="relative z-10 flex flex-wrap items-center justify-start gap-2 sm:col-start-3 sm:row-span-2 sm:row-start-1 sm:justify-end sm:gap-1 lg:col-start-4 lg:row-span-1">
+      <div className={cn('relative z-10 flex flex-wrap items-center justify-start gap-2 sm:col-start-3 sm:row-start-1 sm:justify-end sm:gap-1', ampliada && 'sm:row-span-2 lg:col-start-4 lg:row-span-1')}>
         {accion && <AccionContextual dispositivo={dispositivo} accion={accion} className="max-sm:flex-1" />}
         <ActionMenu label={dispositivo.id}>
           <ActionMenuLabel>{t('dispositivos.menu.grupoIrA')}</ActionMenuLabel>

@@ -73,12 +73,12 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     expect(screen.getByText(`Consulta: ${fecha('2026-11-15T15:30:00+00:00')}`)).toBeInTheDocument()
 
     const resumen = region('Resumen del servicio')
-    expect(resumen).toHaveTextContent('La base de datos y la API del broker responden.')
-    expect(valorDe(resumen, 'Consumidor MQTT único')).toHaveTextContent('Sí')
-    // En móvil la etiqueta es corta; y nada en la tira se corta con «…».
-    expect(within(resumen).getByText('Consumidor único')).toHaveClass('sm:hidden')
-    expect(within(resumen).getByText('Consumidor MQTT único')).toHaveClass('max-sm:hidden')
-    expect(resumen.querySelector('.truncate')).toBeNull()
+    expect(resumen).toHaveTextContent(i18n.t('estadoServicio.general.guiaOk'))
+    expect(resumen.querySelector('dl')).toBeNull()
+    const diagnostico = screen.getByText('Diagnóstico por componente').closest('details')!
+    expect(diagnostico.open).toBe(false)
+    await userEvent.click(diagnostico.querySelector('summary')!)
+    expect(diagnostico.open).toBe(true)
 
     const bd = region('Base de datos')
     expect(within(bd).getAllByText('Al día').length).toBeGreaterThan(0)
@@ -107,6 +107,19 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
 
     // Nada interrumpe cuando todo está bien.
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('abre los valores técnicos de un componente a petición y mantiene el estado de los demás disponible', async () => {
+    montar({ data: estado() })
+    await userEvent.click(await screen.findByText('Diagnóstico por componente'))
+    const mqtt = region('MQTT')
+    const datos = region('Base de datos')
+    expect(mqtt.querySelector('details')).not.toHaveAttribute('open')
+    expect(datos.querySelector('details')).not.toHaveAttribute('open')
+    await userEvent.click(mqtt.querySelector('summary')!)
+    expect(mqtt.querySelector('details')).toHaveAttribute('open')
+    expect(datos.querySelector('details')).not.toHaveAttribute('open')
+    expect(within(mqtt).getByText('Responde')).toBeVisible()
   })
 
   it('los pares de ancho completo ocupan las dos columnas del bloque (el contenedor, no el valor)', async () => {
@@ -324,7 +337,7 @@ describe('EstadoServicioPage — GET /health/detalle (solo administrador)', () =
     const anterior = estado()
     for (const clave of ['alembic_head', 'arranque', 'respaldos', 'modelo_ia']) delete anterior[clave]
     montar({ data: anterior })
-    await screen.findByText('Operativo')
+    await screen.findByRole('region', { name: 'Resumen del servicio' })
     expect(region('Base de datos')).toHaveTextContent('El servidor no informó la revisión aplicada')
     expect(region('Arranque')).toHaveTextContent('El servidor no informa con qué comando arrancó.')
     expect(region('Respaldos')).toHaveTextContent('Sin vigilancia')

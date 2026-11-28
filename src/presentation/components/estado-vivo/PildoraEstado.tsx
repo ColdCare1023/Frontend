@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import * as Popover from '@radix-ui/react-popover'
 import { useShallow } from 'zustand/react/shallow'
-import { ArrowRight, Bell, CircleCheck, OctagonAlert, TriangleAlert } from 'lucide-react'
+import { ArrowRight, ChevronDown, CircleCheck, OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import { useAuthStore } from '@/application/stores/authStore'
 import {
@@ -13,14 +13,16 @@ import {
   useEstadoVivoStore,
   type ClaveEstado,
   type FilaEquipo,
-  type Tono,
 } from '@/application/stores/estadoVivoStore'
 import { fechaHora, haceCuanto as haceCuantoDesde, hora, localeActual } from '@/lib/formato'
 import { cn } from '@/lib/utils'
-import { formatearCifra, formatearTemperatura } from '../ui/formato-cifra'
+import { formatearTemperatura } from '../ui/formato-cifra'
 import { FONDO_ESTADO, TEXTO_ESTADO, type TonoEstado } from '../ui/estado-tonos'
-import { InsigniaConteo } from '../ui/insignia-conteo'
 import { Regla } from '../ui/regla'
+
+function temperaturaVigente(clave: ClaveEstado | 'sin_equipos' | 'desconocido') {
+  return ['normal', 'sin_clasificacion_ia', 'riesgo_preventivo', 'excursion_critica'].includes(clave)
+}
 
 /** Tono de la píldora → vocabulario de estado compartido. */
 function tonoVisual(clave: ClaveEstado | 'sin_equipos' | 'desconocido'): TonoEstado {
@@ -45,13 +47,6 @@ function tonoVisual(clave: ClaveEstado | 'sin_equipos' | 'desconocido'): TonoEst
 /** Estado del flujo en vivo que se rotula (`estadoVivo.conexion.*`). */
 type Conexion = 'conectado' | 'reconectando' | 'sinConexion' | 'demasiadasPestanas'
 
-const TEXTO_TONO: Record<Tono, string> = {
-  ok: 'text-success-700',
-  aviso: 'text-warning-700',
-  critico: 'text-critical',
-  neutro: 'text-faint',
-}
-
 /** «hace 12 s», «hace 3 min», «hace 2 h» (Intl, sin dependencias). */
 function haceCuanto(segundos: number): string {
   const formato = new Intl.RelativeTimeFormat(localeActual(), { numeric: 'always', style: 'short' })
@@ -73,16 +68,7 @@ function useAhora(activo: boolean) {
   return ahora
 }
 
-/**
- * Píldora de estado en vivo (DIRECTION §16, islandcn): el resumen
- * persistente del frío en la cabecera. Colapsada: punto de estado, la
- * temperatura del equipo foco, su Regla XS y el contador de alertas sin
- * atender. Al pulsarla (nunca al pasar el cursor) abre un popover de 360 px
- * con cada equipo, las alertas recientes y la hora de actualización.
- *
- * No es región viva: AvisosTiempoReal y AnuncioRiesgo siguen siendo los
- * únicos que anuncian. Los valores SSE cambian sin animar.
- */
+/** Estado de la flota en la cabecera. El panel muestra las lecturas y alertas por equipo. */
 export function PildoraEstado({ className }: { className?: string }) {
   const { t } = useTranslation()
   const [abierto, setAbierto] = useState(false)
@@ -102,9 +88,9 @@ export function PildoraEstado({ className }: { className?: string }) {
   const incidencias = seleccionarIncidencias(equipos, ultimas, foco?.equipo.id ?? null)
   const clave: ClaveEstado | 'sin_equipos' | 'desconocido' =
     carga === 'error' ? 'desconocido' : carga !== 'cargando' && equipos.length === 0 ? 'sin_equipos' : foco?.estado.clave ?? 'sin_lectura'
-  const tono = tonoVisual(clave)
+  const tonoFoco = tonoVisual(clave)
   const temperatura = foco?.lectura?.temperatura ?? null
-  const mostrarTemperatura = clave !== 'falla_sensor' && temperatura !== null
+  const mostrarTemperatura = temperaturaVigente(clave) && temperatura !== null
 
   // HU-32 esc. 3: con la cuenta en su tope de flujos se nombra la causa.
   const conexion: Conexion =
@@ -115,9 +101,17 @@ export function PildoraEstado({ className }: { className?: string }) {
       : conectado
         ? 'conectado'
         : 'reconectando'
+  const critica = (alertas?.criticas ?? 0) > 0 || tonoFoco === 'critico' || (incidencias.cantidad > 0 && incidencias.tono === 'critico')
+  const atencion = critica || (alertas?.total ?? 0) > 0 || incidencias.cantidad > 0
+  const tono = critica ? 'critico' : atencion ? 'preventivo' : tonoFoco
+  let etiqueta = t(`estadoVivo.estado.${clave}`)
+  if (conectado === false) etiqueta = t(`estadoVivo.conexion.${conexion}`)
+  else if (atencion) etiqueta = t('estadoVivo.requiereAtencion')
+  else if (carga === 'parcial' || !alertas) etiqueta = t('estadoVivo.estado.desconocido')
   const nombreEquipo = foco ? foco.equipo.nombre ?? foco.equipo.id : null
   const partes = [
     t('estadoVivo.titulo'),
+    conectado !== false && atencion ? etiqueta : null,
     carga === 'cargando'
       ? t('estadoVivo.cargando')
       : nombreEquipo
@@ -174,36 +168,10 @@ export function PildoraEstado({ className }: { className?: string }) {
                   <span key={clave} className={cn('absolute inset-0 rounded-full animate-(--animate-anillo)', FONDO_ESTADO[tono])} />
                 )}
               </span>
-              <span aria-hidden className={cn('nums font-semibold', !mostrarTemperatura && 'text-faint')}>
-                {mostrarTemperatura ? formatearCifra(temperatura) : '—'}
-                <span className="ml-0.5 text-meta font-medium text-muted max-[359px]:hidden">°C</span>
+              <span aria-hidden className="min-w-0 text-left text-meta leading-tight font-semibold [overflow-wrap:anywhere] sm:whitespace-nowrap">
+                {etiqueta}
               </span>
-              <Regla
-                valor={mostrarTemperatura ? temperatura : null}
-                tono={tono}
-                tamano="xs"
-                decorativa
-                className="max-[359px]:hidden"
-              />
-              <span aria-hidden className={cn('hidden truncate text-meta font-medium md:inline', TEXTO_ESTADO[tono])}>
-                {t(`estadoVivo.estado.${clave}`)}
-              </span>
-              {incidencias.cantidad > 0 && (
-                <span aria-hidden className={cn('flex items-center gap-1', TEXTO_TONO[incidencias.tono])}>
-                  <span className="h-4 w-px bg-border" />
-                  <TriangleAlert className="size-3.5" />
-                  <span className="nums text-meta font-semibold">{incidencias.cantidad}</span>
-                </span>
-              )}
-              <span aria-hidden className="h-4 w-px shrink-0 bg-border" />
-              <span aria-hidden className="flex items-center gap-1">
-                <Bell className="size-3.5 text-faint" />
-                {alertas ? (
-                  <InsigniaConteo valor={alertas.total} critico={alertas.criticas > 0} truncado={alertas.truncado} mostrarCero tamano="sm" className={cn(alertas.total === 0 && 'bg-transparent text-faint')} />
-                ) : (
-                  <span className="text-meta text-faint">—</span>
-                )}
-              </span>
+              <ChevronDown aria-hidden className="size-3.5 shrink-0 text-faint" />
             </>
           )}
         </button>
@@ -279,7 +247,7 @@ function PanelEstadoVivo({
         <ul className="space-y-px">
           {filas.map(({ equipo, lectura, estado }) => {
             const tono = tonoVisual(estado.clave)
-            const temperatura = estado.clave === 'falla_sensor' ? null : lectura?.temperatura ?? null
+            const temperatura = temperaturaVigente(estado.clave) ? lectura?.temperatura ?? null : null
             const edad = lectura ? Math.max(0, Math.round((ahora - Date.parse(lectura.timestamp)) / 1000)) : null
             return (
               <li key={equipo.id}>
@@ -361,8 +329,11 @@ function PanelEstadoVivo({
             })}
           </ul>
           <Link
-            to="/alertas"
-            onClick={cerrar}
+            to={rol === 'farmaceutico' ? '/dashboard#alertas-monitoreo' : '/alertas'}
+            onClick={() => {
+              cerrar()
+              if (rol === 'farmaceutico') requestAnimationFrame(() => document.getElementById('alertas-monitoreo')?.focus())
+            }}
             className="mx-2 mt-1 mb-1 flex h-9 items-center justify-center gap-1 rounded-(--radius-field) bg-primary text-meta font-semibold text-on-primary transition-colors duration-(--duration-micro) hover:bg-primary-hover pointer-coarse:h-11"
           >
             {t('estadoVivo.verAlertas')}

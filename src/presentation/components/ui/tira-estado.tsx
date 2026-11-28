@@ -1,4 +1,6 @@
-import { Hourglass, OctagonAlert, TriangleAlert } from 'lucide-react'
+import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { ChevronDown, Hourglass, OctagonAlert, TriangleAlert } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -36,10 +38,12 @@ export function TiraEstado({
   segmentos,
   etiqueta,
   guia,
+  resumir = false,
   apilarGuia = false,
   ajustarTexto = false,
   className,
 }: {
+  resumir?: boolean
   segmentos: readonly SegmentoTira[]
   etiqueta: string
   guia?: React.ReactNode
@@ -59,6 +63,15 @@ export function TiraEstado({
 }) {
   // Con algún «detalle» (tercera línea), los segmentos se alinean arriba: si
   // no, el valor del que lo lleva quedaba más alto que el de sus vecinos.
+  const { t } = useTranslation()
+  const id = useId()
+  const [ampliado, setAmpliado] = useState(false)
+  // La primera cifra y cualquier incidencia siguen visibles en la vista resumida.
+  const principales = segmentos.filter((s, indice) =>
+    indice === 0 || s.tono === 'critico' || s.tono === 'aviso' || s.tono === 'sinDatos',
+  )
+  const puedeResumir = resumir && principales.length < segmentos.length
+  const visibles = puedeResumir && !ampliado ? principales : segmentos
   const conDetalle = segmentos.some((s) => s.detalle)
   return (
     <section aria-label={etiqueta} className={cn('superficie overflow-hidden', className)}>
@@ -73,8 +86,8 @@ export function TiraEstado({
             {guia}
           </p>
         )}
-        <dl className="contents">
-          {segmentos.map(({ clave, etiqueta: texto, valor, tono = 'neutro', detalle, className: claseSegmento }) => (
+        <dl id={id} className="contents">
+          {visibles.map(({ clave, etiqueta: texto, valor, tono = 'neutro', detalle, className: claseSegmento }) => (
             <div
               key={clave}
               data-tono={tono}
@@ -82,7 +95,7 @@ export function TiraEstado({
                 'flex min-h-16 min-w-0 flex-[1_1_8rem] flex-col border-t border-l border-border px-4 py-2.5',
                 conDetalle ? 'justify-start' : 'justify-center',
                 apilarGuia ? 'min-[1440px]:flex-none' : 'sm:flex-none',
-                claseSegmento,
+                resumir ? undefined : claseSegmento,
               )}
             >
               <dt className={cn('text-meta font-medium text-muted', ajustarTexto ? 'text-pretty break-words' : 'truncate')}>{texto}</dt>
@@ -97,6 +110,13 @@ export function TiraEstado({
             </div>
           ))}
         </dl>
+        {puedeResumir && (
+          <button type="button" aria-controls={id} aria-expanded={ampliado} onClick={() => setAmpliado(!ampliado)}
+            className="ml-auto inline-flex min-h-11 items-center gap-2 self-center rounded-lg px-4 text-meta font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
+            {t(ampliado ? 'comunes.ocultarDetalles' : 'lectura.indicadores')}
+            <ChevronDown aria-hidden className={cn('size-4', ampliado && 'rotate-180')} />
+          </button>
+        )}
       </div>
     </section>
   )

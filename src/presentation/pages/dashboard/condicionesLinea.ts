@@ -1,4 +1,4 @@
-import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
+import { estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
 
 export type EstadoCarga = 'cargando' | 'listo' | 'error'
 
@@ -22,7 +22,7 @@ const SIN_DATOS: ReadonlyArray<Dispositivo['estado_operativo']> = ['SIN_DATOS', 
 /**
  * Línea de estado del monitoreo (TA, PLAN H2): lo peor de la farmacia en una
  * frase, por prioridad. Devuelve todas las condiciones vigentes en orden; la
- * línea pinta la primera y, desde 1024 px, la segunda como contexto.
+ * línea presenta la incidencia prioritaria.
  *
  * Sin falsos verdes: «Todo en orden» solo si las alertas cargaron y hay
  * equipos conocidos. Con las alertas en error nunca se afirma que no hay.
@@ -35,7 +35,11 @@ export function condicionesLineaEstado({ alertas, equipos, hoy = new Date() }: E
     condiciones.push({ tipo: 'pendientes', total: alertas.total })
   }
 
-  const sinDatos = equipos.filter((equipo) => SIN_DATOS.includes(equipo.estado_operativo))
+  const sinDatos = equipos.filter((equipo) =>
+    SIN_DATOS.includes(equipo.estado_operativo) ||
+    equipo.estado_conectividad === 'offline' ||
+    (equipo.ultimo_reporte_en && hoy.getTime() - Date.parse(equipo.ultimo_reporte_en) >= umbralSilencioSegundos(equipo) * 1000),
+  )
   if (sinDatos.length > 0) condiciones.push({ tipo: 'sin_datos', equipos: sinDatos, total: equipos.length })
 
   const conFalla = equipos.find((equipo) => equipo.estado_operativo === 'FALLA_SENSOR')

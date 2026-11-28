@@ -1,4 +1,37 @@
 {
+  "lectura": {
+    "tendenciasEquipo": "Trends and history",
+    "flotaActividad": "Device summary and activity",
+    "servicioRevisar": "Some components need attention",
+    "resumenTermico": "Statistics and excursions",
+    "analizarActividad": "Analyze activity",
+    "datosReporte": "View report breakdown",
+    "filtrarPeriodo": "Filter by period",
+    "estadoPreventivoDesconocido": "Could not confirm whether preventive classification is running.",
+    "vigenciaOrigen": "Validity and source",
+    "tendencia": "View temperature trend",
+    "ultimaMedicion": "Last reading: {{valor}} on {{fecha}}",
+    "indicadores": "View indicators",
+    "evaluacion": "Model evaluation and results",
+    "diagnostico": "Diagnostics by component",
+    "actividad": "Activity by day",
+    "registro": "How to read this log",
+    "cuentas": "Account roles and status",
+    "equipos": "Device calibration and storage",
+    "nodo": "Connection, sensors and calibration",
+    "recientes": "View recent readings",
+    "alcance": "Scope of this guide",
+    "acerca": "About ColdCare",
+    "certificadoTecnico": "Certificate details",
+    "diagnosticoEquipo": "Sensors and device details",
+    "ambienteEquipo": "Room temperature and humidity",
+    "ultimaTemperatura": "Last recorded temperature",
+    "condicionesEquipo": "Room conditions, connection and sensors",
+    "buscarCuenta": "Search by name or email",
+    "cuentaSinResultados": "No accounts match your search.",
+    "aperturaRegistrada": "Door opening recorded on {{fecha}}",
+    "aperturaEnMedicion": "Door opened during sampling"
+  },
   "app": {
     "nombre": "ColdCare",
     "subtitulo": "Cold-chain monitoring",
@@ -127,6 +160,9 @@
     "sinInferencia": "No AI inference for this reading"
   },
   "dashboard": {
+    "pestanaTendencia": "Trend",
+    "pestanaAhora": "Now",
+    "estadoEquiposCorto": "Devices",
     "titulo": "Refrigerator status",
     "descripcion": "Temperature, conditions and alerts that need attention.",
     "tempInterna": "Refrigerator temperature",
@@ -360,7 +396,13 @@
     "seccionFicha": "Technical sheet",
     "gestionarEnDispositivos": "Manage in Devices",
     "demasiadasPestanas": "Too many real-time tabs",
-    "demasiadasPestanasGuia": "Close another tab or device with ColdCare open; this one will connect on its own."
+    "demasiadasPestanasGuia": "Close another tab or device with ColdCare open; this one will connect on its own.",
+    "ficha": "Device details",
+    "diagnostico": "Device diagnostics",
+    "bandejaAtender": "Respond",
+    "bandejaMas": "Other alerts ({{count}})",
+    "bandejaLimite": "There are at least {{count}} open alerts. Up to {{limite}} are loaded for each status.",
+    "estadisticasCurva": "Period statistics"
   },
   "demo": {
     "accesoRapido": "Demo access",
@@ -575,6 +617,7 @@
     }
   },
   "alertas": {
+    "actividadEstadisticas": "Recent activity and statistics",
     "titulo": "Alerts",
     "descripcion": "Review notices about conditions that may need attention.",
     "filtro": {
@@ -1395,7 +1438,8 @@
     "listo": "Done",
     "grupoCuenta": "Account",
     "grupoRiesgo": "Danger zone",
-    "administradoresCorto": "Active admins"
+    "administradoresCorto": "Active admins",
+    "todosEstados": "All statuses"
   },
   "privacidad": {
     "titulo": "Privacy notice",
@@ -1512,7 +1556,7 @@
     "revocarCredencial": "Revoke credential",
     "revocarCredencialA": "Revoke MQTT credential for device {{id}}",
     "credencialRevocada": "Credential revoked: the system no longer accepts readings from this node. With EMQX Serverless, also remove its user in the console.",
-    "probarIoT": "Test IoT",
+    "probarIoT": "Test device",
     "probarIoTA": "Open IoT test scenarios for {{id}}",
     "simulacionSoloDemo": "{{id}} · Local sample scenarios. No ESP32, MQTT, or EMQX connection is made.",
     "escenarioSinDatos": "Simulate missing data",
@@ -1826,6 +1870,7 @@
     }
   },
   "comunes": {
+    "ayudaPantalla": "About {{pagina}}",
     "errorCargar": "We couldn't load the data. Try again.",
     "error": "Something went wrong. Please try again.",
     "errorPantallaTitulo": "This screen could not be displayed",
@@ -2158,6 +2203,26 @@
     "porExpirar": "Your session expires in {{restante}}. Save your work."
   },
   "guia": {
+    "farmacia": {
+      "pasos": {
+        "monitoreo": {
+          "titulo": "Check the refrigerator",
+          "descripcion": "Check its temperature and the time of the latest reading in Monitoring."
+        },
+        "alerta": {
+          "titulo": "Respond to an alert",
+          "descripcion": "Under Pending alerts, select Respond next to the refrigerator."
+        },
+        "historial": {
+          "titulo": "Review earlier readings",
+          "descripcion": "In Queries, choose History and filter by refrigerator and date."
+        }
+      },
+      "alertas": {
+        "revisar": "Select Respond in the Monitoring alert list to see the temperature and when the alert occurred.",
+        "registrar": "You can acknowledge the alert before acting. When finished, record your decision, what you did, and the reason."
+      }
+    },
     "eyebrow": "ColdCare help",
     "titulo": "Using ColdCare",
     "descripcion": "What to check, how to respond to an alert, and where to find records.",
@@ -2483,6 +2548,7 @@
     }
   },
   "estadoVivo": {
+    "requiereAtencion": "Needs attention",
     "titulo": "Live status",
     "cargando": "Loading status…",
     "equipos": "Devices",
@@ -2638,7 +2704,7 @@
       "etiqueta": "Overall status",
       "ok": "Operational",
       "degradado": "Degraded",
-      "guiaOk": "The database and the broker API respond.",
+      "guiaOk": "Data storage and the device connection service are responding.",
       "guiaDegradado": "Degraded by: {{motivos}}.",
       "guiaDegradadoSinMotivo": "The server reports a degraded status.",
       "motivos": {
@@ -2795,5 +2861,25 @@
       "mqttDeshabilitado": "Off",
       "mqttDesconectado": "Offline"
     }
+  },
+  "registros": {
+    "herramientas": "Review tools",
+    "datosCadena": "Chain details",
+    "usuarioRegistrado": "Registered user",
+    "otrosFormatos": "Other formats",
+    "alertasPreventivasActivas": "The model can detect risk and open preventive alerts.",
+    "detalleClasificacion": "Model details"
+  },
+  "operacionFarmacia": {
+    "variaciones": "Changes over the period"
+  },
+  "consultasFarmacia": {
+    "abrir": "Queries",
+    "elegir": "Select a view"
+  },
+  "medicion": {
+    "flujoConectado": "Update feed connected",
+    "duracionRegistrada": "for {{duracion}}",
+    "umbralSuperado": "Exceeded the {{segundos}} s threshold."
   }
 }

@@ -1,4 +1,5 @@
 import type { AccionCorrectiva } from '@/domain/entities/AlertaTermica'
+import { tienePermiso, type Rol } from '@/domain/value-objects/Rol'
 
 /** Pestaña del panel de una alerta. */
 export type PestanaPanel = 'accion' | 'cronologia'
@@ -16,3 +17,10 @@ export const BORRADOR_VACIO: BorradorAccion = { decision: '', descripcion: '', j
 export const MAX_CAMPO_ACCION = 2000
 
 export type PuedeRectificar = (accion: AccionCorrectiva) => boolean
+
+export function puedeRectificarAccion(usuario: { id: string; rol: Rol } | null, accion: AccionCorrectiva): boolean {
+  return usuario !== null && accion.vigente !== false && (
+    tienePermiso(usuario.rol, ['farmaceutico']) ||
+    (accion.usuario_id === usuario.id && tienePermiso(usuario.rol, ['tecnico']))
+  )
+}

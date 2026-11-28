@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router'
 
 import type { Dispositivo } from '@/domain/entities/Dispositivo'
 
@@ -22,6 +23,15 @@ export function equipoMasReciente(equipos: readonly Dispositivo[]): string | nul
 export function useEquipoSeleccionado(equipos: readonly Dispositivo[]) {
   const [equipoElegido, setEquipoElegido] = useState<string | null>(null)
   const [equipoPorDefecto, setEquipoPorDefecto] = useState<string | null>(null)
+  const { state, key } = useLocation()
+  const solicitado = typeof state?.equipo === 'string' ? state.equipo : null
+  const [aperturaAplicada, setAperturaAplicada] = useState<string | null>(null)
+  if (solicitado && aperturaAplicada !== key && equipos.some((equipo) => equipo.id === solicitado)) {
+    setAperturaAplicada(key)
+    setEquipoElegido(solicitado)
+  } else if (equipoElegido && equipos.length && !equipos.some((equipo) => equipo.id === equipoElegido)) {
+    setEquipoElegido(null)
+  }
   const masReciente = equipoMasReciente(equipos)
   const sigueListado =
     equipoPorDefecto !== null && (equipos.length === 0 || equipos.some((equipo) => equipo.id === equipoPorDefecto))

@@ -1,3 +1,4 @@
+import { useReloj } from '@/presentation/hooks/useReloj'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router'
@@ -7,8 +8,6 @@ import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { estadoCalibracion, type Dispositivo } from '@/domain/entities/Dispositivo'
 import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { fechaCorta, fechaHora } from '@/lib/formato'
-import { cn } from '@/lib/utils'
-import { BadgeConectividad } from '../../components/BadgeConectividad'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../../components/EstadoPagina'
 import { Button } from '../../components/ui/button'
 import { PanelPestana, Pestanas } from '../../components/ui/pestanas'
@@ -25,9 +24,6 @@ import { TabSeguridad } from './detalle/TabSeguridad'
 import { TabUbicacion } from './detalle/TabUbicacion'
 
 const ID_PESTANAS = 'equipo'
-/** Dato de la línea meta con su «·» delante (ver el recorte en la cabecera). */
-const SEPARADO = "relative pl-4 before:absolute before:top-1/2 before:left-[5px] before:-translate-y-1/2 before:content-['·']"
-
 /**
  * `/dispositivos/:deviceId`: cada acción del antiguo menú de 11 entradas vive
  * en su pestaña (SPEC P5b D1). La pestaña se enlaza con `?tab=` y se escribe
@@ -41,6 +37,7 @@ export function DetalleDispositivoPage() {
   const { dispositivos, cargando, errorCarga, consultar } = useFlota()
   const ultima = useEstadoVivoStore((s) => s.ultimas[deviceId])
   const dispositivo = dispositivos.find((d) => d.id === deviceId)
+  const ahora = useReloj(10_000)
   const tabParam = parametros.get('tab')
   const tab: PestanaEquipo = esPestanaEquipo(tabParam) ? tabParam : 'monitoreo'
   const previa = useRef(tab)
@@ -103,7 +100,7 @@ export function DetalleDispositivoPage() {
     )
   }
 
-  const estado = estadoVisualEquipo(dispositivo, ultima)
+  const estado = estadoVisualEquipo(dispositivo, ultima, ahora)
   const calibracion = estadoCalibracion(dispositivo)
   const accion = accionFila(dispositivo, calibracion)
   const seguridadPendiente = Boolean(dispositivo.broker_pendiente || dispositivo.posesion_pendiente || dispositivo.rotacion_por_compromiso)
@@ -116,33 +113,23 @@ export function DetalleDispositivoPage() {
         : ''),
   }))
 
+  const nombre = dispositivo.nombre?.trim() || dispositivo.id
   return (
-    <div className="vista-entra-x">
+    <div>
       <header className="mb-3 flex flex-col gap-3 sm:mb-4">
         {volver}
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">
             <h1 ref={titulo} tabIndex={-1} className="flex items-center gap-2 text-page text-foreground focus:outline-none">
               <IconoEquipo estado={estado} className="size-5" />
-              <span className="codigo">{dispositivo.id}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{nombre}</span>
             </h1>
-            {/* Separadores que no quedan colgando al partir la línea: cada «·» va
-                delante de su dato y, al empezar una línea nueva, cae fuera del
-                recorte del contenedor (desplazado 16 px a la izquierda). */}
-            <div className="mt-1 overflow-hidden">
-              <p className="-ml-4 flex flex-wrap items-center gap-y-1 text-meta text-faint">
-                <span className="pl-4">{[dispositivo.nombre, dispositivo.ubicacion].filter(Boolean).join(' · ') || '—'}</span>
-                <span className={SEPARADO}>
-                  <BadgeConectividad estado={dispositivo.estado_conectividad} desde={dispositivo.conectividad_cambiada_en} />
-                </span>
-                {dispositivo.ultimo_reporte_en && (
-                  <span className={cn(SEPARADO, 'nums')}>
-                    {t('dispositivos.ultimoReporte')}: {fechaHora(dispositivo.ultimo_reporte_en)}
-                  </span>
-                )}
-              </p>
-            </div>
-            <p className="mt-2 max-w-[68ch] text-body text-subtle">{guia(dispositivo, estado, t)}</p>
+            <p className="mt-1 text-meta text-muted">
+              {[dispositivo.ubicacion, nombre !== dispositivo.id && dispositivo.id].filter(Boolean).join(' · ')}
+            </p>
+            {estado !== 'normal' && (
+              <p className="mt-2 max-w-[68ch] text-body text-subtle">{guia(dispositivo, estado, t)}</p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {MODO_DEMO && (
@@ -195,8 +182,6 @@ function guia(d: Dispositivo, estado: EstadoVisual, t: (clave: string, opciones?
       const sensor = d.sensores?.find((s) => s.estado === 'error')?.modelo ?? 'DS18B20'
       return t('dispositivos.detalle.guia.falla_sensor', { sensor })
     }
-    case 'normal':
-      return t('dispositivos.detalle.guia.normal', { s: d.intervalo_reporte_segundos ?? 30 })
     default:
       return t(`dispositivos.detalle.guia.${estado}`)
   }

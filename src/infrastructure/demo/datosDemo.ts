@@ -686,6 +686,7 @@ export function crearTokenDemo(email: string): string {
   const payload = base64url(
     JSON.stringify({
       sub: conocido.id,
+      jti: Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join(''),
       email: normalizado,
       rol: conocido.rol,
       exp: Math.floor(Date.now() / 1000) + 30 * 60,

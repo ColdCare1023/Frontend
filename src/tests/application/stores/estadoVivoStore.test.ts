@@ -64,6 +64,13 @@ describe('estadoVivoStore: selectores puros', () => {
     expect(estadoDeEquipo(equipo('x'), lectura(5, 'normal', '2026-11-14T10:00:00Z'))).toMatchObject({ clave: 'normal' })
   })
 
+  it('una cifra crítica antigua sigue siendo histórica al perder el reporte o la conexión', () => {
+    const valor = lectura(1.2, 'excursion_critica', new Date(Date.now() - 31_000).toISOString())
+    expect(estadoDeEquipo(equipo('A', { umbralSegundos: 30 }), valor).clave).toBe('sin_datos')
+    expect(estadoDeEquipo(equipo('A', { estadoOperativo: 'SIN_DATOS' }), valor).clave).toBe('sin_datos')
+    expect(estadoDeEquipo(equipo('A', { conectividad: 'offline' }), valor).clave).toBe('sin_conexion')
+  })
+
   it('ignora una lectura más antigua que la vigente', () => {
     const ultimas = { A: lectura(5, 'normal', '2026-11-14T10:00:00Z') }
     expect(aplicarLectura(ultimas, 'A', lectura(9, 'excursion_critica', '2026-11-14T09:59:00Z'))).toBe(ultimas)

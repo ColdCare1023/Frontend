@@ -109,7 +109,7 @@ test('pantallas de administración no desbordan viewport en anchos móviles y de
   }
 })
 
-test('gráficas ECharts cargan al abrir tablero, no durante login', async ({ page }) => {
+test('gráficas ECharts cargan al entrar al monitoreo, no durante login', async ({ page }) => {
   await page.goto('/login')
   const recursosLogin = await page.evaluate(() => performance.getEntriesByType('resource').map(({ name }) => name))
   expect(recursosLogin.some((url) => /echarts/i.test(url))).toBe(false)

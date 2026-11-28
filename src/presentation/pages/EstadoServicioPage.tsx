@@ -1,5 +1,6 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useTranslation } from 'react-i18next'
-import { OctagonAlert, RefreshCw, ServerCog, TriangleAlert } from 'lucide-react'
+import { CircleCheck, OctagonAlert, RefreshCw, ServerCog, TriangleAlert } from 'lucide-react'
 
 import { useEstadoServicio } from '@/application/hooks/useEstadoServicio'
 import {
@@ -14,7 +15,7 @@ import { cn } from '@/lib/utils'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../components/EstadoPagina'
 import { PageHeader } from '../components/PageHeader'
 import { Button } from '../components/ui/button'
-import { TiraEstado, type SegmentoTira } from '../components/ui/tira-estado'
+import type { SegmentoTira } from '../components/ui/tira-estado'
 import {
   BloqueArranque,
   BloqueBaseDatos,
@@ -56,26 +57,14 @@ function Resumen({ e }: { e: EstadoServicio }) {
   const lista = new Intl.ListFormat(localeActual(), { type: 'conjunction' })
   const guia =
     e.status === 'ok'
-      ? t('estadoServicio.general.guiaOk')
+      ? (e.db === 'ok' && e.broker_api === 'ok' ? t('estadoServicio.general.guiaOk') : null)
       : motivos.length > 0
         ? t('estadoServicio.general.guiaDegradado', { motivos: lista.format(motivos.map((m) => t(`estadoServicio.general.motivos.${m}`))) })
         : t('estadoServicio.general.guiaDegradadoSinMotivo')
   const migraciones = estadoMigraciones(e)
   const respaldos = situacionRespaldos(e.respaldos)
   const unico = esConsumidorUnico(e.arranque)
-  // Los valores de esta tira son estados en palabras (22 px), no cifras, y con
-  // «…» se perdía justo el de aviso o crítico. Por eso: valores cortos (el
-  // bloque de cada dependencia trae el texto completo); entre 640 y 1439 px,
-  // segmentos de 12rem como base (3 + 2 bajo 1280 px en vez de 5 de ~145 px;
-  // desde 1440 px la tira los deja a su ancho); etiqueta corta en móvil (mismo
-  // patrón que UsuariosPage) y, si aun así algo no cabe, salto de línea.
   const segmentos: SegmentoTira[] = [
-    {
-      clave: 'general',
-      etiqueta: t('estadoServicio.general.etiqueta'),
-      valor: e.status === 'ok' ? t('estadoServicio.general.ok') : t('estadoServicio.general.degradado'),
-      tono: e.status === 'ok' ? 'neutro' : e.db !== 'ok' ? 'critico' : 'aviso',
-    },
     {
       clave: 'bd',
       etiqueta: t('estadoServicio.bd.titulo'),
@@ -96,12 +85,7 @@ function Resumen({ e }: { e: EstadoServicio }) {
     },
     {
       clave: 'consumidor',
-      etiqueta: (
-        <>
-          <span className="sm:hidden">{t('estadoServicio.tira.consumidorUnico')}</span>
-          <span className="max-sm:hidden">{t('estadoServicio.arranque.consumidorUnico')}</span>
-        </>
-      ),
+      etiqueta: t('estadoServicio.arranque.consumidorUnico'),
       valor: unico ? t('comunes.si') : t('comunes.no'),
       tono: unico ? 'neutro' : (e.arranque?.workers ?? 0) > 1 ? 'critico' : 'aviso',
     },
@@ -119,14 +103,45 @@ function Resumen({ e }: { e: EstadoServicio }) {
               : 'critico',
     },
   ]
+  if (e.notificaciones && !e.notificaciones.worker_activo) {
+    segmentos.push({ clave: 'correo', etiqueta: t('estadoServicio.notificaciones.titulo'), valor: t('estadoServicio.notificaciones.detenido'), tono: 'aviso' })
+  }
+  if (e.vigilancia_sin_datos && !e.vigilancia_sin_datos.activa) {
+    segmentos.push({ clave: 'vigilancia', etiqueta: t('estadoServicio.vigilancia.titulo'), valor: t('estadoServicio.vigilancia.detenida'), tono: 'aviso' })
+  }
+  if (e.mqtt?.habilitado && e.mqtt.conectado && !e.mqtt.tarea_activa) {
+    segmentos.push({ clave: 'tarea', etiqueta: t('estadoServicio.mqtt.tarea'), valor: t('estadoServicio.mqtt.tareaDetenida'), tono: 'critico' })
+  }
+  if (e.proxy && (e.proxy.esquema !== 'https' || e.proxy.x_forwarded_for_presente !== true || e.proxy.ip_cliente_publica === false)) {
+    segmentos.push({ clave: 'proxy', etiqueta: t('estadoServicio.proxy.titulo'), valor: t('estadoServicio.proxy.revisar'), tono: 'aviso' })
+  }
+  // Un respaldo fallido o vencido ya tiene su propio aviso con la acción a tomar.
+  const pendientes = segmentos.filter((s) => s.tono !== 'neutro' &&
+    !(s.clave === 'respaldos' && (respaldos === 'fallido' || respaldos === 'vencido')))
+  const advertencia = e.status !== 'ok' || pendientes.length > 0 || respaldos === 'fallido' || respaldos === 'vencido'
+  const Icono = advertencia ? TriangleAlert : CircleCheck
   return (
-    <TiraEstado
-      etiqueta={t('estadoServicio.resumen')}
-      guia={guia}
-      segmentos={segmentos.map((segmento) => ({ ...segmento, className: 'sm:max-[1440px]:flex-[1_1_12rem]' }))}
-      apilarGuia
-      ajustarTexto
-    />
+    <section aria-label={t('estadoServicio.resumen')} className="superficie p-4 sm:p-5">
+      <div className="flex items-start gap-3">
+        <Icono aria-hidden className={cn('mt-0.5 size-5 shrink-0', advertencia ? 'text-warning-700' : 'text-success-700')} />
+        <div>
+          <h2 className="text-title font-semibold text-foreground">
+            {e.status !== 'ok' ? t('estadoServicio.general.degradado') : advertencia ? t('lectura.servicioRevisar') : t('estadoServicio.general.ok')}
+          </h2>
+          {guia && (e.status !== 'ok' || !advertencia) && <p className="mt-1 text-body text-muted">{guia}</p>}
+        </div>
+      </div>
+      {pendientes.length > 0 && (
+        <dl className="mt-4 divide-y divide-border border-t border-border">
+          {pendientes.map((s) => (
+            <div key={s.clave} data-tono={s.tono} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2 text-body">
+              <dt className="text-subtle">{s.etiqueta}</dt>
+              <dd className={cn('font-medium', s.tono === 'critico' ? 'text-critical' : 'text-foreground')}>{s.valor}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
   )
 }
 
@@ -182,16 +197,18 @@ export function EstadoServicioPage() {
           </p>
         )}
         <Resumen e={datos} />
-        <div className="grid gap-3 lg:grid-cols-2 xl:gap-4">
-          <BloqueBaseDatos e={datos} />
-          <BloqueMqtt e={datos} />
-          <BloqueArranque e={datos} />
-          <BloqueProxy e={datos} />
-          <BloqueNotificaciones e={datos} />
-          <BloqueVigilancia e={datos} />
-          <BloqueRespaldos e={datos} />
-          <BloqueModeloIA e={datos} />
-        </div>
+        <SeccionDetalle titulo={t('lectura.diagnostico')}>
+          <div className="superficie overflow-hidden">
+            <BloqueBaseDatos e={datos} />
+            <BloqueMqtt e={datos} />
+            <BloqueArranque e={datos} />
+            <BloqueProxy e={datos} />
+            <BloqueNotificaciones e={datos} />
+            <BloqueVigilancia e={datos} />
+            <BloqueRespaldos e={datos} />
+            <BloqueModeloIA e={datos} />
+          </div>
+        </SeccionDetalle>
       </div>
     )
   }
@@ -200,7 +217,6 @@ export function EstadoServicioPage() {
     <div>
       <PageHeader
         titulo={t('estadoServicio.titulo')}
-        descripcion={t('estadoServicio.descripcion')}
         meta={momento ? <span id="estado-servicio-consulta">{t('estadoServicio.consultado', { fecha: fechaHora(momento) })}</span> : undefined}
       >
         {/* Sin datos y con error, la única acción es «Volver a intentar» de la tarjeta de error. */}

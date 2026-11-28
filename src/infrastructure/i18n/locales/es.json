@@ -1,4 +1,37 @@
 {
+  "lectura": {
+    "tendenciasEquipo": "Tendencias e historial",
+    "flotaActividad": "Resumen y actividad de los equipos",
+    "servicioRevisar": "Hay componentes que revisar",
+    "resumenTermico": "Estadísticas y excursiones",
+    "analizarActividad": "Analizar actividad",
+    "datosReporte": "Ver desglose del reporte",
+    "filtrarPeriodo": "Filtrar por periodo",
+    "estadoPreventivoDesconocido": "No se pudo confirmar si la clasificación preventiva está en operación.",
+    "vigenciaOrigen": "Vigencia y origen",
+    "tendencia": "Ver tendencia de temperatura",
+    "ultimaMedicion": "Última lectura: {{valor}} el {{fecha}}",
+    "indicadores": "Ver indicadores",
+    "evaluacion": "Evaluación y resultados del modelo",
+    "diagnostico": "Diagnóstico por componente",
+    "actividad": "Actividad por día",
+    "registro": "Cómo interpretar este registro",
+    "cuentas": "Distribución y estado de las cuentas",
+    "equipos": "Calibración y memoria de los equipos",
+    "nodo": "Conexión, sensores y calibración",
+    "recientes": "Consultar lecturas recientes",
+    "alcance": "Alcance de la guía",
+    "acerca": "Acerca de ColdCare",
+    "certificadoTecnico": "Datos del certificado",
+    "diagnosticoEquipo": "Sensores y datos técnicos",
+    "ambienteEquipo": "Temperatura ambiente y humedad",
+    "ultimaTemperatura": "Última temperatura registrada",
+    "condicionesEquipo": "Ambiente, conexión y sensores",
+    "buscarCuenta": "Buscar por nombre o correo",
+    "cuentaSinResultados": "Ninguna cuenta coincide con la búsqueda.",
+    "aperturaRegistrada": "Apertura de puerta registrada el {{fecha}}",
+    "aperturaEnMedicion": "Apertura durante la medición"
+  },
   "app": {
     "nombre": "ColdCare",
     "subtitulo": "Monitoreo de cadena de frío",
@@ -127,6 +160,9 @@
     "sinInferencia": "Sin inferencia de IA para esta lectura"
   },
   "dashboard": {
+    "pestanaTendencia": "Tendencia",
+    "pestanaAhora": "Ahora",
+    "estadoEquiposCorto": "Equipos",
     "titulo": "Estado del refrigerador",
     "descripcion": "Temperatura, condiciones y alertas que requieren atención.",
     "tempInterna": "Temperatura del refrigerador",
@@ -272,7 +308,7 @@
     "encabezadoMeta_other": "{{count}} equipos monitoreados",
     "lineaEstado": {
       "todoEnOrden": "Todo en orden: sin alertas pendientes y {{reportando}} de {{total}} equipos reportando.",
-      "equipoSinDatos": "{{equipo}} sin datos desde las {{hora}}",
+      "equipoSinDatos": "{{equipo}} sin datos desde {{hora}}.",
       "equiposSinDatos_one": "{{count}} de {{total}} equipos sin datos",
       "equiposSinDatos_other": "{{count}} de {{total}} equipos sin datos",
       "equipoFalla": "{{equipo}}: falla de sensor",
@@ -360,7 +396,13 @@
     "seccionFicha": "Ficha técnica",
     "gestionarEnDispositivos": "Gestionar en Dispositivos",
     "demasiadasPestanas": "Demasiadas pestañas en tiempo real",
-    "demasiadasPestanasGuia": "Cierra otra pestaña o equipo con ColdCare abierto; esta se conectará sola."
+    "demasiadasPestanasGuia": "Cierra otra pestaña o equipo con ColdCare abierto; esta se conectará sola.",
+    "ficha": "Ficha del equipo",
+    "diagnostico": "Diagnóstico de equipos",
+    "bandejaAtender": "Atender",
+    "bandejaMas": "Otras alertas ({{count}})",
+    "bandejaLimite": "Hay al menos {{count}} alertas abiertas. Se consultan hasta {{limite}} por estado.",
+    "estadisticasCurva": "Estadísticas del periodo"
   },
   "demo": {
     "accesoRapido": "Acceso de demostración",
@@ -575,6 +617,7 @@
     }
   },
   "alertas": {
+    "actividadEstadisticas": "Actividad reciente y estadísticas",
     "titulo": "Alertas",
     "descripcion": "Revisa avisos sobre condiciones que pueden requerir atención.",
     "filtro": {
@@ -1395,7 +1438,8 @@
     "listo": "Listo",
     "grupoCuenta": "Cuenta",
     "grupoRiesgo": "Zona de riesgo",
-    "administradoresCorto": "Admins activos"
+    "administradoresCorto": "Admins activos",
+    "todosEstados": "Todos los estados"
   },
   "privacidad": {
     "titulo": "Aviso de privacidad",
@@ -1512,7 +1556,7 @@
     "revocarCredencial": "Revocar credencial",
     "revocarCredencialA": "Revocar credencial MQTT del equipo {{id}}",
     "credencialRevocada": "Credencial revocada: el sistema ya no acepta las lecturas del nodo. Si el broker es EMQX Serverless, retire también su usuario en la consola.",
-    "probarIoT": "Probar IoT",
+    "probarIoT": "Probar el equipo",
     "probarIoTA": "Abrir escenarios de prueba IoT para {{id}}",
     "simulacionSoloDemo": "{{id}} · Escenarios locales de ejemplo. No contactan ESP32, MQTT ni EMQX.",
     "escenarioSinDatos": "Simular falta de datos",
@@ -1826,6 +1870,7 @@
     }
   },
   "comunes": {
+    "ayudaPantalla": "Acerca de {{pagina}}",
     "errorCargar": "No pudimos cargar los datos. Intenta de nuevo.",
     "error": "Ocurrió un error. Intenta de nuevo.",
     "errorPantallaTitulo": "No se pudo mostrar esta pantalla",
@@ -2158,6 +2203,26 @@
     "porExpirar": "Tu sesión expirará en {{restante}}. Guarda lo que estés haciendo."
   },
   "guia": {
+    "farmacia": {
+      "pasos": {
+        "monitoreo": {
+          "titulo": "Revisa el equipo",
+          "descripcion": "Comprueba su temperatura y la hora de la última lectura en Monitoreo."
+        },
+        "alerta": {
+          "titulo": "Atiende una alerta",
+          "descripcion": "En Alertas pendientes, selecciona Atender junto al equipo."
+        },
+        "historial": {
+          "titulo": "Consulta las lecturas anteriores",
+          "descripcion": "En Consultas, elige Historial y filtra por equipo y fecha."
+        }
+      },
+      "alertas": {
+        "revisar": "Selecciona Atender en la bandeja de Monitoreo para ver la temperatura y cuándo ocurrió la alerta.",
+        "registrar": "Puedes reconocer la alerta antes de actuar. Al terminar, registra la decisión, lo que hiciste y la justificación."
+      }
+    },
     "eyebrow": "Ayuda de ColdCare",
     "titulo": "Consulta y usa ColdCare",
     "descripcion": "Qué revisar, cómo responder a un aviso y dónde consultar los registros.",
@@ -2483,6 +2548,7 @@
     }
   },
   "estadoVivo": {
+    "requiereAtencion": "Requiere atención",
     "titulo": "Estado en vivo",
     "cargando": "Cargando estado…",
     "equipos": "Equipos",
@@ -2638,7 +2704,7 @@
       "etiqueta": "Estado general",
       "ok": "Operativo",
       "degradado": "Degradado",
-      "guiaOk": "La base de datos y la API del broker responden.",
+      "guiaOk": "El almacenamiento de datos y el servicio de conexión de los equipos responden.",
       "guiaDegradado": "Degradado por: {{motivos}}.",
       "guiaDegradadoSinMotivo": "El servidor informa un estado degradado.",
       "motivos": {
@@ -2795,5 +2861,25 @@
       "mqttDeshabilitado": "Apagado",
       "mqttDesconectado": "Sin conexión"
     }
+  },
+  "registros": {
+    "herramientas": "Herramientas de revisión",
+    "datosCadena": "Datos de la cadena",
+    "usuarioRegistrado": "Usuario registrado",
+    "otrosFormatos": "Otros formatos",
+    "alertasPreventivasActivas": "El modelo puede detectar riesgo y abrir alertas preventivas.",
+    "detalleClasificacion": "Detalles del modelo"
+  },
+  "operacionFarmacia": {
+    "variaciones": "Variaciones del periodo"
+  },
+  "consultasFarmacia": {
+    "abrir": "Consultas",
+    "elegir": "Elegir consulta"
+  },
+  "medicion": {
+    "flujoConectado": "Flujo de actualizaciones conectado",
+    "duracionRegistrada": "durante {{duracion}}",
+    "umbralSuperado": "Superó el umbral de {{segundos}} s."
   }
 }

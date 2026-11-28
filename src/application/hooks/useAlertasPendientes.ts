@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import { apiClient } from '@/infrastructure/api/apiClient'
+import { useAccionesAlerta, type CambioAlerta } from './useAccionesAlerta'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
 
 export type EstadoAlertasPendientes = 'cargando' | 'listo' | 'error'
@@ -12,6 +13,7 @@ interface ResumenPendientes {
   /** Críticas primero; dentro de cada grupo, la más antigua primero. */
   alertas: AlertaTermica[]
   estado: EstadoAlertasPendientes
+  ultimaAtendidaLocal?: AlertaTermica
 }
 
 const instante = (alerta: AlertaTermica) => alerta.iniciada_en ?? alerta.created_at ?? ''
@@ -25,27 +27,36 @@ export function ordenarPendientes(alertas: readonly AlertaTermica[]): AlertaTerm
   })
 }
 
+function resumir(alertas: AlertaTermica[]): ResumenPendientes {
+  return {
+    total: alertas.length,
+    criticas: alertas.filter((alerta) => alerta.nivel_riesgo === 'excursion_critica').length,
+    alertas: ordenarPendientes(alertas),
+    estado: 'listo',
+  }
+}
+
 /** HU-21/HU-23: alertas en PENDIENTE o RECONOCIDA, actualizadas por SSE. */
 export function useAlertasPendientes() {
   const [resumen, setResumen] = useState<ResumenPendientes>({ total: 0, criticas: 0, alertas: [], estado: 'cargando' })
 
+  const ultimaConsulta = useRef(0)
   const consultar = useCallback(async () => {
+    const consulta = ++ultimaConsulta.current
     try {
       const respuestas = await Promise.all(
         ['pendiente', 'reconocida'].map((estado) =>
           apiClient.get<AlertaTermica[]>('/api/alertas', { params: { estado, limite: '200' } }),
         ),
       )
-      const alertas = respuestas.flatMap(({ data }) => data)
-      setResumen({
-        total: alertas.length,
-        criticas: alertas.filter((alerta) => alerta.nivel_riesgo === 'excursion_critica').length,
-        alertas: ordenarPendientes(alertas),
-        estado: 'listo',
-      })
+      if (consulta !== ultimaConsulta.current) return
+      // La alerta puede cambiar de estado entre ambas respuestas: conservar la más avanzada.
+      const porId = new Map(respuestas.flatMap(({ data }) => data.map((a) => [a.id, a] as const)))
+      setResumen((previo) => ({ ...resumir([...porId.values()]), ultimaAtendidaLocal: previo.ultimaAtendidaLocal }))
     } catch {
+      if (consulta !== ultimaConsulta.current) return
       // Sin datos no se afirma «0 pendientes»: el estado de error lo distingue.
-      setResumen({ total: 0, criticas: 0, alertas: [], estado: 'error' })
+      setResumen((previo) => ({ ...previo, total: 0, criticas: 0, alertas: [], estado: 'error' }))
     }
   }, [])
 
@@ -60,7 +71,20 @@ export function useAlertasPendientes() {
     void consultar()
   }, [consultar])
 
-  return { ...resumen, reintentar }
+  const aplicarLocal = useCallback((id: string, cambio: CambioAlerta) => {
+    setResumen((previo) => {
+      if (previo.estado !== 'listo') return previo
+      const actualizadas = previo.alertas.map((a) => a.id === id
+        ? { ...a, ...(typeof cambio === 'function' ? cambio(a) : cambio) }
+        : a)
+      return {
+        ...resumir(actualizadas.filter((a) => a.estado !== 'atendida')),
+        ultimaAtendidaLocal: actualizadas.find((a) => a.id === id && a.estado === 'atendida') ?? previo.ultimaAtendidaLocal,
+      }
+    })
+  }, [])
+  const acciones = useAccionesAlerta(aplicarLocal, consultar, consultar)
+  return { ...resumen, reintentar, ...acciones }
 }
 
 /**

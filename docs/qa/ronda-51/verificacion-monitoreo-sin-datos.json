@@ -1,0 +1,51 @@
+{
+  "entorno": "Tablero local con datos de QA sintéticos, modo de demostración",
+  "ruta": "/dashboard",
+  "escenario": {
+    "equipo": "ESP32_FARMACIA_01",
+    "estado": "SIN_DATOS",
+    "ultimaMedicionC": 1.2,
+    "fechaDeMedicion": "2026-11-18T13:54:00Z",
+    "flujoDelNavegador": "conectado",
+    "lecturasEn24h": 0,
+    "alertasCriticasPendientes": 5,
+    "perdidasRegistradasDelBuffer": 79
+  },
+  "comprobaciones": [
+    "La medición tiene fecha y unidad y queda identificada como histórica.",
+    "La curva informa que el periodo no tiene datos.",
+    "Las cinco alertas críticas son accesibles en la bandeja y la ficha muestra las 79 pérdidas."
+  ],
+  "capturas": [
+    {
+      "ancho": 390,
+      "alto": 844,
+      "tema": "claro",
+      "captura": "monitoreo-sin-datos-390.png",
+      "sha256": "757067e0c12288b0365cbb2e463bd0973bf739d576caf0e6d2870bec9aaa43e5",
+      "altoCurvaVaciaPx": 172,
+      "anchoCurvaPx": 324,
+      "lecturaY": 344,
+      "condicionesY": 592,
+      "curvaY": 899,
+      "desbordeHorizontal": false,
+      "alertasCriticasPendientesVerificadas": 5,
+      "perdidasEnFicha": 79
+    },
+    {
+      "ancho": 1366,
+      "alto": 900,
+      "tema": "oscuro",
+      "captura": "monitoreo-sin-datos-1366.png",
+      "sha256": "7b1f3bde5b15ae097c742b9cda43c1dad5892e9666ed030e3b57e7823ae7bb20",
+      "altoCurvaVaciaPx": 116,
+      "anchoCurvaPx": 1252,
+      "lecturaY": 272,
+      "condicionesY": 272,
+      "curvaY": 515,
+      "desbordeHorizontal": false,
+      "alertasCriticasPendientesVerificadas": 5,
+      "perdidasEnFicha": 79
+    }
+  ]
+}

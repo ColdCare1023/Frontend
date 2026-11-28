@@ -1,12 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router'
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { Link, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, ArrowRight, Check, CircleAlert, ClipboardPaste, Copy, Link2Off, ShieldCheck } from 'lucide-react'
 
 import { codigoDesdeFragmento } from '@/domain/value-objects/codigoVerificacion'
 import { cn } from '@/lib/utils'
 import { AuthShell } from '../components/auth/AuthShell'
-import { ColdCareBrandPanel } from '../components/auth/ColdCareBrandPanel'
 import { CambioTexto } from '../components/ui/cambio-texto'
 
 type EstadoCopia = 'pendiente' | 'copiado' | 'fallido'
@@ -23,7 +22,7 @@ async function escribirPortapapeles(texto: string): Promise<boolean> {
 }
 
 /**
- * Destino del botón «Copiar código» de los correos de ColdCare
+ * Destino del botón «Copiar código» de los correos antiguos de ColdCare
  * (`/copiar-codigo#123456`). Un correo no puede ejecutar código, así que el
  * enlace trae el código en el fragmento: no llega al servidor, se quita de la
  * URL antes de pintar y no se guarda ni se registra en ningún lado.
@@ -32,33 +31,54 @@ async function escribirPortapapeles(texto: string): Promise<boolean> {
  */
 export function CopiarCodigoPage() {
   const { t } = useTranslation()
-  // Se lee una sola vez, antes de que el efecto quite el fragmento.
-  const [codigo] = useState(() => codigoDesdeFragmento(window.location.hash))
+  const ubicacion = useLocation()
+  const [codigo, setCodigo] = useState<string | null>(null)
   const [estado, setEstado] = useState<EstadoCopia>('pendiente')
   const digitosRef = useRef<HTMLSpanElement>(null)
-  const autocopiaIntentada = useRef(false)
+  const intentoActual = useRef(0)
 
-  // Fuera de la barra de direcciones y del historial (también si no es válido).
-  useLayoutEffect(() => {
-    if (!window.location.hash) return
-    const { pathname, search } = window.location
-    window.history.replaceState(window.history.state, '', `${pathname}${search}`)
+  const recibir = useCallback((desdeHistorial = false) => {
+    const { pathname, search, hash, href } = window.location
+    // location.hash es vacío tanto para la URL limpia como para un enlace «#».
+    const tieneFragmento = href.includes('#')
+    if (!tieneFragmento && !desdeHistorial) return
+    const nuevo = codigoDesdeFragmento(hash)
+    if (tieneFragmento) window.history.replaceState(window.history.state, '', pathname + search)
+
+    const intento = ++intentoActual.current
+    setCodigo(nuevo)
+    setEstado('pendiente')
+    if (nuevo) {
+      // Sin gesto, el navegador puede rechazar la copia. El botón queda disponible.
+      void escribirPortapapeles(nuevo).then((ok) => {
+        if (ok && intento === intentoActual.current) setEstado('copiado')
+      })
+    }
   }, [])
 
-  // Sin gesto del usuario, Chrome suele permitirlo y Safari o Firefox no. Si
-  // falla no se avisa: el botón sigue ahí.
-  useEffect(() => {
-    if (!codigo || autocopiaIntentada.current) return
-    autocopiaIntentada.current = true
-    void escribirPortapapeles(codigo).then((ok) => {
-      if (ok) setEstado('copiado')
-    })
-  }, [codigo])
+  useLayoutEffect(() => {
+    const ruta = window.location.pathname
+    const alNavegar = (evento: Event) => {
+      if (window.location.pathname === ruta) recibir(evento.type === 'popstate')
+    }
+    window.addEventListener('popstate', alNavegar, true)
+    window.addEventListener('hashchange', alNavegar)
+    return () => {
+      window.removeEventListener('popstate', alNavegar, true)
+      window.removeEventListener('hashchange', alNavegar)
+    }
+  }, [recibir])
+
+  // También recibe los enlaces del router que llaman a pushState sin hashchange.
+  useLayoutEffect(() => { recibir() }, [ubicacion, recibir])
 
   if (!codigo) return <EnlaceSinCodigo />
 
   const copiar = async () => {
-    if (await escribirPortapapeles(codigo)) {
+    const intento = ++intentoActual.current
+    const ok = await escribirPortapapeles(codigo)
+    if (intento !== intentoActual.current || !digitosRef.current) return
+    if (ok) {
       setEstado('copiado')
       return
     }
@@ -71,7 +91,7 @@ export function CopiarCodigoPage() {
   const copiado = estado === 'copiado'
 
   return (
-    <AuthShell brandPanel={<ColdCareBrandPanel />}>
+    <AuthShell>
       <div className="w-full">
         <Link
           to="/login"
@@ -82,7 +102,7 @@ export function CopiarCodigoPage() {
         </Link>
 
         <p className="eyebrow text-faint">{t('copiarCodigo.etiqueta')}</p>
-        <h2 className="mt-2 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.titulo')}</h2>
+        <h1 className="mt-2 text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.titulo')}</h1>
         <p className="mt-2 text-[15px] leading-6 text-muted">{t('copiarCodigo.subtitulo')}</p>
 
         <div className="mt-7 overflow-hidden rounded-(--radius-card) border border-border bg-surface">
@@ -154,13 +174,13 @@ export function CopiarCodigoPage() {
 function EnlaceSinCodigo() {
   const { t } = useTranslation()
   return (
-    <AuthShell brandPanel={<ColdCareBrandPanel />}>
+    <AuthShell>
       <div className="w-full space-y-6">
         <div className="flex size-12 items-center justify-center rounded-2xl bg-surface-sunken text-muted ring-1 ring-inset ring-border">
           <Link2Off className="size-6" aria-hidden />
         </div>
         <div>
-          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.invalido.titulo')}</h2>
+          <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">{t('copiarCodigo.invalido.titulo')}</h1>
           <p className="mt-2 text-[15px] leading-6 text-muted">{t('copiarCodigo.invalido.mensaje')}</p>
         </div>
         <Link

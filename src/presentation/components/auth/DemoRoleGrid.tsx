@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  ChevronRight,
   ClipboardCheck,
   Loader2,
   ShieldCheck,
@@ -28,7 +27,6 @@ const ROLES_DEMO: DemoRoleConfig[] = [
 interface DemoRoleGridProps {
   onSelectRole: (email: string, rolNombre: string) => Promise<void> | void
   cargandoGeneral?: boolean
-  hideHeader?: boolean
   className?: string
 }
 
@@ -36,7 +34,6 @@ interface DemoRoleGridProps {
 export function DemoRoleGrid({
   onSelectRole,
   cargandoGeneral = false,
-  hideHeader = false,
   className,
 }: DemoRoleGridProps) {
   const { t } = useTranslation()
@@ -54,14 +51,10 @@ export function DemoRoleGrid({
 
   return (
     <div className={cn('space-y-3', className)}>
-      {!hideHeader && (
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
-            {t('demo.accesoRapido')}
-          </span>
-          <span className="text-xs text-faint">{t('demo.accesoDetalle')}</span>
-        </div>
-      )}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-body font-medium text-foreground">{t('demo.accesoRapido')}</span>
+        <span className="text-meta text-faint">{t('demo.avisoTitulo')}</span>
+      </div>
 
       {/* Feedback interactivo durante la autenticación de demo */}
       {rolActivo && (
@@ -78,7 +71,7 @@ export function DemoRoleGrid({
       <div
         role="group"
         aria-label={t('demo.accesoRapido')}
-        className="grid grid-cols-1 gap-2 min-[440px]:grid-cols-2"
+        className="grid grid-cols-2 gap-1.5"
       >
         {ROLES_DEMO.map(({ rol, email, claveI18n, icono: Icono }) => {
           const titulo = t(`demo.roles.${claveI18n}.titulo`, {
@@ -96,7 +89,7 @@ export function DemoRoleGrid({
               onClick={() => void manejarClick(email, titulo)}
               data-demo-role={rol}
               className={cn(
-                'group relative flex min-h-[60px] cursor-pointer items-center gap-3 rounded-[12px] border border-border bg-surface px-3.5 py-3 text-left shadow-(--shadow-card)',
+                'group relative flex min-h-11 cursor-pointer items-center gap-2 rounded-(--radius-field) border border-border bg-surface px-2.5 py-2 text-left sm:px-3',
                 'transition-[border-color,background-color,transform] duration-(--duration-micro) ease-(--ease-ui) hover:border-secondary/40 hover:bg-secondary/[0.05] active:scale-[0.985] motion-reduce:active:scale-100',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 'disabled:cursor-not-allowed disabled:opacity-50',
@@ -105,18 +98,14 @@ export function DemoRoleGrid({
             >
               <span
                 aria-hidden
-                className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-secondary-tint text-marca-texto ring-1 ring-inset ring-secondary/20 transition-colors duration-(--duration-micro) group-hover:ring-secondary/40"
+                className="flex shrink-0 items-center text-muted group-hover:text-primary-text"
               >
                 {estaCargandoEsteRol ? <Loader2 className="size-4 animate-spin" /> : <Icono className="size-4" />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[14px] leading-snug font-semibold tracking-[-0.01em] text-foreground">{titulo}</span>
-                {descripcion && <span className="mt-0.5 block text-xs leading-tight text-muted">{descripcion}</span>}
+                <span className="block text-body leading-snug font-medium text-foreground">{titulo}</span>
+                {descripcion && <span className="sr-only">{descripcion}</span>}
               </span>
-              <ChevronRight
-                className="size-4 shrink-0 text-faint transition-transform duration-(--duration-micro) group-hover:translate-x-0.5 group-hover:text-foreground min-[440px]:hidden"
-                aria-hidden
-              />
             </button>
           )
         })}

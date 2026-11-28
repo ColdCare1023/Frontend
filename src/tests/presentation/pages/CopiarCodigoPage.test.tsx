@@ -77,6 +77,63 @@ describe('Copiar código del correo', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('')
   })
 
+  it('un fragmento nuevo sustituye los dígitos y reinicia el aviso de copia en la misma página', async () => {
+    const escribir = instalarPortapapeles(() => Promise.resolve())
+    montar('#048213')
+    await esperarAviso('status', 'Código copiado')
+    escribir.mockImplementation(sinGesto)
+    window.history.pushState({ idx: 7 }, '', '/copiar-codigo?origen=correo#731905')
+    fireEvent(window, new HashChangeEvent('hashchange'))
+
+    expect(digitosVisibles()).toBe('731905')
+    expect(screen.getByText('Código: 7 3 1 9 0 5')).toBeInTheDocument()
+    expect(screen.queryByText('Código: 0 4 8 2 1 3')).not.toBeInTheDocument()
+    expect(window.location.search).toBe('?origen=correo')
+    expect(window.history.state).toMatchObject({ idx: 7 })
+    expect(JSON.stringify(window.history.state)).not.toContain('731905')
+    expect(window.location.hash).toBe('')
+    await esperarMicrotasks()
+    expect(escribir.mock.calls.map(([texto]) => texto)).toEqual(['048213', '731905'])
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.getByRole('button', { name: 'Copiar código' })).toBeInTheDocument()
+  })
+
+  it('un fragmento inválido retira los dígitos y descarta el resultado pendiente de una copia manual', async () => {
+    const escribir = instalarPortapapeles(sinGesto)
+    montar('#048213')
+    await esperarMicrotasks()
+    let denegar!: () => void
+    escribir.mockImplementationOnce(() => new Promise<void>((_, reject) => { denegar = () => reject(new Error()) }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar código' }))
+    window.history.pushState(null, '', '/copiar-codigo#')
+    fireEvent(window, new HashChangeEvent('hashchange'))
+
+    expect(screen.getByRole('heading', { name: 'Este enlace no trae un código válido' })).toBeInTheDocument()
+    expect(window.location.href).not.toContain('#')
+    expect(digitosVisibles()).toBeUndefined()
+    window.history.pushState(null, '', '/copiar-codigo#002019')
+    fireEvent(window, new HashChangeEvent('hashchange'))
+    denegar()
+    await esperarMicrotasks()
+    expect(digitosVisibles()).toBe('002019')
+    expect(escribir).toHaveBeenLastCalledWith('002019')
+    expect(screen.getByRole('alert')).toBeEmptyDOMElement()
+    expect(window.getSelection()?.toString()).toBe('')
+  })
+
+  it('una autocopia anterior que termina tarde no anuncia el código nuevo como copiado', async () => {
+    let confirmar!: () => void
+    const escribir = instalarPortapapeles(() => new Promise<void>((resolve) => { confirmar = resolve }))
+    montar('#048213')
+    escribir.mockImplementation(sinGesto)
+    window.history.pushState(null, '', '/copiar-codigo#731905')
+    fireEvent(window, new HashChangeEvent('hashchange'))
+    confirmar()
+    await esperarMicrotasks()
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.getByRole('button', { name: 'Copiar código' })).toBeInTheDocument()
+  })
+
   it('si el navegador lo permite, lo copia al abrir y lo anuncia', async () => {
     const writeText = instalarPortapapeles(() => Promise.resolve())
     montar('#731905')

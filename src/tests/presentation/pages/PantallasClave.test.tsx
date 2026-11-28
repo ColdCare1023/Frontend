@@ -352,9 +352,10 @@ function montarReportes(over: Record<string, unknown> = {}) {
 describe('Reportes BPA — RF-13 y manejo del error de descarga', () => {
   beforeEach(() => useReportesBPA.mockReset())
 
-  it('ofrece los tres formatos que exige RF-13 una vez generado', () => {
+  it('ofrece los tres formatos que exige RF-13 una vez generado', async () => {
     montarReportes({ reporte: REPORTE })
 
+    await userEvent.click(screen.getByRole('button', { name: 'Otros formatos' }))
     expect(screen.getByRole('button', { name: /pdf/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /csv/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /json/i })).toBeInTheDocument()
@@ -364,6 +365,7 @@ describe('Reportes BPA — RF-13 y manejo del error de descarga', () => {
     const usuario = userEvent.setup()
     const acciones = montarReportes({ reporte: REPORTE })
 
+    await usuario.click(screen.getByRole('button', { name: 'Otros formatos' }))
     await usuario.click(screen.getByRole('button', { name: /csv/i }))
     expect(acciones.descargarCsv).toHaveBeenCalledTimes(1)
 
@@ -406,14 +408,12 @@ describe('Reportes BPA — RF-13 y manejo del error de descarga', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 
-  it('no ofrece descargas mientras no haya reporte', async () => {
+  it('no ofrece descargas mientras no haya reporte', () => {
     montarReportes({ reporte: null })
 
-    expect(screen.queryByRole('button', { name: /csv/i })).toBeNull()
-    // Dos regiones de estado: el recuento del periodo y la caja de vacío
-    // (tras la vista previa automática, que aquí no devuelve reporte).
-    expect(screen.getAllByRole('status').length).toBeGreaterThan(0)
-    expect(await screen.findByText(/genera el reporte para ver el resumen/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Generar reporte' })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: /^descargar/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Resumen del periodo' })).not.toBeInTheDocument()
   })
 })
 

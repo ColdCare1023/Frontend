@@ -120,6 +120,7 @@ export function VeredictoCadena({
   ) : (
     t('trazabilidad.datos.ninguna')
   )
+  const ContenedorDatos = verificacion ? 'div' : 'details'
   const posteriores = verificacion?.registros_posteriores_afectados ?? 0
   const textoBoton = verificando
     ? t('trazabilidad.verificando')
@@ -131,12 +132,12 @@ export function VeredictoCadena({
     <section
       aria-labelledby="veredicto-titulo"
       aria-busy={verificando || undefined}
-      className={cn('superficie border-l-[3px] p-4 xl:p-5', borde)}
+      className={cn('min-w-0 border-l-[3px] p-4 xl:p-5', borde)}
     >
       <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
         <Icono key={`icono-${estado}`} aria-hidden className={cn('cambio-texto mt-0.5 size-6 shrink-0', estado === 'sin_verificar' ? 'text-subtle' : color)} />
         <div className="min-w-0 flex-1 basis-64" role={alerta ? 'alert' : 'status'}>
-          <h2 id="veredicto-titulo" key={verificando ? 'verificando' : estado} className={cn('cambio-texto text-page', verificando ? 'text-foreground' : color)}>
+          <h2 id="veredicto-titulo" key={verificando ? 'verificando' : estado} className={cn('cambio-texto text-title', verificando ? 'text-foreground' : color)}>
             {titulo}
           </h2>
           <p className="mt-1 text-body text-muted text-pretty">{texto}</p>
@@ -200,33 +201,36 @@ export function VeredictoCadena({
         </div>
       ) : (
         <>
-          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3 sm:grid-cols-4">
-            {estado === 'ruptura_aislada' ? (
-              <>
-                <Dato etiqueta={t('trazabilidad.totalRupturas')} className="nums">{verificacion?.total_rupturas ?? 1}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.integraDesde')} className="nums"><FechaEnDosLineas iso={verificacion?.integra_desde} /></Dato>
-                <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
-              </>
-            ) : estado === 'integra' ? (
-              <>
-                <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
-              </>
-            ) : estado === 'no_concluida' ? (
-              <>
-                <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.noVerificables')} className="nums text-warning-700">{verificacion?.total_no_verificables ?? 0}</Dato>
-              </>
-            ) : (
-              <>
-                <Dato etiqueta={t('trazabilidad.datos.registros')} className="nums">{registros.length >= 200 ? '200+' : registros.length}</Dato>
-                <Dato etiqueta={t('trazabilidad.datos.primero')} className="nums"><FechaEnDosLineas iso={registros.at(-1)?.timestamp} /></Dato>
-                <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
-              </>
-            )}
-            {datosCadena}
-            <Dato etiqueta={t('trazabilidad.datos.ultimaVerificacionEquipo')}>{textoUltima}</Dato>
-          </dl>
+          <ContenedorDatos>
+            {!verificacion && <summary className="mt-2 w-fit cursor-pointer py-2 text-meta font-medium text-muted">{t('registros.datosCadena')}</summary>}
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-3 sm:grid-cols-4">
+              {estado === 'ruptura_aislada' ? (
+                <>
+                  <Dato etiqueta={t('trazabilidad.totalRupturas')} className="nums">{verificacion?.total_rupturas ?? 1}</Dato>
+                  <Dato etiqueta={t('trazabilidad.datos.integraDesde')} className="nums"><FechaEnDosLineas iso={verificacion?.integra_desde} /></Dato>
+                  <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
+                </>
+              ) : estado === 'integra' ? (
+                <>
+                  <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
+                  <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
+                </>
+              ) : estado === 'no_concluida' ? (
+                <>
+                  <Dato etiqueta={t('trazabilidad.datos.verificados')} className="nums">{verificacion?.total_registros ?? '—'}</Dato>
+                  <Dato etiqueta={t('trazabilidad.datos.noVerificables')} className="nums text-warning-700">{verificacion?.total_no_verificables ?? 0}</Dato>
+                </>
+              ) : (
+                <>
+                  <Dato etiqueta={t('trazabilidad.datos.registros')} className="nums">{registros.length >= 200 ? '200+' : registros.length}</Dato>
+                  <Dato etiqueta={t('trazabilidad.datos.primero')} className="nums"><FechaEnDosLineas iso={registros.at(-1)?.timestamp} /></Dato>
+                  <Dato etiqueta={t('trazabilidad.datos.ultimo')} className="nums"><FechaEnDosLineas iso={registros[0]?.timestamp} /></Dato>
+                </>
+              )}
+              {datosCadena}
+              <Dato etiqueta={t('trazabilidad.datos.ultimaVerificacionEquipo')}>{textoUltima}</Dato>
+            </dl>
+          </ContenedorDatos>
           {/* HU-26 esc. 4: el alcance se declara junto al resultado, a la vista. */}
           {verificacion && <AlcanceVerificacion texto={verificacion.alcance} className="mt-3" />}
         </>

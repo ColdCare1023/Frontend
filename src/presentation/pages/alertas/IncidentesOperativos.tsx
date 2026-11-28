@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CircleCheck, Hourglass, KeyRound, Link2, ShieldAlert, Thermometer, type LucideIcon } from 'lucide-react'
+import { ChevronDown, CircleCheck, Hourglass, KeyRound, Link2, ShieldAlert, Thermometer, type LucideIcon } from 'lucide-react'
 
+import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import type { IncidenteOperativo } from '@/domain/entities/Dispositivo'
 import { fechaHora, haceCuanto } from '@/lib/formato'
 import { propsFilaNueva, useIdsNuevos } from '@/presentation/hooks/useIdsNuevos'
@@ -64,6 +65,7 @@ export function IncidentesOperativos({
   ahora: number
 }) {
   const { t } = useTranslation()
+  const equipos = useEstadoVivoStore((s) => s.equipos)
   const [todos, setTodos] = useState(false)
   const ordenados = useMemo(() => ordenarIncidentes(incidentes), [incidentes])
   const activos = ordenados.filter((i) => i.estado === 'activo').length
@@ -113,39 +115,35 @@ export function IncidentesOperativos({
               const Icono = ICONO_TIPO[tipo] ?? Hourglass
               const activo = incidente.estado === 'activo'
               return (
-                <li key={incidente.id} {...propsFilaNueva(incidente.id, nuevos, indice)} className="px-4 py-3">
-                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <Icono aria-hidden className={activo ? 'size-4 shrink-0 text-subtle' : 'size-4 shrink-0 text-faint'} />
-                    <span className="codigo text-body font-semibold text-foreground">{incidente.device_id}</span>
-                    <InsigniaIncidente incidente={incidente} />
-                  </p>
-                  <p className="mt-1 text-meta text-pretty text-muted">
-                    {t(`alertas.incidenteTipo.${tipo}`)}
-                    {' · '}
-                    {tipo === 'sin_datos'
-                      ? t('alertas.incidenteDetectado', {
-                          fecha: fechaHora(incidente.detectado_en),
-                          segundos: incidente.umbral_silencio_segundos,
-                        })
-                      : t('alertas.incidenteAbierto', { fecha: fechaHora(incidente.detectado_en) })}
-                    {incidente.ultimo_reporte_en && (
-                      <> · {t('alertas.incidenteUltimoReporte', { fecha: fechaHora(incidente.ultimo_reporte_en) })}</>
-                    )}
-                    {tipo === 'excursion_no_verificada' && incidente.detalle?.temperatura_interna != null && (
-                      <> · {t('alertas.incidenteTemperatura', { temperatura: formatearCifra(incidente.detalle.temperatura_interna) })}</>
-                    )}
-                  </p>
-                  <p className="text-meta text-faint">
-                    {activo
-                      ? t('alertas.incidenteActivoDesde', { hace: haceCuanto(incidente.detectado_en, ahora) })
-                      : incidente.recuperado_en
-                        ? t('alertas.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })
-                        : null}
-                    {(activo || incidente.recuperado_en) && ' · '}
-                    {incidente.notificado_en
-                      ? t('alertas.incidenteNotificado', { fecha: fechaHora(incidente.notificado_en) })
-                      : t('alertas.incidenteSinAviso')}
-                  </p>
+                <li key={incidente.id} {...propsFilaNueva(incidente.id, nuevos, indice)}>
+                  <details className="group">
+                    <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-4 py-2.5 hover:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                      <Icono aria-hidden className="size-4 shrink-0 text-muted" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-body font-medium text-foreground">{t(`alertas.incidenteTipo.${tipo}`)}</span>
+                        <span className="block text-meta text-muted">
+                          {equipos.find((equipo) => equipo.id === incidente.device_id)?.nombre || incidente.device_id}
+                          {activo && <> · {t('alertas.incidenteActivoDesde', { hace: haceCuanto(incidente.detectado_en, ahora) })}</>}
+                          {tipo === 'excursion_no_verificada' && incidente.detalle?.temperatura_interna != null && (
+                            <> · {t('alertas.incidenteTemperatura', { temperatura: formatearCifra(incidente.detalle.temperatura_interna) })}</>
+                          )}
+                        </span>
+                      </span>
+                      <InsigniaIncidente incidente={incidente} />
+                      <ChevronDown aria-hidden className="size-4 shrink-0 text-muted group-open:rotate-180" />
+                    </summary>
+                    <div className="space-y-1 border-t border-border bg-surface-sunken px-4 py-3 text-meta text-muted sm:pl-11">
+                      <p className="codigo">{incidente.device_id}</p>
+                      <p>{tipo === 'sin_datos'
+                        ? t('alertas.incidenteDetectado', { fecha: fechaHora(incidente.detectado_en), segundos: incidente.umbral_silencio_segundos })
+                        : t('alertas.incidenteAbierto', { fecha: fechaHora(incidente.detectado_en) })}</p>
+                      {incidente.ultimo_reporte_en && <p>{t('alertas.incidenteUltimoReporte', { fecha: fechaHora(incidente.ultimo_reporte_en) })}</p>}
+                      {!activo && incidente.recuperado_en && <p>{t('alertas.incidenteRecuperado', { fecha: fechaHora(incidente.recuperado_en) })}</p>}
+                      <p>{incidente.notificado_en
+                        ? t('alertas.incidenteNotificado', { fecha: fechaHora(incidente.notificado_en) })
+                        : t('alertas.incidenteSinAviso')}</p>
+                    </div>
+                  </details>
                 </li>
               )
             })}

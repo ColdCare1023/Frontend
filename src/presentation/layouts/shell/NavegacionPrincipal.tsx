@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router'
+import { ChevronDown } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { useAuthStore } from '@/application/stores/authStore'
@@ -56,6 +57,7 @@ export function NavegacionPrincipal({
   compacto?: boolean
 }) {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
   const usuario = useAuthStore((s) => s.usuario)
   if (!usuario) return null
 
@@ -66,20 +68,7 @@ export function NavegacionPrincipal({
     >
       {seccionesPermitidas(usuario.rol).map((seccion) => {
         const idTitulo = `${sufijoId}-${seccion.claveI18n.replace(/\./g, '-')}`
-        return (
-          <div key={seccion.claveI18n}>
-            <div className="relative mb-1 h-5">
-              <p
-                id={idTitulo}
-                className={cn(
-                  'truncate px-3 text-micro font-semibold tracking-[0.08em] text-faint uppercase transition-opacity duration-(--duration-press)',
-                  compacto && 'opacity-0',
-                )}
-              >
-                {t(seccion.claveI18n)}
-              </p>
-              {compacto && <span aria-hidden className="absolute top-1/2 left-1/2 h-px w-6 -translate-x-1/2 bg-border-strong" />}
-            </div>
+        const enlaces = (
             <ul aria-labelledby={idTitulo} className="space-y-px">
               {seccion.items.map((item) => (
                 <li key={item.ruta}>
@@ -123,6 +112,25 @@ export function NavegacionPrincipal({
                 </li>
               ))}
             </ul>
+        )
+        if (seccion.claveI18n !== 'nav.seccionOperacion' && !compacto) {
+          const activa = seccion.items.some(({ ruta }) => pathname === ruta || pathname.startsWith(ruta + '/'))
+          return (
+            <details key={seccion.claveI18n} open={activa} className="group/seccion border-t border-border pt-1">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-(--radius-field) px-3 text-body font-medium text-muted hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                <span id={idTitulo}>{t(seccion.claveI18n)}</span>
+                <ChevronDown aria-hidden className="size-4 transition-transform group-open/seccion:rotate-180" />
+              </summary>
+              {enlaces}
+            </details>
+          )
+        }
+        return (
+          <div key={seccion.claveI18n}>
+            <p id={idTitulo} className={cn('mb-1 truncate px-3 text-meta font-medium text-faint', compacto && 'sr-only')}>
+              {t(seccion.claveI18n)}
+            </p>
+            {enlaces}
           </div>
         )
       })}

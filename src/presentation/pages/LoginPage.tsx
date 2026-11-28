@@ -146,11 +146,10 @@ export function LoginPage() {
           <PasoCodigoLogin desafio={desafio} onVerificado={irAlPanel} onVolver={volverACredenciales} />
         ) : (
           <div className="w-full">
-            <div className="mb-8">
-              <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
+            <div className="mb-5">
+              <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
                 {t('login.titulo')}
-              </h2>
-              <p className="mt-2 text-[15px] leading-6 text-muted">{t('login.subtitulo')}</p>
+              </h1>
             </div>
 
             {/* Notificación de sesión expirada o recarga de página (HU-40) */}
@@ -266,7 +265,7 @@ export function LoginPage() {
               <DemoRoleGrid
                 onSelectRole={entrarDemo}
                 cargandoGeneral={cargando}
-                className="mt-8 border-t border-border pt-7"
+                className="mt-6 border-t border-border pt-5"
               />
             )}
           </div>

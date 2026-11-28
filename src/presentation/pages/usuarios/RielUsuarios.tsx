@@ -33,7 +33,7 @@ export function RielUsuarios({ usuarios }: { usuarios: readonly Usuario[] }) {
   const sinAcceso = usuarios.filter((u) => !u.is_active)
 
   return (
-    <aside aria-label={t('usuarios.rielEtiqueta')} className="grid gap-3 md:grid-cols-2 xl:col-span-4 xl:grid-cols-1 2xl:col-span-3">
+    <aside aria-label={t('usuarios.rielEtiqueta')} className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       <section aria-labelledby="riel-por-rol" className="superficie p-4">
         <h2 id="riel-por-rol" className="text-title text-foreground">{t('usuarios.rielPorRol')}</h2>
         <ul className="mt-2">
@@ -69,7 +69,7 @@ export function RielUsuarios({ usuarios }: { usuarios: readonly Usuario[] }) {
         <p className="mt-2 border-t border-border pt-2 text-meta text-muted">{t('usuarios.rielPendientesAyuda')}</p>
       </section>
 
-      <section aria-labelledby="riel-sin-acceso" className="superficie p-4 md:col-span-2 xl:col-span-1">
+      <section aria-labelledby="riel-sin-acceso" className="superficie p-4 xl:col-span-1">
         <h2 id="riel-sin-acceso" className="text-title text-foreground">{t('usuarios.sinAcceso')}</h2>
         {sinAcceso.length === 0 ? (
           <p className="mt-2 text-meta text-muted">{t('usuarios.rielSinAccesoVacio')}</p>

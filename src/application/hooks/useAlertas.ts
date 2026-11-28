@@ -1,30 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import axios from 'axios'
 
-import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
+import type { AlertaTermica } from '@/domain/entities/AlertaTermica'
 import type { EstadoAlerta } from '@/domain/value-objects/EstadoAlerta'
-import { useAuthStore } from '@/application/stores/authStore'
-import { useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { apiClient } from '@/infrastructure/api/apiClient'
 import { suscribirseTiempoReal } from '@/infrastructure/sse/sseClient'
-import { rutaApi } from '@/lib/rutaApi'
+import { useAccionesAlerta, type CambioAlerta } from './useAccionesAlerta'
 
-/**
- * `prohibido`: 403 del backend (RBAC). Desde H16, registrar la acción
- * correctiva es del farmacéutico (y del administrador); reconocer, también.
- */
-export type ResultadoAccionAlerta = 'ok' | 'conflicto' | 'prohibido' | 'error'
-export type ResultadoRectificacion = ResultadoAccionAlerta
-
-/**
- * HU-28 esc. 2: qué se corrige de la versión vigente. Lo que no se envía se
- * hereda de ella (el backend exige al menos un cambio real).
- */
-export interface CambiosRectificacion {
-  decision?: string
-  descripcion?: string
-  justificacion?: string
-}
+export type { CambiosRectificacion, ResultadoAccionAlerta, ResultadoRectificacion } from './useAccionesAlerta'
 
 // HU-23: filtro por la máquina de estados, no por el booleano `revisada`
 // (que el backend conserva solo por compatibilidad hacia atrás).
@@ -37,20 +19,13 @@ const AGRUPAR_SSE_MS = 750
 /** La fila muestra «Revisada»/«Registrada» antes de salir de su pestaña. */
 const PAUSA_SALIDA_MS = 700
 
-/** 409: otra persona cambió la alerta antes; 403: el rol no puede (RBAC). */
-function resultadoDeError(error: unknown): Exclude<ResultadoAccionAlerta, 'ok'> {
-  if (axios.isAxiosError(error) && error.response?.status === 409) return 'conflicto'
-  if (axios.isAxiosError(error) && error.response?.status === 403) return 'prohibido'
-  return 'error'
-}
-
 interface Consulta {
   /** Recarga de fondo (SSE, tras una acción): nunca vuelve a «cargando». */
   fondo?: boolean
 }
 
-export function useAlertas() {
-  const [filtro, setFiltroEstado] = useState<FiltroEstado>('pendiente')
+export function useAlertas(filtroInicial: FiltroEstado = 'pendiente') {
+  const [filtro, setFiltroEstado] = useState<FiltroEstado>(filtroInicial)
   // Caché por filtro: volver a una pestaña ya vista no parpadea a esqueleto.
   const [porFiltro, setPorFiltro] = useState<Partial<Record<FiltroEstado, AlertaTermica[]>>>({})
   const [refrescando, setRefrescando] = useState(false)
@@ -125,7 +100,7 @@ export function useAlertas() {
 
   /** Actualización optimista: la fila cambia antes de la recarga. */
   const aplicarLocal = useCallback(
-    (alertaId: string, cambio: Partial<AlertaTermica> | ((alerta: AlertaTermica) => Partial<AlertaTermica>)) => {
+    (alertaId: string, cambio: CambioAlerta) => {
       setPorFiltro((previo) => {
         const siguiente: typeof previo = {}
         for (const [clave, lista] of Object.entries(previo) as [FiltroEstado, AlertaTermica[]][]) {
@@ -147,91 +122,8 @@ export function useAlertas() {
     temporizadores.current.add(id)
   }, [consultar])
 
-  // HU-23 Escenario 1: PENDIENTE -> RECONOCIDA. El nombre del endpoint
-  // (/revisar) es histórico — se conserva por compatibilidad con el backend.
-  //
-  // HU-27 Escenario 2: si otro usuario ya reconoció (o atendió) esta alerta
-  // entre que se cargó la lista y este click, el backend responde 409 — se
-  // refresca la lista para que la fila desaparezca/actualice sola, en vez de
-  // dejar un botón «Revisar» fantasma sobre una alerta que ya cambió.
-  const reconocerAlerta = useCallback(
-    async (alertaId: string): Promise<ResultadoAccionAlerta> => {
-      try {
-        await apiClient.patch(rutaApi`/api/alertas/${alertaId}/revisar`)
-        aplicarLocal(alertaId, { estado: 'reconocida', revisada: true, reconocida_en: new Date().toISOString() })
-        recargarTrasPausa()
-        // El contador del riel y la píldora se actualizan sin esperar al SSE.
-        useEstadoVivoStore.getState().refrescarAlertas()
-        return 'ok'
-      } catch (error) {
-        await consultar(filtroActual.current, { fondo: true })
-        return resultadoDeError(error)
-      }
-    },
-    [aplicarLocal, consultar, recargarTrasPausa],
-  )
-
-  // HU-23 Escenario 2 / HU-27 Escenario 2: registrar la acción correctiva
-  // marca la alerta como ATENDIDA. HU-23 esc. 1 y 3: el flujo es PENDIENTE ->
-  // RECONOCIDA -> ATENDIDA; sobre una PENDIENTE, el backend primero la
-  // reconoce a nombre de quien registra (REVISAR_ALERTA con origen
-  // `accion_correctiva`, mismo instante) y después la atiende. Si otro usuario
-  // ya la atendió, responde 409 — se informa en vez de fingir éxito o de
-  // sobrescribir en silencio. 403: el rol no puede registrar (H16).
-  const registrarAccionCorrectiva = useCallback(
-    async (
-      alertaId: string,
-      { decision, descripcion, justificacion }: { decision: string; descripcion: string; justificacion: string },
-    ): Promise<ResultadoAccionAlerta> => {
-      try {
-        await apiClient.post(rutaApi`/api/alertas/${alertaId}/acciones-correctivas`, { decision, justificacion, descripcion })
-        const ahora = new Date().toISOString()
-        const autor = useAuthStore.getState().usuario?.id ?? null
-        aplicarLocal(alertaId, (alerta) =>
-          alerta.estado === 'pendiente'
-            ? // El reconocimiento implícito y la atención comparten instante y autor.
-              { estado: 'atendida', atendida_en: ahora, reconocida_en: ahora, revisada: true, revisada_por: autor }
-            : { estado: 'atendida', atendida_en: ahora },
-        )
-        recargarTrasPausa()
-        useEstadoVivoStore.getState().refrescarAlertas()
-        return 'ok'
-      } catch (error) {
-        await consultar(filtroActual.current, { fondo: true })
-        return resultadoDeError(error)
-      }
-    },
-    [aplicarLocal, consultar, recargarTrasPausa],
-  )
-
-  // HU-23 criterio 4: cronología de atención de una alerta (reconocimiento +
-  // acciones correctivas + rectificaciones, HU-28), de solo lectura.
-  const obtenerCicloAtencion = useCallback(async (alertaId: string): Promise<AccionCorrectiva[]> => {
-    const { data } = await apiClient.get<AccionCorrectiva[]>(
-      rutaApi`/api/alertas/${alertaId}/acciones-correctivas`,
-    )
-    return data
-  }, [])
-
-  // HU-28: rectificar crea una acción nueva que referencia a la anterior; la
-  // original no se toca. Esc. 2: se puede corregir la decisión, la acción y/o
-  // la justificación; solo se envía lo que cambia. 409: ya no es la versión
-  // vigente (alguien la rectificó antes). 403: ni autor ni farmacéutico.
-  const rectificarAccion = useCallback(
-    async (accionId: string, cambios: CambiosRectificacion, motivo: string): Promise<ResultadoRectificacion> => {
-      try {
-        const cuerpo: Record<string, string> = { motivo_rectificacion: motivo }
-        for (const campo of ['decision', 'descripcion', 'justificacion'] as const) {
-          if (cambios[campo] !== undefined) cuerpo[campo] = cambios[campo]
-        }
-        await apiClient.post(rutaApi`/api/alertas/acciones-correctivas/${accionId}/rectificar`, cuerpo)
-        return 'ok'
-      } catch (error) {
-        return resultadoDeError(error)
-      }
-    },
-    [],
-  )
+  const refrescarTrasError = useCallback(() => consultar(filtroActual.current, { fondo: true }), [consultar])
+  const acciones = useAccionesAlerta(aplicarLocal, recargarTrasPausa, refrescarTrasError)
 
   const alertas = porFiltro[filtro] ?? []
 
@@ -247,9 +139,6 @@ export function useAlertas() {
     reintentar,
     filtro,
     setFiltro,
-    reconocerAlerta,
-    registrarAccionCorrectiva,
-    obtenerCicloAtencion,
-    rectificarAccion,
+    ...acciones,
   }
 }

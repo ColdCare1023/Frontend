@@ -1,8 +1,8 @@
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Hourglass, ShieldQuestion, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Hourglass, ShieldQuestion, TriangleAlert } from 'lucide-react'
 
-import type { Dispositivo } from '@/domain/entities/Dispositivo'
+import { haceCuanto } from '@/lib/formato'
 import type { MotivoDesconexionSse } from '@/infrastructure/sse/sseClient'
 import { estadoRiesgoDe, type LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { RANGO_TERMICO } from '@/domain/value-objects/NivelRiesgo'
@@ -11,7 +11,6 @@ import { HoraLectura } from '../../components/HoraLectura'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { CifraAnimada } from '../../components/ui/cifra-animada'
 import { Esqueleto } from '../../components/ui/esqueleto'
 import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
 import { formatearCifra } from '../../components/ui/formato-cifra'
@@ -37,9 +36,7 @@ export const CeldaLectura = memo(function CeldaLectura({
   ultima,
   estadoHistorial,
   reintentar,
-  equipos,
   deviceId,
-  onElegirEquipo,
   desactualizado,
   sseConectado,
   motivoDesconexion = null,
@@ -49,9 +46,7 @@ export const CeldaLectura = memo(function CeldaLectura({
   ultima: LecturaTermica | null
   estadoHistorial: 'cargando' | 'completo' | 'error'
   reintentar: () => void
-  equipos: readonly Dispositivo[]
   deviceId: string | null
-  onElegirEquipo: (id: string) => void
   desactualizado: boolean
   sseConectado: boolean
   /** HU-32 esc. 3: causa conocida del corte del flujo (null: red o servidor). */
@@ -66,23 +61,6 @@ export const CeldaLectura = memo(function CeldaLectura({
   // «normal» para una lectura en rango que el modelo no clasificó.
   const riesgo = estadoRiesgoDe(ultima)
 
-  const selector = equipos.length > 1 && (
-    <label className="flex min-w-0 items-center gap-2 max-sm:basis-full sm:ml-auto">
-      <span className="text-meta text-muted max-xl:sr-only">{t('dashboard.equipo')}</span>
-      <select
-        value={deviceId ?? ''}
-        onChange={(evento) => onElegirEquipo(evento.target.value)}
-        className="h-9 min-w-0 max-w-60 flex-1 truncate rounded-(--radius-field) border border-border-field bg-surface-sunken px-3 text-body font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring max-sm:h-11 max-sm:max-w-none pointer-coarse:h-11"
-      >
-        {equipos.map((equipo) => (
-          <option key={equipo.id} value={equipo.id}>
-            {equipo.nombre ? `${equipo.nombre} (${equipo.id})` : equipo.id}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-
   const titulo = (
     <h2 id="resumen-termico-titulo" className="text-title text-foreground">
       {desactualizado ? t('dashboard.ultimaTemperatura') : t('dashboard.estadoRefrigerador')}
@@ -94,11 +72,10 @@ export const CeldaLectura = memo(function CeldaLectura({
       <section
         aria-labelledby="resumen-termico-titulo"
         data-testid="celda-lectura"
-        className="superficie col-span-4 flex min-w-0 flex-col p-4 sm:col-span-8 lg:col-span-7 lg:row-span-2 xl:p-5"
+        className="flex min-w-0 flex-col"
       >
         <div className="flex flex-wrap items-center gap-2">
           {titulo}
-          {selector}
         </div>
         {estadoHistorial === 'cargando' ? (
           <div aria-busy="true" className="mt-3 space-y-4">
@@ -150,12 +127,12 @@ export const CeldaLectura = memo(function CeldaLectura({
     <section
       aria-labelledby="resumen-termico-titulo"
       data-testid="celda-lectura"
-      className="superficie col-span-4 flex min-w-0 flex-col p-4 sm:col-span-8 lg:col-span-7 lg:row-span-2 xl:p-5"
+      className="flex min-w-0 flex-col"
     >
       <div className="flex flex-wrap items-center gap-2">
         {titulo}
         {/* HU-54 esc. 4: sin datos recientes no se presenta el equipo como Normal. */}
-        {desactualizado && (riesgo === 'normal' || riesgo === 'sin_clasificacion_ia') ? (
+        {desactualizado ? (
           <Badge variant="neutral">
             <Hourglass aria-hidden className="size-3.5 text-nodata-700" />
             {t('dashboard.sinDatosRecientes')}
@@ -185,7 +162,6 @@ export const CeldaLectura = memo(function CeldaLectura({
             </button>
           </Tooltip>
         )}
-        {selector}
       </div>
 
       <div className="mt-3 flex items-baseline gap-1">
@@ -202,40 +178,56 @@ export const CeldaLectura = memo(function CeldaLectura({
             </p>
           )
         ) : (
-          <>
-            <p
-              data-testid="valor-actual"
-              data-valor={lectura.toFixed(1)}
-              {...{ elementtiming: 'valor-actual' }}
-              className={clsx(
-                'nums text-hero max-sm:text-[56px] max-sm:leading-[56px]',
-                critica ? 'text-danger-700' : desactualizado ? 'text-muted' : 'text-foreground',
-              )}
-            >
-              <CifraAnimada valor={lectura} clave={deviceId ?? ''} />
-              <span className="sr-only"> °C</span>
-            </p>
-            <span aria-hidden className="text-metric font-medium text-muted">°C</span>
-          </>
+          <p
+            data-testid={desactualizado ? 'valor-historico' : 'valor-actual'}
+            data-valor={lectura.toFixed(1)}
+            {...(!desactualizado && { elementtiming: 'valor-actual' })}
+            className={clsx(
+              'nums inline-flex items-baseline gap-1 whitespace-nowrap',
+              desactualizado ? 'text-metric text-subtle' : 'text-hero max-sm:text-[56px] max-sm:leading-[56px]',
+              critica && 'text-danger-700',
+            )}
+          >
+            {fmt(lectura)}
+            <span className="text-metric font-medium text-muted"> °C</span>
+          </p>
         )}
       </div>
 
-      <Regla
-        key={deviceId ?? ''}
-        tamano="xl"
-        valor={lecturaFinita ? lectura : null}
-        tono={tonoRegla}
-        minimo={extremos?.minima ?? null}
-        maximo={extremos?.maxima ?? null}
-        cotas
-        etiqueta={etiquetaRegla}
-        className="mt-4"
-      />
-      {extremos && (
-        <p className="nums mt-1 text-micro text-faint">
-          {t('dashboard.extremosVentana', { min: `${fmt(extremos.minima)}°`, max: `${fmt(extremos.maxima)}°`, ventana })}
+      {desactualizado && (
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-meta text-muted">
+          <HoraLectura lectura={ultima} formato="fechaHora" />
+          <span>{haceCuanto(ultima.timestamp)}</span>
         </p>
       )}
+
+      <details className="group mt-2">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-sm text-meta font-medium text-subtle hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+          {t('dashboard.rangoConservacion')}
+          <ChevronDown aria-hidden className="size-3.5 group-open:rotate-180" />
+        </summary>
+        <Regla
+          key={deviceId ?? ''}
+          tamano="xl"
+          valor={lecturaFinita ? lectura : null}
+          tono={tonoRegla}
+          minimo={extremos?.minima ?? null}
+          maximo={extremos?.maxima ?? null}
+          cotas
+          etiqueta={etiquetaRegla}
+          className="mt-4"
+        />
+        {extremos && (
+          <p className="nums mt-1 text-micro text-faint">
+            {t('dashboard.extremosVentana', { min: `${fmt(extremos.minima)}°`, max: `${fmt(extremos.maxima)}°`, ventana })}
+          </p>
+        )}
+        {desactualizado && <p className="mt-2 text-meta text-muted">
+          {t('dashboard.sinDatosRecientesDetalle')}
+          {ultima.excursion_confirmada && <> {t('dashboard.excursionConfirmada')}</>}
+        </p>}
+        {!desactualizado && riesgo === 'normal' && <p className="mt-2 text-meta text-muted">{t('riesgo.detalle.normal')}</p>}
+      </details>
       {fueraDeEscala && lectura != null && (
         <p role="note" className="mt-2 text-meta font-medium text-danger-700">
           {lectura > EJE_REGLA.maximo
@@ -244,14 +236,15 @@ export const CeldaLectura = memo(function CeldaLectura({
         </p>
       )}
 
-      <p className="mt-3 text-pretty text-body text-muted">
-        {riesgo
-          ? desactualizado
-            ? t(riesgo === 'normal' || riesgo === 'sin_clasificacion_ia' ? 'dashboard.sinDatosRecientesDetalle' : 'dashboard.riesgoUltimaLectura')
-            : t(`riesgo.detalle.${riesgo}`)
-          : t('dashboard.sinClasificacion')}
-      </p>
-      {ultima.excursion_confirmada && (
+      {!desactualizado && riesgo !== 'normal' && <p className="mt-3 text-pretty text-body text-muted">
+        {riesgo ? t(`riesgo.detalle.${riesgo}`) : t('dashboard.sinClasificacion')}
+      </p>}
+      {desactualizado && riesgo && riesgo !== 'normal' && riesgo !== 'sin_clasificacion_ia' && (
+        <p className="mt-1 flex flex-wrap items-center gap-2 text-meta text-muted">
+          {t('dashboard.ultimaLecturaHora')} <RiskBadge nivel={riesgo} />
+        </p>
+      )}
+      {!desactualizado && ultima.excursion_confirmada && (
         <p className="mt-1 text-meta font-semibold text-danger-700">{t('dashboard.excursionConfirmada')}</p>
       )}
       {!ultima.excursion_confirmada && ultima.nivel_riesgo === 'excursion_critica' && riesgo !== 'excursion_critica' && (
@@ -262,18 +255,10 @@ export const CeldaLectura = memo(function CeldaLectura({
       )}
 
       <p className="nums mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-3 text-meta text-faint">
-        {desactualizado && (
-          <>
-            <Hourglass aria-hidden className="size-3.5 text-nodata-700" />
-            <span className="font-medium text-subtle">{t('dashboard.datoDesactualizado', { s: segundosDesdeUltima })}</span>
-            {/* El flujo del navegador puede seguir sano aunque el nodo calle (RF-18): se dicen ambos. */}
-            <span aria-hidden>·</span>
-          </>
-        )}
         {sseConectado ? (
           <>
             <span aria-hidden className="size-1.5 rounded-full bg-success-600" />
-            <span className="font-medium text-subtle">{t('dashboard.actualizacionActiva')}</span>
+            <span className="font-medium text-subtle">{t(desactualizado ? 'medicion.flujoConectado' : 'dashboard.actualizacionActiva')}</span>
             {!desactualizado && (
               <>
                 <span aria-hidden>·</span>
@@ -297,10 +282,11 @@ export const CeldaLectura = memo(function CeldaLectura({
             <span className="font-medium text-warning-700">{t('dashboard.actualizacionReconectando')}</span>
           </>
         )}
-        <span aria-hidden>·</span>
-        <span className="sr-only">{t('dashboard.ultimaLecturaHora')}:</span>
-        {/* HU-07: un arranque sin hora sincronizada se rotula «Sin hora». */}
-        <HoraLectura lectura={ultima} formato="hora" />
+        {!desactualizado && <>
+          <span aria-hidden>·</span>
+          <span className="sr-only">{t('dashboard.ultimaLecturaHora')}:</span>
+          <HoraLectura lectura={ultima} formato="hora" />
+        </>}
       </p>
     </section>
   )

@@ -1092,3 +1092,14 @@
   .coldcare-data-list tr[data-fila][data-expandida] { box-shadow: inset 2px 0 0 var(--color-primary); }
   .coldcare-data-list tr[data-fila][data-marca="corrupta"] { box-shadow: inset 3px 0 0 var(--color-critical); }
 }
+
+@layer components {
+  .hoja-monitoreo {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+  .hoja-monitoreo select option { color: var(--color-foreground); background: var(--color-surface); }
+}

@@ -44,6 +44,7 @@ export function TiraEstadoAlertas({
     },
     {
       clave: 'incidentes',
+      tono: incidentesActivos === null || incidentesActivos > 0 ? 'aviso' : 'neutro',
       etiqueta: t('alertas.resumen.incidentesActivos'),
       valor:
         incidentesActivos === null ? (
@@ -80,6 +81,7 @@ export function TiraEstadoAlertas({
 
   return (
     <TiraEstado
+      resumir
       etiqueta={t('alertas.resumen.titulo')}
       className="mb-3 xl:mb-4"
       segmentos={segmentos}

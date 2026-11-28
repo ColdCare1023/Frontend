@@ -35,6 +35,8 @@ export interface PropsPanelAlerta {
   pestanaInicial: PestanaPanel
   /** Acción disponible para este rol (la página ya aplicó el RBAC). */
   puedeRegistrar: boolean
+  reconocer?: (id: string) => Promise<ResultadoAccionAlerta>
+  mostrarEnlaceHistorial?: boolean
   puedeRectificar: PuedeRectificar
   /** HU-28: el rol puede abrir /trazabilidad para verificar la cadena del equipo. */
   puedeVerificarCadena?: boolean
@@ -60,6 +62,13 @@ export function PanelAlerta(props: PropsPanelAlerta) {
       <SidePanelContent
         data-panel-alerta=""
         className="max-sm:max-w-none"
+        onKeyDown={(evento) => {
+          // Un diálogo anidado o un control que ya consumió Escape conserva la tecla.
+          if (evento.key !== 'Escape' || evento.defaultPrevented || evento.nativeEvent.isComposing) return
+          if (!(evento.target instanceof Element) || evento.target.closest('[role="dialog"]') !== evento.currentTarget) return
+          evento.preventDefault()
+          onCerrar()
+        }}
         onOpenAutoFocus={(evento) => {
           evento.preventDefault()
           // Acción: primer campo. Cronología: la pestaña activa o, sin pestañas, su título.
@@ -84,6 +93,8 @@ function ContenidoPanel({
   alerta,
   pestanaInicial,
   puedeRegistrar,
+  reconocer,
+  mostrarEnlaceHistorial = true,
   puedeRectificar,
   puedeVerificarCadena = false,
   borradores,
@@ -100,6 +111,8 @@ function ContenidoPanel({
   const [pestana, setPestana] = useState<PestanaPanel>(conAccion ? pestanaInicial : 'cronologia')
   const [direccion, setDireccion] = useState<1 | -1>(1)
   const [registrada, setRegistrada] = useState(false)
+  const [reconociendo, setReconociendo] = useState(false)
+  const [resultadoReconocer, setResultadoReconocer] = useState<ResultadoAccionAlerta | null>(null)
   const [borrador, setBorrador] = useState<BorradorAccion>(() => borradores.get(alerta.id) ?? BORRADOR_VACIO)
   const temporizador = useRef<number | null>(null)
 
@@ -154,13 +167,15 @@ function ContenidoPanel({
         />
       </SidePanelBody>
       <SidePanelFooter className="items-stretch px-4 sm:items-center sm:justify-between sm:px-6">
-        <Link
-          to="/historial"
-          onClick={onCerrar}
-          className="inline-flex min-h-11 items-center justify-center rounded-(--radius-field) text-body font-medium text-primary-text underline decoration-primary/40 underline-offset-4 transition-colors duration-(--duration-micro) hover:decoration-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-9"
-        >
-          {t('alertas.panel.verHistorial')}
-        </Link>
+        {mostrarEnlaceHistorial && (
+          <Link
+            to="/historial"
+            onClick={onCerrar}
+            className="inline-flex min-h-11 items-center justify-center rounded-(--radius-field) text-body font-medium text-primary-text underline decoration-primary/40 underline-offset-4 transition-colors duration-(--duration-micro) hover:decoration-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-9"
+          >
+            {t('alertas.panel.verHistorial')}
+          </Link>
+        )}
         <Button variant="ghost" onClick={onCerrar}>
           {t('comunes.cerrar')}
         </Button>
@@ -183,6 +198,35 @@ function ContenidoPanel({
           <span className="codigo">{alerta.device_id}</span> · {fechaHora(alerta.created_at)}
         </SidePanelDescription>
         <EvidenciaPanel alerta={alerta} />
+        {reconocer && puedeRegistrar && alerta.estado === 'pendiente' && resultadoReconocer !== 'ok' && (
+          <Button
+            type="button" variant="secondary" size="sm" className="mt-3" disabled={reconociendo}
+            onClick={async (e) => {
+              const boton = e.currentTarget
+              const dialogo = boton.closest('[role="dialog"]')
+              setReconociendo(true)
+              try {
+                const resultado = await reconocer(alerta.id)
+                setResultadoReconocer(resultado)
+                // Reconocer retira este botón. Mantener la secuencia de teclado dentro del mismo diálogo.
+                if (resultado === 'ok' && dialogo?.isConnected && (document.activeElement === boton || document.activeElement === document.body)) {
+                  const destino = dialogo.querySelector<HTMLElement>('textarea, [role="tab"][aria-selected="true"]')
+                  destino?.focus()
+                }
+              } finally {
+                setReconociendo(false)
+              }
+            }}
+          >
+            {t(reconociendo ? 'alertas.revisando' : 'alertas.reconocer')}
+          </Button>
+        )}
+        {resultadoReconocer === 'ok' && <p role="status" className="sr-only">{t('alertas.anuncio.revisada', { equipo: alerta.device_id })}</p>}
+        {resultadoReconocer && resultadoReconocer !== 'ok' && (
+          <p role="alert" className="mt-2 text-meta text-critical">
+            {t(resultadoReconocer === 'conflicto' ? 'alertas.conflictoEstado' : resultadoReconocer === 'prohibido' ? 'alertas.soloFarmaceutico' : 'alertas.errorRevisar', { equipo: alerta.device_id })}
+          </p>
+        )}
         {conAccion ? (
           <Pestanas
             className="mt-4 -mx-1"

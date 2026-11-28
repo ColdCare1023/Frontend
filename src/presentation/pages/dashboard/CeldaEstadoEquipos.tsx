@@ -8,18 +8,18 @@ import { fechaHora, hora } from '@/lib/formato'
 import { clsx } from 'clsx'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { Regla } from '../../components/ui/regla'
 import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
 import { textoRangoBuffer, textosBrecha } from './bufferNodo'
 import { CintaDisponibilidad } from './CintaDisponibilidad'
 import { FONDO_TRAMO } from './utilidades'
 import { ordenarEquipos, rangoEquipo, tieneIncidencia } from './equipos'
-import { useMinuto } from '../../hooks/useReloj'
+import { useMinuto, useVencido } from '../../hooks/useReloj'
 
 const ORDEN_LEYENDA: readonly EstadoTramo[] = ['operativo', 'sin_datos', 'perdida', 'falla_sensor', 'suspendido', 'sin_registro']
 
 export interface TemperaturaEquipo {
   valor: number | null
+  timestamp?: string
   riesgo: Parameters<typeof tonoDesdeRiesgo>[0]
 }
 
@@ -133,10 +133,12 @@ const FilaEquipo = memo(function FilaEquipo({
   onVerDetalles: (id: string) => void
 }) {
   const { t } = useTranslation()
-  const nombre = equipo.nombre || equipo.id
+  const nombre = equipo.nombre?.trim() || equipo.id
   const tramos = useMemo(() => tramosDisponibilidad(equipo, ahora), [equipo, ahora])
   const porcentaje = porcentajeConDatos(tramos)
   const valor = temperatura?.valor ?? null
+  const vencida = useVencido(temperatura?.timestamp, umbralSilencioSegundos(equipo))
+  const historica = vencida || equipo.estado_operativo === 'SIN_DATOS' || equipo.estado_operativo === 'MONITOREO_SUSPENDIDO' || equipo.estado_conectividad !== 'online'
   return (
     <li
       aria-current={seleccionado ? 'true' : undefined}
@@ -147,7 +149,7 @@ const FilaEquipo = memo(function FilaEquipo({
     >
       {/* Nombre a todo lo ancho y en hasta dos líneas (sin «Cámara fría de
           va…»): la cifra y la Regla S van apiladas a la derecha. */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <IconoEquipo equipo={equipo} />
         <button
           type="button"
@@ -155,15 +157,14 @@ const FilaEquipo = memo(function FilaEquipo({
           aria-label={t('dashboard.mostrarEnMonitoreo', { equipo: nombre })}
           className="flex min-w-0 flex-1 cursor-pointer flex-col items-start rounded-(--radius-field) text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <span className="line-clamp-2 w-full text-body font-medium text-foreground" title={nombre}>
+          <span className="w-full [overflow-wrap:anywhere] text-body font-medium text-foreground" title={nombre}>
             {nombre}
           </span>
-          {equipo.nombre && <span className="codigo w-full truncate text-meta text-faint">{equipo.id}</span>}
+          {nombre !== equipo.id && <span className="codigo w-full [overflow-wrap:anywhere] text-meta text-muted">{equipo.id}</span>}
         </button>
-        <span className="flex shrink-0 flex-col items-end gap-1">
-          <span className="nums text-body font-semibold text-foreground">{valor === null ? '—' : `${valor.toFixed(1)}°`}</span>
-          <Regla tamano="s" valor={valor} tono={valor === null ? 'sin_datos' : tonoDesdeRiesgo(temperatura?.riesgo)} decorativa />
-        </span>
+        {!historica && valor !== null && (
+          <span className="nums whitespace-nowrap text-body font-semibold text-foreground">{valor.toFixed(1)} °C</span>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -174,10 +175,16 @@ const FilaEquipo = memo(function FilaEquipo({
           <Info aria-hidden className="size-4" />
         </Button>
       </div>
+      {historica && valor !== null && (
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-meta text-muted">
+          {t('dashboard.ultimaLecturaHora')} <span className="nums whitespace-nowrap">{valor.toFixed(1)} °C</span>
+          {temperatura?.timestamp && <time dateTime={temperatura.timestamp}>{fechaHora(temperatura.timestamp)}</time>}
+        </p>
+      )}
       <CintaDisponibilidad tramos={tramos} equipo={nombre} className="mt-2" />
       {/* Un aviso, dos líneas como máximo (tres a 1024–1279, donde la columna es
           estrecha): la frase completa está en el panel de detalle. */}
-      <p className="mt-1.5 line-clamp-3 text-meta xl:line-clamp-2">
+      <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-meta">
         <BadgeEstadoOperativo equipo={equipo} /> <AvisoFila equipo={equipo} porcentaje={porcentaje} />
       </p>
     </li>

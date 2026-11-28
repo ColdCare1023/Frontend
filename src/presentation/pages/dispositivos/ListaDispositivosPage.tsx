@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -9,7 +10,7 @@ import { MODO_DEMO } from '@/infrastructure/demo/modoDemo'
 import { construirCinta24h } from '@/lib/cinta24h'
 import { hora } from '@/lib/formato'
 import { rangoPagina } from '@/lib/paginacion'
-import { useMinuto } from '@/presentation/hooks/useReloj'
+import { useReloj } from '@/presentation/hooks/useReloj'
 import { useResponsivePageSize } from '@/presentation/hooks/useResponsivePageSize'
 import { EstadoCarga, EstadoError, EstadoVacio } from '../../components/EstadoPagina'
 import { PageHeader } from '../../components/PageHeader'
@@ -39,9 +40,6 @@ import { PanelSimuladorIoT } from './paneles/PanelSimuladorIoT'
 
 type Filtro = 'todos' | 'atencion' | 'baja'
 
-/** Con estas filas o menos, la lista se acompaña de la actividad reciente (DIRECTION §13). */
-const FILAS_CON_ACTIVIDAD = 4
-
 /** `/dispositivos`: tira de estado, lista de equipos y rail de contexto. */
 export function ListaDispositivosPage() {
   const { t } = useTranslation()
@@ -49,13 +47,14 @@ export function ListaDispositivosPage() {
   const { dispositivos, cargando, errorCarga, consultar } = useFlota()
   const actividad = useActividad()
   const ultimas = useEstadoVivoStore((s) => s.ultimas)
-  const ahora = useMinuto()
+  const ahora = useReloj(10_000)
   const [parametros, setParametros] = useSearchParams()
   const filtro: Filtro = parametros.get('filtro') === 'atencion' ? 'atencion' : parametros.get('filtro') === 'baja' ? 'baja' : 'todos'
   const consulta = parametros.get('q') ?? ''
   const consultaDiferida = useDeferredValue(consulta)
   const pagina = Math.max(1, Number(parametros.get('pagina')) || 1)
   const tamanoPagina = useResponsivePageSize()
+  const [ampliada, setAmpliada] = useState(false)
   const [registrando, setRegistrando] = useState(false)
   const [simulando, setSimulando] = useState<string | null>(null)
 
@@ -81,11 +80,11 @@ export function ListaDispositivosPage() {
   const filas = useMemo(() => {
     const conEstado = dispositivos.map((d) => {
       const ultima = ultimas[d.id]
-      const estado = estadoVisualEquipo(d, ultima)
+      const estado = estadoVisualEquipo(d, ultima, ahora)
       return { d, ultima, estado, rango: rangoAtencion(d, estado) }
     })
     return conEstado.sort((a, b) => a.rango - b.rango)
-  }, [dispositivos, ultimas])
+  }, [dispositivos, ultimas, ahora])
 
   const conteos = useMemo(
     () => ({
@@ -107,7 +106,7 @@ export function ListaDispositivosPage() {
   )
   const visibles = useMemo(() => filtradas.slice(...rangoPagina(pagina, tamanoPagina)), [filtradas, pagina, tamanoPagina])
   // Tendencia corta y cinta 24 h solo para las filas de la página visible.
-  const activosVisibles = useMemo(() => visibles.filter((f) => f.d.activo).map((f) => f.d.id), [visibles])
+  const activosVisibles = useMemo(() => ampliada ? visibles.filter((f) => f.d.activo).map((f) => f.d.id) : [], [visibles, ampliada])
   const tendencias = useTendencias(activosVisibles)
   const ahoraCinta = Math.floor(ahora / 300_000) * 300_000
   const cintas = useMemo(
@@ -128,9 +127,7 @@ export function ListaDispositivosPage() {
   return (
     <div>
       <PageHeader
-        eyebrow={t('nav.seccionAdministracion')}
         titulo={t('dispositivos.titulo')}
-        descripcion={t('dispositivos.descripcion')}
       >
         <Button onClick={() => setRegistrando(true)}>
           <Plus />
@@ -169,18 +166,8 @@ export function ListaDispositivosPage() {
         </EstadoVacio>
       ) : (
         <div className="grid grid-cols-12 gap-3 xl:gap-4">
-          <TiraEstado
-            className="col-span-12"
-            apilarGuia
-            etiqueta={t('dispositivos.resumenIoT')}
-            guia={<TextoGuia frase={fraseGuia(resumen, dispositivos)} />}
-            segmentos={segmentosTira(resumen, t)}
-          />
-
-          {/* Lista y rail en su propia grilla: el rail fijo (sticky) no puede
-              salirse de ella y montarse sobre la actividad de debajo. */}
           <div className="col-span-12 grid grid-cols-12 gap-3 xl:gap-4">
-            <section aria-labelledby="titulo-lista" className="superficie col-span-12 min-w-0 self-start overflow-hidden xl:col-span-8 2xl:col-span-9">
+            <section aria-labelledby="titulo-lista" className="superficie col-span-12 min-w-0 self-start overflow-hidden xl:col-span-12">
               <h2 id="titulo-lista" className="sr-only">{t('dispositivos.lista.etiqueta')}</h2>
               <BarraFiltros
                 className="items-center"
@@ -221,11 +208,11 @@ export function ListaDispositivosPage() {
                 </label>
               </BarraFiltros>
 
-              <div className={`grid gap-x-4 ${COLUMNAS_LISTA}`}>
+              <div className={`grid gap-x-4 ${ampliada ? COLUMNAS_LISTA : 'grid-cols-1 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto]'}`}>
                 <div aria-hidden className="col-span-full hidden h-9 grid-cols-subgrid items-center border-b border-border bg-surface-sunken px-4 text-meta font-medium text-muted sm:grid">
                   <span>{t('dispositivos.lista.columnaEquipo')}</span>
                   <span>{t('dispositivos.lista.columnaLectura')}</span>
-                  <span className="hidden lg:block">{t('dispositivos.lista.ultimas24h')}</span>
+                  {ampliada && <span className="hidden lg:block">{t('dispositivos.lista.ultimas24h')}</span>}
                   <span className="text-right">{t('comunes.acciones')}</span>
                 </div>
 
@@ -244,6 +231,7 @@ export function ListaDispositivosPage() {
                     {visibles.map(({ d, ultima, estado }) => (
                       <FilaDispositivo
                         key={d.id}
+                        ampliada={ampliada}
                         dispositivo={d}
                         estado={estado}
                         ultima={ultima}
@@ -256,7 +244,10 @@ export function ListaDispositivosPage() {
                   </ul>
                 )}
               </div>
-              <div className="border-t border-border px-4 py-2 empty:hidden">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2">
+                <Button variant="ghost" size="sm" className="aria-pressed:bg-primary-tint aria-pressed:text-primary-text" aria-pressed={ampliada} onClick={() => setAmpliada(!ampliada)}>
+                  {t('lectura.tendenciasEquipo')}
+                </Button>
                 <Paginacion
                   total={filtradas.length}
                   pagina={pagina}
@@ -266,30 +257,33 @@ export function ListaDispositivosPage() {
               </div>
             </section>
 
-            <RailContexto dispositivos={dispositivos} />
+            <SeccionDetalle titulo={t('lectura.flotaActividad')} className="col-span-12">
+              <TiraEstado
+                apilarGuia
+                etiqueta={t('dispositivos.resumenIoT')}
+                guia={<TextoGuia frase={fraseGuia(resumen, dispositivos)} />}
+                segmentos={segmentosTira(resumen, t)}
+              />
+              <RailContexto dispositivos={dispositivos} />
+              <ActividadReciente
+                id="actividad-flota"
+                titulo={t('dispositivos.actividad.titulo')}
+                eventos={eventos}
+                cargando={actividad.cargando}
+                error={actividad.error}
+                ahora={ahora}
+                className="col-span-12"
+                accion={
+                  <Link
+                    to="/alertas"
+                    className="inline-flex h-11 items-center rounded-(--radius-field) px-3 text-body font-medium text-primary-text transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
+                  >
+                    {t('dispositivos.actividad.verAlertas')}
+                  </Link>
+                }
+              />
+            </SeccionDetalle>
           </div>
-
-          {/* Con pocas filas, la actividad de la flota va a todo lo ancho bajo la
-              lista y el rail: así ambas columnas terminan casi a la par. */}
-          {visibles.length <= FILAS_CON_ACTIVIDAD && (
-            <ActividadReciente
-              id="actividad-flota"
-              titulo={t('dispositivos.actividad.titulo')}
-              eventos={eventos}
-              cargando={actividad.cargando}
-              error={actividad.error}
-              ahora={ahora}
-              className="col-span-12"
-              accion={
-                <Link
-                  to="/alertas"
-                  className="inline-flex h-11 items-center rounded-(--radius-field) px-3 text-body font-medium text-primary-text transition-colors duration-(--duration-micro) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:h-9 sm:pointer-coarse:h-11"
-                >
-                  {t('dispositivos.actividad.verAlertas')}
-                </Link>
-              }
-            />
-          )}
         </div>
       )}
 
@@ -312,7 +306,7 @@ function segmentosTira(resumen: ReturnType<typeof resumenFlota>, t: TFunction): 
     },
     { clave: 'sinDatos', etiqueta: t('dispositivos.sinDatos'), valor: resumen.sinDatos, tono: resumen.sinDatos > 0 ? 'sinDatos' : 'neutro' },
     { clave: 'fallas', etiqueta: t('dispositivos.fallasSensor'), valor: resumen.fallas, tono: resumen.fallas > 0 ? 'aviso' : 'neutro' },
-    { clave: 'buffer', etiqueta: t('dispositivos.bufferPendiente'), valor: resumen.buffer },
+    { clave: 'buffer', etiqueta: t('dispositivos.bufferPendiente'), valor: resumen.buffer, tono: resumen.buffer > 0 ? 'aviso' : 'neutro' },
     {
       clave: 'calibracion',
       etiqueta: t('dispositivos.tira.calibracion'),

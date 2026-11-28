@@ -46,7 +46,8 @@ describe('ruta /estado-servicio (solo administrador)', () => {
   it('el administrador la abre desde el menú y la página consulta /health/detalle', async () => {
     abrirComo('administrador')
     expect(await screen.findByRole('heading', { level: 1, name: 'Estado del servicio' }, { timeout: 15_000 })).toBeInTheDocument()
-    expect(await screen.findByText('Operativo', undefined, { timeout: 15_000 })).toBeInTheDocument()
+    // El adaptador solo informa de la base de datos. El resto de componentes queda por revisar.
+    expect(await screen.findByRole('heading', { name: 'Hay componentes que revisar' }, { timeout: 15_000 })).toBeInTheDocument()
     expect(adaptador.peticiones.some((p) => p.url === '/health/detalle')).toBe(true)
     expect(enlacesAEstado().length).toBeGreaterThan(0)
   }, 30_000)

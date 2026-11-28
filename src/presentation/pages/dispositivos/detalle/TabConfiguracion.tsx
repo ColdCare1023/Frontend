@@ -1,3 +1,4 @@
+import { SeccionDetalle } from '@/presentation/components/ui/seccion-detalle'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Cpu, History, Radio, Thermometer } from 'lucide-react'
@@ -32,7 +33,7 @@ export function TabConfiguracion({ dispositivo }: { dispositivo: Dispositivo }) 
         id="configuracion-historial"
         titulo={t('dispositivos.historialConfiguracion')}
         icono={History}
-        className="col-span-12 lg:col-span-7"
+        className="col-span-12"
       >
         <Segmentado<FiltroCambios>
           etiqueta={t('dispositivos.historialConfiguracion')}
@@ -49,7 +50,7 @@ export function TabConfiguracion({ dispositivo }: { dispositivo: Dispositivo }) 
         <LineaTiempoCambios cambios={cambios} cargando={cargando} campos={CAMPOS[filtro]} className="max-h-120 overflow-y-auto" />
       </Tarjeta>
 
-      <div className="col-span-12 grid gap-3 lg:col-span-5 xl:gap-4">
+      <SeccionDetalle titulo={t('lectura.diagnosticoEquipo')} className="col-span-12" open={dispositivo.sensores?.some((s) => s.estado === 'error') || undefined}>
         <Tarjeta id="configuracion-sensores" titulo={t('dispositivos.sensores')} icono={Thermometer}>
           {(dispositivo.sensores ?? []).length === 0 ? (
             <p className="text-meta text-muted">—</p>
@@ -96,7 +97,7 @@ export function TabConfiguracion({ dispositivo }: { dispositivo: Dispositivo }) 
             <p className="text-meta text-muted">—</p>
           )}
         </Tarjeta>
-      </div>
+      </SeccionDetalle>
     </div>
   )
 }

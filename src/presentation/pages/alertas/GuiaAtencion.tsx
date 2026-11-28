@@ -6,7 +6,7 @@ import { Link } from 'react-router'
  * filas y sin atendidas que mostrar (una instalación nueva): el hueco bajo la
  * bandeja se llena con el procedimiento, no con datos de relleno.
  */
-export function GuiaAtencion() {
+export function GuiaAtencion({ integrada = false }: { integrada?: boolean }) {
   const { t } = useTranslation()
   const pasos = ['revisar', 'registrar', 'verificar'] as const
   return (
@@ -27,7 +27,7 @@ export function GuiaAtencion() {
               <span className="block text-body font-medium text-foreground">{t(`alertas.guiaAtencion.${paso}`)}</span>
               <span className="block text-meta text-muted text-pretty">
                 {t(`alertas.guiaAtencion.${paso}Detalle`)}
-                {paso === 'verificar' && (
+                {paso === 'verificar' && !integrada && (
                   <>
                     {' '}
                     <Link to="/historial" className="font-medium text-primary-text underline-offset-2 hover:underline">

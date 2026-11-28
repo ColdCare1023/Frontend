@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next'
 import { HardDrive, Mail, MailCheck, MailWarning, MailX, type LucideIcon } from 'lucide-react'
 
+import { estadoDeEquipo, useEstadoVivoStore } from '@/application/stores/estadoVivoStore'
 import { estadoNotificacion, type AlertaTermica, type EstadoNotificacion } from '@/domain/entities/AlertaTermica'
-import { duracionLegible, fechaHora } from '@/lib/formato'
+import { duracionLegible, fechaHora, fechaHoraCompacta } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
 import { formatearTemperatura } from '../../components/ui/formato-cifra'
 import { Regla } from '../../components/ui/regla'
-import { Tooltip } from '../../components/ui/tooltip'
 
 /** Forma propia por estado del correo: nunca solo color (WCAG 1.4.1). */
 const CORREO: Record<EstadoNotificacion, { icono: LucideIcon; clase: string }> = {
@@ -54,44 +54,38 @@ export function PicoExcursion({ alerta, className }: { alerta: AlertaTermica; cl
 }
 
 /**
- * Evidencia secundaria en la fila (≥768): duración, correo e «Histórica» como
- * iconos con forma propia, tooltip y texto para lector de pantalla.
+ * Evidencia breve de la fila. El detalle conserva los cuatro estados de envío.
  */
 export function EvidenciaFila({ alerta }: { alerta: AlertaTermica }) {
   const { t } = useTranslation()
   const correo = useTextosCorreo(alerta)
-  const Correo = correo ? CORREO[correo.estado].icono : null
+  const falloCorreo = correo?.estado === 'no_entregada' || correo?.estado === 'reintentando'
   return (
-    <span className="flex items-center gap-1.5 text-meta text-faint">
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-meta text-muted">
       {alerta.duracion_s != null && (
         <span className="nums">
           <span className="sr-only">{t('alertas.duracion')} </span>
           {duracionLegible(alerta.duracion_s)}
         </span>
       )}
-      {correo && Correo && (
-        <Tooltip lado="top" contenido={`${correo.texto}. ${correo.ayuda}`}>
-          <button type="button" className={cn('inline-flex cursor-default rounded-sm focus-visible:outline-2 focus-visible:outline-ring', CORREO[correo.estado].clase)}>
-            <Correo aria-hidden className="size-3.5" />
-            <span className="sr-only">{correo.texto}</span>
-          </button>
-        </Tooltip>
+      {falloCorreo && (
+        <span className="inline-flex items-center gap-1 font-medium text-warning-700">
+          <MailWarning aria-hidden className="size-3.5" />
+          {correo.texto}
+        </span>
       )}
       {alerta.historica && (
-        <Tooltip lado="top" contenido={t('alertas.historicaAyuda')}>
-          <button type="button" className="inline-flex cursor-default rounded-sm text-warning-700 focus-visible:outline-2 focus-visible:outline-ring">
-            <HardDrive aria-hidden className="size-3.5" />
-            <span className="sr-only">{t('alertas.historica')}</span>
-          </button>
-        </Tooltip>
+        <span className="inline-flex items-center gap-1 text-muted">
+          <HardDrive aria-hidden className="size-3.5" />
+          {t('alertas.historica')}
+        </span>
       )}
     </span>
   )
 }
 
 /**
- * Correo e «Histórica» como texto con su ayuda VISIBLE (móvil y panel): en
- * táctil no hay hover, así que la explicación no puede vivir solo en un tooltip.
+ * Explicaciones de procedencia y entrega que se consultan en el panel.
  */
 export function AvisosEvidencia({ alerta, className }: { alerta: AlertaTermica; className?: string }) {
   const { t } = useTranslation()
@@ -125,6 +119,9 @@ export function AvisosEvidencia({ alerta, className }: { alerta: AlertaTermica; 
 /** Evidencia completa de la cabecera del panel: pico, duración, inicio y Regla M. */
 export function EvidenciaPanel({ alerta }: { alerta: AlertaTermica }) {
   const { t } = useTranslation()
+  const equipo = useEstadoVivoStore((s) => s.equipos.find((item) => item.id === alerta.device_id))
+  const ultima = useEstadoVivoStore((s) => s.ultimas[alerta.device_id])
+  const estadoEquipo = equipo ? estadoDeEquipo(equipo, ultima).clave : null
   const hayEvidencia = alerta.temperatura_pico != null || alerta.duracion_s != null || alerta.iniciada_en != null
   return (
     <section aria-label={t('alertas.panel.evidencia')} className="mt-4 space-y-3">
@@ -160,6 +157,15 @@ export function EvidenciaPanel({ alerta }: { alerta: AlertaTermica }) {
         </>
       ) : (
         <p className="text-meta text-faint">{t('alertas.panel.sinEvidencia')}</p>
+      )}
+      {equipo && alerta.estado !== 'atendida' && (
+        <p className="text-meta text-muted">
+          <strong className="text-foreground">{equipo.nombre || equipo.id}</strong>
+          {' · '}{t(`estadoVivo.estado.${estadoEquipo}`)}
+          {ultima?.temperatura != null && estadoEquipo !== 'falla_sensor' && (
+            <> · {t('lectura.ultimaMedicion', { valor: formatearTemperatura(ultima.temperatura), fecha: fechaHoraCompacta(ultima.timestamp) })}</>
+          )}
+        </p>
       )}
       <AvisosEvidencia alerta={alerta} />
     </section>

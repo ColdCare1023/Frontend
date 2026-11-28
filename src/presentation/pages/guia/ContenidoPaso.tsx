@@ -1,6 +1,5 @@
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
 import { ArrowRight, Bell, CircleCheck, History, Hourglass, Monitor, OctagonAlert, ShieldCheck, TriangleAlert } from 'lucide-react'
 
 import { useClasificacionPreventiva } from '@/application/hooks/useClasificacionPreventiva'
@@ -9,31 +8,29 @@ import { cn } from '@/lib/utils'
 import { Badge } from '../../components/ui/badge'
 import { formatearTemperatura } from '../../components/ui/formato-cifra'
 import { Regla } from '../../components/ui/regla'
+import { EnlaceGuia, type NavegacionGuia } from './EnlaceGuia'
 import { CONCEPTOS, GRUPOS, SECCIONES, type PasoId } from './contenidoGuia'
 
-const ENLACE = 'inline-flex items-center gap-1 text-meta font-medium text-primary-text underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring rounded-sm'
-
-function Rutina() {
+function Rutina({ navegacion, farmacia }: { navegacion?: NavegacionGuia; farmacia: boolean }) {
   const { t } = useTranslation()
   const pasos = [
     ['monitoreo', Monitor, '/dashboard', 'guia.pantallas.monitoreo.titulo'],
-    ['alerta', Bell, '/alertas', 'guia.pantallas.alertas.titulo'],
+    ['alerta', Bell, navegacion ? '/dashboard#alertas-monitoreo' : '/alertas', 'guia.pantallas.alertas.titulo'],
     ['historial', History, '/historial', 'guia.pantallas.historial.titulo'],
   ] as const
   return (
-    <ol className="grid gap-4 sm:grid-cols-3">
-      {pasos.map(([paso, Icono, ruta, pantalla], i) => (
-        <li key={paso} className="flex flex-col gap-1">
-          <span className="flex items-center gap-2">
-            <span className="nums text-meta text-faint">{String(i + 1).padStart(2, '0')}</span>
-            <Icono aria-hidden className="size-[18px] text-faint" />
-          </span>
-          <h3 className="text-body font-semibold text-foreground">{t(`guia.pasos.${paso}.titulo`)}</h3>
-          <p className="text-meta text-muted">{t(`guia.pasos.${paso}.descripcion`)}</p>
-          <Link to={ruta} className={ENLACE}>
-            {t('guia.abrirPantalla', { pantalla: t(pantalla) })}
-            <ArrowRight aria-hidden className="size-3.5" />
-          </Link>
+    <ol className="divide-y divide-border">
+      {pasos.map(([paso, Icono, ruta, pantalla]) => (
+        <li key={paso}>
+          <EnlaceGuia ruta={ruta} navegacion={navegacion} className="group flex min-h-14 w-full text-left items-center gap-3 rounded-(--radius-field) px-2 py-2.5 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring">
+            <Icono aria-hidden className="size-4 shrink-0 text-muted" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-body font-semibold text-foreground group-hover:underline">{t(`${farmacia ? 'guia.farmacia.pasos' : 'guia.pasos'}.${paso}.titulo`)}</span>{' '}
+              <span className="block text-meta text-muted">{t(`${farmacia ? 'guia.farmacia.pasos' : 'guia.pasos'}.${paso}.descripcion`)}</span>
+              {!navegacion && <span className="sr-only">{t('guia.abrirPantalla', { pantalla: t(pantalla) })}</span>}
+            </span>
+            <ArrowRight aria-hidden className="size-4 shrink-0 text-primary-text" />
+          </EnlaceGuia>
         </li>
       ))}
     </ol>
@@ -98,7 +95,7 @@ function Estados() {
   )
 }
 
-function Alertas() {
+function Alertas({ farmacia }: { farmacia: boolean }) {
   const { t } = useTranslation()
   return (
     <>
@@ -110,7 +107,7 @@ function Alertas() {
             </span>
             <div className="min-w-0">
               <h3 className="text-body font-semibold text-foreground">{t(`guia.alertaPasos.${paso}.titulo`)}</h3>
-              <p className="text-meta text-muted">{t(`guia.alertaPasos.${paso}.descripcion`)}</p>
+              <p className="text-meta text-muted">{t(farmacia && paso !== 'actuar' ? `guia.farmacia.alertas.${paso}` : `guia.alertaPasos.${paso}.descripcion`)}</p>
             </div>
           </li>
         ))}
@@ -132,9 +129,9 @@ function Alertas() {
   )
 }
 
-function Pantallas({ rol }: { rol: Rol | undefined }) {
+function Pantallas({ rol, navegacion }: { rol: Rol | undefined; navegacion?: NavegacionGuia }) {
   const { t } = useTranslation()
-  const visibles = SECCIONES.filter((s) => (rol ? tienePermiso(rol, s.roles) : false))
+  const visibles = SECCIONES.filter((s) => rol && tienePermiso(rol, s.roles) && (!navegacion || navegacion.disponibles.has(s.ruta)))
   const grupos = GRUPOS.map((grupo) => ({ grupo, secciones: visibles.filter((s) => s.grupo === grupo) })).filter(
     ({ secciones }) => secciones.length > 0,
   )
@@ -148,20 +145,20 @@ function Pantallas({ rol }: { rol: Rol | undefined }) {
               const Icono = s.icono
               return (
                 <li key={s.ruta} className="min-w-0">
-                  <Link
-                    to={s.ruta}
-                    className="group flex min-h-14 items-start gap-3 rounded-(--radius-field) p-3 transition-colors duration-(--duration-micro) ease-(--ease-hover) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  <EnlaceGuia
+                    ruta={s.ruta} navegacion={navegacion}
+                    className="group flex min-h-14 w-full text-left items-start gap-3 rounded-(--radius-field) p-3 transition-colors duration-(--duration-micro) ease-(--ease-hover) hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <Icono aria-hidden className="mt-0.5 size-[18px] shrink-0 text-faint" />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-body font-medium text-foreground underline-offset-4 group-hover:underline">{t(s.tituloKey)}</span>
+                      <span className="block text-body font-medium text-foreground underline-offset-4 group-hover:underline">{t(s.tituloKey)}</span>{' '}
                       <span className="block text-meta text-muted">{t(s.descripcionKey)}</span>
                     </span>
                     <ArrowRight
                       aria-hidden
                       className="mt-0.5 size-4 shrink-0 text-faint transition-transform duration-(--duration-micro) group-hover:translate-x-0.5"
                     />
-                  </Link>
+                  </EnlaceGuia>
                 </li>
               )
             })}
@@ -187,10 +184,11 @@ function Conceptos() {
 }
 
 /** Contenido de cada paso de la guía. */
-export function ContenidoPaso({ paso, rol }: { paso: PasoId; rol: Rol | undefined }) {
-  if (paso === 'inicio') return <Rutina />
+export function ContenidoPaso({ paso, rol, navegacion }: { paso: PasoId; rol: Rol | undefined; navegacion?: NavegacionGuia }) {
+  const farmacia = Boolean(navegacion && rol === 'farmaceutico')
+  if (paso === 'inicio') return <Rutina navegacion={navegacion} farmacia={farmacia} />
   if (paso === 'estados') return <Estados />
-  if (paso === 'alertas') return <Alertas />
-  if (paso === 'pantallas') return <Pantallas rol={rol} />
+  if (paso === 'alertas') return <Alertas farmacia={farmacia} />
+  if (paso === 'pantallas') return <Pantallas rol={rol} navegacion={navegacion} />
   return <Conceptos />
 }

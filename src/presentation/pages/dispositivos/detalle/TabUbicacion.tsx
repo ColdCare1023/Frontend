@@ -59,7 +59,7 @@ export function TabUbicacion({ dispositivo }: { dispositivo: Dispositivo }) {
                 </span>
               )}
             </Dato>
-            <Dato etiqueta={t('dispositivos.observaciones')} className="sm:col-span-2">{dispositivo.observaciones_instalacion || '—'}</Dato>
+            {dispositivo.observaciones_instalacion && <Dato etiqueta={t('dispositivos.observaciones')} className="sm:col-span-2">{dispositivo.observaciones_instalacion}</Dato>}
           </dl>
         }
         campos={(f, set) => (
@@ -209,7 +209,7 @@ function EditableEnLinea<F extends Record<string, string>>({
       }
     >
       {editando ? (
-        <form ref={contenedor} onSubmit={(e) => void enviar(e)} className="space-y-3 animate-(--animate-pop-in)">
+        <form ref={contenedor} onSubmit={(e) => void enviar(e)} className="space-y-3">
           {campos(form, setForm)}
           <MensajeFormulario mensaje={mensaje} />
           <PieFormulario>

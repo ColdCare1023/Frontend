@@ -29,7 +29,7 @@ const TONO: Record<ClaveEstado, TonoEstado> = {
  * volvió a 2–8 °C. Sale del estado en vivo que el shell ya cargó (píldora de
  * la cabecera): no pide nada nuevo y se actualiza con cada lectura del SSE.
  */
-export function EquiposAhora({ ahora }: { ahora: number }) {
+export function EquiposAhora({ ahora, integrada = false }: { ahora: number; integrada?: boolean }) {
   const { t } = useTranslation()
   const equipos = useEstadoVivoStore((s) => s.equipos)
   const ultimas = useEstadoVivoStore((s) => s.ultimas)
@@ -51,33 +51,39 @@ export function EquiposAhora({ ahora }: { ahora: number }) {
           const tono = TONO[estado.clave]
           const Icono = ICONO_ESTADO[tono]
           const temperatura = estado.clave === 'falla_sensor' ? null : lectura?.temperatura ?? null
+          const contenido = (
+            <>
+              <span className="min-w-0">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Icono aria-hidden className={cn('size-4 shrink-0', TEXTO_ESTADO[tono])} />
+                  <span className="codigo truncate text-body font-medium text-foreground">{equipo.id}</span>
+                  <span className={cn('shrink-0 text-meta', TEXTO_ESTADO[tono])}>{t(`estadoVivo.estado.${estado.clave}`)}</span>
+                </span>
+                <span className="mt-0.5 block truncate pl-6 text-meta text-faint">
+                  {[equipo.nombre, lectura ? t('alertas.ahora.lectura', { hace: haceCuanto(lectura.timestamp, ahora) }) : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </span>
+              <span className="flex items-center gap-3 max-sm:col-start-1 max-sm:row-start-2 max-sm:pl-6">
+                <Regla valor={temperatura} tono={tono} tamano="s" decorativa />
+                <span className="nums w-16 text-right text-body font-semibold text-foreground max-sm:text-left">
+                  {temperatura !== null ? formatearTemperatura(temperatura) : '—'}
+                </span>
+              </span>
+              {!integrada && <ChevronRight aria-hidden className="size-4 text-faint max-sm:row-span-2 max-sm:row-start-1 max-sm:col-start-2" />}
+            </>
+          )
+          const claseFila = "grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
           return (
             <li key={equipo.id}>
-              <Link
-                to="/dashboard"
-                state={{ equipo: equipo.id }}
-                className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-2 transition-colors duration-(--duration-micro) ease-(--ease-hover) hover:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring sm:grid-cols-[minmax(0,1fr)_auto_auto]"
-              >
-                <span className="min-w-0">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <Icono aria-hidden className={cn('size-4 shrink-0', TEXTO_ESTADO[tono])} />
-                    <span className="codigo truncate text-body font-medium text-foreground">{equipo.id}</span>
-                    <span className={cn('shrink-0 text-meta', TEXTO_ESTADO[tono])}>{t(`estadoVivo.estado.${estado.clave}`)}</span>
-                  </span>
-                  <span className="mt-0.5 block truncate pl-6 text-meta text-faint">
-                    {[equipo.nombre, lectura ? t('alertas.ahora.lectura', { hace: haceCuanto(lectura.timestamp, ahora) }) : null]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                </span>
-                <span className="flex items-center gap-3 max-sm:col-start-1 max-sm:row-start-2 max-sm:pl-6">
-                  <Regla valor={temperatura} tono={tono} tamano="s" decorativa />
-                  <span className="nums w-16 text-right text-body font-semibold text-foreground max-sm:text-left">
-                    {temperatura !== null ? formatearTemperatura(temperatura) : '—'}
-                  </span>
-                </span>
-                <ChevronRight aria-hidden className="size-4 text-faint max-sm:row-span-2 max-sm:row-start-1 max-sm:col-start-2" />
-              </Link>
+              {integrada ? (
+                <div className={claseFila}>{contenido}</div>
+              ) : (
+                <Link to="/dashboard" state={{ equipo: equipo.id }} className={cn(claseFila, 'hover:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring')}>
+                  {contenido}
+                </Link>
+              )}
             </li>
           )
         })}

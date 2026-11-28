@@ -24,6 +24,7 @@ test('historial agrupa por día, expande una lectura y abre el origen del riesgo
 test('auditoría: el auditor filtra por resultado en el servidor y expande una fila con IP y recurso', async ({ page }) => {
   await entrar(page, 'Auditor Consulta de registros')
   await irA(page, '/auditoria')
+  await page.getByRole('button', { name: 'Filtros', exact: true }).click()
   await page.getByLabel('Resultado', { exact: true }).selectOption('fallido')
   await expect(page.getByText('Resultado: Fallido', { exact: true })).toBeVisible()
   const tabla = page.locator('[role="region"][aria-label="Bitácora de auditoría"]')
@@ -54,6 +55,7 @@ test('registros a 375 y 768 px: filas compactas sin desborde horizontal', async 
 test('registros respetan roles: el técnico no ve Aislar ni entra a Auditoría', async ({ page }) => {
   await entrar(page, 'Técnico de Farmacia')
   await irA(page, '/trazabilidad')
+  await page.locator('summary').filter({ hasText: 'Herramientas de revisión' }).click()
   await page.getByRole('button', { name: 'Simular inconsistencia (demo)' }).click()
   await expect(page.getByText('Alteración detectada')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Aislar registro corrupto' })).toHaveCount(0)

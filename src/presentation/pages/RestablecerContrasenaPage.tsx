@@ -7,7 +7,6 @@ import { consumirTokenDelEnlace, restablecerPassword } from '@/infrastructure/au
 import { AuthShell } from '../components/auth/AuthShell'
 import { CamposPasswordNueva } from '../components/auth/CamposPasswordNueva'
 import { errorPasswordNueva } from '../components/auth/errorPasswordNueva'
-import { ColdCareBrandPanel } from '../components/auth/ColdCareBrandPanel'
 
 /**
  * FE-004: restablecimiento con el enlace de un solo uso que envía el backend
@@ -46,7 +45,7 @@ export function RestablecerContrasenaPage() {
   }
 
   return (
-    <AuthShell brandPanel={<ColdCareBrandPanel />}>
+    <AuthShell>
       <div className="flex flex-col">
         <div className="mb-7">
           <Link
@@ -56,9 +55,9 @@ export function RestablecerContrasenaPage() {
             <ArrowLeft className="size-3.5" aria-hidden />
             <span>{t('recuperarContrasena.volverLogin')}</span>
           </Link>
-          <h2 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
+          <h1 className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em] text-foreground">
             {t('restablecerContrasena.titulo')}
-          </h2>
+          </h1>
           <p className="mt-2 text-base leading-6 text-muted">{t('restablecerContrasena.subtitulo')}</p>
         </div>
 

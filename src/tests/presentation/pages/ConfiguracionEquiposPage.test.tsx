@@ -39,12 +39,27 @@ describe('ConfiguracionEquiposPage — HU-49: historial de configuración para e
     const lista = screen.getByRole('list')
     const [intervalo, ubicacion] = within(lista).getAllByRole('listitem')
     expect(intervalo).toHaveTextContent('Intervalo de reporte')
-    expect(intervalo).toHaveTextContent(/60\s*→\s*30/)
+    expect(intervalo).toHaveTextContent(/60 s\s*→\s*30 s/)
     expect(intervalo).toHaveTextContent('Por Ana Admin')
     expect(intervalo).toHaveTextContent('origen: administrador')
     expect(intervalo).toHaveTextContent(/vigente desde el .* \(actual\)/i)
     expect(ubicacion).toHaveTextContent('Por el sistema')
     expect(ubicacion).toHaveTextContent(/vigente del .* al /i)
+  })
+
+  it('muestra unidades en duraciones numéricas y respeta el texto histórico y los valores ausentes', () => {
+    const antiguos = [
+      { campo: 'intervalo_reporte_segundos (administrador)', valor_anterior: null, valor_nuevo: '45' },
+      { campo: 'margen_aviso_calibracion_dias', valor_anterior: '1', valor_nuevo: '30' },
+      { campo: 'intervalo_reporte_segundos', valor_anterior: '90 s', valor_nuevo: 'sin configurar' },
+      { campo: 'numero_certificado_calibracion', valor_anterior: '0012', valor_nuevo: null },
+    ]
+    montar({ cambios: antiguos.map((c, i) => ({ ...CAMBIOS[0], ...c, id: `c-${i}`, campo_base: null })) })
+    const filas = within(screen.getByRole('list')).getAllByRole('listitem')
+    expect(filas[0]).toHaveTextContent('— → 45 s')
+    expect(filas[1]).toHaveTextContent('1 día → 30 días')
+    expect(filas[2]).toHaveTextContent('90 s → sin configurar')
+    expect(filas[3]).toHaveTextContent('0012 → —')
   })
 
   it('filtra por categoría en el servidor', async () => {
