@@ -16,7 +16,7 @@ test('HU-36: la curva y el resumen cubren el periodo y la tabla pagina en el ser
   await irA(page, '/historial?device_id=FARM-01-CDL')
   const tira = page.getByRole('region', { name: 'Resumen del periodo' })
   await expect(tira).toBeVisible()
-  const resultados = page.getByText(/\d+ lecturas en el periodo/)
+  const resultados = page.getByText(/^\d+ lecturas · /).first()
   await expect(resultados).toBeVisible()
   const total = Number((await resultados.textContent())?.match(/(\d+)/)?.[1])
   await page.getByText('Curva del periodo', { exact: true }).filter({ visible: true }).click()
@@ -54,7 +54,7 @@ test('HU-36 esc. 2: un rango sin telemetría muestra el texto literal del criter
   await page.getByRole('button', { name: 'Filtros', exact: true }).click()
   await page.getByLabel('Desde', { exact: true }).fill('2020-01-01T00:00')
   await page.getByLabel('Hasta', { exact: true }).fill('2020-01-02T00:00')
-  await page.getByRole('button', { name: 'Aplicar filtros' }).click()
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click()
   await expect(page.getByText('Sin datos registrados en el rango seleccionado')).toBeVisible()
 })
 

@@ -244,8 +244,8 @@ for (const ancho of [1440, 390]) {
     await page.keyboard.press('Escape')
     await expect(panel).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Consultas', exact: true }).click()
-    const consultas = page.getByRole('dialog', { name: 'Consultas' })
+    await page.getByRole('button', { name: 'Historial y reportes', exact: true }).click()
+    const consultas = page.getByRole('dialog', { name: 'Historial y reportes' })
     if (ancho < 640) {
       await consultas.getByRole('combobox', { name: 'Elegir consulta' }).selectOption('/alertas')
     } else {
