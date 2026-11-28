@@ -103,7 +103,6 @@ export function FormularioAccionCorrectiva({
           }
         }}
       >
-        <p className="text-meta text-muted">{t('alertas.panel.camposObligatorios')}</p>
         {CAMPOS.map((campo) => {
           const valor = borrador[campo]
           const idAyuda = `${ID[campo]}-ayuda`
@@ -128,7 +127,7 @@ export function FormularioAccionCorrectiva({
                 readOnly={estado !== 'editando'}
               />
               {campo === 'descripcion' && (
-                <p id={idAyuda} className="mt-1 text-meta text-faint">
+                <p id={idAyuda} className="sr-only">
                   {t('alertas.descripcionAccionAyuda')}
                 </p>
               )}
@@ -164,7 +163,11 @@ export function FormularioAccionCorrectiva({
           {completo ? (
             <span className="pointer-coarse:hidden">{t('alertas.panel.atajo')}</span>
           ) : (
-            t('alertas.panel.faltan', { campos: faltan.map((c) => t(ETIQUETA[c]).toLowerCase()).join(', ') })
+            <>
+              {/* A la vista, solo cuántos faltan; el detalle lo lee el lector de pantalla. */}
+              <span aria-hidden>{t('alertas.panel.faltanCorto', { count: faltan.length })}</span>
+              <span className="sr-only">{t('alertas.panel.faltan', { campos: faltan.map((c) => t(ETIQUETA[c]).toLowerCase()).join(', ') })}</span>
+            </>
           )}
         </p>
         <Button variant="ghost" onClick={onCancelar} disabled={estado === 'guardando'}>

@@ -5,7 +5,7 @@ import { CircleCheck } from 'lucide-react'
 
 import type { CambiosRectificacion, ResultadoAccionAlerta, ResultadoRectificacion } from '@/application/hooks/useAlertas'
 import type { AccionCorrectiva, AlertaTermica } from '@/domain/entities/AlertaTermica'
-import { fechaHora } from '@/lib/formato'
+import { fechaHoraCompacta } from '@/lib/formato'
 import { RiskBadge } from '../../components/RiskBadge'
 import { Button } from '../../components/ui/button'
 import { PuntoEstado } from '../../components/ui/estado'
@@ -24,6 +24,21 @@ import { EvidenciaPanel } from './EvidenciaAlerta'
 import { FormularioAccionCorrectiva } from './FormularioAccionCorrectiva'
 import { BORRADOR_VACIO, type BorradorAccion, type PestanaPanel, type PuedeRectificar } from './tipos'
 import { tituloAlerta } from './tituloAlerta'
+
+/**
+ * El badge ya dice «Excursión crítica»: el título no lo repite.
+ * «Excursión crítica: la temperatura…» pasa a «La temperatura…».
+ */
+function sinPrefijoRiesgo(titulo: string, riesgo: string | null): string {
+  if (!riesgo || !titulo.toLowerCase().startsWith(`${riesgo.toLowerCase()}:`)) return titulo
+  const resto = titulo.slice(riesgo.length + 1).trim()
+  return resto ? conGrados(resto.charAt(0).toUpperCase() + resto.slice(1)) : titulo
+}
+
+/** El backend escribe «2-8 C.»: se muestra «2–8 °C.» sin cortes. */
+function conGrados(texto: string): string {
+  return texto.replace(/(\d)\s?-\s?(\d)/g, '$1\u2060–\u2060$2').replace(/(\d)\s?C(?=[\s.,;]|$)/g, '$1\u00a0°C')
+}
 
 /** «Registrada» se ve un instante antes de pasar a la cronología. */
 const PAUSA_REGISTRADA_MS = 600
@@ -193,9 +208,9 @@ function ContenidoPanel({
             {t(`alertas.estadoAlerta.${alerta.estado}`)}
           </span>
         </div>
-        <SidePanelTitle className="mt-2 text-balance">{tituloAlerta(alerta, t, i18n.resolvedLanguage)}</SidePanelTitle>
+        <SidePanelTitle className="mt-2 text-balance">{sinPrefijoRiesgo(tituloAlerta(alerta, t, i18n.resolvedLanguage), alerta.nivel_riesgo ? t(`riesgo.${alerta.nivel_riesgo}`) : null)}</SidePanelTitle>
         <SidePanelDescription className="nums mt-1 text-meta text-faint">
-          <span className="codigo">{alerta.device_id}</span> · {fechaHora(alerta.created_at)}
+          <span className="codigo">{alerta.device_id}</span> · {fechaHoraCompacta(alerta.created_at)}
         </SidePanelDescription>
         <EvidenciaPanel alerta={alerta} />
         {reconocer && puedeRegistrar && alerta.estado === 'pendiente' && resultadoReconocer !== 'ok' && (
