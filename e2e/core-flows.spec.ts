@@ -87,10 +87,9 @@ test('administrador puede abrir herramientas de administración en demo', async 
   await expect(page).toHaveURL(/\/dashboard$/)
 
   const nav = page.getByRole('navigation', { name: 'Navegación principal', exact: true })
-  const seccion = nav.locator('summary', { hasText: 'Administración' })
-  await expect(nav.getByRole('link', { name: 'Usuarios' })).toBeHidden()
-  await seccion.focus()
-  await page.keyboard.press('Enter')
+  // OE2.I3 §1.2: navegación persistente, los tres grupos siempre a la vista.
+  await expect(nav.getByText('Administración', { exact: true })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Usuarios' })).toBeVisible()
   for (const [ruta, titulo] of [
     ['/usuarios', 'Usuarios'],
     ['/dispositivos', 'Equipos de medición'],
