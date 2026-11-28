@@ -1,5 +1,4 @@
-import { ChevronDown } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router'
+import { NavLink } from 'react-router'
 import { useTranslation } from 'react-i18next'
 
 import { useAuthStore } from '@/application/stores/authStore'
@@ -57,7 +56,6 @@ export function NavegacionPrincipal({
   compacto?: boolean
 }) {
   const { t } = useTranslation()
-  const { pathname } = useLocation()
   const usuario = useAuthStore((s) => s.usuario)
   if (!usuario) return null
 
@@ -113,21 +111,10 @@ export function NavegacionPrincipal({
               ))}
             </ul>
         )
-        if (seccion.claveI18n !== 'nav.seccionOperacion' && !compacto) {
-          const activa = seccion.items.some(({ ruta }) => pathname === ruta || pathname.startsWith(ruta + '/'))
-          return (
-            <details key={seccion.claveI18n} open={activa} className="group/seccion border-t border-border pt-1">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-(--radius-field) px-3 text-body font-medium text-muted hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                <span id={idTitulo}>{t(seccion.claveI18n)}</span>
-                <ChevronDown aria-hidden className="size-4 transition-transform group-open/seccion:rotate-180" />
-              </summary>
-              {enlaces}
-            </details>
-          )
-        }
+        // Navegación persistente (OE2.I3 §1.2): los tres grupos siempre a la vista.
         return (
           <div key={seccion.claveI18n}>
-            <p id={idTitulo} className={cn('mb-1 truncate px-3 text-meta font-medium text-faint', compacto && 'sr-only')}>
+            <p id={idTitulo} className={cn('eyebrow mb-1 truncate px-3', compacto && 'sr-only')}>
               {t(seccion.claveI18n)}
             </p>
             {enlaces}

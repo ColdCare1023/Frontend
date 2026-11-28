@@ -52,11 +52,8 @@ function lectura(overrides: Partial<LecturaTermica> = {}): LecturaTermica {
   }
 }
 
-// Lecturas recientes y diagnóstico comparten un solo desplegable «Más detalles».
-function abrirMasDetalles() {
-  const resumen = screen.getByText('Más detalles', { exact: true })
-  if (!resumen.closest('details')?.open) fireEvent.click(resumen)
-}
+// OE2.I3 (Fig. 3): lecturas recientes y la tarjeta del equipo ya están a la vista.
+function abrirMasDetalles() {}
 
 function abrirDiagnostico() {
   abrirMasDetalles()
@@ -175,6 +172,22 @@ describe('DashboardPage — «Normal» sin clasificación de la IA', () => {
     expect(celda.getByTestId('riesgo-sin-clasificacion')).toHaveTextContent('Sin clasificación IA')
     expect(celda.queryByText('Normal')).not.toBeInTheDocument()
     expect(celda.getAllByText(/el modelo no clasificó esta lectura/i).length).toBeGreaterThan(0)
+  })
+
+  it('HU-34 esc. 2: en modo sombra la clase preventiva se rotula y el estado sigue Normal', () => {
+    renderizar(lectura({
+      timestamp: new Date().toISOString(), estado_riesgo: 'normal', riesgo_efectivo: 'normal',
+      ia_sombra: { clase: 'riesgo_preventivo', modelo_version: 'rf-preventivo-h30-termico-puerta-1.0.0' },
+    }))
+
+    const celda = within(screen.getByTestId('celda-lectura'))
+    expect(celda.getByTestId('ia-modo-sombra')).toHaveTextContent('IA en modo sombra')
+    expect(celda.getAllByText('Normal').length).toBeGreaterThan(0)
+  })
+
+  it('HU-34 esc. 2: sin clase preventiva en sombra no hay rótulo', () => {
+    renderizar(lectura({ timestamp: new Date().toISOString(), estado_riesgo: 'normal', ia_sombra: { clase: 'normal', modelo_version: null } }))
+    expect(within(screen.getByTestId('celda-lectura')).queryByTestId('ia-modo-sombra')).not.toBeInTheDocument()
   })
 
   it('HU-34 esc. 4: usa el estado_riesgo del backend aunque riesgo_efectivo diga normal', () => {

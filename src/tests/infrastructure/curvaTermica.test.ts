@@ -140,8 +140,12 @@ describe('curva térmica', () => {
     expect(interna.data.filter(([, valor]) => valor === null)).toHaveLength(1)
   })
 
-  it('a la cadencia del nodo (30 s) mantiene el umbral de SIN_DATOS', () => {
-    expect(umbralHueco([lectura(0, 5), lectura(30, 5), lectura(60, 5), lectura(400, 5)])).toBe(HUECO_SIN_DATOS_MS)
+  it('a la cadencia del nodo (10 s) mantiene el umbral de SIN_DATOS (3 × 10 s)', () => {
+    expect(umbralHueco([lectura(0, 5), lectura(10, 5), lectura(20, 5), lectura(400, 5)])).toBe(HUECO_SIN_DATOS_MS)
+  })
+
+  it('con lecturas históricas a 30 s no corta la curva entre muestras seguidas', () => {
+    expect(umbralHueco([lectura(0, 5), lectura(30, 5), lectura(60, 5), lectura(400, 5)])).toBe(30_000 * 2.5)
   })
 
   it('con varios equipos dibuja una línea por equipo en vez de saltar entre ellos', () => {

@@ -855,7 +855,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 5000,
+              "maximum": 10000,
               "minimum": 1,
               "default": 100,
               "title": "Limite"
@@ -3268,6 +3268,65 @@
         }
       }
     },
+    "/api/dispositivos/{device_id}/sensores": {
+      "patch": {
+        "tags": [
+          "dispositivos"
+        ],
+        "summary": "Actualizar Sensores Habilitados",
+        "description": "HU-49 esc. 1: cambia los sensores habilitados (p. ej. MC-38 instalado o\nretirado). El cambio queda en el historial de configuración y en la\nbitácora; la telemetría anterior y sus hashes no se tocan (esc. 3).",
+        "operationId": "actualizar_sensores_habilitados_api_dispositivos__device_id__sensores_patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,50}$",
+              "title": "Device Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensoresHabilitadosRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispositivoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/dispositivos/{device_id}/instalacion": {
       "patch": {
         "tags": [
@@ -3887,7 +3946,7 @@
           "health"
         ],
         "summary": "Health Detalle",
-        "description": "HU-56: estado de las dependencias para el operador (solo administrador).",
+        "description": "HU-55: estado de las dependencias para el operador (solo administrador).",
         "operationId": "health_detalle_health_detalle_get",
         "responses": {
           "200": {
@@ -5850,7 +5909,7 @@
           "intervalo_reporte_segundos": {
             "type": "integer",
             "title": "Intervalo Reporte Segundos",
-            "default": 30
+            "default": 10
           },
           "ultimo_latido_en": {
             "anyOf": [
@@ -6253,7 +6312,7 @@
           "intervalo_reporte_segundos": {
             "type": "integer",
             "title": "Intervalo Reporte Segundos",
-            "default": 30
+            "default": 10
           },
           "ultimo_latido_en": {
             "anyOf": [
@@ -6944,6 +7003,35 @@
         ],
         "title": "HistorialConfiguracionResponse"
       },
+      "IaSombraResponse": {
+        "properties": {
+          "clase": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "riesgo_preventivo"
+            ],
+            "title": "Clase"
+          },
+          "modelo_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelo Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clase"
+        ],
+        "title": "IaSombraResponse",
+        "description": "HU-34 esc. 2: salida del modelo preventivo en modo sombra (sin efecto operativo)."
+      },
       "IncidenteOperativoResponse": {
         "properties": {
           "id": {
@@ -7589,6 +7677,16 @@
             "type": "boolean",
             "title": "Ia Experimental",
             "default": false
+          },
+          "ia_sombra": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IaSombraResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "estado_sensores": {
             "anyOf": [
@@ -8324,6 +8422,26 @@
           "campo_telemetria"
         ],
         "title": "SensorIoTResponse"
+      },
+      "SensoresHabilitadosRequest": {
+        "properties": {
+          "sensores_habilitados": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Sensores Habilitados"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sensores_habilitados"
+        ],
+        "title": "SensoresHabilitadosRequest",
+        "description": "HU-49: sensores habilitados del nodo (DS18B20 obligatorio)."
       },
       "SerieTermicaResponse": {
         "properties": {

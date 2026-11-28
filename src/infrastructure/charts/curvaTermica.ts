@@ -6,11 +6,12 @@ import { fechaHora, hora as formatearHora } from '@/lib/formato'
 import { temaGrafica, type TemaGrafica } from './temaColdCare'
 
 /**
- * Sin una lectura en este lapso el nodo se considera SIN_DATOS (HU-33): la
- * curva se corta en vez de unir con una recta dos muestras separadas por un
- * apagón, que dibujaría temperaturas que nadie midió.
+ * Sin una lectura en este lapso el nodo se considera SIN_DATOS (HU-54: 3 ×
+ * el intervalo vigente de 10 s, desde el 14/11/2026): la curva se corta en
+ * vez de unir con una recta dos muestras separadas por un apagón, que
+ * dibujaría temperaturas que nadie midió.
  */
-export const HUECO_SIN_DATOS_MS = 90_000
+export const HUECO_SIN_DATOS_MS = 30_000
 
 // Más episodios que esto en pantalla ya no se distinguen entre sí; se marcan
 // las franjas igual, pero el marcador de inicio solo en los más recientes.
@@ -24,9 +25,10 @@ const FACTOR_CADENCIA_HUECO = 2.5
 export const FRACCION_MINIMA_ETIQUETA_HUECO = 0.04
 
 /**
- * Umbral efectivo de hueco: el de SIN_DATOS (HU-33) mientras la serie llegue
- * con la cadencia del nodo (30 s). Si llega remuestreada a un paso mayor —la
- * demo genera una lectura cada 10 min— cada intervalo superaba los 90 s y la
+ * Umbral efectivo de hueco: el de SIN_DATOS (HU-54) mientras la serie llegue
+ * con la cadencia del nodo (10 s). Con lecturas históricas a 30 s el umbral
+ * sube a 75 s. Si llega remuestreada a un paso mayor —la demo genera una
+ * lectura cada 10 min— cada intervalo superaba el umbral fijo y la
  * curva entera se cortaba en puntos sueltos que no se dibujaban. Se usa el
  * percentil 25 de los intervalos para que los propios huecos no lo inflen.
  */

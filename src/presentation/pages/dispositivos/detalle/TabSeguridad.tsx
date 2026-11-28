@@ -216,6 +216,12 @@ function ConsolaBroker({ dispositivo }: { dispositivo: Dispositivo }) {
             }
           >
             {t(`dispositivos.brokerPendiente.${dispositivo.broker_pendiente}`)}
+            {/* HU-44 esc. 3: el motivo distingue la operación manual de un fallo de la API del broker. */}
+            {dispositivo.broker_pendiente_motivo && (
+              <span className="block text-meta text-muted">
+                {t(`dispositivos.brokerPendienteMotivo.${dispositivo.broker_pendiente_motivo}`, { defaultValue: dispositivo.broker_pendiente_motivo })}
+              </span>
+            )}
           </Aviso>
           <div>
             <Label htmlFor="broker-nota">{t('dispositivos.notaBroker')}</Label>

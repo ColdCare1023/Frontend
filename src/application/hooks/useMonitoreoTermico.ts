@@ -9,10 +9,11 @@ import { suscribirseLecturas, type AvisoDispositivo, type MotivoDesconexionSse }
 // relación con el tiempo real transcurrido).
 export const VENTANA_HORAS_POR_DEFECTO = 24
 
-// Techo defensivo de memoria: a 30 s/lectura, 24 h son ~2880 puntos por
-// dispositivo — lejos de este límite. Sin él, un rango ampliado a semanas
+// Techo defensivo de memoria: a 10 s/lectura (intervalo vigente desde el
+// 14/11/2026), 24 h son 8 640 puntos por dispositivo; el techo deja margen
+// para que la vista de 24 h no se corte. Sin él, un rango ampliado a semanas
 // podría acumular sin fin en el navegador.
-export const MAX_LECTURAS_EN_MEMORIA = 5000
+export const MAX_LECTURAS_EN_MEMORIA = 10_000
 
 /**
  * HU-31: cuántas lecturas trajo el historial y cuántas hay en la ventana

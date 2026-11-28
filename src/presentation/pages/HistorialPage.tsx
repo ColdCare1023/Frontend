@@ -153,6 +153,8 @@ export function HistorialPage({ integrada = false, equipoId }: { integrada?: boo
     chips.push({ clave: 'equipo', texto: t('historial.filtro.chipEquipo', { valor: aplicados.device_id }), quitar: () => consultarCon({ ...aplicados, device_id: undefined }) })
   if (aplicados.riesgo_efectivo)
     chips.push({ clave: 'riesgo', texto: t('historial.filtro.chipRiesgo', { valor: t(`riesgo.${aplicados.riesgo_efectivo}`) }), quitar: () => consultarCon({ ...aplicados, riesgo_efectivo: undefined }) })
+  if (aplicados.estado_conectividad)
+    chips.push({ clave: 'conexion', texto: t('historial.filtro.chipConexion', { valor: t(`conectividad.${aplicados.estado_conectividad}`) }), quitar: () => consultarCon({ ...aplicados, estado_conectividad: undefined }) })
   if (aplicados.desde || aplicados.hasta) {
     const desde = aplicados.desde ? fechaHora(aplicados.desde) : ''
     const hasta = aplicados.hasta ? fechaHora(aplicados.hasta) : ''
@@ -249,7 +251,7 @@ export function HistorialPage({ integrada = false, equipoId }: { integrada?: boo
       <form
         role="search"
         aria-label={t('historial.filtro.etiqueta')}
-        className={cn('grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4', masFiltros && 'lg:grid-cols-4')}
+        className={cn('grid grid-cols-1 items-end gap-x-3 gap-y-2 border-b border-border px-3 py-2.5 sm:grid-cols-2 sm:px-4', masFiltros && 'lg:grid-cols-5')}
         onSubmit={(e) => {
           e.preventDefault()
           consultarCon(filtros)
@@ -267,18 +269,26 @@ export function HistorialPage({ integrada = false, equipoId }: { integrada?: boo
               abierto={masFiltros}
               onCambiar={setMasFiltros}
               controla="historial-mas-filtros"
-              activos={(aplicados.riesgo_efectivo ? 1 : 0) + (aplicados.desde || aplicados.hasta ? 1 : 0)}
+              activos={(aplicados.riesgo_efectivo ? 1 : 0) + (aplicados.estado_conectividad ? 1 : 0) + (aplicados.desde || aplicados.hasta ? 1 : 0)}
               texto={t('historial.filtro.mas')}
               textoActivos={(count) => t('historial.filtro.masActivos', { count })}
             />
           </div>
         </div>
         <div id="historial-mas-filtros" className={cn('grid-cols-1 gap-x-3 gap-y-2 min-[480px]:grid-cols-2', masFiltros ? 'grid sm:contents' : 'hidden')}>
-          <div className="min-w-0 min-[480px]:max-sm:col-span-2">
+          <div className="min-w-0">
             <Label htmlFor="f-riesgo" className="text-meta text-muted">{t('historial.nivelRiesgo')}</Label>
             <NativeSelect id="f-riesgo" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.riesgo_efectivo ?? ''} onChange={(e) => consultarCon({ ...filtros, riesgo_efectivo: e.target.value || undefined })}>
               <option value="">{t('historial.todosNiveles')}</option>
               {NIVELES_RIESGO.map((nivel) => <option key={nivel} value={nivel}>{t(`riesgo.${nivel}`)}</option>)}
+            </NativeSelect>
+          </div>
+          <div className="min-w-0">
+            <Label htmlFor="f-conexion" className="text-meta text-muted">{t('historial.filtro.conexion')}</Label>
+            <NativeSelect id="f-conexion" className="h-9 max-sm:h-11 pointer-coarse:h-11" value={filtros.estado_conectividad ?? ''} onChange={(e) => consultarCon({ ...filtros, estado_conectividad: e.target.value || undefined })}>
+              <option value="">{t('historial.filtro.todasConexiones')}</option>
+              <option value="online">{t('conectividad.online')}</option>
+              <option value="offline">{t('conectividad.offline')}</option>
             </NativeSelect>
           </div>
           <div className="min-w-0">

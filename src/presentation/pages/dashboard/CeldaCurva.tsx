@@ -353,9 +353,7 @@ export const CeldaCurva = memo(function CeldaCurva({
       </p>
       <div className={clsx("mt-3 min-h-0", hayDatos ? "h-[165px] sm:h-[185px]" : "min-h-16 [&>div]:min-h-16")}>{cuerpo}</div>
       {resumen && (
-        <details className="mt-1 text-meta text-muted">
-          <summary className="w-fit cursor-pointer rounded-sm py-2 font-medium focus-visible:outline-ring">{t('dashboard.estadisticasCurva')}</summary>
-          <dl className="mb-2 flex flex-wrap gap-x-5 gap-y-1 text-meta text-muted">
+        <dl aria-label={t('dashboard.estadisticasCurva')} className="mt-3 grid grid-cols-2 gap-y-3 border-t border-border pt-3 text-meta text-muted sm:grid-cols-4 sm:divide-x sm:divide-border">
           {(
             [
               ['dashboard.resumenMinima', `${resumen.minima.toFixed(1)} °C`, false],
@@ -364,16 +362,15 @@ export const CeldaCurva = memo(function CeldaCurva({
               ['dashboard.resumenFueraRango', String(resumen.fueraDeRango), resumen.fueraDeRango > 0],
             ] as const
           ).map(([clave, valor, alerta]) => (
-            <div key={clave} className="flex items-baseline gap-1.5">
+            <div key={clave} className="flex min-w-0 flex-col items-center gap-0.5 px-2 text-center">
               <dt>{t(clave)}</dt>
-              <dd className={clsx('nums flex items-center gap-1 text-body font-semibold', alerta ? 'text-danger-700' : 'text-foreground')}>
+              <dd className={clsx('nums flex items-center gap-1 text-title', alerta ? 'text-danger-700' : 'text-foreground')}>
                 {alerta && <OctagonAlert aria-hidden className="size-3.5" />}
                 {valor}
               </dd>
             </div>
           ))}
-          </dl>
-        </details>
+        </dl>
       )}
     </section>
   )

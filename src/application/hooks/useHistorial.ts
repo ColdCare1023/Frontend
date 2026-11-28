@@ -11,6 +11,8 @@ export interface FiltrosHistorial {
   device_id?: string
   /** HU-36 / B-14: riesgo efectivo, el mismo que muestra la tabla (no la clase cruda). */
   riesgo_efectivo?: string
+  /** RF-12 / OE2.I3: conexión del equipo al registrar la lectura (online/offline). */
+  estado_conectividad?: string
   desde?: string
   hasta?: string
 }
@@ -96,6 +98,7 @@ export function useHistorial(inicial: FiltrosHistorial = {}, tamanoPagina = TAMA
     }
     if (filtros.device_id) params.device_id = filtros.device_id
     if (filtros.riesgo_efectivo) params.riesgo_efectivo = filtros.riesgo_efectivo
+    if (filtros.estado_conectividad) params.estado_conectividad = filtros.estado_conectividad
     const respuesta = await apiClient.get<LecturaTermica[]>('/api/lecturas', { params })
     if (propio !== turnoPagina.current) return null
     const filas = Array.isArray(respuesta.data) ? respuesta.data : []
