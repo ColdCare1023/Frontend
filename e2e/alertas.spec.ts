@@ -36,7 +36,7 @@ test('HU-23: la acción sobre una PENDIENTE la reconoce y la cronología lo mues
   await accionAlerta(page, /registrar acción correctiva/i)
   const panel = page.getByRole('dialog')
   await panel.getByLabel('Decisión adoptada').fill('Cuarentena del lote')
-  await panel.getByLabel('Descripción de la acción correctiva').fill('Se trasladó el lote al equipo de respaldo.')
+  await panel.getByLabel('Acción realizada').fill('Se trasladó el lote al equipo de respaldo.')
   await panel.getByLabel('Justificación').fill('Superó 8 °C durante la excursión.')
   await panel.getByRole('button', { name: 'Guardar acción' }).click()
   await expect(panel.getByText('Acción correctiva registrada.')).toBeVisible()
@@ -237,7 +237,7 @@ for (const ancho of [1440, 390]) {
     await expect(panel.getByText('Reconocida', { exact: true })).toBeVisible()
     const nota = `Traslado verificado con el equipo de respaldo (${ancho})`
     await panel.getByLabel('Decisión adoptada').fill('Traslado preventivo')
-    await panel.getByLabel('Descripción de la acción correctiva').fill(nota)
+    await panel.getByLabel('Acción realizada').fill(nota)
     await panel.getByLabel('Justificación').fill('Proteger el lote durante la excursión de prueba.')
     await panel.getByRole('button', { name: 'Guardar acción' }).click()
     await expect(panel.getByText('Acción correctiva registrada.')).toBeVisible()

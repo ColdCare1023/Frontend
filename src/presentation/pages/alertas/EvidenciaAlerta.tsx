@@ -5,9 +5,10 @@ import { estadoDeEquipo, useEstadoVivoStore } from '@/application/stores/estadoV
 import { estadoNotificacion, type AlertaTermica, type EstadoNotificacion } from '@/domain/entities/AlertaTermica'
 import { duracionLegible, fechaHora, fechaHoraCompacta } from '@/lib/formato'
 import { cn } from '@/lib/utils'
-import { tonoDesdeRiesgo } from '../../components/ui/estado-tonos'
+import { COLOR_ESTADO, tonoDesdeRiesgo, type TonoEstado } from '../../components/ui/estado-tonos'
 import { formatearTemperatura } from '../../components/ui/formato-cifra'
 import { Regla } from '../../components/ui/regla'
+import { posicionEnRegla } from '../../components/ui/regla-eje'
 
 /** Forma propia por estado del correo: nunca solo color (WCAG 1.4.1). */
 const CORREO: Record<EstadoNotificacion, { icono: LucideIcon; clase: string }> = {
@@ -93,30 +94,71 @@ export function AvisosEvidencia({ alerta, className }: { alerta: AlertaTermica; 
   if (!correo && !alerta.historica) return null
   const Correo = correo ? CORREO[correo.estado].icono : null
   return (
-    <ul className={cn('space-y-1.5 text-meta', className)}>
+    // Chips cortos: la explicación queda para el lector de pantalla y al pasar el cursor.
+    <ul className={cn('flex flex-wrap gap-1.5 text-meta', className)}>
       {correo && Correo && (
-        <li className="flex items-start gap-2">
-          <Correo aria-hidden className={cn('mt-px size-3.5 shrink-0', CORREO[correo.estado].clase)} />
-          <span>
-            <span className="font-medium text-foreground">{correo.texto}</span>
-            <span className="text-muted"> · {correo.ayuda}</span>
-          </span>
+        <li title={correo.ayuda} className="inline-flex items-center gap-1.5 rounded-full bg-surface-sunken px-2.5 py-1 font-medium text-foreground">
+          <Correo aria-hidden className={cn('size-3.5 shrink-0', CORREO[correo.estado].clase)} />
+          {correo.texto}
+          <span className="sr-only"> · {correo.ayuda}</span>
         </li>
       )}
       {alerta.historica && (
-        <li className="flex items-start gap-2">
-          <HardDrive aria-hidden className="mt-px size-3.5 shrink-0 text-warning-700" />
-          <span>
-            <span className="font-medium text-foreground">{t('alertas.historica')}</span>
-            <span className="text-muted"> · {t('alertas.historicaAyuda')}</span>
-          </span>
+        <li title={t('alertas.historicaAyuda')} className="inline-flex items-center gap-1.5 rounded-full bg-warning-100 px-2.5 py-1 font-medium text-warning-700">
+          <HardDrive aria-hidden className="size-3.5 shrink-0" />
+          {t('alertas.historica')}
+          <span className="sr-only"> · {t('alertas.historicaAyuda')}</span>
         </li>
       )}
     </ul>
   )
 }
 
-/** Evidencia completa de la cabecera del panel: pico, duración, inicio y Regla M. */
+/**
+ * Medidor del pico: tres tramos (bajo 2 °C, 2–8 °C seguro, sobre 8 °C) y el
+ * pico como un pin con su cifra encima. Se lee de un vistazo: dónde está el
+ * pico frente a la zona segura. El valor siempre va en texto (no solo color).
+ */
+function MedidorPico({ pico, tono, etiqueta }: { pico: number; tono: TonoEstado; etiqueta: string }) {
+  const pos = posicionEnRegla(pico) * 100
+  const bajo = posicionEnRegla(2) * 100
+  const alto = posicionEnRegla(8) * 100
+  const color = COLOR_ESTADO[tono]
+  const fuera = pico < 2 || pico > 8
+  return (
+    <div role="img" aria-label={etiqueta} className="pt-8 pb-1">
+      <div className="relative">
+        <div aria-hidden className="flex h-2.5 gap-0.5">
+          <span className={cn('rounded-l-full', pico < 2 ? 'bg-critical-tint ring-1 ring-inset ring-critical-solid/40' : 'bg-surface-sunken')} style={{ width: `${bajo}%` }} />
+          <span className="rounded-xs bg-success-100 ring-1 ring-inset ring-success-600/40" style={{ width: `${alto - bajo}%` }} />
+          <span className={cn('flex-1 rounded-r-full', pico > 8 ? 'bg-critical-tint ring-1 ring-inset ring-critical-solid/40' : 'bg-surface-sunken')} />
+        </div>
+        {/* Pin del pico: cifra encima (se corre hacia adentro en los bordes) y punto con halo. */}
+        <span
+          aria-hidden
+          className="nums absolute bottom-full mb-2.5 whitespace-nowrap rounded-md px-1.5 py-0.5 text-micro font-semibold text-surface motion-safe:animate-(--animate-pop-in)"
+          style={{ left: `${pos}%`, transform: `translateX(-${pos}%)`, background: color }}
+        >
+          {formatearTemperatura(pico)}
+        </span>
+        <span
+          aria-hidden
+          className="absolute top-1/2 grid size-4 -translate-x-1/2 -translate-y-1/2 place-items-center"
+          style={{ left: `${pos}%` }}
+        >
+          {fuera && <span className="absolute inset-0 rounded-full opacity-40 motion-safe:animate-ping" style={{ background: color }} />}
+          <span className="relative size-4 rounded-full border-2 border-surface" style={{ background: color }} />
+        </span>
+      </div>
+      <div aria-hidden className="nums relative mt-2 h-4 text-micro text-faint">
+        <span className="absolute -translate-x-1/2" style={{ left: `${bajo}%` }}>2 °C</span>
+        <span className="absolute -translate-x-1/2" style={{ left: `${alto}%` }}>8 °C</span>
+      </div>
+    </div>
+  )
+}
+
+/** Evidencia completa de la cabecera del panel: pico, duración, inicio y medidor del pico. */
 export function EvidenciaPanel({ alerta }: { alerta: AlertaTermica }) {
   const { t } = useTranslation()
   const equipo = useEstadoVivoStore((s) => s.equipos.find((item) => item.id === alerta.device_id))
@@ -141,16 +183,14 @@ export function EvidenciaPanel({ alerta }: { alerta: AlertaTermica }) {
               </dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-meta text-muted">{t('alertas.inicioExcursion')}</dt>
-              <dd className="nums text-body text-foreground">{fechaHora(alerta.iniciada_en)}</dd>
+              <dt className="text-meta text-muted">{t('alertas.panel.inicio')}</dt>
+              <dd className="nums text-body text-foreground">{alerta.iniciada_en ? fechaHoraCompacta(alerta.iniciada_en) : '—'}</dd>
             </div>
           </dl>
           {alerta.temperatura_pico != null && (
-            <Regla
-              valor={alerta.temperatura_pico}
+            <MedidorPico
+              pico={alerta.temperatura_pico}
               tono={tonoDesdeRiesgo(alerta.nivel_riesgo)}
-              tamano="m"
-              cotas
               etiqueta={t('alertas.panel.reglaPico', { valor: formatearTemperatura(alerta.temperatura_pico) })}
             />
           )}
@@ -159,12 +199,12 @@ export function EvidenciaPanel({ alerta }: { alerta: AlertaTermica }) {
         <p className="text-meta text-faint">{t('alertas.panel.sinEvidencia')}</p>
       )}
       {equipo && alerta.estado !== 'atendida' && (
-        <p className="text-meta text-muted">
-          <strong className="text-foreground">{equipo.nombre || equipo.id}</strong>
-          {' · '}{t(`estadoVivo.estado.${estadoEquipo}`)}
-          {ultima?.temperatura != null && estadoEquipo !== 'falla_sensor' && (
-            <> · {t('lectura.ultimaMedicion', { valor: formatearTemperatura(ultima.temperatura), fecha: fechaHoraCompacta(ultima.timestamp) })}</>
-          )}
+        // Una sola línea: cómo está el equipo ahora (el nombre ya está en la cabecera).
+        <p className="nums text-meta text-muted">
+          {ultima?.temperatura != null && estadoEquipo !== 'falla_sensor' ? (
+            <>{t('alertas.panel.ahora', { valor: formatearTemperatura(ultima.temperatura) })} · </>
+          ) : null}
+          {t(`estadoVivo.estado.${estadoEquipo}`)}
         </p>
       )}
       <AvisosEvidencia alerta={alerta} />

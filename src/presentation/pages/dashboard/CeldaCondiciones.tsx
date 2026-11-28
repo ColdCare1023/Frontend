@@ -1,6 +1,7 @@
 import { memo, useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowDownRight, ArrowUpRight, ChevronDown, DoorClosed, DoorOpen, Droplets, Hourglass, ThermometerSun } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ChevronDown, Hourglass } from 'lucide-react'
+import { IconoAire, IconoHumedad, IconoPuertaAbierta, IconoPuertaCerrada } from '../../components/ui/iconos-camara'
 
 import type { LecturaTermica } from '@/domain/entities/LecturaTermica'
 import { duracionBreve } from '@/lib/formato'
@@ -62,10 +63,14 @@ function Metrica({
     [serie, campo],
   )
   return (
-    <div className="flex min-w-0 flex-col sm:px-3 sm:first:pl-0 sm:last:pr-0">
-      <dt className="flex items-center gap-1.5 text-meta font-medium text-muted">
-        <Icono aria-hidden className="size-3.5 shrink-0" />
-        <span className="break-words">{etiqueta}</span>
+    <div className="flex min-w-0 flex-col @[27rem]:px-3 @[27rem]:first:pl-0 @[27rem]:last:pr-0">
+      <dt className="flex items-center gap-2 text-meta font-medium text-muted">
+        {/* Color por magnitud: rosa para el aire (calor), cian para la humedad. */}
+        <Icono
+          aria-hidden
+          className={clsx('size-5 shrink-0', campo === 'temperatura_ambiental' ? 'text-accent-hover' : 'text-secondary-hover')}
+        />
+        <span className="whitespace-nowrap">{etiqueta}</span>
       </dt>
       {fallo || valor == null ? (
         <dd className="mt-1 text-meta font-medium text-warning-700">
@@ -77,10 +82,13 @@ function Metrica({
         </dd>
       ) : (
         <dd className="mt-1 flex flex-wrap items-baseline gap-x-1.5">
-          <span className={clsx('nums text-metric', desactualizado ? 'text-muted' : 'text-foreground')}>
-            {valor.toFixed(decimales)}
+          {/* Cifra y unidad juntas: «21.0 °C» nunca se parte en dos líneas. */}
+          <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+            <span className={clsx('nums text-metric', desactualizado ? 'text-muted' : 'text-foreground')}>
+              {valor.toFixed(decimales)}
+            </span>
+            <span className="text-body font-medium text-muted">{unidad}</span>
           </span>
-          <span className="text-body font-medium text-muted">{unidad}</span>
           {mostrarTendencia && delta != null && Math.abs(delta) >= 0.05 && (
             <span className="nums inline-flex items-center text-micro text-faint">
               {delta > 0 ? <ArrowUpRight aria-hidden className="size-3" /> : <ArrowDownRight aria-hidden className="size-3" />}
@@ -180,18 +188,18 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
         ))}
       </div>
     ) : (
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:divide-x sm:divide-border">
+      <dl className="grid grid-cols-2 gap-3 @[27rem]:grid-cols-3 @[27rem]:divide-x @[27rem]:divide-border">
         {[
-          [ThermometerSun, t('dashboard.ambienteCorto')],
-          [Droplets, t('dashboard.humedadCorta')],
-          [DoorClosed, t('dashboard.puerta')],
+          [IconoAire, t('dashboard.ambienteCorto')],
+          [IconoHumedad, t('dashboard.humedadCorta')],
+          [IconoPuertaCerrada, t('dashboard.puerta')],
         ].map(([Icono, etiqueta]) => {
           const I = Icono as React.ComponentType<{ className?: string }>
           return (
-            <div key={etiqueta as string} className="flex min-w-0 flex-col sm:px-3 sm:first:pl-0 sm:last:pr-0">
-              <dt className="flex items-center gap-1.5 text-meta font-medium text-muted">
-                <I aria-hidden className="size-3.5" />
-                {etiqueta as string}
+            <div key={etiqueta as string} className="flex min-w-0 flex-col @[27rem]:px-3 @[27rem]:first:pl-0 @[27rem]:last:pr-0">
+              <dt className="flex items-center gap-2 text-meta font-medium text-muted">
+                <I aria-hidden className="size-5 shrink-0 text-faint" />
+                <span className="whitespace-nowrap">{etiqueta as string}</span>
               </dt>
               <dd className="mt-1 flex items-center gap-1 text-metric text-faint">
                 <Hourglass aria-hidden className="size-4 text-nodata-700" />—
@@ -209,9 +217,9 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
     const hasta = Date.parse(ultima.timestamp) || 0
     const aperturas = puerta.sinSensor ? 0 : aperturasEnSerie(serie, puerta.umbral).length
     contenido = (
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:divide-x sm:divide-border">
+      <dl className="grid grid-cols-2 gap-3 @[27rem]:grid-cols-3 @[27rem]:divide-x @[27rem]:divide-border">
         <Metrica
-          icono={ThermometerSun}
+          icono={IconoAire}
           etiqueta={t('dashboard.ambienteCorto')}
           valor={ultima.temperatura_ambiental}
           unidad="°C"
@@ -225,7 +233,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           textoDelta={t('dashboard.variacionVsAnterior')}
         />
         <Metrica
-          icono={Droplets}
+          icono={IconoHumedad}
           etiqueta={t('dashboard.humedadCorta')}
           valor={ultima.humedad_ambiental}
           unidad="%"
@@ -238,14 +246,14 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
           mostrarTendencia={mostrarTendencia}
           textoDelta={t('dashboard.variacionVsAnterior')}
         />
-        <div className="col-span-2 flex min-w-0 flex-col sm:col-span-1 sm:px-3 sm:first:pl-0 sm:last:pr-0">
-          <dt className="flex items-center gap-1.5 text-meta font-medium text-muted">
+        <div className="col-span-2 flex min-w-0 flex-col @[27rem]:col-span-1 @[27rem]:px-3 @[27rem]:first:pl-0 @[27rem]:last:pr-0">
+          <dt className="flex items-center gap-2 text-meta font-medium text-muted">
             {puerta.abiertaAhora ? (
-              <DoorOpen className="size-3.5 shrink-0 text-warning-600" aria-hidden />
+              <IconoPuertaAbierta aria-hidden className="size-5 shrink-0 text-warning-700 motion-safe:animate-(--animate-pop-in)" />
             ) : (
-              <DoorClosed className="size-3.5 shrink-0" aria-hidden />
+              <IconoPuertaCerrada aria-hidden className="size-5 shrink-0 text-primary-text" />
             )}
-            {t('dashboard.puerta')}
+            <span className="whitespace-nowrap">{t('dashboard.puerta')}</span>
           </dt>
           <dd className={clsx('mt-1 text-title', puerta.abiertaAhora ? 'text-warning-700' : 'text-foreground')}>
             {/* Rol y testid en un span interno: un <dd> con role rompe el <dl> (axe definition-list). */}
@@ -317,7 +325,7 @@ export const CeldaCondiciones = memo(function CeldaCondiciones({
   return (
     <section
       aria-labelledby="condiciones-titulo"
-      className="flex min-w-0 flex-col"
+      className="@container flex min-w-0 flex-col"
     >
       {/* El título queda para lector de pantalla: las etiquetas Ambiente, Humedad
           y Puerta ya lo dicen. La hora de la lectura la muestra la celda de temperatura. */}

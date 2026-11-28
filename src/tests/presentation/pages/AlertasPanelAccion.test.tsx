@@ -68,7 +68,7 @@ async function abrirAccion(usuario = userEvent.setup(), equipo = 'FARM-01-CDL') 
 
 async function completar(usuario: ReturnType<typeof userEvent.setup>, dialogo: HTMLElement) {
   await usuario.type(within(dialogo).getByLabelText('Decisión adoptada'), '  Inmovilizar  ')
-  await usuario.type(within(dialogo).getByLabelText('Descripción de la acción correctiva'), 'Se reubicaron los viales ')
+  await usuario.type(within(dialogo).getByLabelText('Acción realizada'), 'Se reubicaron los viales ')
   await usuario.type(within(dialogo).getByLabelText('Justificación'), ' Superó 8 °C')
 }
 

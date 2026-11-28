@@ -81,7 +81,7 @@ describe('Atención de alertas en la pantalla de monitoreo', () => {
     expect(await dialogo.findByText('Reconocida')).toBeVisible()
     expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement)
     await user.type(dialogo.getByRole('textbox', { name: /decisión/i }), 'Trasladar')
-    await user.type(dialogo.getByRole('textbox', { name: /descripción de la acción/i }), 'Traslado al equipo de reserva')
+    await user.type(dialogo.getByRole('textbox', { name: /acción realizada/i }), 'Traslado al equipo de reserva')
     await user.type(dialogo.getByRole('textbox', { name: /justificación/i }), 'Temperatura fuera de rango')
     await user.click(dialogo.getByRole('button', { name: 'Guardar acción' }))
     expect(await dialogo.findByText(/acción correctiva registrada/i)).toBeVisible()
@@ -113,7 +113,7 @@ describe('Atención de alertas en la pantalla de monitoreo', () => {
     expect(await dialogo.findByRole('alert')).toHaveTextContent(/farmacéutico/i)
     estadoAlGuardar = 503
     await user.type(dialogo.getByRole('textbox', { name: /decisión/i }), 'Traslado')
-    await user.type(dialogo.getByRole('textbox', { name: /descripción de la acción/i }), 'A reserva')
+    await user.type(dialogo.getByRole('textbox', { name: /acción realizada/i }), 'A reserva')
     await user.type(dialogo.getByRole('textbox', { name: /justificación/i }), 'Excursión')
     await user.click(dialogo.getByRole('button', { name: 'Guardar acción' }))
     expect(await dialogo.findByText(/tu texto se conserva/i)).toBeVisible()

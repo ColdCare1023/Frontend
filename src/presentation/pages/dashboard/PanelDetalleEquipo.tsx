@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
-import { ArrowRight, CalendarPlus } from 'lucide-react'
+import { ArrowRight, CalendarPlus, ChevronRight } from 'lucide-react'
 
 import { registrarCalibracionDispositivo } from '@/application/hooks/useCalibracion'
 import { brechasRecientes, CAPACIDAD_BUFFER_LITTLEFS, INTERVALO_REPORTE_POR_DEFECTO, estadoCalibracion, umbralSilencioSegundos, type Dispositivo } from '@/domain/entities/Dispositivo'
@@ -74,7 +74,7 @@ export function PanelDetalleEquipo({
             <SidePanelTitle className="[overflow-wrap:anywhere]">
               {nombre} {nombre !== equipo.id && <span className="codigo block text-meta font-normal text-muted">{equipo.id}</span>}
             </SidePanelTitle>
-            <SidePanelDescription>{t('dashboard.detalleEquipoDescripcion')}</SidePanelDescription>
+            <SidePanelDescription className="sr-only">{t('dashboard.detalleEquipoDescripcion')}</SidePanelDescription>
           </SidePanelHeader>
           {/* Enfocable: con contenido solo de lectura, el teclado también debe poder desplazarlo. */}
           <SidePanelBody tabIndex={0} className="focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring">
@@ -161,8 +161,9 @@ function DetalleEquipo({
         </p>
       </Seccion>
 
+      {/* Sin datos del buffer no hay nada que mirar: la sección no se muestra. */}
+      {buffer && (
       <Seccion titulo={t('dashboard.bufferTitulo')}>
-        {buffer ? (
           <>
             <div className="flex items-center gap-3">
               <AnilloBuffer
@@ -198,10 +199,8 @@ function DetalleEquipo({
               </ul>
             )}
           </>
-        ) : (
-          <p>—</p>
-        )}
       </Seccion>
+      )}
 
       <Seccion titulo={t('dashboard.calibracionTitulo')}>
         <EstadoCalibracionCorto equipo={equipo} />
@@ -270,8 +269,14 @@ function DetalleEquipo({
         )}
       </Seccion>
 
-      <Seccion titulo={t('dashboard.seccionFicha')}>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-meta">
+      {/* Datos técnicos: plegados, a un clic. */}
+      <details className="group py-4">
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
+          <ChevronRight aria-hidden className="size-3.5 text-faint transition-transform duration-(--duration-ui) group-open:rotate-90" />
+          {/* Un encabezado dentro del summary: la sección sigue en el índice de encabezados. */}
+          <h3 className="eyebrow">{t('dashboard.seccionFicha')}</h3>
+        </summary>
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-meta animate-(--animate-fade)">
           <div>
             <dt className="text-faint">{t('dispositivos.fallasSensor')}</dt>
             <dd className="mt-0.5 font-medium text-foreground">{(equipo.sensores ?? []).filter((s) => s.estado === 'error').length}</dd>
@@ -301,7 +306,7 @@ function DetalleEquipo({
             </div>
           )}
         </dl>
-      </Seccion>
+      </details>
     </div>
   )
 }

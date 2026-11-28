@@ -682,7 +682,7 @@
     "decisionPlaceholder": "E.g.: hold the batch until its stability is assessed",
     "etiquetaJustificacion": "Justification",
     "justificacionPlaceholder": "E.g.: temperature exceeded 8 °C for 40 minutes",
-    "etiquetaAccion": "Corrective action description",
+    "etiquetaAccion": "Action taken",
     "incidentesOperativos": "Operational incidents",
     "incidentesOperativosDetalle": "Missing node data and, during a compromise credential rotation, suspended monitoring or unverified-origin excursions. They are not the recorded thermal alerts.",
     "incidenteEstado": {
@@ -788,7 +788,10 @@
       "sinCambios": "Change the decision, the action or the justification: an amendment without changes is not recorded.",
       "decisionVacia": "The corrected decision can't be empty.",
       "justificacionVacia": "The corrected justification can't be empty.",
-      "errorProhibido": "Your role can't record corrective actions; pharmacy staff record them. Your text is kept."
+      "errorProhibido": "Your role can't record corrective actions; pharmacy staff record them. Your text is kept.",
+      "ahora": "Now {{valor}}",
+      "faltanCorto_one": "1 field left",
+      "faltanCorto_other": "{{count}} fields left"
     },
     "vacio": {
       "enOrdenTitulo": "All clear",
@@ -2175,14 +2178,15 @@
       }
     },
     "preventivo": {
-      "titulo": "Preventive classification",
+      "titulo": "AI model",
       "enOperacion": "In operation",
       "enSombra": "Shadow mode",
       "fueraDeOperacion": "Out of operation",
       "demostracion": "Demo",
       "detalleOperativa": "Preventive model {{version}}: it is the active, approved registry version. The effective risk can show Preventive risk and open preventive alerts.",
       "detalleSombra": "It records predictions as evidence but does not decide the risk or open preventive alerts.",
-      "reglaDecide": "Today the 2⁠–⁠8 °C range defines the status. The model does not raise alerts.",
+      "porQue": "Why?",
+      "reglaDecide": "Today the 2⁠–⁠8 °C range defines the status.",
       "versionRegistro": "Active registry version: {{version}}",
       "ninguna": "none",
       "motivos": {

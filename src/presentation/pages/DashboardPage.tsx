@@ -210,7 +210,7 @@ export function DashboardPage() {
         id="alertas-monitoreo"
         tabIndex={-1}
         className={cn(
-          'mb-3 min-w-0 scroll-mt-20 rounded-(--radius-card) border bg-surface px-4 py-3 focus:outline-none sm:px-5 xl:mb-4',
+          'mb-3 min-w-0 scroll-mt-20 rounded-(--radius-card) border bg-surface px-4 py-3 focus:outline-none sm:px-5 xl:mb-4 animate-(--animate-rise)',
           alertas.criticas > 0 ? 'border-critical/40' : 'border-warning-200',
           !hayAlertas && 'hidden',
         )}

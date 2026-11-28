@@ -682,7 +682,7 @@
     "decisionPlaceholder": "Ej.: inmovilizar el lote hasta evaluar su estabilidad",
     "etiquetaJustificacion": "Justificación",
     "justificacionPlaceholder": "Ej.: la temperatura superó 8 °C durante 40 minutos",
-    "etiquetaAccion": "Descripción de la acción correctiva",
+    "etiquetaAccion": "Acción realizada",
     "incidentesOperativos": "Incidentes operativos",
     "incidentesOperativosDetalle": "Sin datos del nodo y, durante una rotación de credencial por compromiso, monitoreo suspendido o excursiones de origen no verificado. No son las alertas térmicas registradas.",
     "incidenteEstado": {
@@ -788,7 +788,10 @@
       "sinCambios": "Cambia la decisión, la acción o la justificación: una rectificación sin cambios no se registra.",
       "decisionVacia": "La decisión corregida no puede quedar vacía.",
       "justificacionVacia": "La justificación corregida no puede quedar vacía.",
-      "errorProhibido": "Tu rol no puede registrar acciones correctivas: las registra el personal farmacéutico. Tu texto se conserva."
+      "errorProhibido": "Tu rol no puede registrar acciones correctivas: las registra el personal farmacéutico. Tu texto se conserva.",
+      "ahora": "Ahora {{valor}}",
+      "faltanCorto_one": "Falta 1 campo",
+      "faltanCorto_other": "Faltan {{count}} campos"
     },
     "vacio": {
       "enOrdenTitulo": "Todo en orden",
@@ -2175,14 +2178,15 @@
       }
     },
     "preventivo": {
-      "titulo": "Clasificación preventiva",
+      "titulo": "Modelo IA",
       "enOperacion": "En operación",
       "enSombra": "Modo sombra",
       "fueraDeOperacion": "Fuera de operación",
       "demostracion": "Demostración",
       "detalleOperativa": "Modelo preventivo {{version}}: es la versión activa y aprobada del registro. El riesgo efectivo puede mostrarse como Riesgo preventivo y abrir alertas preventivas.",
       "detalleSombra": "Registra predicciones como evidencia, pero no decide el riesgo ni abre alertas preventivas.",
-      "reglaDecide": "Hoy el estado lo define el rango 2⁠–⁠8 °C. El modelo no genera alertas.",
+      "porQue": "¿Por qué?",
+      "reglaDecide": "Hoy el estado lo define el rango 2⁠–⁠8 °C.",
       "versionRegistro": "Versión activa del registro: {{version}}",
       "ninguna": "ninguna",
       "motivos": {
