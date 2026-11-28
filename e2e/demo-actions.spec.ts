@@ -109,7 +109,7 @@ test('farmacéutico revisa alerta y genera reporte', async ({ page }) => {
   const dialogoAccion = page.getByRole('dialog')
   await dialogoAccion.getByLabel('Decisión adoptada').fill('Inmovilizar el lote')
   await dialogoAccion.getByLabel('Justificación').fill('Lectura fuera de rango')
-  await dialogoAccion.getByLabel('Descripción de la acción correctiva')
+  await dialogoAccion.getByLabel('Acción realizada')
     .fill('Se verificó cierre de puerta en QA demo.')
   await dialogoAccion.getByRole('button', { name: 'Guardar acción' }).click()
   await expect(dialogoAccion.getByText('Acción correctiva registrada.')).toBeVisible()
