@@ -468,6 +468,7 @@ function lecturasFiltradas(params: Record<string, string>): { pagina: LecturaTer
   if (params.nivel_riesgo) resultado = resultado.filter((l) => l.nivel_riesgo === params.nivel_riesgo)
   // HU-36 / B-14: el historial filtra por riesgo efectivo, como el backend.
   if (params.riesgo_efectivo) resultado = resultado.filter((l) => l.riesgo_efectivo === params.riesgo_efectivo)
+  if (params.estado_conectividad) resultado = resultado.filter((l) => l.estado_conectividad === params.estado_conectividad)
   const desde = params.desde ? Date.parse(params.desde) : Number.NEGATIVE_INFINITY
   const hasta = params.hasta ? Date.parse(params.hasta) : Number.POSITIVE_INFINITY
   if (params.desde || params.hasta) {
