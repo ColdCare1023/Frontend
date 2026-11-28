@@ -153,6 +153,13 @@ export const CeldaLectura = memo(function CeldaLectura({
         ) : (
           <RiskBadge nivel={riesgo} />
         )}
+        {/* HU-34 esc. 2: el modelo en sombra ve riesgo preventivo; el estado no cambia. */}
+        {!desactualizado && !ultima.excursion_confirmada && ultima.ia_sombra?.clase === 'riesgo_preventivo' && (
+          <Badge variant="outline" data-testid="ia-modo-sombra" title={t('dashboard.iaModoSombraDetalle')}>
+            {t('dashboard.iaModoSombra')}
+            <span className="sr-only">. {t('dashboard.iaModoSombraDetalle')}</span>
+          </Badge>
+        )}
       </div>
 
       <div className="mt-3 flex items-baseline gap-1">
@@ -288,9 +295,9 @@ export const CeldaLectura = memo(function CeldaLectura({
             <span className="font-medium text-warning-700">{t('dashboard.actualizacionReconectando')}</span>
           </>
         )}
-        {/* «hace X s» basta a la vista; la hora exacta sigue para lector de pantalla. */}
-        {!desactualizado && <span className="sr-only">
-          · {t('dashboard.ultimaLecturaHora')}: <HoraLectura lectura={ultima} formato="hora" />
+        {/* HU-32 esc. 4: la hora de la última actualización queda a la vista. */}
+        {!desactualizado && <span className="nums text-faint">
+          · <span className="sr-only">{t('dashboard.ultimaLecturaHora')}: </span><HoraLectura lectura={ultima} formato="hora" />
         </span>}
       </p>
     </section>
