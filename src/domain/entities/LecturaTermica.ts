@@ -56,6 +56,8 @@ export interface LecturaTermica {
   time_quality?: TimeQualityLectura | null
   /** HU-20: la clase la produjo el modelo legado (datos sintéticos). */
   ia_experimental?: boolean
+  /** HU-34 esc. 2: clase del modelo preventivo en modo sombra; no cambia el riesgo ni abre alertas. */
+  ia_sombra?: { clase: 'normal' | 'riesgo_preventivo'; modelo_version: string | null } | null
   // HU-34: excursión confirmada por la regla directa de rango (2–8 °C),
   // independiente de la IA — nunca se infiere desde `nivel_riesgo`.
   excursion_confirmada: boolean
