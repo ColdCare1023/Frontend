@@ -280,7 +280,8 @@ export function AuditoriaPage() {
               {t('historial.limpiar')}
             </Button>
           )}
-          <span aria-live="polite" className="nums ml-auto text-meta text-faint">
+          {/* El total ya sale en el encabezado: aquí solo se anuncia. */}
+          <span aria-live="polite" className={cn('nums ml-auto text-meta text-faint', !cargando && 'sr-only')}>
             {cargando ? t('comunes.consultando') : t('auditoria.filtro.resultados', { count: filtradas.length })}
           </span>
         </div>
