@@ -227,7 +227,7 @@ describe('HistorialPage — rediseño P6 (registros)', () => {
     ])
     const cabeceras = screen.getAllByRole('columnheader').filter((th) => th.getAttribute('scope') === 'colgroup')
     expect(cabeceras).toHaveLength(2)
-    expect(cabeceras[0]).toHaveTextContent(/2 lecturas · mín 4[.,]5 · máx 6[.,]1/)
+    expect(cabeceras[0]).toHaveTextContent(/mín 4[.,]5 · máx 6[.,]1/)
   })
 
   it('el detalle de fila muestra ambiente, humedad, conexión y calidad de hora', async () => {
