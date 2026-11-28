@@ -82,7 +82,7 @@
     "dashboard": "Monitoring",
     "historial": "History",
     "alertas": "Alerts",
-    "trazabilidad": "Integrity",
+    "trazabilidad": "Record integrity",
     "reportes": "Reports",
     "auditoria": "Audit log",
     "usuarios": "Users",
@@ -92,8 +92,8 @@
     "seccionOperacion": "Operations",
     "seccionCumplimiento": "Records & review",
     "seccionAdministracion": "Administration",
-    "metricasIA": "AI model",
-    "guia": "Help",
+    "metricasIA": "Risk classifier",
+    "guia": "User guide",
     "saltarAlContenido": "Skip to main content",
     "principal": "Main navigation",
     "principalMovil": "Main navigation (mobile menu)",
@@ -403,7 +403,9 @@
     "bandejaAtender": "Respond",
     "bandejaMas": "Other alerts ({{count}})",
     "bandejaLimite": "There are at least {{count}} open alerts. Up to {{limite}} are loaded for each status.",
-    "estadisticasCurva": "Show summary"
+    "estadisticasCurva": "Show summary",
+    "iaModoSombra": "Shadow-mode AI: preventive risk",
+    "iaModoSombraDetalle": "Evidence only: the model is not yet accepted, so it does not change the status or open alerts."
   },
   "demo": {
     "accesoRapido": "Demo access",
@@ -530,7 +532,10 @@
       "masActivos_one": "Filters ({{count}})",
       "masActivos_other": "Filters ({{count}})",
       "resultadosPeriodo_one": "{{count}} reading in the period",
-      "resultadosPeriodo_other": "{{count}} readings in the period"
+      "resultadosPeriodo_other": "{{count}} readings in the period",
+      "conexion": "Connection",
+      "todasConexiones": "All",
+      "chipConexion": "Connection: {{valor}}"
     },
     "curva": {
       "titulo": "Period curve",
@@ -1590,7 +1595,7 @@
     "mesesVigencia": "Certificate validity (months)",
     "mesesVigenciaAyuda": "The next calibration date is calculated from the date and the validity (1 to 60 months).",
     "brokerPendiente": {
-      "aprovisionar": "Pending in broker: create user",
+      "aprovisionar": "Pending in the broker: create the user or change its password",
       "retirar": "Pending in broker: remove user"
     },
     "brokerPendienteDesde": "Pending since {{fecha}}",
@@ -1871,6 +1876,11 @@
       "origen": "source: {{origen}}",
       "vigenteEntre": "In effect from {{desde}} to {{hasta}}",
       "vigenteDesde": "In effect since {{desde}} (current)"
+    },
+    "brokerPendienteMotivo": {
+      "modo_manual": "Reason: the broker is managed manually (EMQX Serverless).",
+      "api_broker_error": "Reason: the broker API rejected the operation; check the instance.",
+      "api_broker_sin_configurar": "Reason: the broker API is not configured in the backend."
     }
   },
   "comunes": {
@@ -2178,7 +2188,7 @@
       }
     },
     "preventivo": {
-      "titulo": "AI model",
+      "titulo": "Risk classifier",
       "enOperacion": "In operation",
       "enSombra": "Shadow mode",
       "fueraDeOperacion": "Out of operation",
@@ -2886,5 +2896,10 @@
     "flujoConectado": "Update feed connected",
     "duracionRegistrada": "for {{duracion}}",
     "umbralSuperado": "Exceeded the {{segundos}} s threshold."
+  },
+  "conectividad": {
+    "online": "Online",
+    "offline": "Offline",
+    "recuperado": "Recovered"
   }
 }

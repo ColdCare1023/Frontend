@@ -82,7 +82,7 @@
     "dashboard": "Monitoreo",
     "historial": "Historial",
     "alertas": "Alertas",
-    "trazabilidad": "Integridad",
+    "trazabilidad": "Integridad de registros",
     "reportes": "Reportes",
     "auditoria": "Auditoría",
     "usuarios": "Usuarios",
@@ -92,8 +92,8 @@
     "seccionOperacion": "Operación",
     "seccionCumplimiento": "Registros y revisión",
     "seccionAdministracion": "Administración",
-    "metricasIA": "Modelo IA",
-    "guia": "Ayuda",
+    "metricasIA": "Clasificador de riesgo",
+    "guia": "Guía de uso",
     "saltarAlContenido": "Saltar al contenido principal",
     "principal": "Navegación principal",
     "principalMovil": "Navegación principal (menú móvil)",
@@ -403,7 +403,9 @@
     "bandejaAtender": "Atender",
     "bandejaMas": "Otras alertas ({{count}})",
     "bandejaLimite": "Hay al menos {{count}} alertas abiertas. Se consultan hasta {{limite}} por estado.",
-    "estadisticasCurva": "Ver resumen"
+    "estadisticasCurva": "Ver resumen",
+    "iaModoSombra": "IA en modo sombra: riesgo preventivo",
+    "iaModoSombraDetalle": "Solo evidencia: el modelo aún no está aceptado, no cambia el estado ni abre alertas."
   },
   "demo": {
     "accesoRapido": "Acceso de demostración",
@@ -530,7 +532,10 @@
       "masActivos_one": "Filtros ({{count}})",
       "masActivos_other": "Filtros ({{count}})",
       "resultadosPeriodo_one": "{{count}} lectura en el periodo",
-      "resultadosPeriodo_other": "{{count}} lecturas en el periodo"
+      "resultadosPeriodo_other": "{{count}} lecturas en el periodo",
+      "conexion": "Conexión",
+      "todasConexiones": "Todas",
+      "chipConexion": "Conexión: {{valor}}"
     },
     "curva": {
       "titulo": "Curva del periodo",
@@ -1590,7 +1595,7 @@
     "mesesVigencia": "Vigencia del certificado (meses)",
     "mesesVigenciaAyuda": "El sistema calcula la próxima calibración a partir de la fecha y la vigencia (1 a 60 meses).",
     "brokerPendiente": {
-      "aprovisionar": "Pendiente en el broker: crear usuario",
+      "aprovisionar": "Pendiente en el broker: crear usuario o cambiar su contraseña",
       "retirar": "Pendiente en el broker: retirar usuario"
     },
     "brokerPendienteDesde": "Pendiente desde {{fecha}}",
@@ -1871,6 +1876,11 @@
       "origen": "origen: {{origen}}",
       "vigenteEntre": "Vigente del {{desde}} al {{hasta}}",
       "vigenteDesde": "Vigente desde el {{desde}} (actual)"
+    },
+    "brokerPendienteMotivo": {
+      "modo_manual": "Motivo: el broker se administra a mano (EMQX Serverless).",
+      "api_broker_error": "Motivo: la API del broker rechazó la operación; revise la instancia.",
+      "api_broker_sin_configurar": "Motivo: la API del broker no está configurada en el backend."
     }
   },
   "comunes": {
@@ -2178,7 +2188,7 @@
       }
     },
     "preventivo": {
-      "titulo": "Modelo IA",
+      "titulo": "Clasificador de riesgo",
       "enOperacion": "En operación",
       "enSombra": "Modo sombra",
       "fueraDeOperacion": "Fuera de operación",
@@ -2886,5 +2896,10 @@
     "flujoConectado": "Flujo de actualizaciones conectado",
     "duracionRegistrada": "durante {{duracion}}",
     "umbralSuperado": "Superó el umbral de {{segundos}} s."
+  },
+  "conectividad": {
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "recuperado": "Recuperado"
   }
 }
